@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PERCOSET</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&display=swap');
+
+  :root {
+    --bg: #0e0e0e;
+    --panel: #1a1a1a;
+    --border: #333;
+    --accent: #e8c84a;
+    --accent2: #e8694a;
+    --dim: #555;
+    --text: #e0dfd8;
+    --step-off: #2a2a2a;
+    --step-on: #e8c84a;
+    --step-active: #fff8dc;
+    --playhead: #e8694a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 12px;
+    user-select: none;
+  }
+
+  header {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.6rem;
+    letter-spacing: 5px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  header .sub { font-size: 0.62rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+
+  .transport {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    padding: 7px 18px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.1s;
+  }
+  .btn:hover  { border-color: var(--accent); color: var(--accent); }
+  .btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .bpm-wrap { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .bpm-label { font-size: 0.62rem; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; }
+  .bpm-val   { font-size: 1.3rem; color: var(--accent); min-width: 44px; text-align: right; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100px; height: 2px;
+    background: var(--border); outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px; height: 12px;
+    background: var(--accent); cursor: pointer;
+  }
+  .vol-wrap  { display: flex; align-items: center; gap: 8px; }
+  .vol-label { font-size: 0.6rem; letter-spacing: 1px; color: var(--dim); text-transform: uppercase; }
+
+  /* loading overlay */
+  #loadingOverlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    z-index: 999;
+  }
+  #loadingOverlay h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem; letter-spacing: 4px; color: var(--accent);
+  }
+  #loadingOverlay p { font-size: 0.65rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+  #loadingOverlay.hidden { display: none; }
+
+  /* sounds menu */
+  .sounds-wrap { position: relative; }
+  .sounds-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    padding: 7px 12px;
+    cursor: pointer;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition: border-color 0.1s, color 0.1s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sounds-btn:hover, .sounds-btn.open { border-color: var(--accent); color: var(--accent); }
+  .sounds-btn .caret { font-size: 0.5rem; opacity: 0.6; }
+
+  .menu-l1 {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px); left: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    min-width: 160px;
+    z-index: 100;
+  }
+  .menu-l1.open { display: block; }
+
+  .menu-track { position: relative; }
+  .menu-track-label {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px;
+    font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; color: var(--text);
+    transition: background 0.08s, color 0.08s;
+    gap: 12px;
+  }
+  .menu-track-label:hover { background: #222; color: var(--accent); }
+  .menu-track-label .track-current { color: var(--dim); font-size: 0.6rem; }
+  .menu-track-label .arrow { font-size: 0.5rem; opacity: 0.5; }
+
+  .menu-l2 {
+    display: none;
+    position: absolute;
+    left: 100%; top: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    min-width: 130px;
+    z-index: 101;
+  }
+  .menu-track:hover .menu-l2 { display: block; }
+
+  .menu-sound {
+    padding: 8px 14px;
+    font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; color: var(--text);
+    transition: background 0.08s, color 0.08s;
+    white-space: nowrap;
+  }
+  .menu-sound:hover  { background: #222; color: var(--accent); }
+  .menu-sound.active { color: var(--accent); }
+
+  /* sequencer */
+  .seq-wrap { width: 100%; max-width: 1100px; }
+
+  .step-numbers, .track {
+    display: grid;
+    grid-template-columns: 52px 24px 28px repeat(16, 1fr) 28px;
+    gap: 5px;
+    align-items: center;
+  }
+  .step-numbers { margin-bottom: 3px; }
+
+  .step-num { text-align: center; font-size: 0.55rem; color: var(--dim); letter-spacing: 1px; }
+  .step-num.beat { color: var(--accent2); font-size: 0.6rem; }
+
+  .sequencer { display: flex; flex-direction: column; gap: 8px; }
+
+  .track-label {
+    font-size: 0.58rem; letter-spacing: 1px;
+    color: var(--dim); text-align: center;
+    padding: 3px 4px; text-transform: uppercase; line-height: 1.3;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s, border-color 0.1s;
+  }
+  .track-label span { display: block; color: var(--accent); font-size: 0.52rem; }
+  .track-label:hover { border-color: #666; }
+  .track-label.muted { background: #aa1111; border-color: #cc2222; color: #fff; }
+  .track-label.muted span { color: #ffaaaa; }
+
+  .shift-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; width: 28px; height: 28px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding: 0; line-height: 1; transition: color 0.1s, border-color 0.1s; flex-shrink: 0;
+  }
+  .shift-btn:hover  { border-color: var(--accent); color: var(--accent); }
+  .shift-btn:active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .rand-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--dim); font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem; width: 24px; height: 24px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    padding: 0; line-height: 1; transition: color 0.1s, border-color 0.1s; flex-shrink: 0;
+  }
+  .rand-btn:hover  { border-color: var(--accent2); color: var(--accent2); }
+  .rand-btn:active { background: var(--accent2); color: #000; border-color: var(--accent2); }
+
+  .offset-label {
+    font-size: 0.45rem; color: var(--accent2);
+    text-align: center; display: block; line-height: 1;
+    margin-top: 1px; min-height: 8px;
+  }
+
+  .step {
+    aspect-ratio: 1;
+    background: var(--step-off);
+    border: 1px solid #3a3a3a;
+    cursor: pointer;
+    transition: background 0.05s, border-color 0.05s, opacity 0.05s;
+    min-height: 28px;
+  }
+  .step.soft { background: var(--step-on); border-color: var(--step-on); opacity: 0.45; }
+  .step.on   { background: var(--step-on); border-color: var(--step-on); opacity: 1; }
+  .step.playing { border-color: var(--playhead) !important; box-shadow: 0 0 8px var(--playhead); }
+  .step.on.playing, .step.soft.playing { background: var(--step-active); border-color: var(--playhead) !important; }
+  .step:hover:not(.on):not(.soft) { border-color: #666; background: #333; }
+
+  .footer {
+    width: 100%; max-width: 1100px;
+    margin-top: 22px; display: flex;
+    justify-content: space-between; align-items: center;
+    border-top: 1px solid var(--border); padding-top: 10px;
+  }
+  .ghost-btn {
+    font-size: 0.62rem; letter-spacing: 2px; color: var(--dim);
+    background: none; border: none; cursor: pointer;
+    text-transform: uppercase; font-family: 'Share Tech Mono', monospace;
+    transition: color 0.1s;
+  }
+  .ghost-btn:hover { color: var(--accent2); }
+  .status { font-size: 0.58rem; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+  <h2>PERCOSET</h2>
+  <p id="loadingMsg">Tap to load</p>
+</div>
+
+<header>
+  <h1>PERCOSET</h1>
+  <span class="sub">6-track / 16-step percussion sequencer</span>
+</header>
+
+<div class="transport">
+  <button class="btn" id="playBtn" onclick="togglePlay()">PLAY</button>
+  <button class="btn" onclick="clearAll()">CLEAR</button>
+
+  <div class="sounds-wrap" id="soundsWrap">
+    <button class="sounds-btn" id="soundsBtn" onclick="toggleSoundsMenu()">
+      <span>SOUNDS</span><span class="caret">▼</span>
+    </button>
+    <div class="menu-l1" id="menuL1"></div>
+  </div>
+
+  <div class="bpm-wrap">
+    <span class="bpm-label">BPM</span>
+    <span class="bpm-val" id="bpmVal">110</span>
+    <input type="range" id="bpmSlider" min="40" max="220" value="110"
+      oninput="document.getElementById('bpmVal').textContent=this.value; bpm=+this.value">
+  </div>
+  <div class="vol-wrap">
+    <span class="vol-label">VOL</span>
+    <input type="range" id="volSlider" min="0" max="1" step="0.01" value="0.8"
+      oninput="masterGain && masterGain.gain.setTargetAtTime(+this.value, ctx.currentTime, 0.01)">
+  </div>
+</div>
+
+<div class="seq-wrap">
+  <div class="step-numbers" id="stepNumbers"></div>
+  <div class="sequencer" id="sequencer"></div>
+</div>
+
+<div class="footer">
+  <button class="ghost-btn" onclick="randomize()">RANDOMIZE</button>
+  <span class="status" id="status">LOADING</span>
+  <button class="ghost-btn" onclick="clearAll()">CLEAR ALL</button>
+</div>
+
+<script>
+// ─── Instruments ──────────────────────────────────────────────────────────────
+// Each instrument has a soft (50) and accent (100) sample file.
+// Files live in a 'Sounds/' folder next to index.html.
+const INSTRUMENTS = {
+  tamb:    { name: 'TAMB',    soft: 'Sounds/Tamb50.wav',    accent: 'Sounds/Tamb100.wav'    },
+  shak:    { name: 'SHAKR',   soft: 'Sounds/Shak50.wav',    accent: 'Sounds/Shak100.wav'    },
+  clav:    { name: 'CLAV',    soft: 'Sounds/Clav50.wav',    accent: 'Sounds/Clav100.wav'    },
+  clap:    { name: 'CLAP',    soft: 'Sounds/Clap50.wav',    accent: 'Sounds/Clap100.wav'    },
+  congHi:  { name: 'CONG HI', soft: 'Sounds/CongHi50.wav',  accent: 'Sounds/CongHi100.wav'  },
+  congLo:  { name: 'CONG LO', soft: 'Sounds/CongLo50.wav',  accent: 'Sounds/CongLo100.wav'  },
+  bongHi:  { name: 'BNGO HI', soft: 'Sounds/BongHi50.wav',  accent: 'Sounds/BongHi100.wav'  },
+  bongLo:  { name: 'BNGO LO', soft: 'Sounds/BongLo50.wav',  accent: 'Sounds/BongLo100.wav'  },
+  cowb:    { name: 'COWB',    soft: 'Sounds/Cowb50.wav',    accent: 'Sounds/Cowb100.wav'    },
+};
+const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
+
+// ─── Audio context + buffer store ────────────────────────────────────────────
+let ctx = null, masterGain = null;
+const buffers = {}; // buffers[key].soft / buffers[key].accent
+
+function initCtx() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = ctx.createGain();
+  masterGain.gain.value = 0.8;
+  masterGain.connect(ctx.destination);
+}
+
+// iOS Safari suspends AudioContext until a user gesture — resume on first touch/click
+function resumeCtx() {
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+}
+document.addEventListener('touchstart', resumeCtx, { once: false });
+document.addEventListener('mousedown',  resumeCtx, { once: false });
+
+async function loadSamples() {
+  const msg = document.getElementById('loadingMsg');
+  let loaded = 0;
+  const total = INSTRUMENT_KEYS.length * 2;
+
+  await Promise.all(INSTRUMENT_KEYS.map(async key => {
+    const inst = INSTRUMENTS[key];
+    buffers[key] = {};
+    for (const vel of ['soft', 'accent']) {
+      try {
+        const res = await fetch(inst[vel]);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const ab = await res.arrayBuffer();
+        buffers[key][vel] = await ctx.decodeAudioData(ab);
+      } catch(e) {
+        console.warn(`Failed to load ${inst[vel]}:`, e);
+        buffers[key][vel] = null;
+      }
+      loaded++;
+      msg.textContent = `Loading samples... ${loaded}/${total}`;
+    }
+  }));
+
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById('status').textContent = 'STOPPED';
+}
+
+function playBuffer(key, isAccent, time) {
+  const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
+  if (!buf) return;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  src.connect(masterGain);
+  src.start(time);
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+const NUM_TRACKS = 6, NUM_STEPS = 16;
+const trackInstruments = ['tamb', 'shak', 'clav', 'clap', 'bongHi', 'bongLo'];
+// 0=off, 1=soft(50), 2=accent(100)
+const grid = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
+const trackOffset = new Array(NUM_TRACKS).fill(0);
+const trackMuted  = new Array(NUM_TRACKS).fill(false);
+
+let bpm = 110, playing = false;
+let currentStep = -1, nextStepTime = 0, scheduleInterval = null;
+const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
+
+function stepDuration() { return 60 / bpm / 4; } // 16th notes
+
+// ─── Scheduler ────────────────────────────────────────────────────────────────
+function scheduler() {
+  while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
+    const step = (currentStep + 1) % NUM_STEPS;
+    currentStep = step;
+    const t = nextStepTime;
+    requestAnimationFrame(() => updatePlayhead(step));
+    for (let tr = 0; tr < NUM_TRACKS; tr++) {
+      if (trackMuted[tr]) continue;
+      const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+      const val = grid[tr][gs];
+      if (val > 0) playBuffer(trackInstruments[tr], val === 2, t);
+    }
+    nextStepTime += stepDuration();
+  }
+}
+
+function updatePlayhead(step) {
+  document.querySelectorAll('.step').forEach(el => el.classList.remove('playing'));
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const el = document.querySelector(`[data-track="${tr}"][data-step="${step}"]`);
+    if (el) el.classList.add('playing');
+  }
+}
+
+// ─── Transport ────────────────────────────────────────────────────────────────
+function togglePlay() {
+  if (ctx) ctx.resume();
+  playing = !playing;
+  const btn = document.getElementById('playBtn');
+  const status = document.getElementById('status');
+  if (playing) {
+    currentStep = -1; nextStepTime = ctx.currentTime + 0.05;
+    scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
+    btn.classList.add('active'); btn.textContent = 'STOP'; status.textContent = 'PLAYING';
+  } else {
+    clearInterval(scheduleInterval);
+    btn.classList.remove('active'); btn.textContent = 'PLAY'; status.textContent = 'STOPPED';
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('playing'));
+  }
+}
+
+// ─── Sounds menu ─────────────────────────────────────────────────────────────
+function toggleSoundsMenu() {
+  const btn = document.getElementById('soundsBtn');
+  const menu = document.getElementById('menuL1');
+  const open = menu.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
+
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('soundsWrap');
+  if (!wrap.contains(e.target)) {
+    document.getElementById('menuL1').classList.remove('open');
+    document.getElementById('soundsBtn').classList.remove('open');
+  }
+});
+
+function buildSoundsMenu() {
+  const menu = document.getElementById('menuL1');
+  menu.innerHTML = '';
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const item = document.createElement('div');
+    item.className = 'menu-track';
+    const label = document.createElement('div');
+    label.className = 'menu-track-label';
+    label.innerHTML = `<span>TRK ${tr+1}</span><span class="track-current" id="trcur-${tr}">${INSTRUMENTS[trackInstruments[tr]].name}</span><span class="arrow">▶</span>`;
+    item.appendChild(label);
+    const sub = document.createElement('div');
+    sub.className = 'menu-l2';
+    INSTRUMENT_KEYS.forEach(k => {
+      const opt = document.createElement('div');
+      opt.className = 'menu-sound' + (trackInstruments[tr] === k ? ' active' : '');
+      opt.textContent = INSTRUMENTS[k].name;
+      opt.addEventListener('click', e => {
+        e.stopPropagation();
+        trackInstruments[tr] = k;
+        sub.querySelectorAll('.menu-sound').forEach(el => el.classList.remove('active'));
+        opt.classList.add('active');
+        document.getElementById(`trcur-${tr}`).textContent = INSTRUMENTS[k].name;
+        updateTrackLabel(tr);
+        document.getElementById('menuL1').classList.remove('open');
+        document.getElementById('soundsBtn').classList.remove('open');
+      });
+      sub.appendChild(opt);
+    });
+    item.appendChild(sub);
+    menu.appendChild(item);
+  }
+}
+
+function updateTrackLabel(tr) {
+  const el = document.getElementById(`tlabel-${tr}`);
+  if (!el) return;
+  el.innerHTML = `${tr+1}<span>${INSTRUMENTS[trackInstruments[tr]].name}</span>`;
+  el.classList.toggle('muted', trackMuted[tr]);
+}
+
+// ─── Offset / shift ───────────────────────────────────────────────────────────
+function shiftTrack(tr, dir) {
+  trackOffset[tr] = (trackOffset[tr] + dir + NUM_STEPS) % NUM_STEPS;
+  redrawTrackCells(tr);
+  updateOffsetLabel(tr);
+}
+
+function redrawTrackCells(tr) {
+  for (let s = 0; s < NUM_STEPS; s++) {
+    const el = document.querySelector(`[data-track="${tr}"][data-step="${s}"]`);
+    if (!el) continue;
+    const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+    const val = grid[tr][gs];
+    el.classList.toggle('on',   val === 2);
+    el.classList.toggle('soft', val === 1);
+  }
+}
+
+function updateOffsetLabel(tr) {
+  const lbl = document.getElementById(`offset-label-${tr}`);
+  if (!lbl) return;
+  const o = trackOffset[tr];
+  lbl.textContent = o === 0 ? '' : (o > 0 ? `+${o}` : `${o}`);
+}
+
+// ─── Grid UI ─────────────────────────────────────────────────────────────────
+function buildUI() {
+  const numRow = document.getElementById('stepNumbers');
+  numRow.innerHTML = '';
+  numRow.appendChild(document.createElement('div')); // mute label spacer
+  numRow.appendChild(document.createElement('div')); // R button spacer
+  numRow.appendChild(document.createElement('div')); // left-shift spacer
+  for (let s = 0; s < NUM_STEPS; s++) {
+    const d = document.createElement('div');
+    d.className = 'step-num' + (s % 4 === 0 ? ' beat' : '');
+    d.textContent = s % 4 === 0 ? (s / 4 + 1) : '·';
+    numRow.appendChild(d);
+  }
+  numRow.appendChild(document.createElement('div'));
+
+  const seq = document.getElementById('sequencer');
+  seq.innerHTML = '';
+
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const row = document.createElement('div');
+    row.className = 'track';
+
+    // mute / label
+    const lbl = document.createElement('div');
+    lbl.className = 'track-label';
+    lbl.id = `tlabel-${tr}`;
+    lbl.title = 'Click to mute/unmute';
+    lbl.innerHTML = `${tr+1}<span>${INSTRUMENTS[trackInstruments[tr]].name}</span>`;
+    lbl.addEventListener('click', () => {
+      trackMuted[tr] = !trackMuted[tr];
+      lbl.classList.toggle('muted', trackMuted[tr]);
+    });
+    row.appendChild(lbl);
+
+    // randomize this track (left side)
+    const btnRand = document.createElement('button');
+    btnRand.className = 'rand-btn';
+    btnRand.textContent = 'R';
+    btnRand.title = 'Randomize this track';
+    btnRand.addEventListener('click', () => randomizeTrack(tr));
+    row.appendChild(btnRand);
+
+    // left shift
+    const lblWrap = document.createElement('div');
+    lblWrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;';
+    const btnL = document.createElement('button');
+    btnL.className = 'shift-btn'; btnL.innerHTML = '&#9664;';
+    const offLbl = document.createElement('span');
+    offLbl.className = 'offset-label'; offLbl.id = `offset-label-${tr}`;
+    btnL.addEventListener('click', () => shiftTrack(tr, -1));
+    lblWrap.appendChild(btnL); lblWrap.appendChild(offLbl);
+    row.appendChild(lblWrap);
+
+    // steps
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const cell = document.createElement('div');
+      cell.className = 'step';
+      cell.dataset.track = tr;
+      cell.dataset.step = s;
+      cell.addEventListener('click', () => {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+        const val = grid[tr][gs];
+        cell.classList.toggle('on',   val === 2);
+        cell.classList.toggle('soft', val === 1);
+        if (val > 0 && ctx) {
+          ctx.resume();
+          playBuffer(trackInstruments[tr], val === 2, ctx.currentTime);
+        }
+      });
+      row.appendChild(cell);
+    }
+
+    // right shift
+    const btnR = document.createElement('button');
+    btnR.className = 'shift-btn'; btnR.innerHTML = '&#9654;';
+    btnR.addEventListener('click', () => shiftTrack(tr, +1));
+    row.appendChild(btnR);
+
+    seq.appendChild(row);
+  }
+
+  // add spacer to step-numbers row for ▶ column
+  document.getElementById('stepNumbers').appendChild(document.createElement('div'));
+  // add spacer to step-numbers row for the R column
+  document.getElementById('stepNumbers').appendChild(document.createElement('div'));
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+function clearAll() {
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    grid[tr].fill(0); trackOffset[tr] = 0;
+    redrawTrackCells(tr); updateOffsetLabel(tr);
+  }
+}
+
+function randomizeTrack(tr) {
+  for (let s = 0; s < NUM_STEPS; s++) {
+    const r = Math.random();
+    grid[tr][s] = r < 0.15 ? 2 : r < 0.28 ? 1 : 0;
+  }
+  redrawTrackCells(tr);
+}
+
+function randomize() {
+  for (let tr = 0; tr < NUM_TRACKS; tr++) randomizeTrack(tr);
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+buildUI();
+buildSoundsMenu();
+
+// Tap overlay to start — ensures AudioContext is created inside a user gesture (iOS)
+document.getElementById('loadingOverlay').addEventListener('click', async () => {
+  // Create context synchronously inside gesture
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  masterGain = ctx.createGain();
+  masterGain.gain.value = 0.8;
+  masterGain.connect(ctx.destination);
+
+  // Play a brief audible tone — forces iOS to activate the audio session
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.001, ctx.currentTime); // nearly silent but audible enough to unlock
+  osc.connect(g);
+  g.connect(ctx.destination);
+  osc.start(ctx.currentTime);
+  osc.stop(ctx.currentTime + 0.1);
+
+  document.getElementById('loadingMsg').textContent = 'Loading samples...';
+  await loadSamples();
+}, { once: true });
+</script>
+</body>
+</html>
