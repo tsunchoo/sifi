@@ -2326,20 +2326,27 @@ function randAll(mode) {
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
   const allKeys = Object.keys(INSTRUMENTS);
   let bassAssigned = false;
+
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const curKey = trackInstruments[tr];
-    const isTonal = TONAL_KEYS.has(curKey);
-    const isPerc = !isTonal && curKey !== 'ngate';
-    // Only randomize instrument if mode matches
-    if (mode === 'perc' && !isPerc) { randomizeTrack(tr); continue; }
-    if (mode === 'tonal' && !isTonal) { randomizeTrack(tr); continue; }
-    // Build pool, filtering out extra bass instruments
+    const isPerc = !TONAL_KEYS.has(curKey) && curKey !== 'ngate';
+    const isTonal = !isPerc;
+
+    // Determine pool based on mode, skip tracks that don't belong
     let pool;
-    if (mode === 'perc')       pool = percKeys;
-    else if (mode === 'tonal') pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
-    else                       pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
+    if (mode === 'perc') {
+      if (!isPerc) continue; // leave tonal tracks untouched
+      pool = percKeys;
+    } else if (mode === 'tonal') {
+      if (!isTonal) continue; // leave perc tracks untouched
+      pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
+    } else {
+      pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
+    }
+
     const k = pool[Math.floor(Math.random() * pool.length)];
     if (bassKeys.has(k)) bassAssigned = true;
+
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
@@ -2349,7 +2356,6 @@ function randAll(mode) {
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'S'; }
     randomizeTrack(tr);
-    // Set volume to halfway
     trackVolume[tr] = 0.5;
     if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
     const vb = document.getElementById(`vbar-${tr}`);
