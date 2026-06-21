@@ -694,6 +694,16 @@ function scheduler() {
               if (grid[tr][ngs] > 0) { dur = stepDuration() * ld; break; }
             }
           }
+          // Sidechain duck on accent
+          if (val === 2 && window._duckGain) {
+            const dg = window._duckGain;
+            const duckDur = stepDuration() * 0.9;
+            dg.gain.cancelScheduledValues(t);
+            dg.gain.setValueAtTime(1, t);
+            dg.gain.linearRampToValueAtTime(0.63, t + 0.008); // -4dB
+            dg.gain.setValueAtTime(0.63, t + duckDur * 0.5);
+            dg.gain.linearRampToValueAtTime(1, t + duckDur);
+          }
           if (key === 'sbass')   playSynthBass(freq, dur, val === 2, t, tr);
           if (key === 'sbass2')  playPluckBass(freq, dur, val === 2, t, tr);
           if (key === 'sbass3')  playMotownBass(freq, dur, val === 2, t, tr);
