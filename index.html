@@ -138,6 +138,14 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 #xyPadNuke { border-color: var(--playhead); color: var(--playhead); }
 #xyPadNuke.active { background: var(--playhead); color: #fff; }
+.xy-mode-btns { display: flex; gap: 4px; flex: 1; }
+.xy-mode-btn {
+  font-family: 'DM Sans', sans-serif; font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
+  padding: 3px 6px; background: none; border: 2px solid var(--border); color: var(--dim);
+  touch-action: manipulation;
+}
+.xy-mode-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 #xyPadArea {
   position: relative; width: 100%; aspect-ratio: 1;
   border: 3px solid var(--text);
@@ -328,6 +336,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   <div class="xy-pad-inner">
     <div class="xy-pad-header">
       <span id="xyPadTitle">TRK 1 FX</span>
+      <div class="xy-mode-btns">
+        <button id="xyModeA" class="xy-mode-btn active">CHOKE / SLAP</button>
+        <button id="xyModeB" class="xy-mode-btn">CRUNCH / ENV</button>
+      </div>
       <button id="xyPadNuke">NUKE</button>
       <button id="xyPadReset">RESET</button>
     </div>
@@ -467,21 +479,52 @@ async function loadSamples() {
 const FX_LABELS = ['DRY'];
 const trackFxNodes = [];
 
+function makeDistCurve(drive) {
+  const n = 512, c = new Float32Array(n), k = drive * 400;
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / n - 1;
+    c[i] = k > 0 ? ((Math.PI + k) * x) / (Math.PI + k * Math.abs(x)) : x;
+  }
+  return c;
+}
+
 function buildFxChain(trackGain) {
   const dryGain = ctx.createGain(); dryGain.gain.value = 1; dryGain.connect(trackGain);
   const fxSend  = ctx.createGain(); fxSend.gain.value = 0;
-  // Gate: controlled by x value at note-time via per-note envGain scheduling
-  // Chain: fxSend → gateGain → trackGain
   const gateGain = ctx.createGain(); gateGain.gain.value = 1;
+  const preGain = ctx.createGain(); preGain.gain.value = 0.25;
+  const ws = ctx.createWaveShaper(); ws.oversample = '2x'; ws.curve = makeDistCurve(0);
+  const postGain = ctx.createGain(); postGain.gain.value = 0.4;
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
+  lim.attack.value = 0.0005; lim.release.value = 0.08;
+  // Both paths connect via gateGain → trackGain
+  // CHOKE/SLAP: fxSend → gateGain → trackGain
+  // CRUNCH/ENV: fxSend → preGain → ws → postGain → lim → trackGain
   fxSend.connect(gateGain); gateGain.connect(trackGain);
-  return { dryGain, fxSend, gateGain };
+  fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(lim); lim.connect(trackGain);
+  // Start with both paths silent — setFxActive will route correctly
+  preGain.gain.value = 0; gateGain.gain.value = 0;
+  return { dryGain, fxSend, gateGain, preGain, postGain, ws };
 }
+
 function setFxActive(tr, fxVal) {
   if (!trackFxNodes[tr]) return;
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
-  const { dryGain, fxSend } = trackFxNodes[tr];
+  const { dryGain, fxSend, gateGain, preGain, ws } = trackFxNodes[tr];
+  const mode = trackFxMode[tr] || 0;
   dryGain.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, 0.01);
   fxSend.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.01);
+  if (mode === 0) {
+    // CHOKE/SLAP: gate path active, crunch path silent
+    gateGain.gain.setTargetAtTime(1, ctx.currentTime, 0.01);
+    preGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
+  } else {
+    // CRUNCH/ENV: crunch path active, gate path silent
+    gateGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
+    preGain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.01);
+    if (on) ws.curve = makeDistCurve(fxVal.x);
+  }
   if (trackGainNodes[tr]) {
     const fxComp = on ? trackVolume[tr] * 0.5 : trackVolume[tr];
     trackGainNodes[tr].gain.setTargetAtTime(fxComp, ctx.currentTime, 0.01);
@@ -535,15 +578,29 @@ function playBuffer(key, isAccent, time, tr) {
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   if (tr !== undefined && trackFxNodes[tr] && on) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].fxSend);
-    // X axis: choke gate — X=0 full duration, X=1 = 10ms
-    const gateG = trackFxNodes[tr].gateGain;
-    if (gateG && fxVal.x > 0) {
-      const gateLen = Math.max(0.01, buf.duration * (1 - fxVal.x) + 0.01 * fxVal.x);
-      gateG.gain.cancelScheduledValues(time);
-      gateG.gain.setValueAtTime(1, time);
-      gateG.gain.setValueAtTime(1, time + gateLen);
-      gateG.gain.linearRampToValueAtTime(0, time + gateLen + 0.005);
-      gateG.gain.setValueAtTime(1, time + gateLen + 0.1);
+    const mode = trackFxMode[tr] || 0;
+    if (mode === 0 && fxVal.x > 0) {
+      // CHOKE: gate the sound
+      const gateG = trackFxNodes[tr].gateGain;
+      if (gateG) {
+        const gateLen = Math.max(0.01, buf.duration * (1 - fxVal.x) + 0.01 * fxVal.x);
+        gateG.gain.cancelScheduledValues(time);
+        gateG.gain.setValueAtTime(1, time);
+        gateG.gain.setValueAtTime(1, time + gateLen);
+        gateG.gain.linearRampToValueAtTime(0, time + gateLen + 0.005);
+        gateG.gain.setValueAtTime(1, time + gateLen + 0.1);
+      }
+    } else if (mode === 1 && fxVal.y > 0) {
+      // ENV: shape the tail
+      const atkDelay = fxVal.y * 0.08;
+      const tailLen = buf.duration * (1 - fxVal.y * 0.85);
+      const envGain = ctx.createGain();
+      instrumentGain.disconnect(trackFxNodes[tr].fxSend);
+      instrumentGain.connect(envGain); envGain.connect(trackFxNodes[tr].fxSend);
+      envGain.gain.setValueAtTime(0, time);
+      envGain.gain.linearRampToValueAtTime(1, time + atkDelay + 0.002);
+      envGain.gain.setValueAtTime(1, time + tailLen);
+      envGain.gain.linearRampToValueAtTime(0, time + tailLen + 0.01);
     }
   } else if (tr !== undefined && trackFxNodes[tr]) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].dryGain);
@@ -575,7 +632,9 @@ function openXYPad(tr) {
   const fxVal = trackFx[tr] || { x: 0, y: 0 };
   xyPadLastPos = { ...fxVal };
   document.getElementById('xyPadTitle').textContent = `TRK ${tr+1} FX`;
-  const pad = document.getElementById('xyPadArea');
+  const mode = trackFxMode[tr] || 0;
+  document.getElementById('xyModeA').classList.toggle('active', mode === 0);
+  document.getElementById('xyModeB').classList.toggle('active', mode === 1);
   renderXYDot(fxVal.x, fxVal.y);
   document.getElementById('xyPad').classList.add('visible');
 }
@@ -590,8 +649,12 @@ function renderXYDot(x, y) {
   const intensity = document.getElementById('xyIntensity');
   intensity.style.width  = (x * 100) + '%';
   intensity.style.height = (y * 100) + '%';
-  document.getElementById('xyLabel').textContent =
-    `CHOKE ${Math.round(x*100)}%  SLAP ${Math.round(y*100)}%`;
+  const mode = xyPadTrack >= 0 ? (trackFxMode[xyPadTrack] || 0) : 0;
+  const xLabel = mode === 0 ? 'CHOKE' : 'CRUNCH';
+  const yLabel = mode === 0 ? 'SLAP'  : 'ENV';
+  document.getElementById('xyLabel').textContent = `${xLabel} ${Math.round(x*100)}%  ${yLabel} ${Math.round(y*100)}%`;
+  document.querySelector('.xy-axis-label.xy-x').textContent = `${xLabel} →`;
+  document.querySelector('.xy-axis-label.xy-y').textContent = `${yLabel} ↑`;
 }
 function xyFromEvent(e, pad) {
   const r = pad.getBoundingClientRect();
@@ -620,7 +683,22 @@ function applyXY(pos) {
   pad.addEventListener('mousemove',  e => { if (e.buttons) onMove(e); });
   pad.addEventListener('touchstart', onDown, { passive: false });
   pad.addEventListener('touchmove',  onMove, { passive: false });
-  document.getElementById('xyPadClose').addEventListener('click', closeXYPad);
+  document.getElementById('xyModeA').addEventListener('click', () => {
+    if (xyPadTrack < 0) return;
+    trackFxMode[xyPadTrack] = 0;
+    document.getElementById('xyModeA').classList.add('active');
+    document.getElementById('xyModeB').classList.remove('active');
+    renderXYDot(trackFx[xyPadTrack].x, trackFx[xyPadTrack].y);
+    markModified();
+  });
+  document.getElementById('xyModeB').addEventListener('click', () => {
+    if (xyPadTrack < 0) return;
+    trackFxMode[xyPadTrack] = 1;
+    document.getElementById('xyModeB').classList.add('active');
+    document.getElementById('xyModeA').classList.remove('active');
+    renderXYDot(trackFx[xyPadTrack].x, trackFx[xyPadTrack].y);
+    markModified();
+  });
   document.getElementById('xyPadClose').addEventListener('touchend', e => { e.preventDefault(); closeXYPad(); }, { passive: false });
   document.querySelector('.xy-pad-inner').addEventListener('click', e => e.stopPropagation());
 })();
@@ -667,6 +745,7 @@ const trackSweep  = new Array(NUM_TRACKS).fill(false);
 const trackChop   = new Array(NUM_TRACKS).fill(false);
 const trackVolume = [0.8, 0.505, 0.8, 0.8, 0.8, 0.8];
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
+const trackFxMode = new Array(NUM_TRACKS).fill(0); // 0=CHOKE/SLAP, 1=CRUNCH/ENV
 const trackGainNodes = [];
 let bpm = 110, playing = false, currentStep = -1, nextStepTime = 0, scheduleInterval = null;
 const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
@@ -705,8 +784,9 @@ function scheduler() {
             dg.gain.linearRampToValueAtTime(1, t + duckDur);
           }
           const sfxOn = !!(trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
-          // X axis: choke — cap note duration down to 10ms at extreme
-          if (sfxOn && trackFx[tr].x > 0) {
+          const sfxMode = trackFxMode[tr] || 0;
+          // X axis: choke (mode 0) or crunch (mode 1, doesn't affect duration)
+          if (sfxOn && sfxMode === 0 && trackFx[tr].x > 0) {
             dur = Math.max(0.01, dur * (1 - trackFx[tr].x) + 0.01 * trackFx[tr].x);
           }
           if (key === 'sbass')   playSynthBass(freq, dur, val === 2, t, tr);
@@ -1916,7 +1996,7 @@ function fullClear() {
     trackMuted[tr] = false; trackSweep[tr] = false; trackChop[tr] = false;
     trackRLevel[tr] = 0;
     trackVolume[tr] = tr === 1 ? 0.505 : 0.8;
-    trackFx[tr] = { x: 0, y: 0 };
+    trackFx[tr] = { x: 0, y: 0 }; trackFxMode[tr] = 0;
     trackInstruments[tr] = defaultInstruments[tr] || 'tamb';
     if (ctx) {
       setFxActive(tr, { x: 0, y: 0 });
@@ -1958,6 +2038,7 @@ function snapshotState() {
     trackMuted: [...trackMuted],
     trackVolume: [...trackVolume],
     trackFx: trackFx.map(f => f ? {...f} : {x:0,y:0}),
+    trackFxMode: [...trackFxMode],
     trackSweep: [...trackSweep],
     trackChop: [...trackChop],
     trackRLevel: [...trackRLevel],
@@ -1976,6 +2057,7 @@ function restoreState(snap) {
     else delete trackBassScale[tr];
     if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
     if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
+    if (snap.trackFxMode) { trackFxMode[tr] = snap.trackFxMode[tr] || 0; }
     if (snap.trackSweep) { trackSweep[tr] = snap.trackSweep[tr] || false; }
     if (snap.trackChop)  { trackChop[tr]  = snap.trackChop[tr]  || false; }
     const sb=document.getElementById(`swpbtn-${tr}`);
