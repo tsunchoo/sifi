@@ -421,6 +421,7 @@ const INSTRUMENTS = {
   sleg:   { name: 'SYNTH LEG',  soft: null, accent: null },
   sparkle:{ name: 'MUT STRING', soft: null, accent: null },
   rhodes: { name: 'RHODES',     soft: null, accent: null },
+  ngate:  { name: 'NOISE GATE', soft: null, accent: null },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
 let ctx = null, masterGain = null;
@@ -555,6 +556,7 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'sleg')    { return; } // handled in scheduler
   if (key === 'sparkle') { return; } // handled in scheduler
   if (key === 'rhodes')  { return; } // handled in scheduler
+  if (key === 'ngate')   { return; } // continuous noise, triggered via scheduler
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
 
@@ -762,6 +764,17 @@ function scheduler() {
       const val = grid[tr][gs];
       if (val > 0) {
         const key = trackInstruments[tr];
+        if (key === 'ngate') {
+          // ngate grid entries trigger the gate directly
+          triggerNoiseGate(tr, val === 2, t);
+          continue;
+        }
+        // Trigger any noise gate tracks on every hit
+        for (let ng = 0; ng < NUM_TRACKS; ng++) {
+          if (ng !== tr && !trackMuted[ng] && trackInstruments[ng] === 'ngate') {
+            triggerNoiseGate(ng, val === 2, t);
+          }
+        }
         if (key === 'sbass' || key === 'sbass2' || key === 'sbass3' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes') {
           const scale = trackBassScale[tr] || [110];
           const noteIdx = gs % scale.length;
@@ -1149,6 +1162,48 @@ const _sparkleGlideState = {};
 
 // ── Rhodes: FM tine piano ──
 const _rhodesGlide = {};
+// ── Noise Gate: continuous white noise, gated open by hit events ──
+const _noiseGateNodes = {}; // tr -> { noiseGain, filterNode }
+function initNoiseGate(tr) {
+  if (!ctx) return;
+  if (_noiseGateNodes[tr]) {
+    try { _noiseGateNodes[tr].src.stop(); } catch(e) {}
+  }
+  const dest = getSynthConnectNode(tr);
+  // Looping noise buffer
+  const bufLen = ctx.sampleRate * 2;
+  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+  // Bandpass sweep filter — centre freq will be modulated per hit
+  const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.Q.value = 2.5;
+  filt.frequency.value = 800;
+  // Gate gain — silent by default, opened by hits
+  const gate = ctx.createGain(); gate.gain.value = 0;
+  src.connect(filt); filt.connect(gate); gate.connect(dest);
+  src.start();
+  _noiseGateNodes[tr] = { src, gate, filt };
+}
+function triggerNoiseGate(tr, isAccent, time) {
+  if (!ctx || !_noiseGateNodes[tr]) return;
+  const { gate, filt } = _noiseGateNodes[tr];
+  const vel = isAccent ? 0.55 : 0.35;
+  const sweepStart = isAccent ? 3000 : 1200;
+  const sweepEnd   = isAccent ? 200  : 400;
+  const dur = stepDuration() * 0.85;
+  // Sweep filter freq down (noise sweeps in with low-end opening)
+  filt.frequency.cancelScheduledValues(time);
+  filt.frequency.setValueAtTime(sweepStart, time);
+  filt.frequency.exponentialRampToValueAtTime(sweepEnd, time + dur * 0.6);
+  // Gate envelope: snap open, slow close
+  gate.gain.cancelScheduledValues(time);
+  gate.gain.setValueAtTime(0, time);
+  gate.gain.linearRampToValueAtTime(vel, time + 0.004);
+  gate.gain.setValueAtTime(vel * 0.7, time + dur * 0.3);
+  gate.gain.exponentialRampToValueAtTime(0.001, time + dur);
+}
+
 function playRhodes(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
@@ -1376,7 +1431,14 @@ function openSoundPicker(tr) {
   document.getElementById('soundPicker').classList.add('visible');
 }
 function selectSound(tr, k) {
+  // Stop noise gate if switching away
+  if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
+    try { _noiseGateNodes[tr].src.stop(); } catch(e) {}
+    delete _noiseGateNodes[tr];
+  }
   trackInstruments[tr] = k;
+  // Init noise gate if switching to it
+  if (k === 'ngate' && ctx) initNoiseGate(tr);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
   const sb = document.getElementById(`swpbtn-${tr}`);
   if (sb) {
@@ -1674,7 +1736,6 @@ document.addEventListener('touchend', () => { dragWriteVal = -1; dragWriteTrack 
 // Excluded: .btn (PLAY/BEAT/CLEAR), .track-name-btn, input[type=range]
 const DRAGGABLE_BTN_SELECTORS = [
   '.track-ctrl-icon-btn:not(.rand-btn)',
-  '.shift-btn',
 ];
 function isDraggableBtn(el) {
   if (!el) return false;
@@ -1996,8 +2057,12 @@ function audioBufferToWav(buffer, tempoHint) {
 function fullClear() {
   if (playing) togglePlay();
   if (beatPlaying) toggleBeat();
-  // Stop any active auto-shifts
+  // Stop any active auto-shifts and noise gates
   Object.values(autoShiftStops).forEach(stop => stop());
+  Object.keys(_noiseGateNodes).forEach(tr => {
+    try { _noiseGateNodes[tr].src.stop(); } catch(e) {}
+    delete _noiseGateNodes[+tr];
+  });
   const defaultInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
@@ -2197,8 +2262,9 @@ function randomizeTrack(tr) {
 }
 
 function wireShiftButton(btn, tr, dir) {
-  let interval = null, holdTimer = null;
+  let interval = null, holdTimer = null, active = false;
   const doShift = () => {
+    if (!active) return;
     if (grid[tr].every(v => v === 0)) return;
     trackOffset[tr] = (trackOffset[tr] + dir + NUM_STEPS) % NUM_STEPS;
     redrawTrackCells(tr); markModified();
@@ -2208,12 +2274,14 @@ function wireShiftButton(btn, tr, dir) {
     interval = setInterval(doShift, (60000 / bpm) * 4 * 4);
   };
   const stop = () => {
+    active = false;
     clearTimeout(holdTimer); holdTimer = null;
     clearInterval(interval); interval = null;
   };
   const onDown = () => {
-    doShift(); // always shift immediately on press
-    holdTimer = setTimeout(startHold, 400); // then go continuous if held
+    active = true;
+    doShift();
+    holdTimer = setTimeout(startHold, 400);
   };
   btn.addEventListener('mousedown', onDown);
   btn.addEventListener('mouseup', stop);
@@ -2326,6 +2394,7 @@ async function initAudio() {
     for (let i=0; i<NUM_TRACKS; i++) {
       const g = ctx.createGain(); g.gain.value = trackVolume[i]; g.connect(masterGain); trackGainNodes[i] = g;
       trackFxNodes[i] = buildFxChain(g);
+      if (trackInstruments[i] === 'ngate') initNoiseGate(i);
     }
     const unlock = ctx.createBuffer(1,1,ctx.sampleRate);
     unlock.getChannelData(0)[0]=0.001;
