@@ -1085,7 +1085,7 @@ function randomizeBassTrack(tr, level) {
     [10, 16, 0.60],
   ][level];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio);
+  placeNotes(tr, noteCount, accentRatio, level);
   redrawTrackCells(tr); markModified();
 }
 
@@ -2205,6 +2205,7 @@ function restoreState(snap) {
     if(tb) {
       tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1);
       tb.classList.toggle('muted', trackMuted[tr]);
+      setTrackNameColor(tr, trackInstruments[tr]);
     }
     const row=document.getElementById(`ctrlrow-${tr}`); if(row) row.classList.toggle('row-muted', trackMuted[tr]);
     const vb=document.getElementById(`vbar-${tr}`); if(vb) { vb.classList.toggle('muted', trackMuted[tr]); const f=vb.querySelector('.track-vol-fill'); if(f) f.style.width=Math.round(trackVolume[tr]*100)+'%'; }
@@ -2224,9 +2225,7 @@ function restoreState(snap) {
   }
 }
 function markModified() {
-  if (activeSlot < 0) return;
-  // Update the saved snapshot to reflect the current edit
-  slots[activeSlot] = snapshotState();
+  // Don't overwrite the saved snapshot — just update visual state
   updateSlotButtons();
 }
 function slotPress(i) {
@@ -2291,7 +2290,7 @@ function buildSlotBar() {
 // Per-track R press level (cycles 0→1→2→0)
 const trackRLevel = new Array(NUM_TRACKS).fill(0);
 
-function placeNotes(tr, noteCount, accentRatio) {
+function placeNotes(tr, noteCount, accentRatio, level) {
   grid[tr].fill(0);
   const positions = [];
   while (positions.length < noteCount) {
@@ -2302,6 +2301,40 @@ function placeNotes(tr, noteCount, accentRatio) {
   const shuffled = [...positions].sort(() => Math.random() - 0.5);
   const accentSet = new Set(shuffled.slice(0, accentCount));
   positions.forEach(p => { grid[tr][p] = accentSet.has(p) ? 2 : 1; });
+
+  // Level 2 only: enforce max 4 consecutive notes, max 2 consecutive accents
+  if (level === 2) {
+    let changed = true;
+    while (changed) {
+      changed = false;
+      // Check consecutive notes (any value > 0)
+      for (let s = 0; s < NUM_STEPS; s++) {
+        let run = 0;
+        for (let i = 0; i < 5; i++) {
+          if (grid[tr][(s + i) % NUM_STEPS] > 0) run++;
+          else break;
+        }
+        if (run >= 5) {
+          // Remove the last note in the run
+          grid[tr][(s + 4) % NUM_STEPS] = 0;
+          changed = true;
+        }
+      }
+      // Check consecutive accents (value === 2)
+      for (let s = 0; s < NUM_STEPS; s++) {
+        let run = 0;
+        for (let i = 0; i < 3; i++) {
+          if (grid[tr][(s + i) % NUM_STEPS] === 2) run++;
+          else break;
+        }
+        if (run >= 3) {
+          // Downgrade 3rd accent to soft
+          grid[tr][(s + 2) % NUM_STEPS] = 1;
+          changed = true;
+        }
+      }
+    }
+  }
 }
 
 function randomizeTrack(tr) {
@@ -2331,7 +2364,7 @@ function randomizeTrack(tr) {
     [11, 16, 0.60],
   ][level];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio);
+  placeNotes(tr, noteCount, accentRatio, level);
   redrawTrackCells(tr); markModified();
 }
 
