@@ -406,6 +406,7 @@ const INSTRUMENTS = {
   sbass2: { name: 'PLUCK BASS', soft: null, accent: null },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null },
   sstring:{ name: 'SYN STRINGS',soft: null, accent: null },
+  sleg:   { name: 'SYNTH LEG',  soft: null, accent: null },
   sparkle:{ name: 'MUT STRING', soft: null, accent: null },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
@@ -522,6 +523,7 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'sbass2')  { return; }
   if (key === 'sbass3')  { return; }
   if (key === 'sstring') { return; } // handled in scheduler
+  if (key === 'sleg')    { return; } // handled in scheduler
   if (key === 'sparkle') { return; } // handled in scheduler
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
@@ -655,7 +657,7 @@ document.getElementById('xyPadReset').addEventListener('click', () => {
   document.getElementById('xyPadNuke').classList.remove('active');
   setMasterVol(masterVol);
 });
-const trackInstruments = ['shak','sstring','sparkle','sbass','congHi','congLo'];
+const trackInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
 const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
 const trackOffset = new Array(NUM_TRACKS).fill(0);
 const trackMuted  = new Array(NUM_TRACKS).fill(false);
@@ -678,7 +680,7 @@ function scheduler() {
       const val = grid[tr][gs];
       if (val > 0) {
         const key = trackInstruments[tr];
-        if (key === 'sbass' || key === 'sbass2' || key === 'sbass3' || key === 'sstring' || key === 'sparkle') {
+        if (key === 'sbass' || key === 'sbass2' || key === 'sbass3' || key === 'sstring' || key === 'sleg' || key === 'sparkle') {
           const scale = trackBassScale[tr] || [110];
           const noteIdx = gs % scale.length;
           const freq = scale[noteIdx];
@@ -691,6 +693,7 @@ function scheduler() {
           if (key === 'sbass2')  playPluckBass(freq, dur, val === 2, t, tr);
           if (key === 'sbass3')  playMotownBass(freq, dur, val === 2, t, tr);
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
+          if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
         } else {
           playBuffer(key, val === 2, t, tr);
@@ -890,7 +893,7 @@ const trackBassScale = {}; // tr -> [freq, ...]
 
 // Global scale root — shared by all tonal tracks, cleared by CLEAR
 let globalScaleRoot = null;
-const TONAL_KEYS = new Set(['sbass','sbass2','sbass3','sstring','sparkle']);
+const TONAL_KEYS = new Set(['sbass','sbass2','sbass3','sstring','sleg','sparkle']);
 
 function buildScaleFromRoot(root) {
   const scale = [];
@@ -907,7 +910,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -976,6 +979,56 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   env.gain.linearRampToValueAtTime(vol, time + 0.08);
   env.gain.setValueAtTime(vol * 3, time + durSec - 0.1);
   env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.3);
+}
+
+// ── Synth Leg: detuned strings layer + square lead with legato glide ──
+const _slegGlide = {};
+function playSynthLeg(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vol = isAccent ? 0.055 : 0.038;
+  const prevFreq = _slegGlide[tr] || freq;
+  _slegGlide[tr] = freq;
+  const glide = Math.min(0.1, durSec * 0.2);
+
+  // ── String layer: 4 detuned saws through highpass + short reverb ──
+  const strEnv = ctx.createGain();
+  const irLen = Math.floor(ctx.sampleRate * 0.5);
+  const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.5);
+  }
+  const rev = ctx.createConvolver(); rev.buffer = irBuf;
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500; hp.Q.value = 0.7;
+  const dryG = ctx.createGain(); dryG.gain.value = 0.5;
+  const revG = ctx.createGain(); revG.gain.value = 0.5;
+  [0, 6, -6, 11].forEach(det => {
+    const o = ctx.createOscillator(); o.type = 'sawtooth';
+    o.frequency.setValueAtTime(prevFreq, time);
+    o.frequency.exponentialRampToValueAtTime(freq, time + glide);
+    o.detune.value = det;
+    o.connect(strEnv); o.start(time); o.stop(time + durSec + 0.4);
+  });
+  strEnv.connect(hp); hp.connect(dryG); dryG.connect(dest);
+  hp.connect(rev); rev.connect(revG); revG.connect(dest);
+  strEnv.gain.setValueAtTime(0, time);
+  strEnv.gain.linearRampToValueAtTime(vol, time + 0.07);
+  strEnv.gain.setValueAtTime(vol * 2.5, time + durSec - 0.08);
+  strEnv.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.25);
+
+  // ── Lead layer: square wave with glide, sharper envelope ──
+  const leadEnv = ctx.createGain();
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = 2.5;
+  const leadOsc = ctx.createOscillator(); leadOsc.type = 'square';
+  leadOsc.frequency.setValueAtTime(Math.max(prevFreq, 1), time);
+  leadOsc.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + glide);
+  leadOsc.connect(lp); lp.connect(leadEnv); leadEnv.connect(dest);
+  leadEnv.gain.setValueAtTime(0, time);
+  leadEnv.gain.linearRampToValueAtTime(vol * 0.7, time + 0.005);
+  leadEnv.gain.setValueAtTime(vol * 0.7, time + durSec - 0.02);
+  leadEnv.gain.linearRampToValueAtTime(0, time + durSec + 0.01);
+  leadOsc.start(time); leadOsc.stop(time + durSec + 0.05);
 }
 
 const _sparkleGlideState = {};
@@ -1119,14 +1172,12 @@ function toggleBeat() {
   const btn = document.getElementById('beatBtn');
   if (beatPlaying) {
     beatStep = -1;
-    if (playing && nextStepTime > ctx.currentTime) {
-      beatNextTime = nextStepTime;
-    } else {
-      beatNextTime = ctx.currentTime + 0.05;
-    }
+    beatNextTime = ctx.currentTime + 0.02; // start immediately
     beatInterval = setInterval(scheduleBeat, SCHEDULE_MS);
     btn.classList.add('active');
     if (!playing) togglePlay();
+    // Restart main sequencer from step 0 in sync
+    currentStep = -1; nextStepTime = beatNextTime;
   } else {
     clearInterval(beatInterval); beatInterval = null;
     btn.classList.remove('active');
@@ -1491,7 +1542,7 @@ function clearAll() {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     trackRLevel[tr] = 0;
     grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
-    delete _bassGlideState[tr]; delete _sparkleGlideState[tr]; delete _motownGlide[tr];
+    delete _bassGlideState[tr]; delete _sparkleGlideState[tr]; delete _motownGlide[tr]; delete _slegGlide[tr];
     delete trackBassScale[tr]; redrawTrackCells(tr);
   }
 }
@@ -1753,7 +1804,7 @@ function audioBufferToWav(buffer, tempoHint) {
 function fullClear() {
   if (playing) togglePlay();
   if (beatPlaying) toggleBeat();
-  const defaultInstruments = ['shak','sstring','sparkle','sbass','congHi','congLo'];
+  const defaultInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
     trackMuted[tr] = false; trackSweep[tr] = false;
@@ -1924,7 +1975,7 @@ function randomizeTrack(tr) {
   const vb = document.getElementById(`vbar-${tr}`);
   if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(defaultVol * 100) + '%'; }
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass2' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sparkle') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass2' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle') {
     randomizeBassTrack(tr, level); return;
   }
 
