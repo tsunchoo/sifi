@@ -2279,6 +2279,7 @@ function fullClear() {
   if (beatPlaying) toggleBeat();
   // Stop any active auto-shifts and noise gates
   Object.values(autoShiftStops).forEach(stop => stop());
+  randAllLevel = 0;
   Object.keys(_noiseGateNodes).forEach(tr => {
     try { _noiseGateNodes[tr].src.stop(); } catch(e) {}
     delete _noiseGateNodes[+tr];
@@ -2319,8 +2320,12 @@ function cyclePattern(tr) {
   else trackPatternState[tr]=0;
   redrawTrackCells(tr); markModified();
 }
+let randAllLevel = 0;
+
 function randAll(mode) {
   mode = mode || 'all';
+  const level = randAllLevel;
+  randAllLevel = (randAllLevel + 1) % 3;
   const bassKeys = new Set(['sbass','sbass2','sbass3','sbass4']);
   const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate');
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
@@ -2328,21 +2333,10 @@ function randAll(mode) {
   let bassAssigned = false;
 
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    const curKey = trackInstruments[tr];
-    const isPerc = !TONAL_KEYS.has(curKey) && curKey !== 'ngate';
-    const isTonal = !isPerc;
-
-    // Determine pool based on mode, skip tracks that don't belong
     let pool;
-    if (mode === 'perc') {
-      if (!isPerc) continue; // leave tonal tracks untouched
-      pool = percKeys;
-    } else if (mode === 'tonal') {
-      if (!isTonal) continue; // leave perc tracks untouched
-      pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
-    } else {
-      pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
-    }
+    if (mode === 'perc')       pool = percKeys;
+    else if (mode === 'tonal') pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
+    else                       pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
 
     const k = pool[Math.floor(Math.random() * pool.length)];
     if (bassKeys.has(k)) bassAssigned = true;
@@ -2355,6 +2349,7 @@ function randAll(mode) {
     const tb = document.getElementById(`tbtn-${tr}`); if (tb) tb.textContent = INSTRUMENTS[k]?.name || k;
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'S'; }
+    trackRLevel[tr] = level;
     randomizeTrack(tr);
     trackVolume[tr] = 0.5;
     if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
