@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PERCOSET</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+:root {
+  --bg: #f5f0e8; --panel: #ede8df; --border: #b0a898;
+  --text: #1e1e1e; --dim: #999; --soft: #666;
+  --playhead: #ff2200; --muted-bg: #ff2200;
+  --slot-saved: #7ecf3a; --slot-loaded: #ff2200;
+  --vol-fill: #7ecf3a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow: hidden; height: 100%; }
+button, .step-cell, .track-header-btn, .vol-mute-col, .fx-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+  padding: 6px 4px 80px 4px; user-select: none; -webkit-user-select: none;
+}
+header {
+  width: 100%; max-width: 960px; display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 5px; border-bottom: 1px solid var(--border); padding-bottom: 5px;
+}
+header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; letter-spacing: 4px; }
+header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+.transport {
+  width: 100%; max-width: 960px; display: flex; align-items: stretch;
+  gap: 5px; margin-bottom: 6px;
+}
+.btn {
+  background: none; border: 3px solid var(--text); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.5px; padding: 0 10px; cursor: pointer; text-transform: uppercase;
+  transition: all 0.1s; height: 32px; flex-shrink: 0; white-space: nowrap;
+  touch-action: manipulation;
+}
+.btn.active { background: var(--text); color: var(--bg); }
+.bpm-wrap { display: flex; align-items: center; gap: 6px; flex: 1; }
+.bpm-val { font-size: 0.9rem; font-weight: 700; min-width: 32px; text-align: right; flex-shrink: 0; }
+input[type=range] { -webkit-appearance: none; flex: 1; height: 3px; background: var(--text); outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--text); cursor: pointer; border-radius: 0; }
+input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var(--text); cursor: pointer; border-radius: 0; border: none; }
+.vol-wrap { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 960px; margin-top: 6px; padding: 6px 0; }
+.master-vol-slider {
+  -webkit-appearance: none; width: 100%; outline: none; cursor: ew-resize;
+  flex: 1; height: 3px; background: var(--text);
+}
+.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--text); border-radius: 0; cursor: ew-resize; }
+.master-vol-slider::-moz-range-thumb { width: 32px; height: 32px; background: var(--text); border-radius: 0; border: none; cursor: ew-resize; }
+.vol-section { width: 100%; max-width: 960px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px; align-items: stretch; }
+.vol-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text); font-family: 'DM Sans', sans-serif; }
+.vol-label { font-size: 0.6rem; letter-spacing: 1px; color: var(--dim); text-transform: uppercase; font-weight: 700; flex-shrink: 0; }
+
+/* ── Per-track inline control row ── */
+.track-ctrl-row {
+  display: flex; align-items: stretch; gap: 5px;
+  height: 32px;
+}
+.track-name-btn {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  cursor: pointer; background: var(--bg); color: var(--text);
+  border: 3px solid var(--text); padding: 0 8px; white-space: nowrap; overflow: hidden;
+  font-family: 'DM Sans', sans-serif; flex-shrink: 0; width: 96px;
+  display: flex; align-items: center;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: background 0.06s, color 0.06s;
+}
+.track-name-btn.has-notes { background: var(--text); color: var(--bg); border-color: var(--text); }
+.track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; border-color: var(--dim); }
+.track-name-btn.playing { background: var(--playhead) !important; color: #fff !important; opacity: 1; }
+.track-ctrl-icon-btn {
+  width: 32px; flex-shrink: 0;
+  background: none; border: 3px solid var(--text); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  touch-action: manipulation; transition: background 0.1s, color 0.1s;
+}
+.track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; border-color: var(--playhead); }
+.track-ctrl-icon-btn.sweep-on { background: #5bbcb8; border-color: #5bbcb8; color: #fff; }
+.rand-btn.pulsing { background: var(--playhead); border-color: var(--text); color: #fff; }
+@keyframes pulse { from { opacity: 1; } to { opacity: 1; } }
+.track-ctrl-icon-btn.playing { opacity: 0.45; }
+.shift-btn {
+  width: 32px; flex-shrink: 0; background: none;
+  border: 3px solid var(--text);
+  color: var(--text); font-family: 'DM Sans', sans-serif;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; font-weight: 700; transition: opacity 0.1s; padding: 0;
+  touch-action: manipulation;
+}
+.shift-btn:active { opacity: 0.4; }
+.track-vol-bar {
+  flex: 1; position: relative; overflow: hidden;
+  background: var(--bg); border: 3px solid var(--text);
+  cursor: ew-resize; touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.track-vol-fill {
+  position: absolute; top: 0; left: 0; bottom: 0;
+  background: var(--vol-fill); pointer-events: none; transition: width 0.05s;
+}
+.track-vol-bar.muted { background: #ccc; }
+.track-vol-bar.muted .track-vol-fill { background: transparent; }
+.row-muted .track-ctrl-icon-btn,
+.row-muted .shift-btn {
+  background: #ccc !important; border-color: #aaa !important; color: #888 !important;
+  animation: none !important;
+}
+
+/* ── XY FX Pad ── */
+#xyPad {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  align-items: center; justify-content: center;
+  background: rgba(245,240,232,0.95);
+  pointer-events: none;
+  touch-action: none;
+}
+#xyPad.visible { display: flex; pointer-events: none; }
+.xy-pad-inner {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 16px; border: 3px solid var(--text); background: var(--bg);
+  width: min(340px, 90vw);
+  pointer-events: all;
+  touch-action: none;
+}
+.xy-pad-header {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+}
+.xy-pad-header span { flex: 1; }
+.xy-pad-header button {
+  background: none; border: 2px solid var(--text); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 1px; padding: 4px 8px; cursor: pointer;
+}
+#xyPadNuke { border-color: var(--playhead); color: var(--playhead); }
+#xyPadNuke.active { background: var(--playhead); color: #fff; }
+#xyPadArea {
+  position: relative; width: 100%; aspect-ratio: 1;
+  border: 3px solid var(--text);
+  cursor: crosshair; touch-action: none;
+  background:
+    radial-gradient(ellipse at bottom left, transparent 0%, rgba(192,57,43,0) 60%),
+    linear-gradient(to top, rgba(192,57,43,0.08) 0%, rgba(192,57,43,0.0) 50%),
+    linear-gradient(to right, rgba(192,57,43,0.08) 0%, rgba(192,57,43,0.0) 50%),
+    repeating-linear-gradient(var(--border) 0 1px, transparent 1px 25%),
+    repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 25%);
+}
+#xyDot {
+  position: absolute; width: 18px; height: 18px;
+  background: var(--text); border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none; z-index: 1;
+}
+#xyIntensity {
+  position: absolute; bottom: 0; left: 0;
+  background: rgba(192,57,43,0.15);
+  pointer-events: none; transition: width 0.05s, height 0.05s;
+}
+.xy-axis-label {
+  position: absolute; font-size: 0.55rem; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--dim);
+}
+.xy-x { bottom: 6px; right: 6px; }
+.xy-y { top: 6px; left: 6px; }
+#xyLabel {
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--dim); text-align: center;
+}
+
+/* ── Sound picker overlay (grid) ── */
+#soundPicker {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  align-items: center; justify-content: center;
+  background: rgba(245,240,232,0.95);
+}
+#soundPicker.visible { display: flex; }
+.sound-picker-inner {
+  background: var(--bg); border: 3px solid var(--text);
+  min-width: 320px; padding: 16px;
+}
+.sound-picker-title {
+  padding: 0 0 12px 0; font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--dim); border-bottom: 2px solid var(--text); margin-bottom: 12px;
+}
+#soundPickerList {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.sound-option {
+  padding: 16px 8px; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase;
+  cursor: pointer; color: var(--text); text-align: center;
+  border: 2px solid var(--text); font-family: 'DM Sans', sans-serif;
+  transition: background 0.05s, color 0.05s; touch-action: manipulation;
+  user-select: none;
+}
+.sound-option:hover, .sound-option.active { background: var(--text); color: var(--bg); }
+
+/* ── Vol overlay ── */
+#volOverlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  align-items: center; justify-content: center;
+  background: rgba(245,240,232,0.92);
+  cursor: ns-resize;
+}
+#volOverlay.visible { display: flex; }
+.vol-overlay-inner {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 24px 36px; border: 3px solid var(--text); background: var(--bg);
+  pointer-events: none;
+}
+.vol-overlay-label { font-size: 1.1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.vol-overlay-pct { font-size: 2.5rem; font-weight: 700; line-height: 1; min-width: 3ch; text-align: center; }
+.vol-bar-track {
+  width: 100px; height: 20px; background: var(--border); position: relative;
+  border: 2px solid var(--text);
+}
+.vol-bar-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: var(--text); transition: height 0.05s;
+}
+
+/* ── Sequencer grid (middle) ── */
+.seq-wrap { width: 100%; max-width: 960px; margin-top: 20px; margin-bottom: 0; display: flex; flex-direction: column; gap: 20px; }
+.track-wrap { display: flex; flex-direction: column; gap: 3px; }
+.track-row {
+  display: flex; align-items: stretch;
+}
+
+.step-lane {
+  flex: 1; display: flex; flex-direction: column;
+  border: 3px solid var(--text);
+  border-top: none;
+  overflow: visible;
+}
+.step-lane-cells {
+  display: grid; grid-template-columns: repeat(16, 1fr);
+  overflow: visible;
+}
+.step-cell {
+  aspect-ratio: 1;
+  position: relative; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 0; box-sizing: border-box;
+  overflow: visible;
+}
+/* teeth — positioned so bottom edge sits exactly on the lane border */
+.step-cell::before {
+  content: ''; position: absolute; bottom: -3px; left: -1px;
+  width: 3px; background: var(--text); height: calc(30% + 3px); pointer-events: none;
+  z-index: 1;
+}
+/* beat markers taller */
+.step-cell[data-step="4"]::before,
+.step-cell[data-step="8"]::before,
+.step-cell[data-step="12"]::before { height: calc(55% + 3px); }
+/* step 0 uses the lane's left border */
+.step-cell[data-step="0"]::before { display: none; }
+
+.step-cell::after {
+  content: ''; border-radius: 50%;
+  position: absolute;
+  top: 15%; left: 15%; right: 15%; bottom: 15%;
+  width: auto; height: auto;
+  background: transparent; transition: background 0.05s;
+}
+.step-cell.soft::after { background: var(--soft); top: 25%; left: 25%; right: 25%; bottom: 25%; }
+.step-cell.on::after   { background: var(--text); top: 15%; left: 15%; right: 15%; bottom: 15%; }
+.step-cell.playing { background: rgba(192,57,43,0.07); }
+.step-cell.on.playing::after   { background: var(--playhead); }
+.step-cell.soft.playing::after { background: var(--playhead); opacity: 0.7; }
+
+/* ── Track lane label — now inside ctrl row, removed ── */
+
+/* ── Footer ── */
+.footer {
+  width: 100%; max-width: 960px; margin-top: 0; margin-bottom: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  border-top: none; padding-top: 0;
+}
+.ghost-btn {
+  font-size: 0.55rem; letter-spacing: 1px; color: var(--dim);
+  background: none; border: none; cursor: pointer; text-transform: uppercase;
+  font-family: 'DM Sans', sans-serif; transition: color 0.1s; padding: 4px 0;
+}
+.ghost-btn:hover { color: var(--playhead); }
+.status { font-size: 0.55rem; letter-spacing: 2px; color: var(--dim); text-transform: uppercase; }
+
+/* ── Slot bar ── */
+.slot-bar {
+  width: 100%; max-width: 960px; display: grid;
+  grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 6px;
+}
+.slot-btn {
+  background: var(--panel); border: 1px solid var(--border); color: var(--dim);
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; letter-spacing: 1px;
+  padding: 16px 0; cursor: pointer; text-align: center; text-transform: uppercase;
+  touch-action: manipulation; transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.slot-btn.saved  { background: var(--slot-saved);  border-color: #5aaa1f; color: #000; }
+.slot-btn.loaded { background: var(--slot-loaded); border-color: #cc1a00; color: #fff; }
+.slot-btn:active { opacity: 0.7; }
+
+#loadingOverlay {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; z-index: 999; cursor: pointer;
+  border: none; width: 100%; font-family: 'DM Sans', sans-serif;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+#loadingOverlay h2 { font-family: 'DM Sans', sans-serif; font-size: 2.5rem; letter-spacing: 4px; }
+#loadingOverlay p { font-size: 0.65rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
+#loadingOverlay.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<button id="loadingOverlay" onclick="document.getElementById('loadingMsg').textContent='TAPPED - LOADING...'; initAudio()">
+  <h2>PERC-O-SET</h2>
+  <p id="loadingMsg">Tap to load</p>
+</button>
+
+<!-- XY FX Pad -->
+<div id="xyPad">
+  <div id="xyPadClose" style="position:fixed;inset:0;z-index:-1;cursor:pointer;pointer-events:all;touch-action:manipulation;"></div>
+  <div class="xy-pad-inner">
+    <div class="xy-pad-header">
+      <span id="xyPadTitle">TRK 1 FX</span>
+      <button id="xyPadNuke">NUKE</button>
+      <button id="xyPadReset">RESET</button>
+    </div>
+    <div id="xyPadArea">
+      <div id="xyIntensity"></div>
+      <div id="xyDot"></div>
+      <span class="xy-axis-label xy-x">CRUNCH →</span>
+      <span class="xy-axis-label xy-y">ENV ↑</span>
+    </div>
+    <div id="xyLabel">CRUNCH 0%  ENV 0%</div>
+  </div>
+</div>
+
+<!-- Sound picker: flat list for one track at a time -->
+<div id="soundPicker">
+  <div class="sound-picker-inner">
+    <div class="sound-picker-title" id="soundPickerTitle">TRK 1 — SOUND</div>
+    <div id="soundPickerList"></div>
+  </div>
+</div>
+
+<!-- Vol overlay -->
+<div id="volOverlay">
+  <div class="vol-overlay-inner">
+    <div class="vol-overlay-label" id="volOverlayLabel">TRK 1</div>
+    <div class="vol-bar-track"><div class="vol-bar-fill" id="volBarFill"></div></div>
+    <div class="vol-overlay-pct" id="volOverlayPct">80%</div>
+  </div>
+</div>
+
+<header>
+  <h1>PERC-O-SET</h1>
+  <button class="btn" id="saveBtn" onclick="saveLoop()">SAVE</button>
+</header>
+
+<div class="transport">
+  <button class="btn" id="playBtn" onclick="togglePlay()">PLAY</button>
+  <button class="btn" id="beatBtn" onclick="toggleBeat()">BEAT</button>
+  <button class="btn" id="clearBtn" onclick="fullClear()">CLEAR</button>
+  <div class="bpm-wrap">
+    <span class="bpm-val" id="bpmVal">110</span>
+    <input type="range" id="bpmSlider" min="80" max="160" value="110"
+      oninput="document.getElementById('bpmVal').textContent=this.value; bpm=+this.value">
+  </div>
+</div>
+
+<!-- Sequencer grid -->
+<div class="seq-wrap" id="seqWrap"></div>
+
+<div class="footer">
+  <button class="ghost-btn" onclick="randomize()">+</button>
+  <span class="status" id="status"></span>
+  <button class="ghost-btn" onclick="fullClear()">&#10005;</button>
+</div>
+<div class="slot-bar" id="slotBar"></div>
+<div class="vol-section">
+  <div class="vol-title">VOLUME</div>
+  <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider">
+</div>
+
+<script>
+const INSTRUMENTS = {
+  tamb:   { name: 'TAMBOURINE', soft: 'Sounds/Tamb50.wav',   accent: 'Sounds/Tamb100.wav'   },
+  shak:   { name: 'SHAKER',    soft: 'Sounds/Shak50.wav',   accent: 'Sounds/Shak100.wav'   },
+  clav:   { name: 'WOODBLOCK', soft: null, accent: null },
+  clap:   { name: 'HANDCLAP',  soft: 'Sounds/Clap50.wav',   accent: 'Sounds/Clap100.wav'   },
+  congHi: { name: 'CONGA HI',  soft: 'Sounds/CongHi50.wav', accent: 'Sounds/CongHi100.wav' },
+  congLo: { name: 'CONGA LO',  soft: 'Sounds/CongLo50.wav', accent: 'Sounds/CongLo100.wav' },
+  bongHi: { name: 'BONGO HI',  soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav' },
+  bongLo: { name: 'BONGO LO',  soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav' },
+  cowb:   { name: 'COWBELL',   soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav'   },
+  skick:  { name: 'SYNTH KICK', soft: null, accent: null },
+  ssnare: { name: 'SYN SNARE',  soft: null, accent: null },
+  shihat: { name: 'SYN HIHAT',  soft: null, accent: null },
+  sbass:  { name: 'SYNTH BASS', soft: null, accent: null },
+  sbass2: { name: 'PLUCK BASS', soft: null, accent: null },
+  sbass3: { name: 'JAMES BASS',  soft: null, accent: null },
+  sstring:{ name: 'SYN STRINGS',soft: null, accent: null },
+  sparkle:{ name: 'MUT STRING', soft: null, accent: null },
+};
+const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
+let ctx = null, masterGain = null;
+let masterVol = 0.8;
+let nukeActive = false;
+
+function setMasterVol(v) {
+  masterVol = Math.max(0, Math.min(1, v));
+  const cap = nukeActive ? 0.5 : 1;
+  if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol * cap, ctx.currentTime, 0.01);
+  const slider = document.getElementById('masterVolBar');
+  if (slider) slider.value = Math.round(masterVol * 100);
+}
+function updateMasterVolCells() {
+  const slider = document.getElementById('masterVolBar');
+  if (slider) slider.value = Math.round(masterVol * 100);
+}
+
+// setupMasterVolBar called after buildUI at bottom of script
+const buffers = {};
+
+function resumeCtx() { if (ctx && ctx.state !== 'running') ctx.resume(); }
+document.addEventListener('touchstart', resumeCtx, false);
+document.addEventListener('touchend',   resumeCtx, false);
+document.addEventListener('mousedown',  resumeCtx, false);
+function attachCtxStateWatch() {
+  if (!ctx) return;
+  ctx.addEventListener('statechange', () => { if (ctx.state === 'suspended') ctx.resume().catch(()=>{}); });
+}
+if (typeof navigator.mediaDevices !== 'undefined' && navigator.mediaDevices.addEventListener)
+  navigator.mediaDevices.addEventListener('devicechange', () => { if (ctx) ctx.resume().catch(()=>{}); });
+
+async function loadSamples() {
+  const msg = document.getElementById('loadingMsg');
+  let loaded = 0, total = INSTRUMENT_KEYS.length * 2;
+  await Promise.all(INSTRUMENT_KEYS.map(async key => {
+    const inst = INSTRUMENTS[key]; buffers[key] = {};
+    for (const vel of ['soft','accent']) {
+      if (!inst[vel]) { buffers[key][vel] = null; loaded++; continue; }
+      try {
+        const res = await fetch(inst[vel]);
+        if (!res.ok) throw new Error('HTTP '+res.status);
+        buffers[key][vel] = await ctx.decodeAudioData(await res.arrayBuffer());
+      } catch(e) { console.warn('Failed:',inst[vel],e); buffers[key][vel] = null; }
+      msg.textContent = `Loading... ${++loaded}/${total}`;
+    }
+  }));
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  document.getElementById('status').textContent = '';
+}
+
+// ── FX: XY pad per track ─────────────────────────────────────────────────────
+// trackFx[tr] = { x: 0-1 crunch, y: 0-1 envelope } or null (dry)
+// x=0 clean, x=1 maximum waveshaper drive
+// y=0 full attack/full tail, y=1 blunted attack + hard gate
+const FX_LABELS = ['DRY'];
+const trackFxNodes = [];
+
+function makeDistCurve(drive) {
+  const n = 512, c = new Float32Array(n), k = drive * 400;
+  for (let i = 0; i < n; i++) {
+    const x = (i * 2) / n - 1;
+    c[i] = k > 0 ? ((Math.PI + k) * x) / (Math.PI + k * Math.abs(x)) : x;
+  }
+  return c;
+}
+
+function buildFxChain(trackGain) {
+  const dryGain = ctx.createGain(); dryGain.gain.value = 1; dryGain.connect(trackGain);
+  const fxSend  = ctx.createGain(); fxSend.gain.value = 0;
+  const preGain = ctx.createGain(); preGain.gain.value = 0.25; // lower pre-gain to control added energy
+  const ws = ctx.createWaveShaper(); ws.oversample = '2x'; // 2x saves CPU and limits harmonic explosion
+  ws.curve = makeDistCurve(0);
+  const postGain = ctx.createGain(); postGain.gain.value = 0.4; // compensate down so FX ≈ dry level
+  const lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
+  lim.attack.value = 0.0005; lim.release.value = 0.08;
+  fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(lim); lim.connect(trackGain);
+  return { dryGain, fxSend, ws, preGain, postGain };
+}
+function setFxActive(tr, fxVal) {
+  if (!trackFxNodes[tr]) return;
+  const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
+  const { dryGain, fxSend, ws } = trackFxNodes[tr];
+  dryGain.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, 0.01);
+  fxSend.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.01);
+  if (on) ws.curve = makeDistCurve(fxVal.x);
+  // Halve track volume when FX is on
+  if (trackGainNodes[tr]) {
+    const fxComp = on ? trackVolume[tr] * 0.5 : trackVolume[tr];
+    trackGainNodes[tr].gain.setTargetAtTime(fxComp, ctx.currentTime, 0.01);
+    const vb = document.getElementById(`vbar-${tr}`);
+    if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(fxComp * 100) + '%'; }
+  }
+}
+
+function getSynthConnectNode(tr) {
+  // Returns the node synth voices should connect to — routes through FX chain if active
+  const fxVal = tr !== undefined ? trackFx[tr] : null;
+  const fxOn = fxVal && (fxVal.x > 0 || fxVal.y > 0);
+  if (tr !== undefined && trackFxNodes[tr]) {
+    return fxOn ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain;
+  }
+  return (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+}
+
+function playBuffer(key, isAccent, time, tr) {
+  if (key === 'clav')   { playWoodblock(isAccent, time, tr); return; }
+  if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
+  if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
+  if (key === 'shihat') { playSynthHihat(isAccent, time, tr); return; }
+  if (key === 'sbass')   { return; } // handled in scheduler with legato duration
+  if (key === 'sbass2')  { return; }
+  if (key === 'sbass3')  { return; }
+  if (key === 'sstring') { return; } // handled in scheduler
+  if (key === 'sparkle') { return; } // handled in scheduler
+  const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
+  if (!buf) return;
+
+  // Sweep: play reversed sample leading into the note
+  if (tr !== undefined && trackSweep[tr]) {
+    const revLen = Math.min(buf.duration * 0.5, stepDuration() * 0.9);
+    const revBuf = reverseBuffer(buf, revLen);
+    if (revBuf) {
+      const revSrc = ctx.createBufferSource(); revSrc.buffer = revBuf;
+      revSrc.playbackRate.value = 0.5;
+      const revGain = ctx.createGain(); revGain.gain.value = 0.75;
+      const dest = getSynthConnectNode(tr);
+      revSrc.connect(revGain); revGain.connect(dest);
+      revSrc.start(Math.max(ctx.currentTime, time - revLen * 2));
+    }
+  }
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const fxVal = trackFx[tr];
+  const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
+  if (tr !== undefined && trackFxNodes[tr] && on) {
+    const envGain = ctx.createGain();
+    envGain.connect(trackFxNodes[tr].fxSend);
+    src.connect(envGain);
+    // no dry signal when FX is active
+    const atkDelay = fxVal.y * 0.08;
+    const tailLen = buf.duration * (1 - fxVal.y * 0.85);
+    envGain.gain.setValueAtTime(0, time);
+    envGain.gain.linearRampToValueAtTime(1, time + atkDelay + 0.002);
+    envGain.gain.setValueAtTime(1, time + tailLen);
+    envGain.gain.linearRampToValueAtTime(0, time + tailLen + 0.01);
+  } else if (tr !== undefined && trackFxNodes[tr]) {
+    src.connect(trackFxNodes[tr].dryGain);
+  } else {
+    src.connect((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
+  }
+  src.start(time);
+}
+
+// ── XY Pad overlay ──
+let xyPadTrack = -1;
+let xyPadLastPos = { x: 0, y: 0 };
+function openXYPad(tr) {
+  xyPadTrack = tr;
+  const fxVal = trackFx[tr] || { x: 0, y: 0 };
+  xyPadLastPos = { ...fxVal };
+  document.getElementById('xyPadTitle').textContent = `TRK ${tr+1} FX`;
+  const pad = document.getElementById('xyPadArea');
+  renderXYDot(fxVal.x, fxVal.y);
+  document.getElementById('xyPad').classList.add('visible');
+}
+function closeXYPad() {
+  document.getElementById('xyPad').classList.remove('visible');
+  xyPadTrack = -1;
+}
+function renderXYDot(x, y) {
+  const dot = document.getElementById('xyDot');
+  dot.style.left = (x * 100) + '%';
+  dot.style.top  = ((1 - y) * 100) + '%';
+  const intensity = document.getElementById('xyIntensity');
+  intensity.style.width  = (x * 100) + '%';
+  intensity.style.height = (y * 100) + '%';
+  document.getElementById('xyLabel').textContent =
+    `CRUNCH ${Math.round(x*100)}%  ENV ${Math.round(y*100)}%`;
+}
+function xyFromEvent(e, pad) {
+  const r = pad.getBoundingClientRect();
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: Math.max(0, Math.min(1, (cx - r.left) / r.width)),
+    y: Math.max(0, Math.min(1, 1 - (cy - r.top) / r.height))
+  };
+}
+function applyXY(pos) {
+  if (xyPadTrack < 0) return;
+  trackFx[xyPadTrack] = pos;
+  xyPadLastPos = { ...pos };
+  renderXYDot(pos.x, pos.y);
+  if (ctx) setFxActive(xyPadTrack, pos);
+  const btn = document.getElementById(`fxbtn-${xyPadTrack}`);
+  if (btn) btn.classList.toggle('on', pos.x > 0 || pos.y > 0);
+  markModified();
+}
+(function setupXYPad() {
+  const pad = document.getElementById('xyPadArea');
+  function onDown(e) { e.preventDefault(); applyXY(xyFromEvent(e, pad)); }
+  function onMove(e) { e.preventDefault(); applyXY(xyFromEvent(e, pad)); }
+  pad.addEventListener('mousedown',  onDown);
+  pad.addEventListener('mousemove',  e => { if (e.buttons) onMove(e); });
+  pad.addEventListener('touchstart', onDown, { passive: false });
+  pad.addEventListener('touchmove',  onMove, { passive: false });
+  document.getElementById('xyPadClose').addEventListener('click', closeXYPad);
+  document.getElementById('xyPadClose').addEventListener('touchend', e => { e.preventDefault(); closeXYPad(); }, { passive: false });
+  document.querySelector('.xy-pad-inner').addEventListener('click', e => e.stopPropagation());
+})();
+
+const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
+
+document.getElementById('xyPadNuke').addEventListener('click', () => {
+  const nukeBtn = document.getElementById('xyPadNuke');
+  nukeBtn.classList.toggle('active');
+  nukeActive = nukeBtn.classList.contains('active');
+  // if no XY position set yet, default to moderate effect
+  if (nukeActive && xyPadLastPos.x === 0 && xyPadLastPos.y === 0) {
+    xyPadLastPos = { x: 0.5, y: 0.5 };
+  }
+  const applyPos = nukeActive ? { ...xyPadLastPos } : { x: 0, y: 0 };
+  const on = applyPos.x > 0 || applyPos.y > 0;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    trackFx[tr] = { ...applyPos };
+    if (ctx && trackFxNodes[tr]) {
+      const { dryGain, fxSend, ws } = trackFxNodes[tr];
+      dryGain.gain.cancelScheduledValues(ctx.currentTime);
+      fxSend.gain.cancelScheduledValues(ctx.currentTime);
+      dryGain.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime);
+      fxSend.gain.setValueAtTime(on ? 1 : 0, ctx.currentTime);
+      if (on) ws.curve = makeDistCurve(applyPos.x);
+    }
+    const fb = document.getElementById(`fxbtn-${tr}`);
+    if (fb) { fb.classList.toggle('on', on); }
+  }
+  setMasterVol(masterVol);
+  markModified();
+});
+document.getElementById('xyPadReset').addEventListener('click', () => {
+  applyXY({ x: 0, y: 0 });
+  nukeActive = false;
+  document.getElementById('xyPadNuke').classList.remove('active');
+  setMasterVol(masterVol);
+});
+const trackInstruments = ['shak','sstring','sparkle','sbass','congHi','congLo'];
+const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
+const trackOffset = new Array(NUM_TRACKS).fill(0);
+const trackMuted  = new Array(NUM_TRACKS).fill(false);
+const trackSweep  = new Array(NUM_TRACKS).fill(false);
+const trackVolume = [0.8, 0.505, 0.8, 0.8, 0.8, 0.8];
+const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
+const trackGainNodes = [];
+let bpm = 110, playing = false, currentStep = -1, nextStepTime = 0, scheduleInterval = null;
+const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
+function stepDuration() { return 60 / bpm / 4; }
+
+function scheduler() {
+  while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
+    const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
+    const t = nextStepTime;
+    requestAnimationFrame(() => updatePlayhead(step));
+    for (let tr = 0; tr < NUM_TRACKS; tr++) {
+      if (trackMuted[tr]) continue;
+      const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+      const val = grid[tr][gs];
+      if (val > 0) {
+        const key = trackInstruments[tr];
+        if (key === 'sbass' || key === 'sbass2' || key === 'sbass3' || key === 'sstring' || key === 'sparkle') {
+          const scale = trackBassScale[tr] || [110];
+          const noteIdx = gs % scale.length;
+          const freq = scale[noteIdx];
+          let dur = stepDuration();
+          for (let ld = 1; ld < NUM_STEPS; ld++) {
+            const ngs = (gs + ld) % NUM_STEPS;
+            if (grid[tr][ngs] > 0) { dur = stepDuration() * ld; break; }
+          }
+          if (key === 'sbass')   playSynthBass(freq, dur, val === 2, t, tr);
+          if (key === 'sbass2')  playPluckBass(freq, dur, val === 2, t, tr);
+          if (key === 'sbass3')  playMotownBass(freq, dur, val === 2, t, tr);
+          if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
+          if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
+        } else {
+          playBuffer(key, val === 2, t, tr);
+        }
+      }
+    }
+    nextStepTime += stepDuration();
+  }
+}
+
+function updatePlayhead(step) {
+  document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const el = document.querySelector(`[data-track="${tr}"][data-step="${step}"]`);
+    if (el) el.classList.add('playing');
+    const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+    const tbtn = document.getElementById(`tbtn-${tr}`);
+    if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
+      tbtn.classList.add('playing');
+      setTimeout(() => tbtn.classList.remove('playing'), 80);
+      const fxbtn = document.getElementById(`fxbtn-${tr}`);
+      if (fxbtn) { fxbtn.classList.add('playing'); setTimeout(() => fxbtn.classList.remove('playing'), 80); }
+    }
+  }
+}
+
+function togglePlay() {
+  if (ctx) ctx.resume();
+  playing = !playing;
+  const btn = document.getElementById('playBtn');
+  if (playing) {
+    currentStep = -1; nextStepTime = ctx.currentTime + 0.05;
+    scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
+    btn.classList.add('active'); btn.textContent = 'STOP';
+    // if beat is armed, restart it in sync
+    if (beatPlaying) {
+      clearInterval(beatInterval);
+      beatStep = -1; beatNextTime = nextStepTime;
+      beatInterval = setInterval(scheduleBeat, SCHEDULE_MS);
+    }
+  } else {
+    clearInterval(scheduleInterval); scheduleInterval = null;
+    btn.classList.remove('active'); btn.textContent = 'PLAY';
+    // stop beat audio but leave beatPlaying armed
+    if (beatPlaying) { clearInterval(beatInterval); beatInterval = null; }
+    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
+  }
+}
+
+// ── Beat button: Kick on 1&3, Snare on 2&4 ──
+let beatPlaying = false, beatInterval = null, beatStep = -1, beatNextTime = 0;
+function scheduleBeat() {
+  while (beatNextTime < ctx.currentTime + LOOKAHEAD) {
+    beatStep = (beatStep + 1) % 4;
+    const t = beatNextTime;
+    if (beatStep === 0 || beatStep === 2) {
+      playKick(t);
+      // Duck the mix by -6dB on kick beats
+      if (window._duckGain) {
+        const dg = window._duckGain.gain;
+        dg.cancelScheduledValues(t);
+        dg.setValueAtTime(1, t);
+        dg.linearRampToValueAtTime(0.5, t + 0.005);   // snap down -6dB in 5ms
+        dg.setTargetAtTime(1, t + 0.020, 0.08);        // release back over ~200ms
+      }
+    } else {
+      playSnare(t);
+    }
+    beatNextTime += 60 / bpm;
+  }
+}
+function reverseBuffer(buf, revLen) {
+  if (!buf || !ctx) return null;
+  const numCh = buf.numberOfChannels, sr = buf.sampleRate;
+  const totalSamples = buf.length;
+  const revSamples = Math.min(Math.ceil(revLen * sr), totalSamples);
+  const out = ctx.createBuffer(numCh, revSamples, sr);
+  for (let ch = 0; ch < numCh; ch++) {
+    const src = buf.getChannelData(ch);
+    const dst = out.getChannelData(ch);
+    for (let i = 0; i < revSamples; i++) {
+      dst[i] = src[revSamples - 1 - i];
+    }
+  }
+  return out;
+}
+
+function playWoodblock(isAccent, time, tr) {
+  if (!ctx) return;
+  const freq = isAccent ? 900 : 750;
+  const gain = isAccent ? 0.7 : 0.45;
+  const dur = 0.08;
+  // Two oscillators slightly detuned for the woody hollow sound
+  [freq, freq * 1.47].forEach((f, i) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    const dest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+    osc.connect(g); g.connect(dest);
+    osc.type = 'sine'; osc.frequency.setValueAtTime(f, time);
+    osc.frequency.exponentialRampToValueAtTime(f * 0.6, time + dur);
+    g.gain.setValueAtTime(gain * (i === 0 ? 1 : 0.4), time);
+    g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.start(time); osc.stop(time + dur + 0.01);
+  });
+}
+
+function playSynthKick(isAccent, time, tr) {
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.connect(g); g.connect(dest);
+  osc.frequency.setValueAtTime(isAccent ? 180 : 140, time);
+  osc.frequency.exponentialRampToValueAtTime(35, time + 0.35);
+  g.gain.setValueAtTime(isAccent ? 0.9 : 0.6, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
+  osc.start(time); osc.stop(time + 0.46);
+}
+function playSynthSnare(isAccent, time, tr) {
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const dur = isAccent ? 0.28 : 0.20, vol = isAccent ? 0.65 : 0.42;
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 1.5);
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.8;
+  const body = ctx.createOscillator(), bg = ctx.createGain();
+  body.frequency.setValueAtTime(200, time); body.frequency.exponentialRampToValueAtTime(75, time + 0.08);
+  bg.gain.setValueAtTime(vol * 0.6, time); bg.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+  body.connect(bg); bg.connect(dest); body.start(time); body.stop(time + 0.1);
+  src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(dest);
+  g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  src.start(time);
+}
+function playSynthHihat(isAccent, time, tr) {
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const dur = isAccent ? 0.12 : 0.06, vol = isAccent ? 0.35 : 0.22;
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
+  src.buffer = buf; src.connect(hp); hp.connect(g); g.connect(dest);
+  g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  src.start(time);
+}
+
+// ── Synth Bass with legato glide (ported from SMPLJAK) ──
+const _bassGlideState = {}; // tr -> lastFreq
+function playSynthBass(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq || freq < 10) return;
+  const vel = isAccent ? 0.425 : 0.3;
+  const startFreq = _bassGlideState[tr] || freq;
+  _bassGlideState[tr] = freq;
+  const dest = (tr !== undefined && trackFxNodes[tr])
+    ? (trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain)
+    : (trackGainNodes[tr] || masterGain);
+
+  const saw = ctx.createOscillator(); saw.type = 'sawtooth';
+  const sub = ctx.createOscillator(); sub.type = 'sine';
+  const sawG = ctx.createGain(); sawG.gain.value = 0.25;
+  const subG = ctx.createGain(); subG.gain.value = 0.38;
+
+  const slideTime = Math.min(durSec * 0.3, 0.12);
+  saw.frequency.setValueAtTime(Math.max(startFreq, 1), time);
+  saw.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + slideTime);
+  sub.frequency.setValueAtTime(Math.max(startFreq * 0.5, 1), time);
+  sub.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.5, 1), time + slideTime);
+
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 3.5;
+  filt.frequency.setValueAtTime(Math.max(startFreq * 3.5, 20), time);
+  filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 3.5, 20), time + slideTime);
+
+  const ampEnv = ctx.createGain();
+  ampEnv.gain.setValueAtTime(0, time);
+  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.008);
+  ampEnv.gain.setValueAtTime(vel, time + durSec * 0.8);
+  ampEnv.gain.linearRampToValueAtTime(0.001, time + durSec);
+
+  saw.connect(sawG); sawG.connect(filt);
+  sub.connect(subG); subG.connect(filt);
+  filt.connect(ampEnv); ampEnv.connect(dest);
+  saw.start(time); saw.stop(time + durSec + 0.05);
+  sub.start(time); sub.stop(time + durSec + 0.05);
+}
+
+// Pentatonic minor intervals (semitones from root): 0,3,5,7,10
+const PENTA_MINOR = [0, 3, 5, 7, 10];
+// Bass roots: A1–A2 range
+const BASS_ROOTS    = [55, 58, 62, 65, 69, 73];   // A1 B1 D2 F2 A2 C#2
+const MELODY_ROOTS  = [220, 247, 262, 294, 330];   // A3 B3 C4 D4 E4
+const SPARKLE_ROOTS = [82, 98, 110, 130, 147, 165];  // E2 G2 A2 C3 D3 E3
+
+// Per-track pentatonic scale (set on each R press for tonal tracks)
+const trackBassScale = {}; // tr -> [freq, ...]
+
+// Global scale root — shared by all tonal tracks, cleared by CLEAR
+let globalScaleRoot = null;
+const TONAL_KEYS = new Set(['sbass','sbass2','sbass3','sstring','sparkle']);
+
+function buildScaleFromRoot(root) {
+  const scale = [];
+  for (let oct = 0; oct < 2; oct++)
+    PENTA_MINOR.forEach(s => scale.push(root * Math.pow(2, (s + oct * 12) / 12)));
+  return scale;
+}
+function transposeRootToRange(root, roots) {
+  const mid = roots[Math.floor(roots.length / 2)];
+  let r = root;
+  while (r < mid / 1.5) r *= 2;
+  while (r > mid * 1.5) r /= 2;
+  return r;
+}
+function getRangeRoots(key) {
+  if (key === 'sparkle') return SPARKLE_ROOTS;
+  if (key === 'sstring') return MELODY_ROOTS;
+  return BASS_ROOTS;
+}
+
+function randomizeBassTrack(tr, level) {
+  if (level === undefined) level = 0;
+  const key = trackInstruments[tr];
+
+  let root;
+  if (globalScaleRoot !== null) {
+    // Transpose existing global root into this instrument's range
+    root = transposeRootToRange(globalScaleRoot, getRangeRoots(key));
+  } else {
+    // Pick a new root and set as global
+    const roots = getRangeRoots(key);
+    root = roots[Math.floor(Math.random() * roots.length)];
+    globalScaleRoot = root;
+    // Rebuild all other tonal tracks' scales to match
+    for (let t = 0; t < NUM_TRACKS; t++) {
+      if (t !== tr && TONAL_KEYS.has(trackInstruments[t]) && trackBassScale[t]) {
+        const r2 = transposeRootToRange(root, getRangeRoots(trackInstruments[t]));
+        trackBassScale[t] = buildScaleFromRoot(r2);
+      }
+    }
+  }
+
+  trackBassScale[tr] = buildScaleFromRoot(root);
+
+  const [minN, maxN, accentRatio] = [
+    [3, 6,  0.20],
+    [6, 10, 0.40],
+    [10, 16, 0.60],
+  ][level];
+  const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
+  placeNotes(tr, noteCount, accentRatio);
+  redrawTrackCells(tr); markModified();
+}
+
+function playStringSynth(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vol = isAccent ? 0.06 : 0.04; // -6dB from 0.12/0.08
+  const env = ctx.createGain();
+
+  // Grainy: shorter, noisier IR
+  const irLen = Math.floor(ctx.sampleRate * 0.4);
+  const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = irBuf.getChannelData(ch);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.2);
+  }
+  const rev = ctx.createConvolver(); rev.buffer = irBuf;
+  const dryG = ctx.createGain(); dryG.gain.value = 0.5;
+  const revG = ctx.createGain(); revG.gain.value = 0.5;
+
+  // Highpass to thin and brighten
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400; hp.Q.value = 0.7;
+
+  [0, 7, -7, 12, -3].forEach(detune => {
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth'; osc.frequency.value = freq; osc.detune.value = detune;
+    osc.connect(env); osc.start(time); osc.stop(time + durSec + 0.4);
+  });
+  env.connect(hp); hp.connect(dryG); dryG.connect(dest);
+  hp.connect(rev); rev.connect(revG); revG.connect(dest);
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vol, time + 0.08);
+  env.gain.setValueAtTime(vol * 3, time + durSec - 0.1);
+  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.3);
+}
+
+const _sparkleGlideState = {};
+// ── Pluck Bass: resonant attack, fast decay ──
+function playPluckBass(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const vel = isAccent ? 1.8 : 1.3;
+  const dest = getSynthConnectNode(tr);
+
+  const osc = ctx.createOscillator(); osc.type = 'sawtooth'; osc.frequency.value = freq;
+  const sub = ctx.createOscillator(); sub.type = 'sine'; sub.frequency.value = freq * 0.5;
+  const sawG = ctx.createGain(); sawG.gain.value = 0.5;
+  const subG = ctx.createGain(); subG.gain.value = 0.4;
+
+  // Resonant filter with snappy open-close
+  const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.Q.value = 8;
+  const peakFreq = freq * 6;
+  filt.frequency.setValueAtTime(peakFreq * 2.5, time);
+  filt.frequency.exponentialRampToValueAtTime(freq * 0.9, time + 0.04);
+
+  const ampEnv = ctx.createGain();
+  ampEnv.gain.setValueAtTime(0, time);
+  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.003);
+  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.3, time + 0.06);
+  ampEnv.gain.exponentialRampToValueAtTime(0.001, time + Math.min(durSec, 0.35));
+
+  osc.connect(sawG); sub.connect(subG);
+  sawG.connect(filt); subG.connect(filt); filt.connect(ampEnv); ampEnv.connect(dest);
+  osc.start(time); osc.stop(time + 0.4);
+  sub.start(time); sub.stop(time + 0.4);
+}
+
+// ── James Bass: dry finger-picked Motown feel ──
+const _motownGlide = {};
+function playMotownBass(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const vel = isAccent ? 0.8 : 0.58;
+  const dest = getSynthConnectNode(tr);
+  _motownGlide[tr] = freq;
+
+  const saw1 = ctx.createOscillator(); saw1.type = 'sawtooth'; saw1.frequency.value = freq; saw1.detune.value = -3;
+  const saw2 = ctx.createOscillator(); saw2.type = 'sawtooth'; saw2.frequency.value = freq; saw2.detune.value = 3;
+  const sub  = ctx.createOscillator(); sub.type  = 'sine';   sub.frequency.value  = freq * 0.5;
+
+  const mix = ctx.createGain(); mix.gain.value = 0.3;
+
+  // Tight lowpass — closed, punchy, no bloom
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 0.8;
+  filt.frequency.setValueAtTime(freq * 3, time);
+  filt.frequency.exponentialRampToValueAtTime(freq * 1.1, time + 0.03);
+
+  // Sharp attack, fast decay to dry sustain, hard cut
+  const ampEnv = ctx.createGain();
+  const decay = Math.min(durSec * 0.55, 0.18);
+  ampEnv.gain.setValueAtTime(0, time);
+  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.004);
+  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.35, time + decay);
+  ampEnv.gain.exponentialRampToValueAtTime(0.001, time + durSec * 0.85);
+
+  saw1.connect(mix); saw2.connect(mix); sub.connect(mix);
+  mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(dest);
+  [saw1, saw2, sub].forEach(o => { o.start(time); o.stop(time + durSec + 0.02); });
+}
+
+function playSparkle(freq, durSec, isAccent, time, tr) {
+  // Karplus-Strong style: noise burst into tuned comb gives dry woody dampened string tone
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 1.1 : 0.79;
+  const period = 1 / freq;
+  const bufLen = Math.ceil(ctx.sampleRate * period);
+
+  // Seed: short noise burst
+  const noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) nd[i] = (Math.random() * 2 - 1);
+
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  src.loop = true;
+
+  // Lowpass to kill brightness fast — gives the dampened/muted character
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(freq * 6, time);
+  lp.frequency.exponentialRampToValueAtTime(freq * 1.2, time + 0.025);
+
+  // Notch to thin out the midrange boxiness
+  const notch = ctx.createBiquadFilter(); notch.type = 'notch';
+  notch.frequency.value = freq * 3; notch.Q.value = 1.5;
+
+  const env = ctx.createGain();
+  const decay = Math.min(0.18, durSec * 0.6); // always short regardless of legato
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.002);
+  env.gain.exponentialRampToValueAtTime(0.001, time + decay);
+
+  src.connect(lp); lp.connect(notch); notch.connect(env); env.connect(dest);
+  src.start(time); src.stop(time + decay + 0.02);
+}
+
+function playKick(t) {
+  const osc = ctx.createOscillator(), g = ctx.createGain();
+  osc.connect(g); g.connect(masterGain);
+  osc.frequency.setValueAtTime(120, t);
+  osc.frequency.exponentialRampToValueAtTime(45, t + 0.07); // faster pitch drop = less tonal
+  g.gain.setValueAtTime(0.8, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); // much shorter tail
+  osc.start(t); osc.stop(t + 0.17);
+  // short noise click for attack definition without adding tone
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.012), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  const click = ctx.createBufferSource(); click.buffer = buf;
+  const clickGain = ctx.createGain(); clickGain.gain.value = 0.3;
+  click.connect(clickGain); clickGain.connect(masterGain); click.start(t);
+}
+function playSnare(t) {
+  const dur = 0.22;
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) {
+    const env = Math.pow(1 - i / d.length, 1.5);
+    d[i] = (Math.random() * 2 - 1) * env;
+  }
+  const src = ctx.createBufferSource(), g = ctx.createGain();
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.8;
+  // body tone
+  const body = ctx.createOscillator(), bodyGain = ctx.createGain();
+  body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
+  bodyGain.gain.setValueAtTime(0.35, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  body.connect(bodyGain); bodyGain.connect(masterGain); body.start(t); body.stop(t + 0.1);
+  src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(masterGain);
+  g.gain.setValueAtTime(0.55, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  src.start(t);
+}
+function toggleBeat() {
+  if (ctx) ctx.resume();
+  beatPlaying = !beatPlaying;
+  const btn = document.getElementById('beatBtn');
+  if (beatPlaying) {
+    beatStep = -1;
+    if (playing && nextStepTime > ctx.currentTime) {
+      beatNextTime = nextStepTime;
+    } else {
+      beatNextTime = ctx.currentTime + 0.05;
+    }
+    beatInterval = setInterval(scheduleBeat, SCHEDULE_MS);
+    btn.classList.add('active');
+    if (!playing) togglePlay();
+  } else {
+    clearInterval(beatInterval); beatInterval = null;
+    btn.classList.remove('active');
+  }
+}
+
+// ── Sound picker (flat list, per track) ──
+let soundPickerTrack = -1;
+function openSoundPicker(tr) {
+  soundPickerTrack = tr;
+  document.getElementById('soundPickerTitle').textContent = `TRK ${tr+1} — SOUND`;
+  const list = document.getElementById('soundPickerList'); list.innerHTML = '';
+  INSTRUMENT_KEYS.forEach(k => {
+    const opt = document.createElement('div');
+    opt.className = 'sound-option' + (trackInstruments[tr] === k ? ' active' : '');
+    opt.dataset.key = k;
+    opt.textContent = INSTRUMENTS[k].name;
+    opt.addEventListener('mouseenter', () => {
+      list.querySelectorAll('.sound-option').forEach(o => o.classList.toggle('active', o.dataset.key === k));
+    });
+    opt.addEventListener('mouseup', e => { e.stopPropagation(); selectSound(tr, k); });
+    opt.addEventListener('touchend', e => { e.stopPropagation(); e.preventDefault(); selectSound(tr, k); }, { passive: false });
+    list.appendChild(opt);
+  });
+  document.getElementById('soundPicker').classList.add('visible');
+}
+function selectSound(tr, k) {
+  trackInstruments[tr] = k;
+  const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
+  closeSoundPicker();
+  markModified();
+}
+function closeSoundPicker() {
+  document.getElementById('soundPicker').classList.remove('visible');
+  soundPickerTrack = -1;
+}
+document.getElementById('soundPicker').addEventListener('click', e => {
+  if (e.target === document.getElementById('soundPicker')) closeSoundPicker();
+});
+
+// ── Vol overlay ──
+let volOverlayTrack = -1, volDragActive = false, volDragStartY = 0, volDragStartLevel = 0;
+function showVolOverlay(tr) {
+  volOverlayTrack = tr;
+  document.getElementById('volOverlayLabel').textContent = `TRK ${tr+1}`;
+  updateVolOverlayDisplay();
+  document.getElementById('volOverlay').classList.add('visible');
+}
+function hideVolOverlay() {
+  document.getElementById('volOverlay').classList.remove('visible'); volOverlayTrack = -1;
+}
+function updateVolOverlayDisplay() {
+  const tr = volOverlayTrack; if (tr < 0) return;
+  const pct = Math.round(trackVolume[tr] * 100);
+  document.getElementById('volOverlayPct').textContent = pct + '%';
+  document.getElementById('volBarFill').style.height = pct + '%';
+}
+function setTrackVol(tr, v) {
+  trackVolume[tr] = Math.max(0, Math.min(1, v));
+  if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
+}
+
+// Full-screen drag for vol overlay
+const volOverlayEl = document.getElementById('volOverlay');
+volOverlayEl.addEventListener('touchstart', e => {
+  volDragActive = true;
+  volDragStartY = e.touches[0].clientY;
+  volDragStartLevel = trackVolume[volOverlayTrack];
+  e.preventDefault();
+}, { passive: false });
+volOverlayEl.addEventListener('touchmove', e => {
+  if (!volDragActive || volOverlayTrack < 0) return;
+  const dy = volDragStartY - e.touches[0].clientY;
+  setTrackVol(volOverlayTrack, volDragStartLevel + dy / window.innerHeight);
+  updateVolOverlayDisplay(); updateVolMuteCol(volOverlayTrack);
+  e.preventDefault();
+}, { passive: false });
+volOverlayEl.addEventListener('touchend', e => {
+  volDragActive = false;
+  if (e.changedTouches[0] && Math.abs(e.changedTouches[0].clientY - volDragStartY) < 5) hideVolOverlay();
+});
+volOverlayEl.addEventListener('mousedown', e => {
+  volDragActive = true;
+  volDragStartY = e.clientY;
+  volDragStartLevel = trackVolume[volOverlayTrack];
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!volDragActive || volOverlayTrack < 0) return;
+  const dy = volDragStartY - e.clientY;
+  setTrackVol(volOverlayTrack, volDragStartLevel + dy / window.innerHeight);
+  updateVolOverlayDisplay(); updateVolMuteCol(volOverlayTrack);
+});
+window.addEventListener('mouseup', e => {
+  if (volDragActive && volOverlayTrack >= 0 && Math.abs(e.clientY - volDragStartY) < 5) hideVolOverlay();
+  volDragActive = false;
+});
+
+function updateVolMuteCol(tr) { updateTrackMute(tr); }
+function attachVolMuteEvents() {}
+
+function buildUI() {
+  // Sequencer rows — each track has: [ctrl-row] + [step-row]
+  const seqWrap = document.getElementById('seqWrap'); seqWrap.innerHTML = '';
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const trackWrap = document.createElement('div'); trackWrap.className = 'track-wrap';
+
+    // ── Control row ──
+    const ctrlRow = document.createElement('div'); ctrlRow.className = 'track-ctrl-row'; ctrlRow.id = `ctrlrow-${tr}`;
+
+    // Name button (click=mute, hold=sound picker)
+    const nameBtn = document.createElement('button'); nameBtn.className = 'track-name-btn'; nameBtn.id = `tbtn-${tr}`;
+    nameBtn.textContent = INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1);
+    nameBtn.classList.toggle('muted', trackMuted[tr]);
+    let ht = null;
+    nameBtn.addEventListener('mousedown', () => { ht = setTimeout(() => { ht = null; openSoundPicker(tr); }, 400); });
+    nameBtn.addEventListener('mouseup', () => { if (ht) { clearTimeout(ht); ht = null; trackMuted[tr] = !trackMuted[tr]; updateTrackMute(tr); markModified(); } });
+    nameBtn.addEventListener('mouseleave', () => { clearTimeout(ht); ht = null; });
+    nameBtn.addEventListener('touchstart', e => { e.preventDefault(); ht = setTimeout(() => { ht = null; openSoundPicker(tr); }, 400); }, { passive: false });
+    nameBtn.addEventListener('touchend', e => { e.preventDefault(); if (ht) { clearTimeout(ht); ht = null; trackMuted[tr] = !trackMuted[tr]; updateTrackMute(tr); markModified(); } }, { passive: false });
+    ctrlRow.appendChild(nameBtn);
+
+    // Shift left
+    const btnL = document.createElement('button'); btnL.className = 'shift-btn'; btnL.textContent = '<';
+    wireShiftButton(btnL, tr, -1);
+    ctrlRow.appendChild(btnL);
+
+    // Shift right
+    const btnR = document.createElement('button'); btnR.className = 'shift-btn right'; btnR.textContent = '>';
+    wireShiftButton(btnR, tr, +1);
+    ctrlRow.appendChild(btnR);
+
+    // Sweep button
+    const sweepBtn = document.createElement('button'); sweepBtn.className = 'track-ctrl-icon-btn'; sweepBtn.id = `swpbtn-${tr}`;
+    sweepBtn.textContent = 'S'; sweepBtn.classList.toggle('sweep-on', trackSweep[tr]);
+    sweepBtn.addEventListener('click', () => { trackSweep[tr] = !trackSweep[tr]; sweepBtn.classList.toggle('sweep-on', trackSweep[tr]); markModified(); });
+    ctrlRow.appendChild(sweepBtn);
+
+    // FX button — tap toggles FX on/off, hold opens XY pad
+    const fxBtn = document.createElement('button'); fxBtn.className = 'track-ctrl-icon-btn'; fxBtn.id = `fxbtn-${tr}`;
+    fxBtn.textContent = 'FX';
+    const fxVal = trackFx[tr]; fxBtn.classList.toggle('on', fxVal && (fxVal.x > 0 || fxVal.y > 0));
+    let fxHoldTimer = null, fxDidHold = false;
+    const startFxHold = () => {
+      fxDidHold = false;
+      fxHoldTimer = setTimeout(() => { fxDidHold = true; fxHoldTimer = null; openXYPad(tr); }, 400);
+    };
+    const endFxHold = (didRelease) => {
+      if (fxHoldTimer) { clearTimeout(fxHoldTimer); fxHoldTimer = null; }
+      if (didRelease && !fxDidHold) {
+        // Short tap — toggle
+        const cur = trackFx[tr], isOn = cur && (cur.x > 0 || cur.y > 0);
+        const newVal = isOn ? { x: 0, y: 0 } : { x: 0.5, y: 0.5 };
+        trackFx[tr] = newVal; xyPadLastPos = { ...newVal };
+        if (ctx) setFxActive(tr, newVal);
+        fxBtn.classList.toggle('on', newVal.x > 0 || newVal.y > 0);
+        markModified();
+      }
+    };
+    fxBtn.addEventListener('mousedown', startFxHold);
+    fxBtn.addEventListener('mouseup', () => endFxHold(true));
+    fxBtn.addEventListener('mouseleave', () => { if (fxHoldTimer) { clearTimeout(fxHoldTimer); fxHoldTimer = null; } });
+    fxBtn.addEventListener('touchstart', e => { e.preventDefault(); startFxHold(); }, { passive: false });
+    fxBtn.addEventListener('touchend', e => { e.preventDefault(); endFxHold(true); }, { passive: false });
+    ctrlRow.appendChild(fxBtn);
+
+    // R button — randomize notes across the track, regenerating every 4 bars while held
+    const randBtn = document.createElement('button'); randBtn.className = 'track-ctrl-icon-btn rand-btn'; randBtn.id = `randbtn-${tr}`;
+    randBtn.textContent = 'R';
+    wireRandomizeButton(randBtn, tr);
+    ctrlRow.appendChild(randBtn);
+
+
+    // Vol bar
+    const volBar = document.createElement('div'); volBar.className = 'track-vol-bar'; volBar.id = `vbar-${tr}`;
+    volBar.classList.toggle('muted', trackMuted[tr]);
+    const volFill = document.createElement('div'); volFill.className = 'track-vol-fill';
+    volFill.style.width = Math.round(trackVolume[tr] * 100) + '%';
+    volBar.appendChild(volFill);
+    attachVolBarEvents(volBar, tr);
+    ctrlRow.appendChild(volBar);
+
+    trackWrap.appendChild(ctrlRow);
+
+    // ── Step row — full width, no shift buttons here ──
+    const row = document.createElement('div'); row.className = 'track-row';
+    const lane = document.createElement('div'); lane.className = 'step-lane';
+    const cells = document.createElement('div'); cells.className = 'step-lane-cells';
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const cell = document.createElement('div');
+      cell.className = 'step-cell'; cell.dataset.track = tr; cell.dataset.step = s;
+      cell.addEventListener('mousedown', () => tapStep(tr, s, cell));
+      cells.appendChild(cell);
+    }
+    lane.appendChild(cells);
+    row.appendChild(lane);
+    trackWrap.appendChild(row);
+    seqWrap.appendChild(trackWrap);
+  }
+
+  buildSlotBar();
+}
+
+function updateTrackMute(tr) {
+  const nb = document.getElementById(`tbtn-${tr}`); if (nb) nb.classList.toggle('muted', trackMuted[tr]);
+  const vb = document.getElementById(`vbar-${tr}`); if (vb) vb.classList.toggle('muted', trackMuted[tr]);
+  const row = document.getElementById(`ctrlrow-${tr}`); if (row) row.classList.toggle('row-muted', trackMuted[tr]);
+}
+
+function attachVolBarEvents(bar, tr) {
+  let dragging = false, startX = 0, startVol = 0;
+  function getVol(clientX) {
+    const r = bar.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+  }
+  function setVol(clientX) {
+    const v = getVol(clientX);
+    trackVolume[tr] = v;
+    if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(v, ctx.currentTime, 0.01);
+    const fill = bar.querySelector('.track-vol-fill'); if (fill) fill.style.width = Math.round(v * 100) + '%';
+    markModified();
+  }
+  bar.addEventListener('mousedown', e => { dragging = true; setVol(e.clientX); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (dragging) setVol(e.clientX); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  bar.addEventListener('touchstart', e => { dragging = true; setVol(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
+  bar.addEventListener('touchmove', e => { if (dragging) { setVol(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  bar.addEventListener('touchend', () => { dragging = false; });
+}
+
+function toggleFx(tr) {
+  // no-op — FX toggled via tap on fxBtn, XY pad opened via hold
+}
+// ── Hold-to-shift: tap shifts once; hold auto-shifts one step every 4 bars while active ──
+const shiftHoldState = {}; // tr+dir -> {timer, pulseTimer}
+
+function shiftTrack(tr, dir) {
+  trackOffset[tr] = (trackOffset[tr] + dir + NUM_STEPS) % NUM_STEPS;
+  redrawTrackCells(tr); markModified();
+}
+function redrawTrackCells(tr) {
+  for (let s = 0; s < NUM_STEPS; s++) {
+    const el = document.querySelector(`[data-track="${tr}"][data-step="${s}"]`); if (!el) continue;
+    const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS, val = grid[tr][gs];
+    el.classList.toggle('on', val === 2); el.classList.toggle('soft', val === 1);
+  }
+  const tbtn = document.getElementById(`tbtn-${tr}`);
+  if (tbtn) tbtn.classList.toggle('has-notes', grid[tr].some(v => v > 0));
+}
+function tapStep(tr, s, cell) {
+  const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  const val = grid[tr][gs];
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  const tbtn = document.getElementById(`tbtn-${tr}`);
+  if (tbtn) tbtn.classList.toggle('has-notes', grid[tr].some(v => v > 0));
+  if (val > 0 && ctx) {
+    ctx.resume();
+    playBuffer(trackInstruments[tr], val === 2, ctx.currentTime, tr);
+  }
+  markModified();
+}
+
+// Drag-to-write: touchstart on a cell sets the drag value, touchmove writes to cells under finger
+let dragWriteVal = -1, dragWriteTrack = -1, dragWrittenSteps = new Set();
+document.addEventListener('touchstart', e => {
+  const cell = e.target.closest('.step-cell');
+  if (!cell) return;
+  const tr = +cell.dataset.track, s = +cell.dataset.step;
+  const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  dragWriteVal = grid[tr][gs];
+  dragWriteTrack = tr;
+  dragWrittenSteps = new Set([s]);
+  const val = grid[tr][gs];
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  if (val > 0 && ctx) { ctx.resume(); playBuffer(trackInstruments[tr], val === 2, ctx.currentTime, tr); }
+  markModified();
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  if (dragWriteVal < 0) return;
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const cell = el?.closest('.step-cell');
+  if (!cell) return;
+  const tr = +cell.dataset.track, s = +cell.dataset.step;
+  if (tr !== dragWriteTrack || dragWrittenSteps.has(s)) return;
+  dragWrittenSteps.add(s);
+  const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+  grid[tr][gs] = dragWriteVal;
+  const val = dragWriteVal;
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  markModified();
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('touchend', () => { dragWriteVal = -1; dragWriteTrack = -1; dragWrittenSteps.clear(); });
+
+// ── Drag-to-engage for icon buttons (sweep, FX, shift, R) and slot buttons ──
+// Excluded: .btn (PLAY/BEAT/CLEAR), .track-name-btn, input[type=range]
+const DRAGGABLE_BTN_SELECTORS = [
+  '.track-ctrl-icon-btn:not(.rand-btn)',
+  '.shift-btn',
+];
+function isDraggableBtn(el) {
+  if (!el) return false;
+  return DRAGGABLE_BTN_SELECTORS.some(sel => el.matches(sel));
+}
+let btnDragActive = false, btnDragVisited = new Set();
+document.addEventListener('touchstart', e => {
+  const btn = e.target.closest(DRAGGABLE_BTN_SELECTORS.join(','));
+  if (!btn || btn.matches('.track-name-btn')) return;
+  // step-cell has its own system
+  if (e.target.closest('.step-cell')) return;
+  btnDragActive = true;
+  btnDragVisited = new Set([btn]);
+  // fire the button
+  btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: false }));
+  btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: false }));
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+  if (!btnDragActive) return;
+  const touch = e.touches[0];
+  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+  const btn = el?.closest(DRAGGABLE_BTN_SELECTORS.join(','));
+  if (!btn || btnDragVisited.has(btn)) return;
+  if (btn.matches('.track-name-btn')) return;
+  btnDragVisited.add(btn);
+  btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: false }));
+  btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: false }));
+}, { passive: true });
+
+document.addEventListener('touchend', () => { btnDragActive = false; btnDragVisited.clear(); });
+document.addEventListener('touchcancel', () => { btnDragActive = false; btnDragVisited.clear(); });
+
+// ── Mouse drag-to-engage for icon/slot buttons ──
+let mouseBtnDragActive = false, mouseBtnVisited = new Set();
+document.addEventListener('mousedown', e => {
+  const btn = e.target.closest(DRAGGABLE_BTN_SELECTORS.join(','));
+  if (!btn || btn.matches('.track-name-btn')) return;
+  if (e.target.closest('.step-cell')) return;
+  mouseBtnDragActive = true;
+  mouseBtnVisited = new Set([btn]);
+  // mousedown already fired natively on this element
+});
+document.addEventListener('mousemove', e => {
+  if (!mouseBtnDragActive || !(e.buttons & 1)) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const btn = el?.closest(DRAGGABLE_BTN_SELECTORS.join(','));
+  if (!btn || mouseBtnVisited.has(btn)) return;
+  if (btn.matches('.track-name-btn')) return;
+  mouseBtnVisited.add(btn);
+  btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: false }));
+  btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: false }));
+});
+document.addEventListener('mouseup', () => { mouseBtnDragActive = false; mouseBtnVisited.clear(); });
+function clearAll() {
+  globalScaleRoot = null;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    trackRLevel[tr] = 0;
+    grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
+    delete _bassGlideState[tr]; delete _sparkleGlideState[tr]; delete _motownGlide[tr];
+    delete trackBassScale[tr]; redrawTrackCells(tr);
+  }
+}
+async function renderSlotToWav(snap) {
+  const slotBpm = snap.bpm || bpm;
+  const sampleRate = 44100;
+  const loopDuration = (60 / slotBpm) * NUM_STEPS / 4;
+  const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * loopDuration), sampleRate);
+  const offMaster = offline.createGain();
+  offMaster.gain.value = snap.masterVol ?? masterVol;
+  offMaster.connect(offline.destination);
+
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (snap.trackMuted?.[tr]) continue;
+    const tVol = offline.createGain(); tVol.gain.value = snap.trackVolume?.[tr] ?? 0.8;
+    const fxVal = snap.trackFx?.[tr] || { x: 0, y: 0 };
+    const fxOn = fxVal.x > 0 || fxVal.y > 0;
+    let dryGain, fxSend;
+    if (fxOn) {
+      dryGain = offline.createGain(); dryGain.gain.value = 0; dryGain.connect(tVol);
+      fxSend  = offline.createGain(); fxSend.gain.value = 1;
+      const preGain = offline.createGain(); preGain.gain.value = 0.25;
+      const ws = offline.createWaveShaper(); ws.oversample = '2x'; ws.curve = makeDistCurve(fxVal.x);
+      const postGain = offline.createGain(); postGain.gain.value = 0.4;
+      const lim = offline.createDynamicsCompressor();
+      lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
+      lim.attack.value = 0.0005; lim.release.value = 0.08;
+      fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(lim); lim.connect(tVol);
+    } else {
+      dryGain = offline.createGain(); dryGain.gain.value = 1; dryGain.connect(tVol);
+    }
+    tVol.connect(offMaster);
+    const offDest = fxOn ? fxSend : dryGain;
+
+    const slotGrid = snap.grid?.[tr] || [];
+    const offset = snap.trackOffset?.[tr] || 0;
+    const key = snap.trackInstruments?.[tr] || trackInstruments[tr];
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const gs = (s - offset + NUM_STEPS) % NUM_STEPS;
+      const t = s * (60 / slotBpm / 4);
+      const val = slotGrid[gs] || 0; if (!val) continue;
+      const isAccent = val === 2;
+      if (key === 'clav') {
+        [isAccent ? 900 : 750, (isAccent ? 900 : 750) * 1.47].forEach((f, i) => {
+          const osc = offline.createOscillator(), g = offline.createGain();
+          osc.connect(g); g.connect(offDest);
+          osc.type = 'sine'; osc.frequency.setValueAtTime(f, t);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.08);
+          const gv = (isAccent ? 0.7 : 0.45) * (i === 0 ? 1 : 0.4);
+          g.gain.setValueAtTime(gv, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+          osc.start(t); osc.stop(t + 0.09);
+        }); continue;
+      }
+      if (key === 'skick') {
+        const osc = offline.createOscillator(), g = offline.createGain(); osc.connect(g); g.connect(offDest);
+        osc.frequency.setValueAtTime(isAccent?180:140,t); osc.frequency.exponentialRampToValueAtTime(35,t+0.35);
+        g.gain.setValueAtTime(isAccent?0.9:0.6,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.45);
+        osc.start(t); osc.stop(t+0.46); continue;
+      }
+      if (key === 'ssnare') {
+        const dur2=isAccent?0.28:0.20, vol=isAccent?0.65:0.42;
+        const nb=offline.createBuffer(1,Math.ceil(sampleRate*dur2),sampleRate);
+        const nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=(Math.random()*2-1)*Math.pow(1-i/nd.length,1.5);
+        const s2=offline.createBufferSource(), g=offline.createGain();
+        const hp=offline.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=300;
+        s2.buffer=nb; s2.connect(hp); hp.connect(g); g.connect(offDest);
+        g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur2); s2.start(t); continue;
+      }
+      if (key === 'shihat') {
+        const dur3=isAccent?0.12:0.06;
+        const nb=offline.createBuffer(1,Math.ceil(sampleRate*dur3),sampleRate);
+        const nd=nb.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
+        const s3=offline.createBufferSource(), g=offline.createGain();
+        const hp=offline.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=7000;
+        s3.buffer=nb; s3.connect(hp); hp.connect(g); g.connect(offDest);
+        g.gain.setValueAtTime(isAccent?0.35:0.22,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur3); s3.start(t); continue;
+      }
+      const buf = buffers[key]?.[isAccent ? 'accent' : 'soft']; if (!buf) continue;
+      const src = offline.createBufferSource(); src.buffer = buf;
+      if (fxOn) {
+        const envGain = offline.createGain(); envGain.connect(fxSend);
+        src.connect(envGain);
+        const atkDelay = fxVal.y * 0.08;
+        const tailLen = buf.duration * (1 - fxVal.y * 0.85);
+        envGain.gain.setValueAtTime(0, t);
+        envGain.gain.linearRampToValueAtTime(1, t + atkDelay + 0.002);
+        envGain.gain.setValueAtTime(1, t + tailLen);
+        envGain.gain.linearRampToValueAtTime(0, t + tailLen + 0.01);
+      } else { src.connect(dryGain); }
+      src.start(t);
+    }
+  }
+
+  // Render beat if it was on when saved
+  if (snap.beatOn) {
+    const beatGain = offline.createGain(); beatGain.gain.value = 0.5; beatGain.connect(offMaster);
+    for (let beat = 0; beat < 4; beat++) {
+      const t = beat * (60 / slotBpm);
+      if (beat % 2 === 0) {
+        // Kick
+        const osc = offline.createOscillator(), g = offline.createGain();
+        osc.connect(g); g.connect(beatGain);
+        osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(45, t + 0.07);
+        g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+        osc.start(t); osc.stop(t + 0.17);
+        const cbuf = offline.createBuffer(1, Math.ceil(sampleRate * 0.012), sampleRate);
+        const cd = cbuf.getChannelData(0);
+        for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * (1 - i/cd.length);
+        const click = offline.createBufferSource(); click.buffer = cbuf;
+        const clickGain = offline.createGain(); clickGain.gain.value = 0.3;
+        click.connect(clickGain); clickGain.connect(beatGain); click.start(t);
+      } else {
+        // Snare
+        const dur = 0.22;
+        const nbuf = offline.createBuffer(1, Math.ceil(sampleRate * dur), sampleRate);
+        const d = nbuf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.5);
+        const src2 = offline.createBufferSource(), g = offline.createGain();
+        const hp = offline.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
+        const bp = offline.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.8;
+        const body = offline.createOscillator(), bg = offline.createGain();
+        body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
+        bg.gain.setValueAtTime(0.35, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        body.connect(bg); bg.connect(beatGain); body.start(t); body.stop(t + 0.1);
+        src2.buffer = nbuf; src2.connect(hp); hp.connect(bp); bp.connect(g); g.connect(beatGain);
+        g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src2.start(t);
+      }
+    }
+  }
+
+  const rendered = await offline.startRendering();
+  return audioBufferToWav(rendered, slotBpm);
+}
+
+async function saveLoop() {
+  if (!ctx) { alert('Load audio first'); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '...'; btn.disabled = true;
+
+  try {
+    // Collect slots to render — filled slots + current state
+    const toRender = [];
+    const currentSnap = snapshotState();
+    // Always include current pattern
+    toRender.push({ snap: currentSnap, label: `percoset-current-${Math.round(bpm)}bpm` });
+    // Add any filled saved slots that differ from current
+    for (let i = 0; i < NUM_SLOTS; i++) {
+      if (slots[i] !== null) {
+        const slotBpm = slots[i].bpm || bpm;
+        toRender.push({ snap: slots[i], label: `percoset-slot${i+1}-${Math.round(slotBpm)}bpm` });
+      }
+    }
+    // Render all
+    const files = [];
+    for (const { snap, label } of toRender) {
+      const wav = await renderSlotToWav(snap);
+      files.push(new File([wav], `${label}.wav`, { type: 'audio/wav' }));
+    }
+
+    // Share or download
+    const shareData = { files, title: 'PERC-O-SET loops' };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch(shareErr) {
+        // Fall back to download if share fails/cancelled
+        if (shareErr.name !== 'AbortError') {
+          for (const file of files) {
+            const url = URL.createObjectURL(file);
+            const a = document.createElement('a'); a.href = url; a.download = file.name;
+            document.body.appendChild(a); a.click();
+            await new Promise(r => setTimeout(r, 300));
+            URL.revokeObjectURL(url); a.remove();
+          }
+        }
+      }
+    } else {
+      for (const file of files) {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a'); a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click();
+        await new Promise(r => setTimeout(r, 300));
+        URL.revokeObjectURL(url); a.remove();
+      }
+    }
+  } catch(e) {
+    console.error('Save failed', e);
+    btn.textContent = 'ERR';
+    setTimeout(() => { btn.textContent = 'SAVE'; btn.disabled = false; }, 3000);
+    alert('Save error: ' + e.message);
+    return;
+  }
+
+  btn.textContent = 'SAVE'; btn.disabled = false;
+}
+
+function audioBufferToWav(buffer, tempoHint) {
+  const numCh = buffer.numberOfChannels, sr = buffer.sampleRate, len = buffer.length;
+  const pcmBytes = len * numCh * 2;
+
+  // bext chunk (858 bytes content)
+  const bextContent = 858;
+  const bextChunkTotal = 8 + bextContent;
+
+  const totalBytes = 4 + 4 + 4 +
+                     8 + 16 +
+                     bextChunkTotal +
+                     8 + pcmBytes;
+
+  const ab = new ArrayBuffer(totalBytes);
+  const view = new DataView(ab);
+  let p = 0;
+
+  function wStr(s, pad) {
+    const n = pad || s.length;
+    for (let i = 0; i < n; i++) view.setUint8(p + i, i < s.length ? s.charCodeAt(i) : 0);
+    p += n;
+  }
+  function wU32(v) { view.setUint32(p, v, true); p += 4; }
+  function wU16(v) { view.setUint16(p, v, true); p += 2; }
+  function wZero(n) { p += n; } // ArrayBuffer already zeroed
+
+  // RIFF header
+  wStr('RIFF'); wU32(totalBytes - 8); wStr('WAVE');
+
+  // fmt chunk
+  wStr('fmt '); wU32(16); wU16(1); wU16(numCh);
+  wU32(sr); wU32(sr * numCh * 2); wU16(numCh * 2); wU16(16);
+
+  // bext chunk (602 bytes content)
+  wStr('bext'); wU32(bextContent);
+  wStr('PERC-O-SET', 256);  // Description (256)
+  wZero(32);                 // Originator (32)
+  wZero(32);                 // OriginatorReference (32)
+  wZero(10);                 // OriginationDate (10)
+  wZero(8);                  // OriginationTime (8)
+  wU32(0); wU32(0);          // TimeReference low+high (8)
+  wU16(1);                   // Version (2)
+  wZero(64);                 // UMID (64)
+  wU16(0); wU16(0); wU16(0); wU16(0); wU16(0); // Loudness (10)
+  wZero(180);                // Reserved (180)
+  wStr(`BPM=${Math.round(tempoHint || 120)}\r\n`, 256); // CodingHistory (256)
+
+  // Verify bext size
+  // data chunk
+  wStr('data'); wU32(pcmBytes);
+  const channels = [];
+  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      const s = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7FFF, true); p += 2;
+    }
+  }
+  return ab;
+}
+
+function fullClear() {
+  if (playing) togglePlay();
+  if (beatPlaying) toggleBeat();
+  const defaultInstruments = ['shak','sstring','sparkle','sbass','congHi','congLo'];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
+    trackMuted[tr] = false; trackSweep[tr] = false;
+    trackVolume[tr] = tr === 1 ? 0.505 : 0.8;
+    trackFx[tr] = { x: 0, y: 0 };
+    trackInstruments[tr] = defaultInstruments[tr] || 'tamb';
+    if (ctx) {
+      setFxActive(tr, { x: 0, y: 0 });
+      if (trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
+    }
+    const tb = document.getElementById(`tbtn-${tr}`);
+    if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.remove('muted'); }
+    const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
+    const sb = document.getElementById(`swpbtn-${tr}`); if (sb) sb.classList.remove('sweep-on');
+    const vb = document.getElementById(`vbar-${tr}`);
+    if (vb) { vb.classList.remove('muted'); const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
+    redrawTrackCells(tr);
+  }
+  markModified();
+}
+const PATTERNS = [
+  [0,8],[0,4,8,12],[0,2,4,6,8,10,12,14],
+  [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+];
+const trackPatternState = new Array(NUM_TRACKS).fill(0);
+function cyclePattern(tr) {
+  const s = trackPatternState[tr]; grid[tr].fill(0);
+  if (s < PATTERNS.length) { PATTERNS[s].forEach(i => { grid[tr][i]=1; }); trackPatternState[tr]=s+1; }
+  else trackPatternState[tr]=0;
+  redrawTrackCells(tr); markModified();
+}
+function randomize() { for (let tr=0; tr<NUM_TRACKS; tr++) cyclePattern(tr); }
+
+const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
+let activeSlot = -1;
+function snapshotState() {
+  return { grid:grid.map(r=>[...r]), trackOffset:[...trackOffset], trackInstruments:[...trackInstruments],
+           trackMuted:[...trackMuted], trackVolume:[...trackVolume], trackFx:[...trackFx],
+           trackSweep:[...trackSweep],
+           bpm, masterVol, beatOn: beatPlaying };
+}
+function restoreState(snap) {
+  for (let tr=0; tr<NUM_TRACKS; tr++) {
+    grid[tr]=[...snap.grid[tr]]; trackOffset[tr]=snap.trackOffset[tr];
+    trackInstruments[tr]=snap.trackInstruments[tr]; trackMuted[tr]=snap.trackMuted[tr];
+    if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
+    if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
+    if (snap.trackSweep) { trackSweep[tr] = snap.trackSweep[tr] || false; }
+    const sb=document.getElementById(`swpbtn-${tr}`); if (sb) sb.classList.toggle('sweep-on', trackSweep[tr]);
+    const tb=document.getElementById(`tbtn-${tr}`);
+    if(tb) {
+      tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1);
+      tb.classList.toggle('muted', trackMuted[tr]);
+    }
+    const vb=document.getElementById(`vbar-${tr}`); if(vb) { vb.classList.toggle('muted', trackMuted[tr]); const f=vb.querySelector('.track-vol-fill'); if(f) f.style.width=Math.round(trackVolume[tr]*100)+'%'; }
+    redrawTrackCells(tr);
+  }
+  bpm=snap.bpm;
+  document.getElementById('bpmSlider').value=bpm;
+  document.getElementById('bpmVal').textContent=bpm;
+  // Restore beat state
+  const snapBeat = snap.beatOn || false;
+  if (snapBeat !== beatPlaying) toggleBeat();
+}
+function markModified() {
+  if (activeSlot < 0) return;
+  // Update the saved snapshot to reflect the current edit
+  slots[activeSlot] = snapshotState();
+  updateSlotButtons();
+}
+function slotPress(i) {
+  if (slots[i] === null) {
+    // Empty slot — save current state
+    slots[i] = snapshotState();
+    activeSlot = i;
+  } else if (activeSlot === i) {
+    // Tapping the currently loaded slot — re-recall (reset any edits)
+    restoreState(slots[i]);
+    activeSlot = i;
+  } else {
+    // Different slot — recall it
+    restoreState(slots[i]);
+    activeSlot = i;
+  }
+  updateSlotButtons();
+}
+function updateSlotButtons() {
+  for (let i=0;i<NUM_SLOTS;i++) {
+    const btn=document.getElementById(`slot-${i}`); btn.classList.remove('saved','loaded');
+    if (slots[i]!==null) btn.classList.add(i===activeSlot?'loaded':'saved');
+  }
+}
+function buildSlotBar() {
+  const bar=document.getElementById('slotBar'); bar.innerHTML='';
+  for (let i=0;i<NUM_SLOTS;i++) {
+    const btn=document.createElement('button');
+    btn.className='slot-btn'; btn.id=`slot-${i}`; btn.textContent=i+1;
+    let holdTimer = null, didHold = false;
+    const onDown = () => {
+      didHold = false;
+      holdTimer = setTimeout(() => { didHold = true; }, 600);
+    };
+    const onUp = () => {
+      clearTimeout(holdTimer); holdTimer = null;
+      if (didHold && slots[i] !== null) {
+        // held on a full slot — clear it
+        slots[i] = null; if (activeSlot===i) activeSlot=-1;
+        updateSlotButtons();
+      } else if (!didHold) {
+        slotPress(i);
+      }
+    };
+    btn.addEventListener('mousedown', onDown);
+    btn.addEventListener('mouseup', onUp);
+    btn.addEventListener('mouseleave', () => { clearTimeout(holdTimer); holdTimer = null; });
+    btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
+    btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
+    bar.appendChild(btn);
+  }
+}
+
+// Per-track R press level (cycles 0→1→2→0)
+const trackRLevel = new Array(NUM_TRACKS).fill(0);
+
+function placeNotes(tr, noteCount, accentRatio) {
+  grid[tr].fill(0);
+  const positions = [];
+  while (positions.length < noteCount) {
+    const p = Math.floor(Math.random() * NUM_STEPS);
+    if (!positions.includes(p)) positions.push(p);
+  }
+  const accentCount = Math.round(noteCount * accentRatio);
+  const shuffled = [...positions].sort(() => Math.random() - 0.5);
+  const accentSet = new Set(shuffled.slice(0, accentCount));
+  positions.forEach(p => { grid[tr][p] = accentSet.has(p) ? 2 : 1; });
+}
+
+function randomizeTrack(tr) {
+  const level = trackRLevel[tr];
+  trackRLevel[tr] = (level + 1) % 3;
+
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass2' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sparkle') {
+    randomizeBassTrack(tr, level); return;
+  }
+
+  // Level 0: sparse ~4-7 notes, few accents
+  // Level 1: medium ~7-11 notes, more accents
+  // Level 2: dense ~11-16 notes, many accents
+  const [minN, maxN, accentRatio] = [
+    [4, 7,  0.20],
+    [7, 11, 0.40],
+    [11, 16, 0.60],
+  ][level];
+  const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
+  placeNotes(tr, noteCount, accentRatio);
+  redrawTrackCells(tr); markModified();
+}
+
+function wireShiftButton(btn, tr, dir) {
+  let interval = null, holdTimer = null;
+  const doShift = () => {
+    if (grid[tr].every(v => v === 0)) return;
+    trackOffset[tr] = (trackOffset[tr] + dir + NUM_STEPS) % NUM_STEPS;
+    redrawTrackCells(tr); markModified();
+  };
+  const startHold = () => {
+    if (interval) return;
+    interval = setInterval(doShift, (60000 / bpm) * 4 * 4);
+  };
+  const stop = () => {
+    clearTimeout(holdTimer); holdTimer = null;
+    clearInterval(interval); interval = null;
+  };
+  const onDown = () => {
+    doShift(); // always shift immediately on press
+    holdTimer = setTimeout(startHold, 400); // then go continuous if held
+  };
+  btn.addEventListener('mousedown', onDown);
+  btn.addEventListener('mouseup', stop);
+  btn.addEventListener('mouseleave', stop);
+  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); stop(); }, { passive: false });
+  btn.addEventListener('touchcancel', stop);
+}
+
+function wireRandomizeButton(btn, tr) {
+  let shiftInterval = null, pulseInterval = null;
+  let autoShifting = false, holdTimer = null, didHold = false;
+
+  const startAutoShift = () => {
+    autoShifting = true;
+    btn.classList.add('pulsing');
+    // shift one step every 1 bar = 16 steps * stepDuration
+    const barMs = stepDuration() * NUM_STEPS * 1000;
+    shiftInterval = setInterval(() => {
+      if (grid[tr].every(v => v === 0)) return;
+      trackOffset[tr] = (trackOffset[tr] + 1 + NUM_STEPS) % NUM_STEPS;
+      redrawTrackCells(tr); markModified();
+    }, barMs);
+    // pulse flashes on every quarter note
+    const quarterMs = stepDuration() * 4 * 1000;
+    let pulseOn = true;
+    pulseInterval = setInterval(() => {
+      pulseOn = !pulseOn;
+      btn.classList.toggle('pulsing', pulseOn);
+    }, quarterMs);
+  };
+
+  const stopAutoShift = () => {
+    autoShifting = false;
+    clearInterval(shiftInterval); shiftInterval = null;
+    clearInterval(pulseInterval); pulseInterval = null;
+    btn.classList.remove('pulsing');
+  };
+
+  const onDown = () => {
+    didHold = false;
+    holdTimer = setTimeout(() => {
+      didHold = true;
+      if (autoShifting) stopAutoShift();
+      else startAutoShift();
+    }, 400);
+  };
+
+  const onUp = () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (!didHold) {
+      if (autoShifting) stopAutoShift();
+      else randomizeTrack(tr);
+    }
+  };
+
+  btn.addEventListener('mousedown', onDown);
+  btn.addEventListener('mouseup', onUp);
+  btn.addEventListener('mouseleave', () => {
+    // Only cancel the hold-start timer, don't stop autoShift
+    clearTimeout(holdTimer); holdTimer = null;
+  });
+  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
+  btn.addEventListener('touchcancel', () => { clearTimeout(holdTimer); holdTimer = null; });
+}
+
+buildUI();
+updateMasterVolCells();
+
+// Master vol slider
+(function() {
+  const slider = document.getElementById('masterVolBar');
+  if (!slider) return;
+  slider.value = Math.round(masterVol * 100);
+  slider.addEventListener('input', () => setMasterVol(slider.value / 100));
+})();
+
+let _initStarted = false;
+async function initAudio() {
+  if (_initStarted) return; _initStarted = true;
+  const msg = document.getElementById('loadingMsg');
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.style.pointerEvents = 'none';
+  try {
+    msg.textContent = 'STARTING...';
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    msg.textContent = 'CTX OK, RESUMING...';
+    await ctx.resume();
+    msg.textContent = 'RESUMED, BUILDING GRAPH...';
+    attachCtxStateWatch();
+    masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
+    const masterLimiter = ctx.createDynamicsCompressor();
+    masterLimiter.threshold.value = -1;
+    masterLimiter.knee.value = 0;
+    masterLimiter.ratio.value = 20;
+    masterLimiter.attack.value = 0.0003;
+    masterLimiter.release.value = 0.1;
+    // Sidechain duck gain — sits between masterGain and masterLimiter
+    window._duckGain = ctx.createGain(); window._duckGain.gain.value = 1;
+    masterGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(ctx.destination);
+    for (let i=0; i<NUM_TRACKS; i++) {
+      const g = ctx.createGain(); g.gain.value = trackVolume[i]; g.connect(masterGain); trackGainNodes[i] = g;
+      trackFxNodes[i] = buildFxChain(g);
+    }
+    const unlock = ctx.createBuffer(1,1,ctx.sampleRate);
+    unlock.getChannelData(0)[0]=0.001;
+    const src=ctx.createBufferSource(); src.buffer=unlock; src.connect(ctx.destination); src.start(0);
+    msg.textContent = 'LOADING SAMPLES...';
+    await loadSamples();
+  } catch(e) {
+    msg.style.fontSize = '1rem';
+    msg.textContent = 'ERR: ' + e.message;
+    overlay.style.pointerEvents = '';
+    _initStarted = false;
+  }
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
+}
+</script>
+</body>
+</html>
