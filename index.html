@@ -47,21 +47,12 @@ input[type=range] { -webkit-appearance: none; flex: 1; height: 3px; background: 
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--text); cursor: pointer; border-radius: 0; }
 input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var(--text); cursor: pointer; border-radius: 0; border: none; }
 .vol-wrap { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 960px; margin-top: 6px; padding: 6px 0; }
-#masterVolBar {
-  height: 32px;
-  flex: none !important;
-  width: 100% !important;
+.master-vol-slider {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--text); outline: none; cursor: ew-resize;
 }
-.master-vol-cells {
-  display: grid; grid-template-columns: repeat(12, 1fr);
-  gap: 0; height: 32px; width: 100%; cursor: ew-resize; touch-action: none;
-  -webkit-tap-highlight-color: transparent;
-}
-.mvc {
-  border: 3px solid var(--text); margin-right: -3px; background: var(--bg); transition: background 0.05s;
-}
-.mvc:last-child { margin-right: 0; }
-.mvc.active { background: var(--vol-fill); }
+.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--text); border-radius: 0; cursor: ew-resize; }
+.master-vol-slider::-moz-range-thumb { width: 32px; height: 32px; background: var(--text); border-radius: 0; border: none; cursor: ew-resize; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
 .vol-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text); font-family: 'DM Sans', sans-serif; }
 .vol-label { font-size: 0.6rem; letter-spacing: 1px; color: var(--dim); text-transform: uppercase; font-weight: 700; flex-shrink: 0; }
@@ -398,20 +389,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 <div class="slot-bar" id="slotBar"></div>
 <div class="vol-section">
   <div class="vol-title">VOLUME</div>
-  <div class="master-vol-cells" id="masterVolBar">
-    <div class="mvc" data-cell="0"></div>
-    <div class="mvc" data-cell="1"></div>
-    <div class="mvc" data-cell="2"></div>
-    <div class="mvc" data-cell="3"></div>
-    <div class="mvc" data-cell="4"></div>
-    <div class="mvc" data-cell="5"></div>
-    <div class="mvc" data-cell="6"></div>
-    <div class="mvc" data-cell="7"></div>
-    <div class="mvc" data-cell="8"></div>
-    <div class="mvc" data-cell="9"></div>
-    <div class="mvc" data-cell="10"></div>
-    <div class="mvc" data-cell="11"></div>
-  </div>
+  <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider">
 </div>
 
 <script>
@@ -432,7 +410,7 @@ const INSTRUMENTS = {
   sbass2:  { name: 'PLUCK BASS',    soft: null, accent: null },
   sbass3:  { name: 'MOTOWN BASS',   soft: null, accent: null },
   sstring:  { name: 'SYNTH STRINGS', soft: null, accent: null },
-  sparkle:  { name: 'SPARKLES',      soft: null, accent: null },
+  sparkle:  { name: 'MUTED STRING',  soft: null, accent: null },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
 let ctx = null, masterGain = null;
@@ -443,12 +421,12 @@ function setMasterVol(v) {
   masterVol = Math.max(0, Math.min(1, v));
   const cap = nukeActive ? 0.5 : 1;
   if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol * cap, ctx.currentTime, 0.01);
-  updateMasterVolCells();
+  const slider = document.getElementById('masterVolBar');
+  if (slider) slider.value = Math.round(masterVol * 100);
 }
 function updateMasterVolCells() {
-  const cells = document.querySelectorAll('.mvc');
-  const lit = Math.round(masterVol * 12);
-  cells.forEach((c, i) => c.classList.toggle('active', i < lit));
+  const slider = document.getElementById('masterVolBar');
+  if (slider) slider.value = Math.round(masterVol * 100);
 }
 
 // setupMasterVolBar called after buildUI at bottom of script
@@ -907,7 +885,7 @@ const PENTA_MINOR = [0, 3, 5, 7, 10];
 // Bass roots: A1–A2 range
 const BASS_ROOTS    = [55, 58, 62, 65, 69, 73];   // A1 B1 D2 F2 A2 C#2
 const MELODY_ROOTS  = [220, 247, 262, 294, 330];   // A3 B3 C4 D4 E4
-const SPARKLE_ROOTS = [440, 494, 523, 587, 659];   // A4 B4 C5 D5 E5
+const SPARKLE_ROOTS = [82, 98, 110, 130, 147, 165];  // E2 G2 A2 C3 D3 E3
 
 // Per-track pentatonic scale (set on each R press for sbass tracks)
 const trackBassScale = {}; // tr -> [freq, freq, ...]
@@ -1046,35 +1024,39 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
 }
 
 function playSparkle(freq, durSec, isAccent, time, tr) {
+  // Karplus-Strong style: noise burst into tuned comb gives dry woody dampened string tone
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const count = isAccent ? 5 : 3;
-  for (let i = 0; i < count; i++) {
-    const spread = (Math.random() - 0.5) * 0.04; // slight pitch scatter per partial
-    const partialFreq = freq * (1 + spread) * (i === 0 ? 1 : (1 + Math.random() * 0.5));
-    const delay = i * (0.018 + Math.random() * 0.022); // stagger entry
-    const vol = (isAccent ? 0.18 : 0.12) / (i + 1);
+  const vel = isAccent ? 0.7 : 0.5;
+  const period = 1 / freq;
+  const bufLen = Math.ceil(ctx.sampleRate * period);
 
-    const mod = ctx.createOscillator();
-    const modGain = ctx.createGain();
-    const car = ctx.createOscillator();
-    const env = ctx.createGain();
+  // Seed: short noise burst
+  const noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) nd[i] = (Math.random() * 2 - 1);
 
-    // FM: modulator at 7x carrier freq, index tapers off
-    mod.type = 'sine'; mod.frequency.value = partialFreq * 7;
-    modGain.gain.setValueAtTime(partialFreq * 5, time + delay);
-    modGain.gain.exponentialRampToValueAtTime(partialFreq * 0.1, time + delay + durSec * 0.4);
-    car.type = 'sine'; car.frequency.value = partialFreq;
-    mod.connect(modGain); modGain.connect(car.frequency);
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  src.loop = true;
 
-    env.gain.setValueAtTime(0, time + delay);
-    env.gain.linearRampToValueAtTime(vol, time + delay + 0.003);
-    env.gain.exponentialRampToValueAtTime(0.001, time + delay + durSec * 0.9);
+  // Lowpass to kill brightness fast — gives the dampened/muted character
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(freq * 6, time);
+  lp.frequency.exponentialRampToValueAtTime(freq * 1.2, time + 0.025);
 
-    car.connect(env); env.connect(dest);
-    mod.start(time + delay); mod.stop(time + delay + durSec + 0.1);
-    car.start(time + delay); car.stop(time + delay + durSec + 0.1);
-  }
+  // Notch to thin out the midrange boxiness
+  const notch = ctx.createBiquadFilter(); notch.type = 'notch';
+  notch.frequency.value = freq * 3; notch.Q.value = 1.5;
+
+  const env = ctx.createGain();
+  const decay = Math.min(0.18, durSec * 0.6); // always short regardless of legato
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.002);
+  env.gain.exponentialRampToValueAtTime(0.001, time + decay);
+
+  src.connect(lp); lp.connect(notch); notch.connect(env); env.connect(dest);
+  src.start(time); src.stop(time + decay + 0.02);
 }
 
 function playKick(t) {
@@ -1978,21 +1960,12 @@ function wireRandomizeButton(btn, tr) {
 buildUI();
 updateMasterVolCells();
 
-// Master vol bar — must run after DOM
+// Master vol slider
 (function() {
-  const bar = document.getElementById('masterVolBar');
-  if (!bar) return;
-  let dragging = false;
-  function setFromEvent(clientX) {
-    const r = bar.getBoundingClientRect();
-    setMasterVol(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
-  }
-  bar.addEventListener('mousedown', e => { dragging = true; setFromEvent(e.clientX); e.preventDefault(); });
-  window.addEventListener('mousemove', e => { if (dragging) setFromEvent(e.clientX); });
-  window.addEventListener('mouseup', () => { dragging = false; });
-  bar.addEventListener('touchstart', e => { dragging = true; setFromEvent(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
-  bar.addEventListener('touchmove', e => { if (dragging) { setFromEvent(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
-  bar.addEventListener('touchend', () => { dragging = false; });
+  const slider = document.getElementById('masterVolBar');
+  if (!slider) return;
+  slider.value = Math.round(masterVol * 100);
+  slider.addEventListener('input', () => setMasterVol(slider.value / 100));
 })();
 
 let _initStarted = false;
