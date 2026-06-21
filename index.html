@@ -219,6 +219,21 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   user-select: none;
 }
 .sound-option:hover, .sound-option.active { background: var(--text); color: var(--bg); }
+/* Instrument group colours */
+.inst-kit   { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
+.inst-perc  { background: #2a7a3a; color: #fff; border-color: #2a7a3a; }
+.inst-tonal { background: #e8845a; color: #fff; border-color: #c06a44; }
+.inst-kit.active,   .inst-kit:hover   { background: #0d1f40; color: #fff; }
+.inst-perc.active,  .inst-perc:hover  { background: #1a5228; color: #fff; }
+.inst-tonal.active, .inst-tonal:hover { background: #c06a44; color: #fff; }
+/* Track name buttons inherit group color */
+.track-name-btn.inst-kit   { background: #1a3a6b; color: #fff; border-color: #1a3a6b; }
+.track-name-btn.inst-perc  { background: #2a7a3a; color: #fff; border-color: #2a7a3a; }
+.track-name-btn.inst-tonal { background: #e8845a; color: #fff; border-color: #c06a44; }
+.track-name-btn.has-notes.inst-kit   { background: #1a3a6b; }
+.track-name-btn.has-notes.inst-perc  { background: #2a7a3a; }
+.track-name-btn.has-notes.inst-tonal { background: #e8845a; }
+.track-name-btn.playing { background: var(--playhead) !important; color: #fff !important; }
 
 /* ── Vol overlay ── */
 #volOverlay {
@@ -434,25 +449,25 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <script>
 const INSTRUMENTS = {
-  tamb:   { name: 'TAMBOURINE', soft: 'Sounds/Tamb50.wav',   accent: 'Sounds/Tamb100.wav'   },
-  shak:   { name: 'SHAKER',    soft: 'Sounds/Shak50.wav',   accent: 'Sounds/Shak100.wav'   },
-  clav:   { name: 'WOODBLOCK', soft: null, accent: null },
-  clap:   { name: 'HANDCLAP',  soft: 'Sounds/Clap50.wav',   accent: 'Sounds/Clap100.wav'   },
-  congHi: { name: 'CONGA HI',  soft: 'Sounds/CongHi50.wav', accent: 'Sounds/CongHi100.wav' },
-  congLo: { name: 'CONGA LO',  soft: 'Sounds/CongLo50.wav', accent: 'Sounds/CongLo100.wav' },
-  bongHi: { name: 'BONGO HI',  soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav' },
-  bongLo: { name: 'BONGO LO',  soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav' },
-  cowb:   { name: 'COWBELL',   soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav'   },
-  skick:  { name: 'SYNTH KICK', soft: null, accent: null },
-  ssnare: { name: 'SYN SNARE',  soft: null, accent: null },
-  shihat: { name: 'SYN HIHAT',  soft: null, accent: null },
-  sbass:  { name: 'SYNTH BASS', soft: null, accent: null },
-  sbass2: { name: 'PLUCK BASS', soft: null, accent: null },
-  sbass3: { name: 'JAMES BASS',  soft: null, accent: null },
-  sstring:{ name: 'SYN STRINGS',soft: null, accent: null },
-  sleg:   { name: 'SYNTH LEG',  soft: null, accent: null },
-  sparkle:{ name: 'MUT STRING', soft: null, accent: null },
-  rhodes: { name: 'RHODES',     soft: null, accent: null },
+  skick:  { name: 'SYNTH KICK',  soft: null, accent: null, group: 'kit' },
+  ssnare: { name: 'SYN SNARE',   soft: null, accent: null, group: 'kit' },
+  shihat: { name: 'SYN HIHAT',   soft: null, accent: null, group: 'kit' },
+  tamb:   { name: 'TAMBOURINE',  soft: 'Sounds/Tamb50.wav',   accent: 'Sounds/Tamb100.wav',   group: 'perc' },
+  shak:   { name: 'SHAKER',      soft: 'Sounds/Shak50.wav',   accent: 'Sounds/Shak100.wav',   group: 'perc' },
+  clap:   { name: 'HANDCLAP',    soft: 'Sounds/Clap50.wav',   accent: 'Sounds/Clap100.wav',   group: 'perc' },
+  congHi: { name: 'CONGA HI',    soft: 'Sounds/CongHi50.wav', accent: 'Sounds/CongHi100.wav', group: 'perc' },
+  congLo: { name: 'CONGA LO',    soft: 'Sounds/CongLo50.wav', accent: 'Sounds/CongLo100.wav', group: 'perc' },
+  bongHi: { name: 'BONGO HI',    soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav', group: 'perc' },
+  bongLo: { name: 'BONGO LO',    soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav', group: 'perc' },
+  cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
+  ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc' },
+  sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
+  sbass2: { name: 'PLUCK BASS',  soft: null, accent: null, group: 'tonal' },
+  sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
+  sstring:{ name: 'SYN STRINGS', soft: null, accent: null, group: 'tonal' },
+  sleg:   { name: 'SYNTH LEG',   soft: null, accent: null, group: 'tonal' },
+  sparkle:{ name: 'MUT STRING',  soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
 let ctx = null, masterGain = null;
@@ -576,7 +591,6 @@ function getSynthConnectNode(tr) {
 }
 
 function playBuffer(key, isAccent, time, tr) {
-  if (key === 'clav')   { playWoodblock(isAccent, time, tr); return; }
   if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
   if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
   if (key === 'shihat') { playSynthHihat(isAccent, time, tr); return; }
@@ -925,25 +939,6 @@ function reverseBuffer(buf, revLen) {
     }
   }
   return out;
-}
-
-function playWoodblock(isAccent, time, tr) {
-  if (!ctx) return;
-  const freq = isAccent ? 900 : 750;
-  const gain = isAccent ? 0.7 : 0.45;
-  const dur = 0.08;
-  // Two oscillators slightly detuned for the woody hollow sound
-  [freq, freq * 1.47].forEach((f, i) => {
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    const dest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
-    osc.connect(g); g.connect(dest);
-    osc.type = 'sine'; osc.frequency.setValueAtTime(f, time);
-    osc.frequency.exponentialRampToValueAtTime(f * 0.6, time + dur);
-    g.gain.setValueAtTime(gain * (i === 0 ? 1 : 0.4), time);
-    g.gain.exponentialRampToValueAtTime(0.001, time + dur);
-    osc.start(time); osc.stop(time + dur + 0.01);
-  });
 }
 
 function playSynthKick(isAccent, time, tr) {
@@ -1395,7 +1390,7 @@ function openSoundPicker(tr) {
   const list = document.getElementById('soundPickerList'); list.innerHTML = '';
   INSTRUMENT_KEYS.forEach(k => {
     const opt = document.createElement('div');
-    opt.className = 'sound-option' + (trackInstruments[tr] === k ? ' active' : '');
+    opt.className = 'sound-option inst-' + (INSTRUMENTS[k].group||'perc') + (trackInstruments[tr] === k ? ' active' : '');
     opt.dataset.key = k;
     opt.textContent = INSTRUMENTS[k].name;
     opt.addEventListener('mouseenter', () => {
@@ -1407,9 +1402,17 @@ function openSoundPicker(tr) {
   });
   document.getElementById('soundPicker').classList.add('visible');
 }
+function setTrackNameColor(tr, key) {
+  const btn = document.getElementById(`tbtn-${tr}`); if (!btn) return;
+  btn.classList.remove('inst-kit','inst-perc','inst-tonal');
+  const g = INSTRUMENTS[key]?.group || 'perc';
+  btn.classList.add('inst-' + g);
+}
+
 function selectSound(tr, k) {
   trackInstruments[tr] = k;
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
+  setTrackNameColor(tr, k);
   const sb = document.getElementById(`swpbtn-${tr}`);
   if (sb) {
     const tonal = TONAL_KEYS.has(k);
@@ -1500,6 +1503,7 @@ function buildUI() {
     // Name button (click=mute, hold=sound picker)
     const nameBtn = document.createElement('button'); nameBtn.className = 'track-name-btn'; nameBtn.id = `tbtn-${tr}`;
     nameBtn.textContent = INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1);
+    setTrackNameColor(tr, trackInstruments[tr]);
     nameBtn.classList.toggle('muted', trackMuted[tr]);
     let ht = null;
     nameBtn.addEventListener('mousedown', () => { ht = setTimeout(() => { ht = null; openSoundPicker(tr); }, 400); });
@@ -1808,17 +1812,6 @@ async function renderSlotToWav(snap) {
       const t = s * (60 / slotBpm / 4);
       const val = slotGrid[gs] || 0; if (!val) continue;
       const isAccent = val === 2;
-      if (key === 'clav') {
-        [isAccent ? 900 : 750, (isAccent ? 900 : 750) * 1.47].forEach((f, i) => {
-          const osc = offline.createOscillator(), g = offline.createGain();
-          osc.connect(g); g.connect(offDest);
-          osc.type = 'sine'; osc.frequency.setValueAtTime(f, t);
-          osc.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.08);
-          const gv = (isAccent ? 0.7 : 0.45) * (i === 0 ? 1 : 0.4);
-          g.gain.setValueAtTime(gv, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-          osc.start(t); osc.stop(t + 0.09);
-        }); continue;
-      }
       if (key === 'skick') {
         const osc = offline.createOscillator(), g = offline.createGain(); osc.connect(g); g.connect(offDest);
         osc.frequency.setValueAtTime(isAccent?180:140,t); osc.frequency.exponentialRampToValueAtTime(35,t+0.35);
@@ -2043,7 +2036,7 @@ function fullClear() {
       if (trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
     }
     const tb = document.getElementById(`tbtn-${tr}`);
-    if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.remove('muted','has-notes','shifting'); }
+    if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.classList.remove('sweep-on'); const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'S'; }
@@ -2119,6 +2112,7 @@ function randAll(mode) {
     trackInstruments[tr] = k;
     if (k === 'ngate' && ctx) initNoiseGate(tr);
     const tb = document.getElementById(`tbtn-${tr}`); if (tb) tb.textContent = INSTRUMENTS[k]?.name || k;
+    setTrackNameColor(tr, k);
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'S'; }
     trackMuted[tr] = false; updateTrackMute(tr);
