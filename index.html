@@ -118,18 +118,30 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 #bpmOverlay.visible { display: flex; align-items: center; justify-content: center; }
 #bpmOverlayInner {
-  background: var(--bg); border: 3px solid var(--text); padding: 20px 24px;
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
-  min-height: 260px;
+  background: var(--bg); border: 3px solid var(--text); padding: 32px 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+}
+.bpm-slider-wrap {
+  display: flex; align-items: center; justify-content: center;
+  height: 65vh; width: 64px; position: relative; overflow: visible;
 }
 #bpmSlider {
-  -webkit-appearance: slider-vertical; writing-mode: bt-lr;
-  height: 180px; width: 3px; cursor: ns-resize;
-  background: var(--text); outline: none;
+  -webkit-appearance: none; appearance: none;
+  width: 65vh; height: 3px;
+  background: var(--text); outline: none; cursor: pointer;
+  position: absolute;
+  transform: rotate(-90deg);
+  left: calc(50% - 32.5vh);
+  top: calc(50% - 1.5px);
 }
-#bpmSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 32px; height: 32px; background: var(--text); border-radius: 0; cursor: ns-resize; }
-#bpmSlider::-moz-range-thumb { width: 32px; height: 32px; background: var(--text); border-radius: 0; border: none; }
-#bpmOverlayVal { font-size: 1rem; font-weight: 700; letter-spacing: 1px; font-family: 'DM Sans', sans-serif; }
+#bpmSlider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 32px; height: 32px;
+  background: var(--text); border-radius: 0; cursor: pointer;
+}
+#bpmSlider::-moz-range-thumb {
+  width: 32px; height: 32px; background: var(--text); border-radius: 0; border: none;
+}
+#bpmOverlayVal { font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; font-family: 'DM Sans', sans-serif; }
 
 /* ── XY FX Pad ── */
 #xyPad {
@@ -408,8 +420,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <div id="bpmOverlay">
   <div id="bpmOverlayInner">
-    <input type="range" id="bpmSlider" min="40" max="200" value="110" orient="vertical"
-      oninput="bpm=+this.value; document.getElementById('bpmVal').textContent=this.value; document.getElementById('bpmOverlayVal').textContent=this.value+' BPM'">
+    <div class="bpm-slider-wrap">
+      <input type="range" id="bpmSlider" min="40" max="200" value="110"
+        oninput="bpm=+this.value; document.getElementById('bpmVal').textContent=this.value; document.getElementById('bpmOverlayVal').textContent=this.value+' BPM'">
+    </div>
     <div id="bpmOverlayVal">110 BPM</div>
   </div>
 </div>
@@ -875,8 +889,6 @@ function updatePlayhead(step) {
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
       tbtn.classList.add('playing');
       setTimeout(() => tbtn.classList.remove('playing'), 80);
-      const fxbtn = document.getElementById(`fxbtn-${tr}`);
-      if (fxbtn) { fxbtn.classList.add('playing'); setTimeout(() => fxbtn.classList.remove('playing'), 80); }
     }
   }
 }
