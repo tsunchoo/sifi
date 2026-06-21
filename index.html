@@ -450,7 +450,6 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
     <div class="rand-overlay-title">RANDOMIZE</div>
     <button class="rand-overlay-btn" id="randPercBtn">PERC</button>
     <button class="rand-overlay-btn" id="randTonalBtn">TONAL</button>
-    <button class="rand-overlay-btn" id="randAllBtn">ALL</button>
   </div>
 </div>
 
@@ -2331,17 +2330,27 @@ function randAll(mode) {
   const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate');
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
   const allKeys = Object.keys(INSTRUMENTS);
-  let bassAssigned = false;
+
+  // Build shuffled pool with no duplicates, max one bass
+  function buildPool(keys) {
+    const shuffled = [...keys].sort(() => Math.random() - 0.5);
+    const result = []; let bassUsed = false;
+    for (const k of shuffled) {
+      if (bassKeys.has(k)) { if (bassUsed) continue; bassUsed = true; }
+      result.push(k);
+      if (result.length === NUM_TRACKS) break;
+    }
+    // Pad if pool smaller than NUM_TRACKS (unlikely but safe)
+    while (result.length < NUM_TRACKS) result.push(keys[Math.floor(Math.random() * keys.length)]);
+    return result;
+  }
+
+  const pool = mode === 'perc' ? buildPool(percKeys)
+             : mode === 'tonal' ? buildPool(tonalKeys)
+             : buildPool(allKeys);
 
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    let pool;
-    if (mode === 'perc')       pool = percKeys;
-    else if (mode === 'tonal') pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
-    else                       pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
-
-    const k = pool[Math.floor(Math.random() * pool.length)];
-    if (bassKeys.has(k)) bassAssigned = true;
-
+    const k = pool[tr];
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
@@ -2350,6 +2359,9 @@ function randAll(mode) {
     const tb = document.getElementById(`tbtn-${tr}`); if (tb) tb.textContent = INSTRUMENTS[k]?.name || k;
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'S'; }
+    // Unmute
+    trackMuted[tr] = false;
+    updateTrackMute(tr);
     trackRLevel[tr] = level;
     randomizeTrack(tr);
     trackVolume[tr] = 0.5;
