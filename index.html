@@ -111,21 +111,31 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   animation: none !important;
 }
 
-/* ── RAND popup ── */
-#randPopup {
-  display: none; position: fixed; z-index: 300;
-  background: var(--bg); border: 3px solid var(--text);
-  flex-direction: column; gap: 0;
+/* ── RAND overlay ── */
+#randOverlay {
+  display: none; position: fixed; inset: 0; z-index: 300;
+  background: rgba(245,240,232,0.95); align-items: center; justify-content: center;
+  touch-action: none;
 }
-#randPopup.visible { display: flex; }
-.rand-popup-btn {
-  font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
-  padding: 12px 20px; background: none; border: none; border-bottom: 2px solid var(--border);
-  color: var(--text); text-align: left; touch-action: manipulation;
+#randOverlay.visible { display: flex; }
+#randOverlayInner {
+  display: flex; flex-direction: column; gap: 12px;
+  padding: 24px; border: 3px solid var(--text); background: var(--bg);
+  width: min(320px, 88vw);
 }
-.rand-popup-btn:last-child { border-bottom: none; }
-.rand-popup-btn.hover { background: var(--text); color: var(--bg); }
+.rand-overlay-title {
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--dim); font-family: 'DM Sans', sans-serif; margin-bottom: 4px;
+}
+.rand-overlay-btn {
+  font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
+  padding: 20px 0; background: none; border: 3px solid var(--text); color: var(--text);
+  touch-action: manipulation; transition: background 0.1s, color 0.1s;
+}
+.rand-overlay-btn.hover, .rand-overlay-btn:active {
+  background: var(--text); color: var(--bg);
+}
 
 /* ── BPM overlay ── */
 #bpmOverlay {
@@ -430,14 +440,17 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   <button class="btn" id="beatBtn" onclick="toggleBeat()">BEAT</button>
   <button class="btn" id="clearBtn" onclick="fullClear()">CLEAR</button>
   <button class="btn" id="randBtn">RAND</button>
-  <button class="btn" id="bpmBtn" onclick="toggleBpmOverlay()" style="margin-left:auto"><span id="bpmVal">110</span></button>
+  <button class="btn" id="bpmBtn" onclick="toggleBpmOverlay()" style="margin-left:auto;min-width:56px;"><span id="bpmVal">110</span></button>
 </div>
 <span style="display:none" id="bpmValHidden">110</span>
 
-<div id="randPopup">
-  <button class="rand-popup-btn" id="randPercBtn">PERC</button>
-  <button class="rand-popup-btn" id="randTonalBtn">TONAL</button>
-  <button class="rand-popup-btn" id="randAllBtn">ALL</button>
+<div id="randOverlay">
+  <div id="randOverlayInner">
+    <div class="rand-overlay-title">RANDOMIZE</div>
+    <button class="rand-overlay-btn" id="randPercBtn">PERC</button>
+    <button class="rand-overlay-btn" id="randTonalBtn">TONAL</button>
+    <button class="rand-overlay-btn" id="randAllBtn">ALL</button>
+  </div>
 </div>
 
 <div id="bpmOverlay">
@@ -458,7 +471,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   <span class="status" id="status"></span>
   <button class="ghost-btn" onclick="fullClear()">&#10005;</button>
 </div>
-<div class="slot-section-title">SAVED</div>
+<div class="slot-section-title" style="color:var(--text)">SAVED PATTERNS</div>
 <div class="slot-bar" id="slotBar"></div>
 <div class="vol-section">
   <div class="vol-title">VOLUME</div>
@@ -915,45 +928,39 @@ function updatePlayhead(step) {
   }
 }
 
-// ── RAND button: tap=randAll, hold=popup ──
+// ── RAND button: tap=randAll, hold=overlay ──
 (function() {
   const btn = document.getElementById('randBtn');
-  const popup = document.getElementById('randPopup');
+  const overlay = document.getElementById('randOverlay');
   let holdTimer = null, didHold = false;
 
-  function showPopup() {
-    const r = btn.getBoundingClientRect();
-    popup.style.left = r.left + 'px';
-    popup.style.top  = (r.bottom + 4) + 'px';
-    popup.classList.add('visible');
-  }
-  function hidePopup() {
-    popup.classList.remove('visible');
-    popup.querySelectorAll('.rand-popup-btn').forEach(b => b.classList.remove('hover'));
+  function showOverlay() { overlay.classList.add('visible'); }
+  function hideOverlay() {
+    overlay.classList.remove('visible');
+    overlay.querySelectorAll('.rand-overlay-btn').forEach(b => b.classList.remove('hover'));
   }
 
   const onDown = () => {
     didHold = false;
-    holdTimer = setTimeout(() => { didHold = true; showPopup(); }, 400);
+    holdTimer = setTimeout(() => { didHold = true; showOverlay(); }, 400);
   };
   const onUp = () => {
     clearTimeout(holdTimer); holdTimer = null;
     if (!didHold) randAll();
-    else hidePopup();
   };
 
-  // Drag onto popup buttons while holding
+  const getBtn = (clientX, clientY) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    return el?.closest('.rand-overlay-btn');
+  };
   const onMove = (clientX, clientY) => {
     if (!didHold) return;
-    const el = document.elementFromPoint(clientX, clientY);
-    const pb = el?.closest('.rand-popup-btn');
-    popup.querySelectorAll('.rand-popup-btn').forEach(b => b.classList.toggle('hover', b === pb));
+    const pb = getBtn(clientX, clientY);
+    overlay.querySelectorAll('.rand-overlay-btn').forEach(b => b.classList.toggle('hover', b === pb));
   };
   const onRelease = (clientX, clientY) => {
-    if (!didHold) return;
-    const el = document.elementFromPoint(clientX, clientY);
-    const pb = el?.closest('.rand-popup-btn');
-    hidePopup();
+    const pb = getBtn(clientX, clientY);
+    hideOverlay();
     if (pb?.id === 'randPercBtn')  randAll('perc');
     else if (pb?.id === 'randTonalBtn') randAll('tonal');
     else if (pb?.id === 'randAllBtn')   randAll('all');
@@ -962,18 +969,25 @@ function updatePlayhead(step) {
   btn.addEventListener('mousedown', onDown);
   btn.addEventListener('mouseup', onUp);
   btn.addEventListener('mouseleave', () => { clearTimeout(holdTimer); holdTimer = null; });
-  btn.addEventListener('mousemove', e => { if (e.buttons) onMove(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => { if (e.buttons && didHold) onMove(e.clientX, e.clientY); });
   window.addEventListener('mouseup', e => { if (didHold) { onRelease(e.clientX, e.clientY); didHold = false; } });
 
   btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
   btn.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; onMove(t.clientX, t.clientY); }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault();
-    const t = e.changedTouches[0];
     clearTimeout(holdTimer); holdTimer = null;
     if (!didHold) { randAll(); }
-    else { onRelease(t.clientX, t.clientY); didHold = false; }
+    else { const t = e.changedTouches[0]; onRelease(t.clientX, t.clientY); didHold = false; }
   }, { passive: false });
+
+  // Tap outside to dismiss
+  overlay.addEventListener('touchend', e => {
+    if (!e.target.closest('.rand-overlay-btn') && !e.target.closest('#randOverlayInner')) hideOverlay();
+  }, { passive: false });
+  overlay.addEventListener('mouseup', e => {
+    if (!e.target.closest('.rand-overlay-btn') && !e.target.closest('#randOverlayInner')) hideOverlay();
+  });
 })();
 
 function toggleBpmOverlay() {
@@ -2307,22 +2321,25 @@ function cyclePattern(tr) {
 }
 function randAll(mode) {
   mode = mode || 'all';
+  const bassKeys = new Set(['sbass','sbass2','sbass3','sbass4']);
   const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate');
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
   const allKeys = Object.keys(INSTRUMENTS);
+  let bassAssigned = false;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const curKey = trackInstruments[tr];
     const isTonal = TONAL_KEYS.has(curKey);
     const isPerc = !isTonal && curKey !== 'ngate';
-    // Decide whether to randomize this track
+    // Only randomize instrument if mode matches
     if (mode === 'perc' && !isPerc) { randomizeTrack(tr); continue; }
     if (mode === 'tonal' && !isTonal) { randomizeTrack(tr); continue; }
-    // Pick new instrument from appropriate pool
+    // Build pool, filtering out extra bass instruments
     let pool;
-    if (mode === 'perc')  pool = percKeys;
-    else if (mode === 'tonal') pool = tonalKeys;
-    else pool = allKeys;
+    if (mode === 'perc')       pool = percKeys;
+    else if (mode === 'tonal') pool = tonalKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
+    else                       pool = allKeys.filter(k => !bassKeys.has(k) || !bassAssigned);
     const k = pool[Math.floor(Math.random() * pool.length)];
+    if (bassKeys.has(k)) bassAssigned = true;
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
