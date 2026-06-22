@@ -298,6 +298,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .slot-btn.loaded { background: var(--slot-loaded); border-color: var(--slot-loaded); color: #fff; }
 .slot-btn.loaded.beat-pulse { animation: slot-pulse 0.12s ease-out; }
 @keyframes slot-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+#playBtn.btn-beat-pulse, #beatBtn.btn-beat-pulse { animation: slot-pulse 0.12s ease-out; }
 .slot-btn:active { opacity: 0.7; }
 
 #loadingOverlay {
@@ -412,6 +413,8 @@ const INSTRUMENTS = {
   sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
   ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc'  },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
+  sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
+  stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'STRINGS',     soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
@@ -534,6 +537,8 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'sbass')   { return; } // handled in scheduler with legato duration
   if (key === 'ngate')   { return; } // handled in scheduler
   if (key === 'sbass3')  { return; }
+  if (key === 'sbass4')  { return; }
+  if (key === 'stab')    { return; }
   if (key === 'sstring') { return; } // handled in scheduler
   if (key === 'sleg')    { return; } // handled in scheduler
   if (key === 'sparkle') { return; } // handled in scheduler
@@ -635,7 +640,7 @@ function scheduler() {
       const val = grid[tr][gs];
       if (val > 0) {
         const key = trackInstruments[tr];
-        if (key === 'sbass' || key === 'sbass3' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes') {
+        if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'stab' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes') {
           const scale = trackBassScale[tr] || [110];
           const noteIdx = gs % scale.length;
           const freq = scale[noteIdx];
@@ -664,6 +669,8 @@ function scheduler() {
           }
           if (key === 'sbass')   playSynthBass(freq, dur, val === 2, t, tr);
           if (key === 'sbass3')  playMotownBass(freq, dur, val === 2, t, tr);
+          if (key === 'sbass4')  playPlunkBass(freq, dur, val === 2, t, tr);
+          if (key === 'stab')    playStab(freq, dur, val === 2, t, tr);
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
@@ -675,6 +682,8 @@ function scheduler() {
             const slapDur = Math.min(dur, stepDuration());
             if (key === 'sbass')   playSynthBass(freq, slapDur, false, t + slapDelay, tr);
             if (key === 'sbass3')  playMotownBass(freq, slapDur, false, t + slapDelay, tr);
+            if (key === 'sbass4')  playPlunkBass(freq, slapDur, false, t + slapDelay, tr);
+            if (key === 'stab')    playStab(freq, slapDur, false, t + slapDelay, tr);
             if (key === 'sstring') playStringSynth(freq, slapDur, false, t + slapDelay, tr);
             if (key === 'sleg')    playSynthLeg(freq, slapDur, false, t + slapDelay, tr);
             if (key === 'sparkle') playSparkle(freq, slapDur, false, t + slapDelay, tr);
@@ -719,10 +728,18 @@ function updatePlayhead(step) {
     activeSlot = pi;
     updateSlotButtons();
   }
-  // Pulse active slot on every beat (every 4 steps)
-  if (step % 4 === 0 && activeSlot >= 0) {
-    const sb = document.getElementById(`slot-${activeSlot}`);
-    if (sb) { sb.classList.remove('beat-pulse'); void sb.offsetWidth; sb.classList.add('beat-pulse'); }
+  // Pulse active slot + transport buttons on every beat (every 4 steps)
+  if (step % 4 === 0) {
+    if (activeSlot >= 0) {
+      const sb = document.getElementById(`slot-${activeSlot}`);
+      if (sb) { sb.classList.remove('beat-pulse'); void sb.offsetWidth; sb.classList.add('beat-pulse'); }
+    }
+    const pb = document.getElementById('playBtn');
+    if (pb) { pb.classList.remove('btn-beat-pulse'); void pb.offsetWidth; pb.classList.add('btn-beat-pulse'); }
+    if (beatPlaying) {
+      const bb = document.getElementById('beatBtn');
+      if (bb) { bb.classList.remove('btn-beat-pulse'); void bb.offsetWidth; bb.classList.add('btn-beat-pulse'); }
+    }
   }
 }
 
@@ -901,7 +918,7 @@ const trackBassScale = {}; // tr -> [freq, ...]
 
 // Global scale root — shared by all tonal tracks, cleared by CLEAR
 let globalScaleRoot = null;
-const TONAL_KEYS = new Set(['sbass','sbass3','sstring','sleg','sparkle','rhodes']);
+const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','stab','sstring','sleg','sparkle','rhodes']);
 
 function buildScaleFromRoot(root) {
   const scale = [];
@@ -1209,6 +1226,73 @@ function playSparkle(freq, durSec, isAccent, time, tr) {
 
   src.connect(lp); lp.connect(notch); notch.connect(env); env.connect(dest);
   src.start(time); src.stop(time + decay + 0.02);
+}
+
+// ── Punk Bass: aggressive pick attack, midrange growl, fast decay ──
+const _plunkGlide = {};
+function playPlunkBass(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.9 : 0.65;
+  _plunkGlide[tr] = freq;
+
+  // Distorted sawtooth through a tight bandpass — nasal, aggressive
+  const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth'; osc1.frequency.value = freq;
+  const osc2 = ctx.createOscillator(); osc2.type = 'sawtooth'; osc2.frequency.value = freq * 0.5; // sub oct
+  const mix = ctx.createGain(); mix.gain.value = 0.4;
+
+  // Gritty midrange bandpass
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(freq * 4, time);
+  bp.frequency.exponentialRampToValueAtTime(freq * 1.5, time + 0.02);
+  bp.Q.value = 1.8;
+
+  // Hard clip waveshaper for pick grit
+  const ws = ctx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = Math.tanh(x * 4); }
+  ws.curve = curve; ws.oversample = '2x';
+
+  const ampEnv = ctx.createGain();
+  const decay = Math.min(durSec * 0.7, 0.22);
+  ampEnv.gain.setValueAtTime(0, time);
+  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.003);
+  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.25, time + decay);
+  ampEnv.gain.exponentialRampToValueAtTime(0.001, time + Math.min(durSec, 0.45));
+
+  osc1.connect(mix); osc2.connect(mix);
+  mix.connect(bp); bp.connect(ws); ws.connect(ampEnv); ampEnv.connect(dest);
+  [osc1, osc2].forEach(o => { o.start(time); o.stop(time + Math.min(durSec, 0.5)); });
+}
+
+// ── Stab: short sharp synth chord stab, fast tail ──
+function playStab(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.55 : 0.38;
+
+  // 3-oscillator detuned stack — chord-like spread
+  const detunes = [-7, 0, 7, 12];
+  const env = ctx.createGain();
+  detunes.forEach(det => {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.value = freq * (det === 12 ? 2 : 1);
+    osc.detune.value = det === 12 ? 0 : det * 2;
+    osc.connect(env); osc.start(time); osc.stop(time + 0.18);
+  });
+
+  // Punchy lowpass sweep — bright attack, shut fast
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 4;
+  lp.frequency.setValueAtTime(isAccent ? 4000 : 2800, time);
+  lp.frequency.exponentialRampToValueAtTime(300, time + 0.06);
+
+  // Very fast amplitude decay — the stab
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.004);
+  env.gain.exponentialRampToValueAtTime(vel * 0.3, time + 0.025);
+  env.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
+
+  env.connect(lp); lp.connect(dest);
 }
 
 function playKick(t) {
@@ -2391,7 +2475,7 @@ function randomizeTrack(tr) {
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(defaultVol * 100) + '%'; }
   }
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes') {
     randomizeBassTrack(tr, level); return;
   }
 
