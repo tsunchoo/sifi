@@ -614,9 +614,44 @@ function scheduler() {
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
     if (step === 0 && _pendingSlot >= 0) {
       const pi = _pendingSlot; _pendingSlot = -1;
-      restoreState(slots[pi]);
+      const snap = slots[pi];
+      // Audio-critical state only — no DOM work here
+      for (let tr = 0; tr < NUM_TRACKS; tr++) {
+        grid[tr] = [...snap.grid[tr]];
+        trackOffset[tr] = snap.trackOffset[tr];
+        trackInstruments[tr] = snap.trackInstruments[tr];
+        trackMuted[tr] = snap.trackMuted[tr];
+        if (snap.trackBassScale?.[tr]) trackBassScale[tr] = [...snap.trackBassScale[tr]];
+        else delete trackBassScale[tr];
+        if (snap.trackVolume) {
+          trackVolume[tr] = snap.trackVolume[tr];
+          if (trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.02);
+        }
+        if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; setFxActive(tr, trackFx[tr]); }
+        if (snap.trackFxMode) trackFxMode[tr] = snap.trackFxMode[tr] || 0;
+        if (snap.trackSweep) trackSweep[tr] = snap.trackSweep[tr] || false;
+        if (snap.trackChop)  trackChop[tr]  = snap.trackChop[tr]  || false;
+        if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
+      }
+      if (snap.bpm) bpm = snap.bpm;
+      if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
       activeSlot = pi;
-      requestAnimationFrame(updateSlotButtons);
+      // Defer all DOM updates to next frame
+      requestAnimationFrame(() => {
+        for (let tr = 0; tr < NUM_TRACKS; tr++) {
+          redrawTrackCells(tr);
+          const tb = document.getElementById(`tbtn-${tr}`);
+          if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.toggle('muted', trackMuted[tr]); setTrackNameColor(tr, trackInstruments[tr]); }
+          const sb = document.getElementById(`swpbtn-${tr}`);
+          if (sb) { const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'S'; sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr]); }
+          const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.toggle('on', trackFx[tr].x > 0 || trackFx[tr].y > 0);
+          const row = document.getElementById(`ctrlrow-${tr}`); if (row) row.classList.toggle('row-muted', trackMuted[tr]);
+          const vb = document.getElementById(`vbar-${tr}`); if (vb) { vb.classList.toggle('muted', trackMuted[tr]); const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
+        }
+        document.getElementById('bpmVal').textContent = bpm;
+        document.getElementById('bpmSlider').value = bpm;
+        updateSlotButtons();
+      });
     }
     requestAnimationFrame(() => updatePlayhead(step));
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
