@@ -507,15 +507,16 @@ function setFxActive(tr, fxVal) {
   if (!trackFxNodes[tr]) return;
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   const { dryGain, fxSend, gateGain, preGain, ws } = trackFxNodes[tr];
-  dryGain.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, 0.01);
-  fxSend.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.01);
-  // Always crunch path
-  gateGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
-  preGain.gain.setTargetAtTime(on ? 0.25 : 0, ctx.currentTime, 0.01);
-  if (on) ws.curve = makeDistCurve(0.5); // fixed centre crunch
+  const now = ctx.currentTime;
+  dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? 0 : 1, now);
+  fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
+  gateGain.gain.cancelScheduledValues(now); gateGain.gain.setValueAtTime(0, now);
+  preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.25 : 0, now);
+  if (on) ws.curve = makeDistCurve(0.5);
   if (trackGainNodes[tr]) {
     const fxComp = on ? trackVolume[tr] * 0.5 : trackVolume[tr];
-    trackGainNodes[tr].gain.setTargetAtTime(fxComp, ctx.currentTime, 0.01);
+    trackGainNodes[tr].gain.cancelScheduledValues(now);
+    trackGainNodes[tr].gain.setValueAtTime(fxComp, now);
     const vb = document.getElementById(`vbar-${tr}`);
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(fxComp * 100) + '%'; }
   }
