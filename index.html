@@ -57,7 +57,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   touch-action: manipulation;
 }
 .btn.active { background: var(--text); color: var(--bg); }
-#playBtn.playing { background: var(--slot-saved); border-color: var(--slot-saved); color: #000; }
+#playBtn.playing { background: var(--playhead); border-color: var(--playhead); color: #fff; }
 .btn:active { opacity: 0.7; }
 
 #beatBtn.active { background: var(--playhead) !important; border-color: var(--playhead) !important; color: #fff !important; }
@@ -567,30 +567,7 @@ function playBuffer(key, isAccent, time, tr) {
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   if (tr !== undefined && trackFxNodes[tr] && on) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].fxSend);
-    const mode = trackFxMode[tr] || 0;
-    if (mode === 0 && fxVal.x > 0) {
-      // CHOKE: gate the sound
-      const gateG = trackFxNodes[tr].gateGain;
-      if (gateG) {
-        const gateLen = Math.max(0.01, buf.duration * (1 - fxVal.x) + 0.01 * fxVal.x);
-        gateG.gain.cancelScheduledValues(time);
-        gateG.gain.setValueAtTime(1, time);
-        gateG.gain.setValueAtTime(1, time + gateLen);
-        gateG.gain.linearRampToValueAtTime(0, time + gateLen + 0.005);
-        gateG.gain.setValueAtTime(1, time + gateLen + 0.1);
-      }
-    } else if (mode === 1 && fxVal.y > 0) {
-      // ENV: shape the tail
-      const atkDelay = fxVal.y * 0.08;
-      const tailLen = buf.duration * (1 - fxVal.y * 0.85);
-      const envGain = ctx.createGain();
-      instrumentGain.disconnect(trackFxNodes[tr].fxSend);
-      instrumentGain.connect(envGain); envGain.connect(trackFxNodes[tr].fxSend);
-      envGain.gain.setValueAtTime(0, time);
-      envGain.gain.linearRampToValueAtTime(1, time + atkDelay + 0.002);
-      envGain.gain.setValueAtTime(1, time + tailLen);
-      envGain.gain.linearRampToValueAtTime(0, time + tailLen + 0.01);
-    }
+    // Always crunch path — waveshaper handles distortion via preGain/ws/postGain
   } else if (tr !== undefined && trackFxNodes[tr]) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].dryGain);
   } else {
@@ -718,8 +695,7 @@ function updatePlayhead(step) {
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
       tbtn.classList.add('playing');
       setTimeout(() => tbtn.classList.remove('playing'), 80);
-      const fxbtn = document.getElementById(`fxbtn-${tr}`);
-      if (fxbtn) { fxbtn.classList.add('playing'); setTimeout(() => fxbtn.classList.remove('playing'), 80); }
+
     }
   }
   // Apply pending slot switch at bar start
