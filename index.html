@@ -20,7 +20,7 @@ body {
   background: var(--bg); color: var(--text);
   font-family: 'DM Sans', sans-serif;
   min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-  padding: 6px 4px 80px 4px; user-select: none; -webkit-user-select: none;
+  padding: 16px 4px 80px 4px; user-select: none; -webkit-user-select: none;
 }
 body::before {
   content: '';
@@ -354,6 +354,8 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 .slot-btn.saved  { background: var(--slot-saved);  border-color: #5aaa1f; color: #000; }
 .slot-btn.loaded { background: var(--slot-loaded); border-color: #cc1a00; color: #fff; }
+.slot-btn.loaded.beat-pulse { animation: slot-pulse 0.12s ease-out; }
+@keyframes slot-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .slot-btn:active { opacity: 0.7; }
 
 #loadingOverlay {
@@ -908,6 +910,11 @@ function updatePlayhead(step) {
       const fxbtn = document.getElementById(`fxbtn-${tr}`);
       if (fxbtn) { fxbtn.classList.add('playing'); setTimeout(() => fxbtn.classList.remove('playing'), 80); }
     }
+  }
+  // Pulse active slot on every beat (every 4 steps)
+  if (step % 4 === 0 && activeSlot >= 0) {
+    const sb = document.getElementById(`slot-${activeSlot}`);
+    if (sb) { sb.classList.remove('beat-pulse'); void sb.offsetWidth; sb.classList.add('beat-pulse'); }
   }
 }
 
@@ -2345,7 +2352,8 @@ function restoreState(snap) {
   }
 }
 function markModified() {
-  // Don't overwrite the saved snapshot — just update visual state
+  // Any edit deactivates the active slot (turns it back to green)
+  activeSlot = -1;
   updateSlotButtons();
 }
 function slotPress(i) {
