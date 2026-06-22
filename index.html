@@ -58,13 +58,13 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 }
 .btn.active { background: var(--text); color: var(--bg); }
 .btn:active { opacity: 0.7; }
-#playBtn.playing { background: var(--slot-saved); border-color: var(--text); color: #000; }
-#beatBtn.active { background: var(--playhead) !important; border-color: var(--text) !important; color: #fff !important; }
+#playBtn.playing { background: var(--slot-saved); border-color: var(--slot-saved); color: #000; }
+#beatBtn.active { background: var(--playhead) !important; border-color: var(--playhead) !important; color: #fff !important; }
 #beatBtn.beat-pulse { animation: beat-red 0.5s infinite alternate; border-color: var(--text); }
 @keyframes beat-red { from { background: var(--playhead); color: #fff; } to { background: #7a1000; color: #fff; } }
 #saveBtn.rec-active { animation: rec-pulse 0.5s infinite alternate; font-size: 1.4rem; font-weight: 700; }
 @keyframes rec-pulse { from { background: var(--playhead); border-color: var(--text); color: #fff; } to { background: #7a1000; border-color: var(--text); color: #fff; } }
-.btn-flash { background: var(--slot-saved) !important; border-color: var(--text) !important; color: #000 !important; transition: none !important; }
+.btn-flash { background: var(--slot-saved) !important; border-color: var(--slot-saved) !important; color: #000 !important; transition: none !important; }
 .rand-overlay-btn {
   font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
   letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
@@ -102,7 +102,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-name-btn.has-notes { background: var(--text); color: var(--bg); border-color: var(--text); }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; border-color: var(--dim); }
 .track-name-btn.playing { background: var(--playhead) !important; color: #fff !important; opacity: 1; transition: background 0.3s; }
-.track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.45s infinite alternate; }
+.track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.5s infinite alternate; }
 .track-ctrl-icon-btn {
   width: 32px; flex-shrink: 0;
   background: none; border: 3px solid var(--text); color: var(--text);
@@ -111,10 +111,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   display: flex; align-items: center; justify-content: center;
   touch-action: manipulation; transition: background 0.1s, color 0.1s;
 }
-.track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; border-color: var(--text); }
-.track-ctrl-icon-btn.sweep-on { background: #5bbcb8; border-color: var(--text); color: #fff; }
-.rand-btn.pulsing { border-color: var(--text); color: #fff; animation: pulse 0.45s infinite alternate; }
-@keyframes pulse { from { background: var(--playhead); } to { background: #7a1000; } }
+.track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; border-color: var(--playhead); }
+.track-ctrl-icon-btn.sweep-on { background: #5bbcb8; border-color: #5bbcb8; color: #fff; }
+.rand-btn.pulsing { border-color: var(--playhead); color: #fff; animation: pulse 0.5s infinite alternate; }
+@keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #7a1000; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
   width: 32px; flex-shrink: 0; background: none;
@@ -143,72 +143,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   animation: none !important;
 }
 
-/* ── XY FX Pad ── */
-#xyPad {
-  display: none; position: fixed; inset: 0; z-index: 300;
-  align-items: center; justify-content: center;
-  background: rgba(245,240,232,0.95);
-  pointer-events: none;
-  touch-action: none;
-}
-#xyPad.visible { display: flex; pointer-events: none; }
-.xy-pad-inner {
-  display: flex; flex-direction: column; gap: 12px;
-  padding: 16px; border: 3px solid var(--text); background: var(--bg);
-  width: min(340px, 90vw);
-  pointer-events: all;
-  touch-action: none;
-}
-.xy-pad-header {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-}
-.xy-pad-header span { flex: 1; }
-.xy-pad-header button {
-  background: none; border: 2px solid var(--text); color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 700;
-  letter-spacing: 1px; padding: 4px 8px; cursor: pointer;
-}
-.xy-mode-btns { display: flex; gap: 4px; flex: 1; }
-.xy-mode-btn {
-  font-family: 'DM Sans', sans-serif; font-size: 0.6rem; font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
-  padding: 3px 6px; background: none; border: 2px solid var(--border); color: var(--dim);
-  touch-action: manipulation;
-}
-.xy-mode-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
-#xyPadArea {
-  position: relative; width: 100%; aspect-ratio: 1;
-  border: 3px solid var(--text);
-  cursor: crosshair; touch-action: none;
-  background:
-    radial-gradient(ellipse at bottom left, transparent 0%, rgba(192,57,43,0) 60%),
-    linear-gradient(to top, rgba(192,57,43,0.08) 0%, rgba(192,57,43,0.0) 50%),
-    linear-gradient(to right, rgba(192,57,43,0.08) 0%, rgba(192,57,43,0.0) 50%),
-    repeating-linear-gradient(var(--border) 0 1px, transparent 1px 25%),
-    repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 25%);
-}
-#xyDot {
-  position: absolute; width: 18px; height: 18px;
-  background: var(--text); border-radius: 50%;
-  transform: translate(-50%, -50%);
-  pointer-events: none; z-index: 1;
-}
-#xyIntensity {
-  position: absolute; bottom: 0; left: 0;
-  background: rgba(192,57,43,0.15);
-  pointer-events: none; transition: width 0.05s, height 0.05s;
-}
-.xy-axis-label {
-  position: absolute; font-size: 0.55rem; font-weight: 700;
-  letter-spacing: 1px; text-transform: uppercase; color: var(--dim);
-}
-.xy-x { bottom: 6px; right: 6px; }
-.xy-y { top: 6px; left: 6px; }
-#xyLabel {
-  font-size: 0.7rem; font-weight: 600; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--dim); text-align: center;
-}
+
 
 /* ── Sound picker overlay (grid) ── */
 #soundPicker {
@@ -324,8 +259,8 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   top: 50%; left: 50%; transform: translate(-50%, -50%);
   width: 0; height: 0;
 }
-.step-cell.soft::after { width: 52%; height: 52%; background: var(--text); opacity: 0.6; }
-.step-cell.on::after   { width: 75%; height: 75%; background: var(--text); opacity: 1; }
+.step-cell.soft::after { width: 75%; height: 75%; background: var(--track-color, var(--text)); opacity: 0.4; }
+.step-cell.on::after   { width: 75%; height: 75%; background: var(--track-color, var(--text)); opacity: 1; }
 .step-cell.playing { background: rgba(192,57,43,0.07); }
 .step-cell.on.playing::after   { background: var(--playhead); opacity: 1; }
 .step-cell.soft.playing::after { background: var(--playhead); opacity: 0.7; }
@@ -357,10 +292,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   padding: 16px 0; cursor: pointer; text-align: center;
   touch-action: manipulation; transition: background 0.1s, border-color 0.1s, color 0.1s;
 }
-.slot-btn.saved  { background: var(--slot-saved);  border-color: var(--text); color: #fff; }
+.slot-btn.saved  { background: var(--slot-saved);  border-color: var(--slot-saved); color: #fff; }
 .slot-btn.pending { animation: slot-pending 0.4s infinite alternate; border-color: var(--text); color: #fff; }
 @keyframes slot-pending { from { background: var(--slot-saved); } to { background: var(--bg); } }
-.slot-btn.loaded { background: var(--slot-loaded); border-color: var(--text); color: #fff; }
+.slot-btn.loaded { background: var(--slot-loaded); border-color: var(--slot-loaded); color: #fff; }
 .slot-btn.loaded.beat-pulse { animation: slot-pulse 0.12s ease-out; }
 @keyframes slot-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 .slot-btn:active { opacity: 0.7; }
@@ -383,28 +318,6 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   <h2>BOOMBLAP</h2>
   <p id="loadingMsg">Tap to load</p>
 </button>
-
-<!-- XY FX Pad -->
-<div id="xyPad">
-  <div id="xyPadClose" style="position:fixed;inset:0;z-index:-1;cursor:pointer;pointer-events:all;touch-action:manipulation;"></div>
-  <div class="xy-pad-inner">
-    <div class="xy-pad-header">
-      <span id="xyPadTitle">TRK 1 FX</span>
-      <div class="xy-mode-btns">
-        <button id="xyModeA" class="xy-mode-btn active">CHOKE / SLAP</button>
-        <button id="xyModeB" class="xy-mode-btn">CRUNCH / ENV</button>
-      </div>
-      <button id="xyPadReset">RESET</button>
-    </div>
-    <div id="xyPadArea">
-      <div id="xyIntensity"></div>
-      <div id="xyDot"></div>
-      <span class="xy-axis-label xy-x">CHOKE →</span>
-      <span class="xy-axis-label xy-y">SLAP ↑</span>
-    </div>
-    <div id="xyLabel">CHOKE 0%  SLAP 0%</div>
-  </div>
-</div>
 
 <!-- Sound picker: flat list for one track at a time -->
 <div id="soundPicker">
@@ -555,8 +468,6 @@ async function loadSamples() {
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
 
 // x=0 clean, x=1 maximum waveshaper drive
-// y=0 full attack/full tail, y=1 blunted attack + hard gate
-const FX_LABELS = ['DRY'];
 const trackFxNodes = [];
 
 function makeDistCurve(drive) {
@@ -592,19 +503,12 @@ function setFxActive(tr, fxVal) {
   if (!trackFxNodes[tr]) return;
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   const { dryGain, fxSend, gateGain, preGain, ws } = trackFxNodes[tr];
-  const mode = trackFxMode[tr] || 0;
   dryGain.gain.setTargetAtTime(on ? 0 : 1, ctx.currentTime, 0.01);
   fxSend.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.01);
-  if (mode === 0) {
-    // CHOKE/SLAP: gate path active, crunch path silent
-    gateGain.gain.setTargetAtTime(1, ctx.currentTime, 0.01);
-    preGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
-  } else {
-    // CRUNCH/ENV: crunch path active, gate path silent
-    gateGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
-    preGain.gain.setTargetAtTime(0.25, ctx.currentTime, 0.01);
-    if (on) ws.curve = makeDistCurve(fxVal.x);
-  }
+  // Always crunch path
+  gateGain.gain.setTargetAtTime(0, ctx.currentTime, 0.01);
+  preGain.gain.setTargetAtTime(on ? 0.25 : 0, ctx.currentTime, 0.01);
+  if (on) ws.curve = makeDistCurve(0.5); // fixed centre crunch
   if (trackGainNodes[tr]) {
     const fxComp = on ? trackVolume[tr] * 0.5 : trackVolume[tr];
     trackGainNodes[tr].gain.setTargetAtTime(fxComp, ctx.currentTime, 0.01);
@@ -639,15 +543,15 @@ function playBuffer(key, isAccent, time, tr) {
 
   // Sweep: play reversed sample leading into the note
   if (tr !== undefined && trackSweep[tr]) {
-    const revLen = Math.min(buf.duration * 0.5, stepDuration() * 0.9);
+    const revLen = Math.min(buf.duration * 0.85, stepDuration() * 1.8);
     const revBuf = reverseBuffer(buf, revLen);
     if (revBuf) {
       const revSrc = ctx.createBufferSource(); revSrc.buffer = revBuf;
-      revSrc.playbackRate.value = 0.5;
-      const revGain = ctx.createGain(); revGain.gain.value = 0.75;
+      revSrc.playbackRate.value = 0.65;
+      const revGain = ctx.createGain(); revGain.gain.value = 1.2;
       const dest = getSynthConnectNode(tr);
       revSrc.connect(revGain); revGain.connect(dest);
-      revSrc.start(Math.max(ctx.currentTime, time - revLen * 2));
+      revSrc.start(Math.max(ctx.currentTime, time - revLen * 1.5));
     }
   }
   const src = ctx.createBufferSource(); src.buffer = buf;
@@ -703,92 +607,9 @@ function playBuffer(key, isAccent, time, tr) {
   }
 }
 
-// ── XY Pad overlay ──
-let xyPadTrack = -1;
-let xyPadLastPos = { x: 0, y: 0 };
-function openXYPad(tr) {
-  xyPadTrack = tr;
-  const fxVal = trackFx[tr] || { x: 0, y: 0 };
-  xyPadLastPos = { ...fxVal };
-  document.getElementById('xyPadTitle').textContent = `TRK ${tr+1} FX`;
-  const mode = trackFxMode[tr] || 0;
-  document.getElementById('xyModeA').classList.toggle('active', mode === 0);
-  document.getElementById('xyModeB').classList.toggle('active', mode === 1);
-  renderXYDot(fxVal.x, fxVal.y);
-  document.getElementById('xyPad').classList.add('visible');
-}
-function closeXYPad() {
-  document.getElementById('xyPad').classList.remove('visible');
-  xyPadTrack = -1;
-}
-function renderXYDot(x, y) {
-  const dot = document.getElementById('xyDot');
-  dot.style.left = (x * 100) + '%';
-  dot.style.top  = ((1 - y) * 100) + '%';
-  const intensity = document.getElementById('xyIntensity');
-  intensity.style.width  = (x * 100) + '%';
-  intensity.style.height = (y * 100) + '%';
-  const mode = xyPadTrack >= 0 ? (trackFxMode[xyPadTrack] || 0) : 0;
-  const xLabel = mode === 0 ? 'CHOKE' : 'CRUNCH';
-  const yLabel = mode === 0 ? 'SLAP'  : 'ENV';
-  document.getElementById('xyLabel').textContent = `${xLabel} ${Math.round(x*100)}%  ${yLabel} ${Math.round(y*100)}%`;
-  document.querySelector('.xy-axis-label.xy-x').textContent = `${xLabel} →`;
-  document.querySelector('.xy-axis-label.xy-y').textContent = `${yLabel} ↑`;
-}
-function xyFromEvent(e, pad) {
-  const r = pad.getBoundingClientRect();
-  const cx = e.touches ? e.touches[0].clientX : e.clientX;
-  const cy = e.touches ? e.touches[0].clientY : e.clientY;
-  return {
-    x: Math.max(0, Math.min(1, (cx - r.left) / r.width)),
-    y: Math.max(0, Math.min(1, 1 - (cy - r.top) / r.height))
-  };
-}
-function applyXY(pos) {
-  if (xyPadTrack < 0) return;
-  trackFx[xyPadTrack] = pos;
-  xyPadLastPos = { ...pos };
-  renderXYDot(pos.x, pos.y);
-  if (ctx) setFxActive(xyPadTrack, pos);
-  const btn = document.getElementById(`fxbtn-${xyPadTrack}`);
-  if (btn) btn.classList.toggle('on', pos.x > 0 || pos.y > 0);
-  markModified();
-}
-(function setupXYPad() {
-  const pad = document.getElementById('xyPadArea');
-  function onDown(e) { e.preventDefault(); applyXY(xyFromEvent(e, pad)); }
-  function onMove(e) { e.preventDefault(); applyXY(xyFromEvent(e, pad)); }
-  pad.addEventListener('mousedown',  onDown);
-  pad.addEventListener('mousemove',  e => { if (e.buttons) onMove(e); });
-  pad.addEventListener('touchstart', onDown, { passive: false });
-  pad.addEventListener('touchmove',  onMove, { passive: false });
-  document.getElementById('xyModeA').addEventListener('click', () => {
-    if (xyPadTrack < 0) return;
-    trackFxMode[xyPadTrack] = 0;
-    document.getElementById('xyModeA').classList.add('active');
-    document.getElementById('xyModeB').classList.remove('active');
-    renderXYDot(trackFx[xyPadTrack].x, trackFx[xyPadTrack].y);
-    markModified();
-  });
-  document.getElementById('xyModeB').addEventListener('click', () => {
-    if (xyPadTrack < 0) return;
-    trackFxMode[xyPadTrack] = 1;
-    document.getElementById('xyModeB').classList.add('active');
-    document.getElementById('xyModeA').classList.remove('active');
-    renderXYDot(trackFx[xyPadTrack].x, trackFx[xyPadTrack].y);
-    markModified();
-  });
-  document.getElementById('xyPadClose').addEventListener('touchend', e => { e.preventDefault(); closeXYPad(); }, { passive: false });
-  document.querySelector('.xy-pad-inner').addEventListener('click', e => e.stopPropagation());
-})();
 
 const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
 
-
-document.getElementById('xyPadReset').addEventListener('click', () => {
-  applyXY({ x: 0, y: 0 });
-  setMasterVol(masterVol);
-});
 const trackInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
 const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
 const trackOffset = new Array(NUM_TRACKS).fill(0);
@@ -1220,64 +1041,69 @@ function playSynthLeg(freq, durSec, isAccent, time, tr) {
 
 const _sparkleGlideState = {};
 
-// ── Piano: FM synthesis with inharmonic partials and bright hammer attack ──
+// ── Piano: additive partials with inharmonicity + hammer transient ──
 const _rhodesGlide = {};
 function playRhodes(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.32 : 0.22;
+  const vel = isAccent ? 0.38 : 0.26;
   _rhodesGlide[tr] = freq;
 
-  // FM operator: modulator shapes the timbre
-  const modRatio = 3.5; // slightly inharmonic — piano-like clang
-  const modFreq = freq * modRatio;
-  const modIndex = isAccent ? 6.0 : 4.0; // stronger attack on accent
+  // Inharmonicity factor — real piano strings stretch slightly
+  const B = 0.00015;
+  const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
 
-  const modEnv = ctx.createGain();
-  modEnv.gain.setValueAtTime(freq * modIndex, time);
-  modEnv.gain.exponentialRampToValueAtTime(freq * modIndex * 0.08, time + 0.04);
-  modEnv.gain.exponentialRampToValueAtTime(freq * modIndex * 0.01, time + 0.25);
+  // Natural decay — short at high freqs, longer at low
+  const baseDec = Math.min(durSec + 0.6, 1.8) * (1 + Math.max(0, (300 - freq) / 300) * 0.8);
 
-  const modOsc = ctx.createOscillator(); modOsc.type = 'sine';
-  modOsc.frequency.value = modFreq;
-  modOsc.connect(modEnv);
+  // Partials: amplitude and decay multiplier
+  const partials = [
+    { n: 1, amp: 1.00, dec: 1.00 },
+    { n: 2, amp: 0.50, dec: 0.65 },
+    { n: 3, amp: 0.25, dec: 0.42 },
+    { n: 4, amp: 0.12, dec: 0.28 },
+    { n: 5, amp: 0.05, dec: 0.18 },
+    { n: 6, amp: 0.02, dec: 0.12 },
+  ];
 
-  const carrier = ctx.createOscillator(); carrier.type = 'sine';
-  carrier.frequency.value = freq;
-  modEnv.connect(carrier.frequency); // FM connection
+  partials.forEach(({ n, amp, dec }) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = inharmonic(n);
+    const env = ctx.createGain();
+    const pk = vel * amp;
+    const decT = baseDec * dec;
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(pk, time + 0.002);       // instant attack
+    env.gain.exponentialRampToValueAtTime(pk * 0.55, time + 0.015); // fast initial drop
+    env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
+    osc.connect(env); env.connect(dest);
+    osc.start(time); osc.stop(time + decT + 0.05);
+  });
 
-  // Additive upper partial for brightness
-  const partial2 = ctx.createOscillator(); partial2.type = 'sine';
-  partial2.frequency.value = freq * 2.003; // slight inharmonicity
-  const p2env = ctx.createGain();
-  p2env.gain.setValueAtTime(vel * 0.18, time);
-  p2env.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
-  partial2.connect(p2env); p2env.connect(dest);
-  partial2.start(time); partial2.stop(time + 0.4);
+  // Hammer transient: broadband thump with LP sweep
+  const thumpLen = 0.025;
+  const thumpBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * thumpLen), ctx.sampleRate);
+  const td = thumpBuf.getChannelData(0);
+  for (let i = 0; i < td.length; i++) td[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / td.length, 2);
+  const thump = ctx.createBufferSource(); thump.buffer = thumpBuf;
+  const thumpLP = ctx.createBiquadFilter(); thumpLP.type = 'lowpass';
+  thumpLP.frequency.setValueAtTime(4000, time);
+  thumpLP.frequency.exponentialRampToValueAtTime(300, time + thumpLen);
+  const thumpEnv = ctx.createGain(); thumpEnv.gain.value = vel * 0.4;
+  thump.connect(thumpLP); thumpLP.connect(thumpEnv); thumpEnv.connect(dest);
+  thump.start(time);
 
-  // Carrier amplitude envelope — sharp attack, piano-style decay
-  const decayLen = Math.min(durSec + 1.2, 2.8);
-  const ampEnv = ctx.createGain();
-  ampEnv.gain.setValueAtTime(0, time);
-  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.003); // fast hammer attack
-  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.55, time + 0.06);
-  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.30, time + 0.3);
-  ampEnv.gain.exponentialRampToValueAtTime(0.001, time + decayLen);
-
-  carrier.connect(ampEnv); ampEnv.connect(dest);
-  modOsc.start(time); modOsc.stop(time + decayLen + 0.05);
-  carrier.start(time); carrier.stop(time + decayLen + 0.05);
-
-  // Hammer noise click — felt/wood thump
-  const clickLen = 0.009;
-  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = clickBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * (1 - i / cd.length);
-  const click = ctx.createBufferSource(); click.buffer = clickBuf;
-  const clickFilt = ctx.createBiquadFilter(); clickFilt.type = 'highpass'; clickFilt.frequency.value = 1800;
-  const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.25;
-  click.connect(clickFilt); clickFilt.connect(clickEnv); clickEnv.connect(dest);
-  click.start(time);
+  // String resonance body — short convolution-like noise burst
+  const bodyLen = 0.04;
+  const bodyBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bodyLen), ctx.sampleRate);
+  const bd = bodyBuf.getChannelData(0);
+  for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 1.2);
+  const body = ctx.createBufferSource(); body.buffer = bodyBuf;
+  const bodyBP = ctx.createBiquadFilter(); bodyBP.type = 'bandpass';
+  bodyBP.frequency.value = freq * 2; bodyBP.Q.value = 3;
+  const bodyEnv = ctx.createGain(); bodyEnv.gain.value = vel * 0.12;
+  body.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(dest);
+  body.start(time);
 }
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
@@ -1468,6 +1294,9 @@ function setTrackNameColor(tr, key) {
   const btn = document.getElementById(`tbtn-${tr}`); if (!btn) return;
   btn.classList.remove('inst-kit','inst-perc','inst-tonal');
   const g = INSTRUMENTS[key]?.group || 'perc';
+  const _laneColors = {'kit':'#1a3a6b','perc':'#2a7a3a','tonal':'#ff6600'};
+  const lane = document.getElementById(`lane-${tr}`);
+  if (lane) lane.style.setProperty('--track-color', _laneColors[g] || 'var(--text)');
   btn.classList.add('inst-' + g);
 }
 
@@ -1589,35 +1418,21 @@ function buildUI() {
     wireShiftButton(btnR, tr, +1);
     ctrlRow.appendChild(btnR);
 
-    // FX button — tap toggles FX on/off, hold opens XY pad
+    // FX button — simple toggle, crunch on/off
     const fxBtn = document.createElement('button'); fxBtn.className = 'track-ctrl-icon-btn'; fxBtn.id = `fxbtn-${tr}`;
     fxBtn.textContent = 'FX';
     const fxVal = trackFx[tr]; fxBtn.classList.toggle('on', fxVal && (fxVal.x > 0 || fxVal.y > 0));
-    let fxHoldTimer = null, fxDidHold = false;
-    const startFxHold = () => {
-      fxDidHold = false;
-      fxHoldTimer = setTimeout(() => { fxDidHold = true; fxHoldTimer = null; openXYPad(tr); }, 400);
+    const toggleFxBtn = () => {
+      const cur = trackFx[tr], isOn = cur && (cur.x > 0 || cur.y > 0);
+      const newVal = isOn ? { x: 0, y: 0 } : { x: 0.5, y: 0.5 };
+      trackFx[tr] = newVal;
+      if (ctx) setFxActive(tr, newVal);
+      fxBtn.classList.toggle('on', newVal.x > 0 || newVal.y > 0);
+      markModified();
     };
-    const endFxHold = (didRelease) => {
-      if (fxHoldTimer) { clearTimeout(fxHoldTimer); fxHoldTimer = null; }
-      if (didRelease && !fxDidHold) {
-        const cur = trackFx[tr], isOn = cur && (cur.x > 0 || cur.y > 0);
-        const newVal = isOn ? { x: 0, y: 0 } : { x: 0.5, y: 0.5 };
-        trackFx[tr] = newVal; xyPadLastPos = { ...newVal };
-        if (ctx) setFxActive(tr, newVal);
-        fxBtn.classList.toggle('on', newVal.x > 0 || newVal.y > 0);
-        markModified();
-      } else if (didRelease && fxDidHold) {
-        // After hold opened XY pad — if FX is on and user taps again to dismiss, turn off
-        // (no-op here; turning off happens via next tap)
-        fxDidHold = false;
-      }
-    };
-    fxBtn.addEventListener('mousedown', startFxHold);
-    fxBtn.addEventListener('mouseup', () => endFxHold(true));
-    fxBtn.addEventListener('mouseleave', () => { if (fxHoldTimer) { clearTimeout(fxHoldTimer); fxHoldTimer = null; } });
-    fxBtn.addEventListener('touchstart', e => { e.preventDefault(); startFxHold(); }, { passive: false });
-    fxBtn.addEventListener('touchend', e => { e.preventDefault(); endFxHold(true); }, { passive: false });
+    fxBtn.addEventListener('mouseup', toggleFxBtn);
+    fxBtn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+    fxBtn.addEventListener('touchend', e => { e.preventDefault(); toggleFxBtn(); }, { passive: false });
     ctrlRow.appendChild(fxBtn);
 
     // Sweep / E button
@@ -1659,6 +1474,9 @@ function buildUI() {
     // ── Step row — full width, no shift buttons here ──
     const row = document.createElement('div'); row.className = 'track-row';
     const lane = document.createElement('div'); lane.className = 'step-lane';
+    const _tcolor = {'kit':'#1a3a6b','perc':'#2a7a3a','tonal':'#ff6600'}[INSTRUMENTS[trackInstruments[tr]]?.group] || 'var(--text)';
+    lane.style.setProperty('--track-color', _tcolor);
+    lane.id = `lane-${tr}`;
     const cells = document.createElement('div'); cells.className = 'step-lane-cells';
     for (let s = 0; s < NUM_STEPS; s++) {
       const cell = document.createElement('div');
