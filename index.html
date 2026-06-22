@@ -53,14 +53,17 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   background: none; border: 3px solid var(--text); color: var(--text);
   font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
   letter-spacing: 0.5px; padding: 0 10px; cursor: pointer; text-transform: uppercase;
-  transition: background 0.1s, color 0.1s, border-color 0.1s; height: 64px; flex-shrink: 0; white-space: nowrap;
+  transition: background 0.1s, color 0.1s, border-color 0.1s; height: 54px; flex-shrink: 0; white-space: nowrap;
   touch-action: manipulation;
 }
 .btn.active { background: var(--text); color: var(--bg); }
 .btn:active { opacity: 0.7; }
 #playBtn.playing { background: var(--slot-saved); border-color: var(--slot-saved); color: #000; }
+#beatBtn.active { background: var(--playhead) !important; border-color: var(--playhead) !important; color: #fff !important; }
 #beatBtn.beat-pulse { animation: beat-red 0.5s infinite alternate; border-color: var(--playhead); }
 @keyframes beat-red { from { background: var(--playhead); color: #fff; } to { background: #7a1000; color: #fff; } }
+#saveBtn.rec-active { animation: rec-pulse 0.5s infinite alternate; font-size: 1.4rem; font-weight: 700; }
+@keyframes rec-pulse { from { background: var(--playhead); border-color: var(--playhead); color: #fff; } to { background: #7a1000; border-color: #7a1000; color: #fff; } }
 .btn-flash { background: var(--slot-saved) !important; border-color: var(--slot-saved) !important; color: #000 !important; transition: none !important; }
 .rand-overlay-btn {
   font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
@@ -947,20 +950,28 @@ function togglePlay() {
     btn.classList.add('active', 'playing'); btn.textContent = 'STOP';
     updateBeatPulse();
     document.querySelectorAll('.reel-wrap').forEach(r => r.classList.add('spinning'));
-    // if beat is armed, restart it in sync
     if (beatPlaying) {
       clearInterval(beatInterval);
       beatStep = -1; beatNextTime = nextStepTime;
       beatInterval = setInterval(scheduleBeat, SCHEDULE_MS);
+    }
+    // Auto-start recording if armed
+    if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') {
+      _mediaRecorder.start();
+      updateRecBtn();
     }
   } else {
     clearInterval(scheduleInterval); scheduleInterval = null;
     btn.classList.remove('active', 'playing'); btn.textContent = 'PLAY';
     updateBeatPulse();
     document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning'));
-    // stop beat audio but leave beatPlaying armed
     if (beatPlaying) { clearInterval(beatInterval); beatInterval = null; }
     document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
+    // Auto-stop recording when play stops
+    if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') {
+      _mediaRecorder.stop();
+      _recArmed = false;
+    }
   }
 }
 
@@ -2077,7 +2088,7 @@ function flashBtn(id) {
   function showOverlay() { overlay.style.display = 'flex'; }
   function hideOverlay() { overlay.style.display = 'none'; }
 
-  saveBtn.addEventListener('click', () => { showOverlay(); flashBtn('saveBtn'); });
+  saveBtn.addEventListener('click', () => { if (_recArmed) { toggleRecord(); } else { showOverlay(); flashBtn('saveBtn'); } });
   overlay.addEventListener('click', e => { if (e.target === overlay) hideOverlay(); });
 
   document.getElementById('saveSeparateBtn').addEventListener('click', () => { hideOverlay(); saveAllSeparate(); });
@@ -2156,17 +2167,31 @@ async function saveAllCombined() {
 // ── Live recording via MediaRecorder ──
 let _mediaRecorder = null, _recChunks = [], _recArmed = false;
 
+function updateRecBtn() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') {
+    btn.textContent = 'R';
+    btn.classList.add('rec-active');
+  } else if (_recArmed) {
+    btn.textContent = 'R';
+    btn.classList.add('rec-active');
+  } else {
+    btn.textContent = 'SAVE';
+    btn.classList.remove('rec-active');
+  }
+}
+
 function toggleRecord() {
   if (!ctx) { alert('Load audio first'); return; }
-  const btn = document.getElementById('saveBtn');
 
+  // If already armed/recording — stop and share
   if (_recArmed) {
-    // Disarm without stopping play
     _recArmed = false;
     if (_mediaRecorder && _mediaRecorder.state === 'recording') {
-      _mediaRecorder.stop();
+      _mediaRecorder.stop(); // onstop will share
     }
-    btn.textContent = 'SAVE';
+    updateRecBtn();
     return;
   }
 
@@ -2179,7 +2204,7 @@ function toggleRecord() {
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _mediaRecorder.onstop = async () => {
       masterGain.disconnect(dest);
-      btn.textContent = 'SAVE';
+      updateRecBtn();
       if (_recChunks.length === 0) return;
       const blob = new Blob(_recChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
       const ext = (blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm');
@@ -2188,35 +2213,18 @@ function toggleRecord() {
     };
     _recArmed = true;
     if (playing) {
-      // Already playing — start immediately
       _mediaRecorder.start();
-      btn.textContent = '● REC';
-    } else {
-      // Will auto-start when play begins
-      btn.textContent = '● ARM';
     }
+    updateRecBtn();
   } catch(e) {
     console.error('Record setup failed', e);
     alert('Record error: ' + e.message);
-    btn.textContent = 'SAVE';
     _recArmed = false;
+    updateRecBtn();
   }
 }
 
-// Hook into togglePlay to auto-start/stop recording
-const _origTogglePlay = togglePlay;
-function togglePlay() {
-  _origTogglePlay();
-  if (_recArmed) {
-    if (playing && _mediaRecorder && _mediaRecorder.state === 'inactive') {
-      _mediaRecorder.start();
-      document.getElementById('saveBtn').textContent = '● REC';
-    } else if (!playing && _mediaRecorder && _mediaRecorder.state === 'recording') {
-      _mediaRecorder.stop();
-      _recArmed = false;
-    }
-  }
-}
+
 
 function audioBufferToWav(buffer, tempoHint) {
   const numCh = buffer.numberOfChannels, sr = buffer.sampleRate, len = buffer.length;
