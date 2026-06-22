@@ -611,6 +611,13 @@ function scheduler() {
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     const t = nextStepTime;
+    // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
+    if (step === 0 && _pendingSlot >= 0) {
+      const pi = _pendingSlot; _pendingSlot = -1;
+      restoreState(slots[pi]);
+      activeSlot = pi;
+      requestAnimationFrame(updateSlotButtons);
+    }
     requestAnimationFrame(() => updatePlayhead(step));
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (trackMuted[tr]) continue;
@@ -697,13 +704,6 @@ function updatePlayhead(step) {
       setTimeout(() => tbtn.classList.remove('playing'), 80);
 
     }
-  }
-  // Apply pending slot switch at bar start
-  if (step === 0 && _pendingSlot >= 0) {
-    const pi = _pendingSlot; _pendingSlot = -1;
-    restoreState(slots[pi]);
-    activeSlot = pi;
-    updateSlotButtons();
   }
   // Pulse active slot + transport buttons on every beat (every 4 steps)
   if (step % 4 === 0) {
@@ -1246,7 +1246,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
 function playStab(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.55 : 0.38;
+  const vel = isAccent ? 0.347 : 0.240;
 
   // 3-oscillator detuned stack — chord-like spread
   const detunes = [-7, 0, 7, 12];
@@ -1480,7 +1480,7 @@ function buildUI() {
     ctrlRow.appendChild(btnR);
 
     // FX button — simple toggle, crunch on/off
-    const fxBtn = document.createElement('button'); fxBtn.className = 'track-ctrl-icon-btn'; fxBtn.id = `fxbtn-${tr}`;
+    const fxBtn = document.createElement('button'); fxBtn.className = 'track-ctrl-icon-btn fx-btn'; fxBtn.id = `fxbtn-${tr}`;
     fxBtn.textContent = 'FX';
     const fxVal = trackFx[tr]; fxBtn.classList.toggle('on', fxVal && (fxVal.x > 0 || fxVal.y > 0));
     const toggleFxBtn = () => {
@@ -1654,7 +1654,7 @@ document.addEventListener('touchend', () => { dragWriteVal = -1; dragWriteTrack 
 // ── Drag-to-engage for icon buttons (sweep, FX, shift, R) and slot buttons ──
 // Excluded: .btn (PLAY/BEAT/CLEAR), .track-name-btn, input[type=range]
 const DRAGGABLE_BTN_SELECTORS = [
-  '.track-ctrl-icon-btn:not(.rand-btn)',
+  '.track-ctrl-icon-btn:not(.rand-btn):not(.fx-btn)',
 ];
 function isDraggableBtn(el) {
   if (!el) return false;
