@@ -565,19 +565,7 @@ function playBuffer(key, isAccent, time, tr) {
   }
   src.start(time);
 
-  // Slapback: Y axis = delay time 20ms–1000ms, at half volume
-  if (on && fxVal.y > 0) {
-    const slapDelay = 0.02 + fxVal.y * 0.98; // 20ms–1000ms
-    const slapSrc = ctx.createBufferSource(); slapSrc.buffer = buf;
-    const slapGain = ctx.createGain();
-    slapGain.gain.value = (key === 'shak') ? 0.25 : (key === 'clap') ? 0.354 : 0.5;
-    if (tr !== undefined && trackFxNodes[tr] && on) {
-      slapSrc.connect(slapGain); slapGain.connect(trackFxNodes[tr].fxSend);
-    } else {
-      slapSrc.connect(slapGain); slapGain.connect((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
-    }
-    slapSrc.start(time + slapDelay);
-  }
+
 }
 
 
@@ -685,20 +673,7 @@ function scheduler() {
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
-          // Slapback delay for synth voices
-          const sfx = trackFx[tr];
-          if (sfx && sfx.y > 0) {
-            const slapDelay = 0.02 + sfx.y * 0.98;
-            const slapDur = Math.min(dur, stepDuration());
-            if (key === 'sbass')   playSynthBass(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'sbass3')  playMotownBass(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'sbass4')  playPlunkBass(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'stab')    playStab(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'sstring') playStringSynth(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'sleg')    playSynthLeg(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'sparkle') playSparkle(freq, slapDur, false, t + slapDelay, tr);
-            if (key === 'rhodes')  playRhodes(freq, slapDur, false, t + slapDelay, tr);
-          }
+
         } else if (key === 'ngate') {
           // Noise gate triggered by its own grid notes
           triggerNoiseGate(tr, val === 2, t);
