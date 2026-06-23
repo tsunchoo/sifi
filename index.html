@@ -1804,7 +1804,7 @@ async function renderSlotToWav(snap) {
       }
       const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
 
-      // Synth voices — render into offline context
+      // Synth voices — rendered to match live voices exactly
       if (TONAL_KEYS.has(key)) {
         const scale = snap.trackBassScale?.[tr];
         if (!scale) continue;
@@ -1815,49 +1815,140 @@ async function renderSlotToWav(snap) {
         }
         const freq = scale[gs % scale.length];
         if (!freq) continue;
-        const vel = isAccent ? 0.5 : 0.3;
+        const o = offline; // alias for brevity
 
         if (key === 'sbass') {
-          const saw = offline.createOscillator(); saw.type = 'sawtooth'; saw.frequency.value = freq;
-          const sub = offline.createOscillator(); sub.type = 'sine'; sub.frequency.value = freq * 0.5;
-          const sawG = offline.createGain(); sawG.gain.value = 0.25;
-          const subG = offline.createGain(); subG.gain.value = 0.38;
-          const filt = offline.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 3.5; filt.frequency.value = freq * 3.5;
-          const env = offline.createGain();
+          // Match playSynthBass exactly
+          const vel = isAccent ? 0.425 : 0.3;
+          const saw = o.createOscillator(); saw.type = 'sawtooth';
+          const sub = o.createOscillator(); sub.type = 'sine';
+          const sawG = o.createGain(); sawG.gain.value = 0.25;
+          const subG = o.createGain(); subG.gain.value = 0.38;
+          saw.frequency.value = freq; sub.frequency.value = freq * 0.5;
+          const filt = o.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 3.5; filt.frequency.value = freq * 3.5;
+          const env = o.createGain();
           env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel,t+0.008);
           env.gain.setValueAtTime(vel,t+dur*0.8); env.gain.linearRampToValueAtTime(0.001,t+dur);
           saw.connect(sawG); sub.connect(subG); sawG.connect(filt); subG.connect(filt); filt.connect(env); env.connect(offDest);
           saw.start(t); saw.stop(t+dur+0.05); sub.start(t); sub.stop(t+dur+0.05);
+
         } else if (key === 'sbass3') {
-          const o1 = offline.createOscillator(); o1.type='sawtooth'; o1.frequency.value=freq; o1.detune.value=-3;
-          const o2 = offline.createOscillator(); o2.type='sawtooth'; o2.frequency.value=freq; o2.detune.value=3;
-          const os = offline.createOscillator(); os.type='sine'; os.frequency.value=freq*0.5;
-          const mix = offline.createGain(); mix.gain.value=0.3;
-          const filt = offline.createBiquadFilter(); filt.type='lowpass'; filt.Q.value=0.8; filt.frequency.value=freq*3;
-          const env = offline.createGain();
-          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel,t+0.004);
-          env.gain.exponentialRampToValueAtTime(vel*0.35,t+Math.min(dur*0.55,0.18));
-          env.gain.exponentialRampToValueAtTime(0.001,t+dur*0.85);
-          [o1,o2,os].forEach(o=>{ o.connect(mix); o.start(t); o.stop(t+dur+0.02); });
-          mix.connect(filt); filt.connect(env); env.connect(offDest);
-        } else if (key === 'sstring' || key === 'sleg') {
-          [0,6,-6,11].forEach(det => {
-            const osc = offline.createOscillator(); osc.type='sawtooth';
-            osc.frequency.value=freq; osc.detune.value=det;
-            const env = offline.createGain();
-            env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*0.04,t+0.08);
-            env.gain.setValueAtTime(vel*0.1,t+dur-0.1); env.gain.exponentialRampToValueAtTime(0.001,t+dur+0.3);
-            osc.connect(env); env.connect(offDest); osc.start(t); osc.stop(t+dur+0.4);
+          // Match playMotownBass exactly
+          const vel = isAccent ? 0.8 : 0.58;
+          const saw1 = o.createOscillator(); saw1.type='sawtooth'; saw1.frequency.value=freq; saw1.detune.value=-3;
+          const saw2 = o.createOscillator(); saw2.type='sawtooth'; saw2.frequency.value=freq; saw2.detune.value=3;
+          const sub  = o.createOscillator(); sub.type='sine'; sub.frequency.value=freq*0.5;
+          const mix = o.createGain(); mix.gain.value=0.3;
+          const filt = o.createBiquadFilter(); filt.type='lowpass'; filt.Q.value=0.8;
+          filt.frequency.setValueAtTime(freq*3,t); filt.frequency.exponentialRampToValueAtTime(freq*1.1,t+0.03);
+          const ampEnv = o.createGain();
+          const decay = Math.min(dur*0.55,0.18);
+          ampEnv.gain.setValueAtTime(0,t); ampEnv.gain.linearRampToValueAtTime(vel,t+0.004);
+          ampEnv.gain.exponentialRampToValueAtTime(vel*0.35,t+decay);
+          ampEnv.gain.exponentialRampToValueAtTime(0.001,t+dur*0.85);
+          saw1.connect(mix); saw2.connect(mix); sub.connect(mix);
+          mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(offDest);
+          [saw1,saw2,sub].forEach(osc=>{ osc.start(t); osc.stop(t+dur+0.02); });
+
+        } else if (key === 'sbass4') {
+          // Match playPlunkBass exactly
+          const vel = isAccent ? 0.9 : 0.65;
+          const osc1 = o.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
+          const osc2 = o.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq*0.5;
+          const mix = o.createGain(); mix.gain.value=0.4;
+          const bp = o.createBiquadFilter(); bp.type='bandpass'; bp.Q.value=1.8;
+          bp.frequency.setValueAtTime(freq*4,t); bp.frequency.exponentialRampToValueAtTime(freq*1.5,t+0.02);
+          const ws = o.createWaveShaper();
+          const curve = new Float32Array(256);
+          for (let i=0;i<256;i++){const x=(i*2)/256-1; curve[i]=Math.tanh(x*4);} ws.curve=curve;
+          const ampEnv = o.createGain(); const decay=Math.min(dur*0.7,0.22);
+          ampEnv.gain.setValueAtTime(0,t); ampEnv.gain.linearRampToValueAtTime(vel,t+0.003);
+          ampEnv.gain.exponentialRampToValueAtTime(vel*0.25,t+decay);
+          ampEnv.gain.exponentialRampToValueAtTime(0.001,t+Math.min(dur,0.45));
+          osc1.connect(mix); osc2.connect(mix); mix.connect(bp); bp.connect(ws); ws.connect(ampEnv); ampEnv.connect(offDest);
+          [osc1,osc2].forEach(osc=>{ osc.start(t); osc.stop(t+Math.min(dur,0.5)); });
+
+        } else if (key === 'stab') {
+          // Match playStab exactly
+          const vel = isAccent ? 0.347 : 0.240;
+          const env = o.createGain();
+          [-7,0,7,12].forEach(det => {
+            const osc = o.createOscillator(); osc.type='sawtooth';
+            osc.frequency.value = freq*(det===12?2:1); osc.detune.value=det===12?0:det*2;
+            osc.connect(env); osc.start(t); osc.stop(t+0.18);
           });
+          const lp = o.createBiquadFilter(); lp.type='lowpass'; lp.Q.value=4;
+          lp.frequency.setValueAtTime(isAccent?4000:2800,t); lp.frequency.exponentialRampToValueAtTime(300,t+0.06);
+          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel,t+0.004);
+          env.gain.exponentialRampToValueAtTime(vel*0.3,t+0.025); env.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+          env.connect(lp); lp.connect(offDest);
+
+        } else if (key === 'sstring') {
+          // Match playStringSynth exactly
+          const vol = isAccent ? 0.027 : 0.018;
+          const env = o.createGain();
+          const irLen = Math.floor(sampleRate*0.4);
+          const irBuf = o.createBuffer(2,irLen,sampleRate);
+          for (let ch=0;ch<2;ch++){const d=irBuf.getChannelData(ch); for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,1.2);}
+          const rev = o.createConvolver(); rev.buffer=irBuf;
+          const dryG = o.createGain(); dryG.gain.value=0.5;
+          const revG = o.createGain(); revG.gain.value=0.5;
+          const hp = o.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=400; hp.Q.value=0.7;
+          [0,7,-7,12,-3].forEach(det => {
+            const osc = o.createOscillator(); osc.type='sawtooth'; osc.frequency.value=freq; osc.detune.value=det;
+            osc.connect(env); osc.start(t); osc.stop(t+dur+0.4);
+          });
+          env.connect(hp); hp.connect(dryG); dryG.connect(offDest);
+          hp.connect(rev); rev.connect(revG); revG.connect(offDest);
+          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vol,t+0.08);
+          env.gain.setValueAtTime(vol*3,t+dur-0.1); env.gain.exponentialRampToValueAtTime(0.001,t+dur+0.3);
+
+        } else if (key === 'sleg') {
+          // Match playSynthLeg exactly
+          const vol = isAccent ? 0.055 : 0.038;
+          const glide = Math.min(0.1,dur*0.2);
+          const strEnv = o.createGain();
+          const irLen = Math.floor(sampleRate*0.5);
+          const irBuf = o.createBuffer(2,irLen,sampleRate);
+          for (let ch=0;ch<2;ch++){const d=irBuf.getChannelData(ch); for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,1.5);}
+          const rev = o.createConvolver(); rev.buffer=irBuf;
+          const hp = o.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=500; hp.Q.value=0.7;
+          const dryG = o.createGain(); dryG.gain.value=0.5;
+          const revG = o.createGain(); revG.gain.value=0.5;
+          [0,6,-6,11].forEach(det => {
+            const osc = o.createOscillator(); osc.type='sawtooth'; osc.frequency.value=freq; osc.detune.value=det;
+            osc.connect(strEnv); osc.start(t); osc.stop(t+dur+0.4);
+          });
+          strEnv.connect(hp); hp.connect(dryG); dryG.connect(offDest);
+          hp.connect(rev); rev.connect(revG); revG.connect(offDest);
+          strEnv.gain.setValueAtTime(0,t); strEnv.gain.linearRampToValueAtTime(vol,t+0.07);
+          strEnv.gain.setValueAtTime(vol*2.5,t+dur-0.08); strEnv.gain.exponentialRampToValueAtTime(0.001,t+dur+0.25);
+          const leadEnv = o.createGain();
+          const lp = o.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2200; lp.Q.value=2.5;
+          const leadOsc = o.createOscillator(); leadOsc.type='square'; leadOsc.frequency.value=freq;
+          leadOsc.connect(lp); lp.connect(leadEnv); leadEnv.connect(offDest);
+          leadEnv.gain.setValueAtTime(0,t); leadEnv.gain.linearRampToValueAtTime(vol*0.7,t+0.005);
+          leadEnv.gain.setValueAtTime(vol*0.7,t+dur-0.02); leadEnv.gain.linearRampToValueAtTime(0,t+dur+0.01);
+          leadOsc.start(t); leadOsc.stop(t+dur+0.05);
+
         } else if (key === 'sparkle') {
-          const nBuf = offline.createBuffer(1,Math.ceil(sampleRate*0.18),sampleRate);
-          const nd = nBuf.getChannelData(0); for(let i=0;i<nd.length;i++) nd[i]=Math.random()*2-1;
-          const src2 = offline.createBufferSource(); src2.buffer=nBuf; src2.loop=true;
-          const lp = offline.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=freq*4; lp.Q.value=2.5;
-          const env = offline.createGain();
-          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel*0.6,t+0.002);
-          env.gain.exponentialRampToValueAtTime(0.001,t+0.18);
-          src2.connect(lp); lp.connect(env); env.connect(offDest); src2.start(t); src2.stop(t+0.2);
+          // Match playSparkle exactly (Karplus-Strong)
+          const vel = isAccent ? 1.1 : 0.79;
+          const period = 1/freq;
+          const bufLen = Math.ceil(sampleRate*period);
+          const noiseBuf = o.createBuffer(1,bufLen,sampleRate);
+          const nd = noiseBuf.getChannelData(0);
+          for (let i=0;i<bufLen;i++) nd[i]=(Math.random()*2-1);
+          const src2 = o.createBufferSource(); src2.buffer=noiseBuf; src2.loop=true;
+          const lp = o.createBiquadFilter(); lp.type='lowpass';
+          lp.frequency.setValueAtTime(freq*6,t); lp.frequency.exponentialRampToValueAtTime(freq*1.2,t+0.025);
+          const notch = o.createBiquadFilter(); notch.type='notch'; notch.frequency.value=freq*3; notch.Q.value=1.5;
+          const env = o.createGain(); const decay=Math.min(0.18,dur*0.6);
+          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel,t+0.002);
+          env.gain.exponentialRampToValueAtTime(0.001,t+decay);
+          src2.connect(lp); lp.connect(notch); notch.connect(env); env.connect(offDest);
+          src2.start(t); src2.stop(t+decay+0.02);
+
         } else if (key === 'rhodes') {
           // Exact match to live playRhodes voice
           const rVel = isAccent ? 0.38 : 0.26;
