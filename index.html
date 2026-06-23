@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BOOMBLAP v11</title>
+<title>BOOMBLAP v12-debug</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
@@ -2485,8 +2485,10 @@ function randAll(mode) {
   let holdTimer = null, didHold = false, autoRandInterval = null;
 
   const onDown = () => {
+    console.log('RAND down');
     didHold = false;
     holdTimer = setTimeout(() => {
+      console.log('RAND hold fired');
       didHold = true;
       btn.classList.add('pulsing');
       randAll();
@@ -2495,21 +2497,24 @@ function randAll(mode) {
   };
 
   const onUp = () => {
+    console.log('RAND up, didHold=', didHold, 'holdTimer=', holdTimer);
     clearTimeout(holdTimer); holdTimer = null;
     if (!didHold) { flashBtn('randBtn'); randAll(); }
     else if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
     didHold = false;
   };
 
-  btn.addEventListener('mousedown', onDown);
-  btn.addEventListener('mouseup', onUp);
+  btn.addEventListener('mousedown', () => { console.log('mousedown'); onDown(); });
+  btn.addEventListener('mouseup', () => { console.log('mouseup'); onUp(); });
   btn.addEventListener('mouseleave', () => {
+    console.log('mouseleave');
     clearTimeout(holdTimer); holdTimer = null; didHold = false;
     if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
   });
-  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
+  btn.addEventListener('touchstart', e => { console.log('touchstart'); e.preventDefault(); onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { console.log('touchend'); e.preventDefault(); onUp(); }, { passive: false });
   btn.addEventListener('touchcancel', () => {
+    console.log('touchcancel');
     clearTimeout(holdTimer); holdTimer = null; didHold = false;
     if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
   });
