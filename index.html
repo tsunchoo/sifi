@@ -604,7 +604,7 @@ function scheduler() {
     // Fire pending auto-rand on downbeat
     if (step === 0 && _autoRandPending) {
       _autoRandPending = false;
-      randAll();
+      randAll(_autoRandMode); _autoRandMode = undefined;
     }
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
     if (step === 0 && _pendingSlot >= 0) {
@@ -2346,6 +2346,17 @@ async function saveAllCombined() {
 
 // ── Live recording via MediaRecorder ──
 let _autoRandPending = false;
+
+function queueRand(mode) {
+  if (playing) {
+    _autoRandPending = true;
+    // Store mode for when it fires
+    _autoRandMode = mode;
+  } else {
+    randAll(mode);
+  }
+}
+let _autoRandMode = undefined;
 let _mediaRecorder = null, _recChunks = [], _recArmed = false;
 
 function updateRecBtn() {
@@ -2537,7 +2548,7 @@ let randAllLevel = 0;
 
 let _randHeld = false;
 function handleRandTap() {
-  if (!_randHeld) { flashBtn('randBtn'); randAll(); }
+  if (!_randHeld) { flashBtn('randBtn'); queueRand(); }
   _randHeld = false;
 }
 
@@ -2653,7 +2664,7 @@ function randAll(mode) {
     } else {
       // Single tap — one rand
       if (autoRandInterval) { stopAuto(); }
-      else { const rb=document.getElementById('randBtn'); rb.style.background='#5e18eb'; rb.style.color='#fff'; setTimeout(()=>{rb.style.background='';rb.style.color='';},200); randAll(); }
+      else { const rb=document.getElementById('randBtn'); rb.style.background='#5e18eb'; rb.style.color='#fff'; setTimeout(()=>{rb.style.background='';rb.style.color='';},200); queueRand(); }
     }
     lastTap = now;
   };
@@ -3119,7 +3130,7 @@ if ('serviceWorker' in navigator) {
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
-      if (target.id === 'randBtn') { flashBtn('randBtn'); randAll(); }
+      if (target.id === 'randBtn') { flashBtn('randBtn'); queueRand(); }
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
