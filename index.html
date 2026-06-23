@@ -583,7 +583,7 @@ const trackOffset = new Array(NUM_TRACKS).fill(0);
 const trackMuted  = new Array(NUM_TRACKS).fill(false);
 const trackSweep  = new Array(NUM_TRACKS).fill(false);
 const trackChop   = new Array(NUM_TRACKS).fill(false);
-const trackVolume = [0.8, 0.505, 0.8, 0.8, 0.8, 0.8];
+const trackVolume = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackFxMode = new Array(NUM_TRACKS).fill(0); // 0=CHOKE/SLAP, 1=CRUNCH/ENV
 const trackGainNodes = [];
@@ -2582,12 +2582,19 @@ function randAll(mode) {
     if (melodyKeys.has(pool[tr])) melodyTracks.push(tr);
   }
   if (melodyTracks.length > 1) {
-    const minorThird = Math.pow(2, 3/12); // 3 semitones
+    const stringKeys = new Set(['sstring','sleg']);
+    const minorThird = Math.pow(2, 3/12);
     for (let i = 1; i < melodyTracks.length; i++) {
       const tr = melodyTracks[i];
+      const prev = melodyTracks[i - 1];
       if (trackBassScale[tr]) {
-        // Each successive melody track voiced a third higher within its natural range
-        trackBassScale[tr] = trackBassScale[tr].map(f => f * Math.pow(minorThird, i));
+        if (stringKeys.has(pool[tr]) && stringKeys.has(pool[prev])) {
+          // Two string instruments — set an octave apart
+          trackBassScale[tr] = trackBassScale[tr].map(f => f * 2);
+        } else {
+          // Other melody instruments — voice a third higher
+          trackBassScale[tr] = trackBassScale[tr].map(f => f * Math.pow(minorThird, i));
+        }
       }
     }
   }
@@ -2918,11 +2925,11 @@ function wireRandomizeButton(btn, tr) {
       if (autoShifting) stopAutoShift();
       else {
         randomizeTrack(tr);
-        // Set track volume to 25%
-        trackVolume[tr] = 0.25;
-        if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.25, ctx.currentTime, 0.01);
+        // Set track volume to 50% (middle)
+        trackVolume[tr] = 0.5;
+        if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
         const vb = document.getElementById(`vbar-${tr}`);
-        if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '25%'; }
+        if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
       }
     }
   };
