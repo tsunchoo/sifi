@@ -504,6 +504,14 @@ function buildFxChain(trackGain) {
   return { dryGain, fxSend, gateGain, preGain, postGain, ws };
 }
 
+const _congaBongoKeys = new Set(['congHi','congLo','bongHi','bongLo']);
+function applyCongaFxVol(tr) {
+  const key = trackInstruments[tr];
+  const fxOn = trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
+  const isCB = _congaBongoKeys.has(key);
+  const target = isCB && fxOn ? trackVolume[tr] * 0.5 : trackVolume[tr]; // -6dB when both
+  if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(target, ctx.currentTime, 0.01);
+}
 function setFxActive(tr, fxVal) {
   if (!trackFxNodes[tr]) return;
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -516,6 +524,10 @@ function setFxActive(tr, fxVal) {
     const fxComp = on ? trackVolume[tr] * 0.5 : trackVolume[tr];
     trackGainNodes[tr].gain.cancelScheduledValues(now);
     trackGainNodes[tr].gain.setValueAtTime(fxComp, now);
+    // Extra -6dB for conga/bongo with FX
+    if (_congaBongoKeys.has(trackInstruments[tr]) && on) {
+      trackGainNodes[tr].gain.setValueAtTime(fxComp * 0.5, now);
+    }
     const vb = document.getElementById(`vbar-${tr}`);
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(fxComp * 100) + '%'; }
   }
@@ -1509,6 +1521,7 @@ function setTrackNameColor(tr, key) {
 }
 
 function selectSound(tr, k) {
+  const prevKey = trackInstruments[tr];
   if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
     try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
   }
