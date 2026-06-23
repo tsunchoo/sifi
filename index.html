@@ -1740,9 +1740,11 @@ function clearAll() {
 }
 async function renderSlotToWav(snap) {
   const slotBpm = snap.bpm || bpm;
-  const sampleRate = 44100;
-  const loopDuration = (60 / slotBpm) * NUM_STEPS / 4;
-  const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * loopDuration), sampleRate);
+  const sampleRate = ctx.sampleRate;
+  const NUM_MEASURES = 16;
+  const measureDuration = (60 / slotBpm) * NUM_STEPS / 4;
+  const totalDuration = measureDuration * NUM_MEASURES;
+  const offline = new OfflineAudioContext(2, Math.ceil(sampleRate * totalDuration), sampleRate);
   const offMaster = offline.createGain();
   offMaster.gain.value = snap.masterVol ?? masterVol;
   offMaster.connect(offline.destination);
@@ -1757,12 +1759,9 @@ async function renderSlotToWav(snap) {
       dryGain = offline.createGain(); dryGain.gain.value = 0; dryGain.connect(tVol);
       fxSend  = offline.createGain(); fxSend.gain.value = 1;
       const preGain = offline.createGain(); preGain.gain.value = 0.25;
-      const ws = offline.createWaveShaper(); ws.oversample = '2x'; ws.curve = makeDistCurve(fxVal.x);
-      const postGain = offline.createGain(); postGain.gain.value = 0.4;
-      const lim = offline.createDynamicsCompressor();
-      lim.threshold.value = -6; lim.knee.value = 3; lim.ratio.value = 20;
-      lim.attack.value = 0.0005; lim.release.value = 0.08;
-      fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(lim); lim.connect(tVol);
+      const ws = offline.createWaveShaper(); ws.oversample = 'none'; ws.curve = makeDistCurve(0.5);
+      const postGain = offline.createGain(); postGain.gain.value = 0.5;
+      fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(tVol);
     } else {
       dryGain = offline.createGain(); dryGain.gain.value = 1; dryGain.connect(tVol);
     }
@@ -1772,9 +1771,11 @@ async function renderSlotToWav(snap) {
     const slotGrid = snap.grid?.[tr] || [];
     const offset = snap.trackOffset?.[tr] || 0;
     const key = snap.trackInstruments?.[tr] || trackInstruments[tr];
+    for (let measure = 0; measure < NUM_MEASURES; measure++) {
+      const measureOffset = measure * measureDuration;
     for (let s = 0; s < NUM_STEPS; s++) {
       const gs = (s - offset + NUM_STEPS) % NUM_STEPS;
-      const t = s * (60 / slotBpm / 4);
+      const t = measureOffset + s * (60 / slotBpm / 4);
       const val = slotGrid[gs] || 0; if (!val) continue;
       const isAccent = val === 2;
       if (key === 'skick') {
@@ -1874,54 +1875,48 @@ async function renderSlotToWav(snap) {
 
       if (!buf) continue;
       const src = offline.createBufferSource(); src.buffer = buf;
-      if (fxOn) {
-        const envGain = offline.createGain(); envGain.connect(fxSend);
-        src.connect(envGain);
-        const atkDelay = fxVal.y * 0.08;
-        const tailLen = buf.duration * (1 - fxVal.y * 0.85);
-        envGain.gain.setValueAtTime(0, t);
-        envGain.gain.linearRampToValueAtTime(1, t + atkDelay + 0.002);
-        envGain.gain.setValueAtTime(1, t + tailLen);
-        envGain.gain.linearRampToValueAtTime(0, t + tailLen + 0.01);
-      } else { src.connect(dryGain); }
+      src.connect(fxOn ? fxSend : dryGain);
       src.start(t);
     }
+    } // end measure loop
   }
 
-  // Render beat if it was on when saved
-  if (snap.beatOn) {
+  // Always render beat track across all measures
+  {
     const beatGain = offline.createGain(); beatGain.gain.value = 0.5; beatGain.connect(offMaster);
-    for (let beat = 0; beat < 4; beat++) {
-      const t = beat * (60 / slotBpm);
-      if (beat % 2 === 0) {
-        // Kick
-        const osc = offline.createOscillator(), g = offline.createGain();
-        osc.connect(g); g.connect(beatGain);
-        osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(45, t + 0.07);
-        g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-        osc.start(t); osc.stop(t + 0.17);
-        const cbuf = offline.createBuffer(1, Math.ceil(sampleRate * 0.012), sampleRate);
-        const cd = cbuf.getChannelData(0);
-        for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * (1 - i/cd.length);
-        const click = offline.createBufferSource(); click.buffer = cbuf;
-        const clickGain = offline.createGain(); clickGain.gain.value = 0.3;
-        click.connect(clickGain); clickGain.connect(beatGain); click.start(t);
-      } else {
-        // Snare
-        const dur = 0.22;
-        const nbuf = offline.createBuffer(1, Math.ceil(sampleRate * dur), sampleRate);
-        const d = nbuf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.5);
-        const src2 = offline.createBufferSource(), g = offline.createGain();
-        const hp = offline.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
-        const bp = offline.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.8;
-        const body = offline.createOscillator(), bg = offline.createGain();
-        body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
-        bg.gain.setValueAtTime(0.35, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-        body.connect(bg); bg.connect(beatGain); body.start(t); body.stop(t + 0.1);
-        src2.buffer = nbuf; src2.connect(hp); hp.connect(bp); bp.connect(g); g.connect(beatGain);
-        g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-        src2.start(t);
+    for (let measure = 0; measure < NUM_MEASURES; measure++) {
+      const mo = measure * measureDuration;
+      for (let beat = 0; beat < 4; beat++) {
+        const t = mo + beat * (60 / slotBpm);
+        if (beat % 2 === 0) {
+          // Kick
+          const osc = offline.createOscillator(), g = offline.createGain();
+          osc.connect(g); g.connect(beatGain);
+          osc.frequency.setValueAtTime(120, t); osc.frequency.exponentialRampToValueAtTime(45, t + 0.07);
+          g.gain.setValueAtTime(0.8, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+          osc.start(t); osc.stop(t + 0.17);
+          const cbuf = offline.createBuffer(1, Math.ceil(sampleRate * 0.012), sampleRate);
+          const cd = cbuf.getChannelData(0);
+          for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * (1 - i/cd.length);
+          const click = offline.createBufferSource(); click.buffer = cbuf;
+          const cg = offline.createGain(); cg.gain.value = 0.3;
+          click.connect(cg); cg.connect(beatGain); click.start(t);
+        } else {
+          // Snare
+          const dur = 0.22;
+          const nbuf = offline.createBuffer(1, Math.ceil(sampleRate * dur), sampleRate);
+          const d = nbuf.getChannelData(0);
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/d.length, 1.5);
+          const src2 = offline.createBufferSource(), g = offline.createGain();
+          const hp = offline.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
+          const body = offline.createOscillator(), bg = offline.createGain();
+          body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t+0.08);
+          bg.gain.setValueAtTime(0.35, t); bg.gain.exponentialRampToValueAtTime(0.001, t+0.1);
+          body.connect(bg); bg.connect(beatGain); body.start(t); body.stop(t+0.1);
+          src2.buffer = nbuf; src2.connect(hp); hp.connect(g); g.connect(beatGain);
+          g.gain.setValueAtTime(0.55, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+          src2.start(t);
+        }
       }
     }
   }
@@ -2026,7 +2021,7 @@ async function saveAllCombined() {
       const decoded = await ctx.decodeAudioData(wav.slice(0));
       renderedBuffers.push(decoded);
     }
-    const combined = concatAudioBuffers(renderedBuffers, 44100);
+    const combined = concatAudioBuffers(renderedBuffers, ctx.sampleRate);
     const wavData = audioBufferToWav(combined, snaps[0].snap.bpm || bpm);
     const file = new File([wavData], `boombot-${snaps.length}slots.wav`, { type: 'audio/wav' });
     await shareOrDownload([file]);
