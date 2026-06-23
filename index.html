@@ -1729,25 +1729,20 @@ document.addEventListener('touchstart', e => {
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-  const existing = grid[tr][gs];
-  if (existing > 0) {
-    // Already has a note — use it as drag value to extend
-    dragWriteVal = existing;
-  } else {
-    // Empty — cycle to soft
-    grid[tr][gs] = 1; dragWriteVal = 1;
-    const val = 1;
-    cell.classList.toggle('on', false); cell.classList.toggle('soft', true);
-    if (ctx) { ctx.resume(); playBuffer(trackInstruments[tr], false, ctx.currentTime, tr); }
-    markModified();
-  }
+  // Always cycle on tap — drag will use this value to extend
+  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  dragWriteVal = grid[tr][gs] > 0 ? grid[tr][gs] : -1; // -1 = erasing
   dragWriteTrack = tr;
   dragWrittenSteps = new Set([s]);
+  const val = grid[tr][gs];
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  if (val > 0 && ctx) { ctx.resume(); playBuffer(trackInstruments[tr], val === 2, ctx.currentTime, tr); }
+  markModified();
   e.preventDefault();
 }, { passive: false });
 
 document.addEventListener('touchmove', e => {
-  if (dragWriteVal < 0) return;
+  if (dragWriteVal <= 0) return;
   const touch = e.touches[0];
   const el = document.elementFromPoint(touch.clientX, touch.clientY);
   const cell = el?.closest('.step-cell');
@@ -1771,20 +1766,16 @@ document.addEventListener('mousedown', e => {
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-  const existing = grid[tr][gs];
-  if (existing > 0) {
-    dragWriteVal = existing;
-  } else {
-    grid[tr][gs] = 1; dragWriteVal = 1;
-    const cell2 = document.querySelector(`[data-track="${tr}"][data-step="${s}"]`);
-    if (cell2) { cell2.classList.remove('on'); cell2.classList.add('soft'); }
-    if (ctx) { ctx.resume(); playBuffer(trackInstruments[tr], false, ctx.currentTime, tr); }
-    markModified();
-  }
+  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  dragWriteVal = grid[tr][gs] > 0 ? grid[tr][gs] : -1;
   dragWriteTrack = tr; dragWrittenSteps = new Set([s]);
+  const val = grid[tr][gs];
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  if (val > 0 && ctx) { ctx.resume(); playBuffer(trackInstruments[tr], val === 2, ctx.currentTime, tr); }
+  markModified();
 });
 document.addEventListener('mousemove', e => {
-  if (dragWriteVal < 0 || !(e.buttons & 1)) return;
+  if (dragWriteVal <= 0 || !(e.buttons & 1)) return;
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const cell = el?.closest('.step-cell');
   if (!cell) return;
