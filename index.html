@@ -2483,15 +2483,22 @@ function randAll(mode) {
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
   const allKeys = Object.keys(INSTRUMENTS);
 
+  const soloPercKeys = new Set(['tamb','shak','cowb','ngate','clap']); // max one of these
+
   function buildPool(keys) {
     const shuffled = [...keys].sort(() => Math.random() - 0.5);
-    const result = []; let bassUsed = false;
+    const result = []; let bassUsed = false; let soloPercUsed = false;
     for (const k of shuffled) {
       if (bassKeys.has(k)) { if (bassUsed) continue; bassUsed = true; }
+      if (soloPercKeys.has(k)) { if (soloPercUsed) continue; soloPercUsed = true; }
       result.push(k);
       if (result.length === NUM_TRACKS) break;
     }
-    while (result.length < NUM_TRACKS) result.push(keys[Math.floor(Math.random() * keys.length)]);
+    // Fill remaining from keys excluding solo perc if already used
+    while (result.length < NUM_TRACKS) {
+      const fill = keys.filter(k => !(soloPercUsed && soloPercKeys.has(k) && !result.includes(k)));
+      result.push(fill[Math.floor(Math.random() * fill.length)] || keys[0]);
+    }
     return result;
   }
 
