@@ -418,9 +418,9 @@ const INSTRUMENTS = {
   congLo: { name: 'CONGA LO',    soft: 'Sounds/CongLo50.wav', accent: 'Sounds/CongLo100.wav', group: 'perc' },
   bongHi: { name: 'BONGO HI',    soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav', group: 'perc' },
   bongLo: { name: 'BONGO LO',    soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav', group: 'perc' },
-  sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
-  cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
   ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc'  },
+  cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
+  sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
@@ -3096,6 +3096,13 @@ if ('serviceWorker' in navigator) {
     if (!ctx) return;
     ctx.resume();
     const dur = stepDuration() * 16; // one measure
+    const t = ctx.currentTime;
+
+    // Randomise each trigger: start freq 100-400Hz, end freq 4000-12000Hz, Q 1.5-6
+    const startFreq = 100 + Math.random() * 300;
+    const endFreq   = 4000 + Math.random() * 8000;
+    const Q         = 1.5 + Math.random() * 4.5;
+
     const noise = ctx.createBufferSource();
     const bufLen = Math.ceil(ctx.sampleRate * (dur + 1));
     const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
@@ -3103,23 +3110,39 @@ if ('serviceWorker' in navigator) {
     for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
     noise.buffer = buf;
 
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
-    bp.frequency.setValueAtTime(200, ctx.currentTime);
-    bp.frequency.exponentialRampToValueAtTime(8000, ctx.currentTime + dur);
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = Q;
+    bp.frequency.setValueAtTime(startFreq, t);
+    bp.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
+
+    // Rhythmic noise gate — dips every 16th note (1 step), depth varies
+    const gateGain = ctx.createGain();
+    const stepLen = stepDuration();
+    const dip = 0.3 + Math.random() * 0.45; // how deep the dips go (0=silence,1=no dip)
+    const numSteps = Math.ceil(dur / stepLen) + 2;
+    gateGain.gain.setValueAtTime(1, t);
+    for (let s = 0; s < numSteps; s++) {
+      const st = t + s * stepLen;
+      const skipDip = Math.random() < 0.3; // 30% chance of no dip on a step = syncopation
+      if (!skipDip) {
+        gateGain.gain.setValueAtTime(dip, st);
+        gateGain.gain.linearRampToValueAtTime(1, st + stepLen * 0.35);
+      }
+    }
 
     const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.34, ctx.currentTime + 0.05);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.34, t + 0.05);
 
-    noise.connect(bp); bp.connect(gain); gain.connect(masterGain);
-    noise.start(ctx.currentTime);
-    sweepNodes = { noise, bp, gain };
+    noise.connect(bp); bp.connect(gateGain); gateGain.connect(gain); gain.connect(masterGain);
+    noise.start(t);
+    sweepNodes = { noise, bp, gateGain, gain };
     btn.classList.add('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise } = sweepNodes;
+    const { bp, gain, noise, gateGain } = sweepNodes;
+    if (gateGain) { gateGain.gain.cancelScheduledValues(ctx.currentTime); gateGain.gain.setValueAtTime(1, ctx.currentTime); }
     const t = ctx.currentTime;
     const quarterNote = stepDuration() * 4;
     // Fall back down over a quarter note
