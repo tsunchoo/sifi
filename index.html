@@ -50,13 +50,13 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   flex: 1; padding: 0 4px; flex-shrink: 1;
 }
 .btn {
-  background: #555; border: none; color: #fff;
+  background: #b0b0b0; border: none; color: var(--text);
   font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
   letter-spacing: 0.5px; padding: 0 10px; cursor: pointer; text-transform: uppercase;
   transition: background 0.1s, color 0.1s; height: 54px; flex-shrink: 0; white-space: nowrap;
   touch-action: manipulation;
 }
-.btn.active { background: #111; color: #fff; border: none; }
+.btn.active { background: var(--text); color: var(--bg); border: none; }
 #playBtn.playing { background: var(--playhead); color: #fff; }
 .btn:active { opacity: 0.7; }
 
@@ -118,7 +118,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
-  width: 32px; flex-shrink: 0; background: #b0b0b0;
+  width: 32px; flex-shrink: 0; background: none;
   border: none;
   color: var(--text); font-family: 'DM Sans', sans-serif;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -215,7 +215,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 
 /* ── Sequencer grid (middle) ── */
-.seq-wrap { width: 100%; max-width: 960px; margin-top: 0; margin-bottom: 0; display: flex; flex-direction: column; gap: 0; }
+.seq-wrap { width: 100%; max-width: 960px; margin-top: 0; margin-bottom: 0; display: flex; flex-direction: column; gap: 20px; }
 .track-wrap { display: flex; flex-direction: column; gap: 3px; }
 .track-row {
   display: flex; align-items: stretch;
@@ -224,7 +224,6 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .step-lane {
   flex: 1; display: flex; flex-direction: column;
   border: none;
-  border-bottom: 1px solid var(--border);
   overflow: visible;
 }
 .step-lane-cells {
@@ -235,7 +234,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   aspect-ratio: 1;
   position: relative; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  min-height: 20px; box-sizing: border-box;
+  min-height: 0; box-sizing: border-box;
   overflow: visible;
 }
 /* teeth — positioned so bottom edge sits exactly on the lane border */
@@ -700,21 +699,6 @@ function scheduler() {
         }
       }
     }
-    // Beat: fire kick on steps 0,4,8,12 and snare on 2,6,10,14
-    if (beatPlaying) {
-      if (step % 4 === 0) {
-        playKick(t);
-        if (window._duckGain) {
-          const dg = window._duckGain.gain;
-          dg.cancelScheduledValues(t);
-          dg.setValueAtTime(1, t);
-          dg.linearRampToValueAtTime(0.5, t + 0.005);
-          dg.setTargetAtTime(1, t + 0.020, 0.08);
-        }
-      } else if (step % 4 === 2) {
-        playSnare(t);
-      }
-    }
     nextStepTime += stepDuration();
   }
 }
@@ -757,7 +741,6 @@ function togglePlay() {
   playing = !playing;
   const btn = document.getElementById('playBtn');
   if (playing) {
-    if (ctx && ctx.state === 'suspended') ctx.resume();
     currentStep = -1; nextStepTime = ctx.currentTime + 0.05;
     scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
     btn.classList.add('playing'); btn.textContent = 'STOP';
@@ -772,14 +755,10 @@ function togglePlay() {
   } else {
     clearInterval(scheduleInterval); scheduleInterval = null;
     btn.classList.remove('playing'); btn.textContent = 'PLAY';
-    document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning'));
-    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
-    beatPlaying = false;
-    const bb = document.getElementById('beatBtn');
-    if (bb) { bb.classList.remove('active'); }
     updateBeatPulse();
-    // Suspend audio context to kill any pre-scheduled notes (unless recording)
-    if (ctx && ctx.state === 'running' && !_recArmed) ctx.suspend();
+    document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning'));
+
+    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     // Auto-stop recording after half-bar delay (to capture reverb tail)
     if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') {
       const tailMs = (stepDuration() * 8) * 1000; // half bar
@@ -793,8 +772,28 @@ function togglePlay() {
 }
 
 // ── Beat button: Kick on 1&3, Snare on 2&4 ──
-let beatPlaying = false;
-
+let beatPlaying = false, beatStep = -1, beatNextTime = 0;
+function scheduleBeat() {
+  while (beatNextTime < ctx.currentTime + LOOKAHEAD) {
+    beatStep = (beatStep + 1) % 4;
+    const t = beatNextTime;
+    if (beatPlaying) {
+      if (beatStep === 0 || beatStep === 2) {
+        playKick(t);
+        if (window._duckGain) {
+          const dg = window._duckGain.gain;
+          dg.cancelScheduledValues(t);
+          dg.setValueAtTime(1, t);
+          dg.linearRampToValueAtTime(0.5, t + 0.005);
+          dg.setTargetAtTime(1, t + 0.020, 0.08);
+        }
+      } else {
+        playSnare(t);
+      }
+    }
+    beatNextTime += 60 / bpm;
+  }
+}
 function reverseBuffer(buf, revLen) {
   if (!buf || !ctx) return null;
   const numCh = buf.numberOfChannels, sr = buf.sampleRate;
@@ -1324,6 +1323,7 @@ function toggleBeat() {
   const btn = document.getElementById('beatBtn');
   btn.classList.toggle('active', beatPlaying);
   updateBeatPulse();
+  if (beatPlaying && !playing) togglePlay();
 }
 
 // ── Sound picker (flat list, per track) ──
@@ -1863,8 +1863,8 @@ async function renderSlotToWav(snap) {
     }
   }
 
-  // Always render beat track
-  {
+  // Render beat if it was on when saved
+  if (snap.beatOn) {
     const beatGain = offline.createGain(); beatGain.gain.value = 0.5; beatGain.connect(offMaster);
     for (let beat = 0; beat < 4; beat++) {
       const t = beat * (60 / slotBpm);
@@ -2594,7 +2594,10 @@ async function initAudio() {
     const unlock = ctx.createBuffer(1,1,ctx.sampleRate);
     unlock.getChannelData(0)[0]=0.001;
     const src=ctx.createBufferSource(); src.buffer=unlock; src.connect(ctx.destination); src.start(0);
-
+    // Beat scheduler runs forever — beatPlaying gates whether notes fire
+    beatNextTime = ctx.currentTime + 0.1;
+    beatStep = -1;
+    setInterval(scheduleBeat, SCHEDULE_MS);
     msg.textContent = 'LOADING SAMPLES...';
     await loadSamples();
   } catch(e) {
