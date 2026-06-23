@@ -418,13 +418,13 @@ const INSTRUMENTS = {
   congLo: { name: 'CONGA LO',    soft: 'Sounds/CongLo50.wav', accent: 'Sounds/CongLo100.wav', group: 'perc' },
   bongHi: { name: 'BONGO HI',    soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav', group: 'perc' },
   bongLo: { name: 'BONGO LO',    soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav', group: 'perc' },
-  cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
   sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
+  cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
   ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc'  },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
-  sstring:{ name: 'STRINGS',     soft: null, accent: null, group: 'tonal' },
+  sstring:{ name: 'CHOIR',       soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'PIANO',       soft: null, accent: null, group: 'tonal' },
@@ -558,7 +558,7 @@ function playBuffer(key, isAccent, time, tr) {
   }
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.707 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
+  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.561 : (key === 'tamb') ? 0.794 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   if (tr !== undefined && trackFxNodes[tr] && on) {
@@ -986,7 +986,7 @@ function randomizeBassTrack(tr, level) {
 
   // Per-instrument note density rules
   const noteTables = {
-    sstring: [[1,2,0.10],[2,3,0.20],[2,5,0.30]],   // Strings — fewest
+    sstring: [[1,2,0.10],[2,3,0.20],[2,5,0.30]],   // Choir — fewest
     sleg:    [[1,2,0.10],[2,3,0.20],[2,5,0.30]],   // Strings+ — fewest
     rhodes:  [[2,3,0.15],[3,6,0.30],[5,8,0.45]],   // Piano — medium
     rhodes2: [[2,3,0.15],[3,6,0.30],[5,8,0.45]],   // Rhodes — medium
@@ -1005,34 +1005,56 @@ function randomizeBassTrack(tr, level) {
 function playStringSynth(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vol = isAccent ? 0.027 : 0.018;
-  const env = ctx.createGain();
+  const vol = isAccent ? 0.22 : 0.15;
 
-  // Grainy: shorter, noisier IR
-  const irLen = Math.floor(ctx.sampleRate * 0.4);
+  // Choir: formant-filtered sawtooth voices simulating vowel "aah"
+  // Formants: F1~800Hz, F2~1200Hz, F3~2600Hz (open "ah" vowel)
+  const formants = [
+    { freq: 800,  Q: 8,  gain: 1.0 },
+    { freq: 1200, Q: 10, gain: 0.6 },
+    { freq: 2600, Q: 12, gain: 0.3 },
+  ];
+
+  const voiceDetunes = [-8, -3, 0, 3, 8, 12];
+  // Reverb for space
+  const irLen = Math.floor(ctx.sampleRate * 0.6);
   const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = irBuf.getChannelData(ch);
-    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.2);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/irLen,1.0);
   }
   const rev = ctx.createConvolver(); rev.buffer = irBuf;
-  const dryG = ctx.createGain(); dryG.gain.value = 0.5;
-  const revG = ctx.createGain(); revG.gain.value = 0.5;
 
-  // Highpass to thin and brighten
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400; hp.Q.value = 0.7;
-
-  [0, 7, -7, 12, -3].forEach(detune => {
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth'; osc.frequency.value = freq; osc.detune.value = detune;
-    osc.connect(env); osc.start(time); osc.stop(time + durSec + 0.4);
-  });
-  env.connect(hp); hp.connect(dryG); dryG.connect(dest);
-  hp.connect(rev); rev.connect(revG); revG.connect(dest);
+  const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vol, time + 0.08);
-  env.gain.setValueAtTime(vol * 3, time + durSec - 0.1);
-  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 1.2); // longer reverb tail
+  env.gain.linearRampToValueAtTime(vol, time + 0.18);
+  env.gain.setValueAtTime(vol, time + durSec - 0.05);
+  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.8);
+
+  const dryG = ctx.createGain(); dryG.gain.value = 0.55; dryG.connect(dest);
+  const revG2 = ctx.createGain(); revG2.gain.value = 0.45;
+  rev.connect(revG2); revG2.connect(dest);
+
+  voiceDetunes.forEach((det, i) => {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.value = freq; osc.detune.value = det;
+    const lfo = ctx.createOscillator(); lfo.type = 'sine';
+    lfo.frequency.value = 4.5 + i * 0.25;
+    const lfoG = ctx.createGain(); lfoG.gain.value = 3 + i;
+    lfo.connect(lfoG); lfoG.connect(osc.detune);
+    const vg = ctx.createGain(); vg.gain.value = 1 / voiceDetunes.length;
+    osc.connect(vg);
+    formants.forEach(({ freq: fFreq, Q, gain }) => {
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = fFreq; bp.Q.value = Q;
+      const fg = ctx.createGain(); fg.gain.value = gain * 0.5;
+      vg.connect(bp); bp.connect(fg); fg.connect(env);
+    });
+    lfo.start(time); lfo.stop(time + durSec + 0.6);
+    osc.start(time); osc.stop(time + durSec + 0.6);
+  });
+
+  env.connect(dryG); env.connect(rev);
 }
 
 // ── Synth Leg: detuned strings layer + square lead with legato glide ──
@@ -2065,7 +2087,7 @@ async function renderSlotToWav(snap) {
           env.connect(lp); lp.connect(offDest);
 
         } else if (key === 'sstring') {
-          // Use shared rev/hp nodes (created once per track above)
+          // Choir — use shared rev nodes (created once per track above)
           const vol = isAccent ? 0.027 : 0.018;
           const env = o.createGain();
           [0,7,-7,12,-3].forEach(det => {
@@ -2601,6 +2623,17 @@ function randAll(mode) {
     if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
     const vb = document.getElementById(`vbar-${tr}`);
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
+  }
+  // Randomize FX for tonal instruments (25% chance of crunch on)
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (TONAL_KEYS.has(pool[tr])) {
+      const fxOn = Math.random() < 0.25;
+      const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
+      trackFx[tr] = newFxVal;
+      if (ctx) setFxActive(tr, newFxVal);
+      const fb = document.getElementById(`fxbtn-${tr}`);
+      if (fb) fb.classList.toggle('on', fxOn);
+    }
   }
   // Voice harmony: if >1 melody tonal track, shift 2nd+ up an octave + minor third
   const melodyKeys = new Set(['sstring','sleg','sparkle','rhodes','rhodes2','stab']);
