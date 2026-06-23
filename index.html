@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BOOMBLAP v5</title>
+<title>BOOMBLAP v7</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
@@ -64,7 +64,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 #beatBtn.active { background: var(--playhead) !important; color: #fff !important; }
 #beatBtn.beat-pulse { animation: beat-red 0.5s infinite alternate; }
 @keyframes beat-red { from { background: var(--playhead); color: #fff; } to { background: #7a1000; color: #fff; } } to { background: #7a1000; color: #fff; } }
-#saveBtn.rec-active { animation: rec-pulse 0.5s infinite alternate; font-size: 1.4rem; font-weight: 700; }
+#saveBtn.rec-active { animation: rec-pulse 0.5s infinite alternate; }
 @keyframes rec-pulse { from { background: var(--playhead); color: #fff; } to { background: #7a1000; color: #fff; } }
 .btn-flash { background: var(--slot-saved) !important; color: #000 !important; border: none !important; transition: none !important; }
 .rand-overlay-btn {
@@ -2168,22 +2168,22 @@ function flashBtn(id) {
 
   let holdTimer = null;
 
-  saveBtn.addEventListener('pointerdown', e => {
-    saveBtn.setPointerCapture(e.pointerId);
+  saveBtn.addEventListener('touchstart', e => {
+    e.stopPropagation();
     holdTimer = setTimeout(() => {
       holdTimer = null;
       _recHeld = true;
       showOverlay();
-    }, 500);
-  });
+    }, 600);
+  }, { passive: true });
 
-  saveBtn.addEventListener('pointerup', () => {
+  saveBtn.addEventListener('touchend', () => {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-  });
+  }, { passive: true });
 
-  saveBtn.addEventListener('pointercancel', () => {
+  saveBtn.addEventListener('touchcancel', () => {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-  });
+  }, { passive: true });
 })();
 
 // Collect filled slots (or current state if none saved)
@@ -2272,11 +2272,11 @@ function updateRecBtn() {
   document.querySelectorAll('.reel').forEach(r => r.classList.toggle('recording', !!isRec));
 }
 
+let _recHeld = false;
 function handleRecTap() {
   if (!_recHeld) toggleRecord();
   _recHeld = false;
 }
-let _recHeld = false;
 
 function toggleRecord() {
   if (!ctx) { alert('Start playback first'); return; }
@@ -2508,26 +2508,31 @@ function randAll(mode) {
   if (!btn) return;
   let holdTimer = null, autoRandInterval = null;
 
-  btn.addEventListener('pointerdown', e => {
-    btn.setPointerCapture(e.pointerId);
+  function stopAuto() {
+    if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
+  }
+
+  btn.addEventListener('touchstart', e => {
+    e.stopPropagation();
     holdTimer = setTimeout(() => {
       holdTimer = null;
       _randHeld = true;
       btn.classList.add('pulsing');
       randAll();
-      autoRandInterval = setInterval(() => { randAll(); }, (60 / bpm) * 16 * 1000);
-    }, 500);
-  });
+      // 4 measures = 4 * 4 beats * (60/bpm) seconds
+      autoRandInterval = setInterval(() => { randAll(); }, 4 * 4 * (60 / bpm) * 1000);
+    }, 600);
+  }, { passive: true });
 
-  btn.addEventListener('pointerup', () => {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; return; }
-    if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
-  });
-
-  btn.addEventListener('pointercancel', () => {
+  btn.addEventListener('touchend', () => {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
-  });
+    else stopAuto();
+  }, { passive: true });
+
+  btn.addEventListener('touchcancel', () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    stopAuto();
+  }, { passive: true });
 })();
 
 const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
