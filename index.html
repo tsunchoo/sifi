@@ -39,7 +39,8 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; letter-spacin
 header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 .tape-reels { display: flex; gap: 78px; align-items: center; margin-right: 38px; margin-left: 30px; }
 .reel-wrap { position: relative; width: 42px; height: 42px; flex-shrink: 0; }
-.reel { width: 42px; height: 42px; display: block; }
+.reel { width: 42px; height: 42px; display: block; transition: filter 0.2s; }
+.reel.recording { filter: sepia(1) saturate(5) hue-rotate(-10deg) brightness(0.9); }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .reel-wrap.spinning { animation: spin 2s linear infinite; transform-origin: center; }
 .transport {
@@ -419,6 +420,7 @@ const INSTRUMENTS = {
   sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'PIANO',       soft: null, accent: null, group: 'tonal' },
+  rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
 let ctx = null, masterGain = null;
@@ -534,6 +536,7 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'sleg')    { return; } // handled in scheduler
   if (key === 'sparkle') { return; } // handled in scheduler
   if (key === 'rhodes')  { return; } // handled in scheduler
+  if (key === 'rhodes2')  { return; }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
 
@@ -674,6 +677,7 @@ function scheduler() {
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           // E: filter envelope — bright open, sweep closed over note duration
           if (trackChop[tr] && trackEnvFilters[tr]) {
             const ef = trackEnvFilters[tr];
@@ -913,7 +917,7 @@ const trackBassScale = {}; // tr -> [freq, ...]
 
 // Global scale root — shared by all tonal tracks, cleared by CLEAR
 let globalScaleRoot = null;
-const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','stab','sstring','sleg','sparkle','rhodes']);
+const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','stab','sstring','sleg','sparkle','rhodes','rhodes2']);
 
 function buildScaleFromRoot(root) {
   const scale = [];
@@ -930,7 +934,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -1288,6 +1292,48 @@ function playStab(freq, durSec, isAccent, time, tr) {
   env.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
 
   env.connect(lp); lp.connect(dest);
+}
+
+// ── Rhodes 2: warm electric piano, more fundamental, softer attack ──
+function playRhodes2(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.32 : 0.22;
+
+  const B = 0.00008; // less inharmonicity = warmer
+  const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
+  const baseDec = Math.min(durSec + 1.0, 2.4) * (1 + Math.max(0, (300 - freq) / 300) * 0.6);
+
+  // Fewer partials, stronger fundamental = warmer tone
+  const partials = [
+    { n:1, amp:1.00, dec:1.00 },
+    { n:2, amp:0.30, dec:0.60 },
+    { n:3, amp:0.10, dec:0.35 },
+    { n:4, amp:0.03, dec:0.20 },
+  ];
+  partials.forEach(({ n, amp, dec }) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = inharmonic(n);
+    const env = ctx.createGain();
+    const pk = vel * amp; const decT = baseDec * dec;
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(pk, time + 0.008); // softer attack
+    env.gain.exponentialRampToValueAtTime(pk * 0.7, time + 0.04);
+    env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
+    osc.connect(env); env.connect(dest);
+    osc.start(time); osc.stop(time + decT + 0.05);
+  });
+
+  // Softer tine noise — felt not hammer
+  const clickLen = 0.018;
+  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
+  const cd = clickBuf.getChannelData(0);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/cd.length, 1.5);
+  const click = ctx.createBufferSource(); click.buffer = clickBuf;
+  const clickLP = ctx.createBiquadFilter(); clickLP.type = 'lowpass'; clickLP.frequency.value = 2000;
+  const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.2;
+  click.connect(clickLP); clickLP.connect(clickEnv); clickEnv.connect(dest);
+  click.start(time);
 }
 
 function playKick(t) {
@@ -1959,6 +2005,32 @@ async function renderSlotToWav(snap) {
           src2.connect(lp); lp.connect(notch); notch.connect(env); env.connect(offDest);
           src2.start(t); src2.stop(t+decay+0.02);
 
+        } else if (key === 'rhodes2') {
+          // Match playRhodes2 — warm electric piano
+          const rVel = isAccent ? 0.32 : 0.22;
+          const B2 = 0.00008;
+          const inharmonic2 = n => freq * n * Math.sqrt(1 + B2 * n * n);
+          const baseDec2 = Math.min(dur + 1.0, 2.4) * (1 + Math.max(0, (300 - freq) / 300) * 0.6);
+          [{n:1,amp:1.00,dec:1.00},{n:2,amp:0.30,dec:0.60},{n:3,amp:0.10,dec:0.35},{n:4,amp:0.03,dec:0.20}]
+          .forEach(({ n, amp, dec }) => {
+            const osc = offline.createOscillator(); osc.type = 'sine';
+            osc.frequency.value = inharmonic2(n);
+            const env = offline.createGain();
+            const pk = rVel * amp; const decT = baseDec2 * dec;
+            env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(pk,t+0.008);
+            env.gain.exponentialRampToValueAtTime(pk*0.7,t+0.04);
+            env.gain.exponentialRampToValueAtTime(0.0001,t+decT);
+            osc.connect(env); env.connect(offDest); osc.start(t); osc.stop(t+decT+0.05);
+          });
+          const clickLen = 0.018;
+          const cBuf = offline.createBuffer(1,Math.ceil(sampleRate*clickLen),sampleRate);
+          const cd = cBuf.getChannelData(0);
+          for (let i=0;i<cd.length;i++) cd[i]=(Math.random()*2-1)*Math.pow(1-i/cd.length,1.5);
+          const clk = offline.createBufferSource(); clk.buffer=cBuf;
+          const clkLP = offline.createBiquadFilter(); clkLP.type='lowpass'; clkLP.frequency.value=2000;
+          const clkEnv = offline.createGain(); clkEnv.gain.value=rVel*0.2;
+          clk.connect(clkLP); clkLP.connect(clkEnv); clkEnv.connect(offDest); clk.start(t);
+
         } else if (key === 'rhodes') {
           // Exact match to live playRhodes voice
           const rVel = isAccent ? 0.38 : 0.26;
@@ -2173,16 +2245,17 @@ let _mediaRecorder = null, _recChunks = [], _recArmed = false;
 function updateRecBtn() {
   const btn = document.getElementById('saveBtn');
   if (!btn) return;
-  if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') {
-    btn.textContent = 'R';
-    btn.classList.add('rec-active');
-  } else if (_recArmed) {
+  const isRec = _recArmed && _mediaRecorder && _mediaRecorder.state === 'recording';
+  const isArmed = _recArmed;
+  if (isRec || isArmed) {
     btn.textContent = 'R';
     btn.classList.add('rec-active');
   } else {
     btn.textContent = 'SAVE';
     btn.classList.remove('rec-active');
   }
+  // Tape reels go red while recording
+  document.querySelectorAll('.reel').forEach(r => r.classList.toggle('recording', !!isRec));
 }
 
 function toggleRecord() {
@@ -2406,13 +2479,33 @@ function randAll(mode) {
   markModified();
 }
 
-// RAND button wiring
+// RAND button wiring — tap = randomize once, hold = auto-retrigger every 4 measures
 (function() {
   const btn = document.getElementById('randBtn');
   if (!btn) return;
-  btn.addEventListener('click', () => { flashBtn('randBtn'); randAll(); });
-  btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); flashBtn('randBtn'); randAll(); }, { passive: false });
+  let holdTimer = null, autoRandInterval = null;
+
+  function startHold() {
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      // Start auto-retrigger
+      btn.classList.add('pulsing');
+      randAll();
+      const barMs = () => (60 / bpm) * 16 * 1000; // 4 measures in ms
+      autoRandInterval = setInterval(() => { randAll(); }, barMs());
+    }, 400);
+  }
+
+  function endHold(didTap) {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; if (didTap) { flashBtn('randBtn'); randAll(); } }
+    if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
+  }
+
+  btn.addEventListener('mousedown', () => startHold());
+  btn.addEventListener('mouseup', () => endHold(!autoRandInterval));
+  btn.addEventListener('mouseleave', () => endHold(false));
+  btn.addEventListener('touchstart', e => { e.preventDefault(); startHold(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); endHold(!autoRandInterval); }, { passive: false });
 })();
 
 const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
@@ -2597,7 +2690,7 @@ function randomizeTrack(tr) {
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(defaultVol * 100) + '%'; }
   }
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2') {
     randomizeBassTrack(tr, level); return;
   }
 
