@@ -513,7 +513,10 @@ function setFxActive(tr, fxVal) {
   fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
   preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.25 : 0, now);
   if (trackGainNodes[tr]) {
-    if (on) trackVolume[tr] = 0.2; // FX on → set to 20%
+    if (on) {
+      trackVolume[tr] = 0.2; // FX on → set to 20%
+      if (trackInstruments[tr] === 'sleg') trackVolume[tr] = 0.18; // Strings+ extra -10%
+    }
     const fxComp = trackVolume[tr];
     trackGainNodes[tr].gain.cancelScheduledValues(now);
     trackGainNodes[tr].gain.setValueAtTime(fxComp, now);
@@ -928,7 +931,17 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
 }
 
 // Pentatonic minor intervals (semitones from root): 0,3,5,7,10
-const PENTA_MINOR = [0, 3, 5, 7, 10];
+const SCALES = {
+  'penta-min': [0,3,5,7,10],
+  'penta-maj': [0,2,4,7,9],
+  'major':     [0,2,4,5,7,9,11],
+  'minor':     [0,2,3,5,7,8,10],
+  'dorian':    [0,2,3,5,7,9,10],
+  'mixolydian':[0,2,4,5,7,9,10],
+  'blues':     [0,3,5,6,7,10],
+};
+let currentScaleName = 'penta-min';
+let PENTA_MINOR = SCALES['penta-min']; // alias used by buildScaleFromRoot
 // Bass roots: A1–A2 range
 const BASS_ROOTS    = [55, 58, 62, 65, 69, 73];   // A1 B1 D2 F2 A2 C#2
 const MELODY_ROOTS  = [220, 247, 262, 294, 330];   // A3 B3 C4 D4 E4
@@ -956,7 +969,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'stab') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -2395,6 +2408,14 @@ function updateRecBtn() {
   document.querySelectorAll('.reel-wrap').forEach(r => r.classList.toggle('recording', isRec));
 }
 
+
+function getKeyName() {
+  if (!globalScaleRoot) return null;
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const midi = Math.round(12 * Math.log2(globalScaleRoot / 440)) + 69;
+  const note = NOTE_NAMES[((midi % 12) + 12) % 12];
+  return `${note}-${currentScaleName}`;
+}
 function onRecClick() { toggleRecord(); }
 
 function toggleRecord() {
@@ -2423,7 +2444,8 @@ function toggleRecord() {
       if (_recChunks.length === 0) return;
       const blob = new Blob(_recChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
       const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const file = new File([blob], `boombox-${Math.round(bpm)}bpm.${ext}`, { type: blob.type });
+      const key = getKeyName(); const keyStr = key ? `-${key}` : '';
+      const file = new File([blob], `boombox-${Math.round(bpm)}bpm${keyStr}.${ext}`, { type: blob.type });
       await shareOrDownload([file]);
     };
     _recArmed = true;
@@ -2579,6 +2601,12 @@ function randAll(mode) {
   mode = mode || 'all';
   const level = randAllLevel;
   randAllLevel = (randAllLevel + 1) % 3;
+  // Pick a fresh random scale and root for this randomize pass
+  const scaleNames = Object.keys(SCALES);
+  currentScaleName = scaleNames[Math.floor(Math.random() * scaleNames.length)];
+  PENTA_MINOR = SCALES[currentScaleName];
+  const allRoots = [...BASS_ROOTS, ...MELODY_ROOTS];
+  globalScaleRoot = allRoots[Math.floor(Math.random() * allRoots.length)];
   const bassKeys = new Set(['sbass','sbass3','sbass4']);
   const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate');
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
@@ -2646,6 +2674,27 @@ function randAll(mode) {
       const vb = document.getElementById(`vbar-${tr}`);
       if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
       if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setValueAtTime(0.5, ctx.currentTime);
+    }
+  }
+  // Randomize S/E buttons per track (30% chance for perc, 20% for tonal)
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const k = pool[tr];
+    const isTonal = TONAL_KEYS.has(k);
+    const chance = isTonal ? 0.20 : 0.30;
+    const newVal = Math.random() < chance;
+    if (isTonal) {
+      trackChop[tr] = newVal;
+    } else {
+      trackSweep[tr] = newVal;
+    }
+    const sb = document.getElementById(`swpbtn-${tr}`);
+    if (sb) {
+      sb.textContent = isTonal ? 'E' : 'S';
+      sb.classList.toggle('sweep-on', newVal);
+    }
+    // Apply filter envelope state
+    if (isTonal && trackEnvFilters[tr]) {
+      trackEnvFilters[tr].frequency.setValueAtTime(22050, ctx?.currentTime || 0);
     }
   }
   // Voice harmony: if >1 melody tonal track, shift 2nd+ up an octave + minor third
@@ -3127,48 +3176,32 @@ if ('serviceWorker' in navigator) {
     // Randomise each trigger: start freq 100-400Hz, end freq 4000-12000Hz, Q 1.5-6
     const startFreq = 100 + Math.random() * 300;
     const endFreq   = 4000 + Math.random() * 8000;
-    const Q         = 1.5 + Math.random() * 4.5;
+    const Q = 0.5 + Math.random() * 0.8; // low Q = wide, smooth sweep
 
     const noise = ctx.createBufferSource();
     const bufLen = Math.ceil(ctx.sampleRate * (dur + 1));
-    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+    const buf = ctx.createBuffer(2, bufLen, ctx.sampleRate); // stereo for richness
+    for (let ch = 0; ch < 2; ch++) { const d = buf.getChannelData(ch); for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1; }
     noise.buffer = buf;
 
-    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = Q;
+    const bp = ctx.createBiquadFilter(); bp.type = 'lowpass'; bp.Q.value = Q;
     bp.frequency.setValueAtTime(startFreq, t);
     bp.frequency.exponentialRampToValueAtTime(endFreq, t + dur);
-
-    // Rhythmic noise gate — dips every 16th note (1 step), depth varies
-    const gateGain = ctx.createGain();
-    const stepLen = stepDuration();
-    const dip = 0.3 + Math.random() * 0.45; // how deep the dips go (0=silence,1=no dip)
-    const numSteps = Math.ceil(dur / stepLen) + 2;
-    gateGain.gain.setValueAtTime(1, t);
-    for (let s = 0; s < numSteps; s++) {
-      const st = t + s * stepLen;
-      const skipDip = Math.random() < 0.3; // 30% chance of no dip on a step = syncopation
-      if (!skipDip) {
-        gateGain.gain.setValueAtTime(dip, st);
-        gateGain.gain.linearRampToValueAtTime(1, st + stepLen * 0.35);
-      }
-    }
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(0.34, t + 0.05);
 
-    noise.connect(bp); bp.connect(gateGain); gateGain.connect(gain); gain.connect(masterGain);
+    noise.connect(bp); bp.connect(gain); gain.connect(masterGain);
     noise.start(t);
-    sweepNodes = { noise, bp, gateGain, gain };
+    sweepNodes = { noise, bp, gain };
     btn.classList.add('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise, gateGain } = sweepNodes;
-    if (gateGain) { gateGain.gain.cancelScheduledValues(ctx.currentTime); gateGain.gain.setValueAtTime(1, ctx.currentTime); }
+    const { bp, gain, noise } = sweepNodes;
+
     const t = ctx.currentTime;
     const quarterNote = stepDuration() * 4;
     // Fall back down over a quarter note
