@@ -1015,7 +1015,7 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   env.gain.setValueAtTime(0, time);
   env.gain.linearRampToValueAtTime(vol, time + 0.08);
   env.gain.setValueAtTime(vol * 3, time + durSec - 0.1);
-  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.3);
+  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 1.2); // longer reverb tail
 }
 
 // ── Synth Leg: detuned strings layer + square lead with legato glide ──
@@ -2532,12 +2532,12 @@ function randAll(mode) {
     if (melodyKeys.has(pool[tr])) melodyTracks.push(tr);
   }
   if (melodyTracks.length > 1) {
-    const minorThird = Math.pow(2, 3/12); // 3 semitones up
+    const minorThird = Math.pow(2, 3/12); // 3 semitones
     for (let i = 1; i < melodyTracks.length; i++) {
       const tr = melodyTracks[i];
       if (trackBassScale[tr]) {
-        // Shift up one octave + minor third
-        trackBassScale[tr] = trackBassScale[tr].map(f => f * 2 * minorThird);
+        // Each successive melody track voiced a third higher within its natural range
+        trackBassScale[tr] = trackBassScale[tr].map(f => f * Math.pow(minorThird, i));
       }
     }
   }
