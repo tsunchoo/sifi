@@ -116,6 +116,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; }
 .track-ctrl-icon-btn.sweep-on { background: #5bbcb8; color: #fff; }
 .rand-btn.pulsing { color: #fff; animation: pulse 0.5s infinite alternate; }
+#randBtn.pulsing { background: var(--playhead); color: #fff; animation: pulse 0.5s infinite alternate; }
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
@@ -2167,32 +2168,22 @@ function flashBtn(id) {
 
   let holdTimer = null, didHold = false;
 
-  saveBtn.addEventListener('touchstart', e => {
-    e.preventDefault();
-    didHold = false;
-    holdTimer = setTimeout(() => {
-      didHold = true; holdTimer = null;
-      showOverlay();
-    }, 500);
-  }, { passive: false });
-
-  saveBtn.addEventListener('touchend', e => {
-    e.preventDefault();
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (!didHold) toggleRecord();
-    didHold = false;
-  }, { passive: false });
-
-  saveBtn.addEventListener('mousedown', () => {
+  saveBtn.addEventListener('pointerdown', e => {
+    saveBtn.setPointerCapture(e.pointerId);
     didHold = false;
     holdTimer = setTimeout(() => { didHold = true; holdTimer = null; showOverlay(); }, 500);
   });
-  saveBtn.addEventListener('mouseup', () => {
+
+  saveBtn.addEventListener('pointerup', () => {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
     if (!didHold) toggleRecord();
     didHold = false;
   });
-  saveBtn.addEventListener('mouseleave', () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } });
+
+  saveBtn.addEventListener('pointercancel', () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    didHold = false;
+  });
 })();
 
 // Collect filled slots (or current state if none saved)
@@ -2282,19 +2273,19 @@ function updateRecBtn() {
 }
 
 function toggleRecord() {
-  if (!ctx) { alert('Load audio first'); return; }
+  if (!ctx) { alert('Start playback first'); return; }
 
   // If already armed/recording — stop and share
   if (_recArmed) {
     _recArmed = false;
     if (_mediaRecorder && _mediaRecorder.state === 'recording') {
-      _mediaRecorder.stop(); // onstop will share
+      _mediaRecorder.stop();
     }
     updateRecBtn();
     return;
   }
 
-  // Set up MediaRecorder on the master output
+  // Set up MediaRecorder
   try {
     const dest = ctx.createMediaStreamDestination();
     masterGain.connect(dest);
@@ -2302,21 +2293,18 @@ function toggleRecord() {
     _mediaRecorder = new MediaRecorder(dest.stream);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _mediaRecorder.onstop = async () => {
-      masterGain.disconnect(dest);
+      try { masterGain.disconnect(dest); } catch(e) {}
       updateRecBtn();
       if (_recChunks.length === 0) return;
       const blob = new Blob(_recChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
-      const ext = (blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm');
+      const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'mp4' : 'webm';
       const file = new File([blob], `boomblap-${Math.round(bpm)}bpm.${ext}`, { type: blob.type });
       await shareOrDownload([file]);
     };
     _recArmed = true;
-    if (playing) {
-      _mediaRecorder.start();
-    }
+    if (playing && _mediaRecorder.state === 'inactive') _mediaRecorder.start();
     updateRecBtn();
   } catch(e) {
-    console.error('Record setup failed', e);
     alert('Record error: ' + e.message);
     _recArmed = false;
     updateRecBtn();
@@ -2508,18 +2496,17 @@ function randAll(mode) {
   if (!btn) return;
   let holdTimer = null, autoRandInterval = null;
 
-  btn.addEventListener('touchstart', e => {
-    e.preventDefault();
+  btn.addEventListener('pointerdown', e => {
+    btn.setPointerCapture(e.pointerId);
     holdTimer = setTimeout(() => {
       holdTimer = null;
       btn.classList.add('pulsing');
       randAll();
       autoRandInterval = setInterval(() => { randAll(); }, (60 / bpm) * 16 * 1000);
     }, 500);
-  }, { passive: false });
+  });
 
-  btn.addEventListener('touchend', e => {
-    e.preventDefault();
+  btn.addEventListener('pointerup', e => {
     if (holdTimer) {
       clearTimeout(holdTimer); holdTimer = null;
       flashBtn('randBtn'); randAll();
@@ -2527,7 +2514,12 @@ function randAll(mode) {
       clearInterval(autoRandInterval); autoRandInterval = null;
       btn.classList.remove('pulsing');
     }
-  }, { passive: false });
+  });
+
+  btn.addEventListener('pointercancel', () => {
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    if (autoRandInterval) { clearInterval(autoRandInterval); autoRandInterval = null; btn.classList.remove('pulsing'); }
+  });
 })();
 
 const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
