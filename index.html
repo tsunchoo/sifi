@@ -3324,11 +3324,11 @@ function startScratch() {
   // +3dB on top of previous (×1.413): 1.067→1.508, 0.356→0.503, 0.979→1.384
   const ampEnv = ctx.createGain();
   ampEnv.gain.setValueAtTime(0, t);
-  ampEnv.gain.linearRampToValueAtTime(2.131, t + 0.005);
-  ampEnv.gain.setValueAtTime(2.131, t + dur * 0.35);
-  ampEnv.gain.linearRampToValueAtTime(0.711, t + dur * 0.5);
-  ampEnv.gain.linearRampToValueAtTime(1.956, t + dur * 0.82);
-  ampEnv.gain.linearRampToValueAtTime(0, t + dur + 0.015);
+  ampEnv.gain.linearRampToValueAtTime(3.013, t + 0.005);
+  ampEnv.gain.setValueAtTime(3.013, t + dur * 0.35);
+  ampEnv.gain.linearRampToValueAtTime(1.005, t + dur * 0.5);
+  ampEnv.gain.linearRampToValueAtTime(2.765, t + dur * 0.82);
+  ampEnv.gain.setValueAtTime(0, t + dur);
 
   const twoBeats = dur; // alias for duck timing
 
@@ -3337,8 +3337,8 @@ function startScratch() {
     const dg = window._duckGain.gain;
     dg.cancelScheduledValues(t);
     dg.setValueAtTime(1, t);
-    dg.linearRampToValueAtTime(0.2, t + 0.01);
-    dg.linearRampToValueAtTime(1, t + twoBeats + 0.05);
+    dg.linearRampToValueAtTime(0, t + 0.005);
+    dg.setValueAtTime(1, t + dur);
   }
   noise.connect(ws); ws.connect(bp); bp.connect(hp); hp.connect(ampEnv); ampEnv.connect(masterGain);
   noise.start();
@@ -3492,10 +3492,30 @@ function startHiss() {
   const rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0.008;
   rumble.connect(rumbleGain);
 
-  // Mix all into _hissGain output
-  _hissGain.connect(masterGain);
-  crackGain.connect(masterGain);
-  rumbleGain.connect(masterGain);
+  // Connect noise directly to destination (bypasses master limiter)
+  // Use a separate gain that we modulate based on master output level
+  const hissMix = ctx.createGain(); hissMix.gain.value = 1;
+  _hissGain.connect(hissMix);
+  crackGain.connect(hissMix);
+  rumbleGain.connect(hissMix);
+  hissMix.connect(ctx.destination);
+  _hissNode._hissMix = hissMix;
+
+  // Analyser to follow master output and duck hiss gain
+  const analyser = ctx.createAnalyser(); analyser.fftSize = 256;
+  masterGain.connect(analyser);
+  const rmsBuffer = new Float32Array(analyser.frequencyBinCount);
+  const _hissInterval = setInterval(() => {
+    if (!_hissOn || !_hissMix) { clearInterval(_hissInterval); return; }
+    analyser.getFloatTimeDomainData(rmsBuffer);
+    let rms = 0;
+    for (let i = 0; i < rmsBuffer.length; i++) rms += rmsBuffer[i] * rmsBuffer[i];
+    rms = Math.sqrt(rms / rmsBuffer.length);
+    // Scale hiss: loud signal (rms>0.1) ducks hiss to near zero
+    const hissLevel = Math.max(0, 1 - rms * 8);
+    hissMix.gain.setTargetAtTime(hissLevel, ctx.currentTime, 0.3);
+  }, 80);
+  _hissNode._hissInterval = _hissInterval;
 
   _hissNode.start(); crackNode.start();
   rumble.start(); rumbleLFO.start();
@@ -3520,6 +3540,7 @@ function toggleHiss() {
         try { extras.crackNode && extras.crackNode.stop(); } catch(e){}
         try { extras.rumble && extras.rumble.stop(); } catch(e){}
         try { extras.rumbleLFO && extras.rumbleLFO.stop(); } catch(e){}
+        if (extras._hissInterval) clearInterval(extras._hissInterval);
         if (extras.crackGain) { extras.crackGain.gain.value = 0; }
         if (extras.rumbleGain) { extras.rumbleGain.gain.value = 0; }
         _hissNode = null; _hissGain = null;
