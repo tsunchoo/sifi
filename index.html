@@ -78,6 +78,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 #saveBtn, #randBtn { touch-action: none; }
 @keyframes rec-icon-pulse { from { filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(330deg) brightness(1.5); } to { filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(330deg) brightness(0.5); } }
 .btn-flash { background: var(--slot-saved) !important; color: #000 !important; border: none !important; transition: none !important; }
+.btn-flash-blue { background: #0468f4 !important; color: #fff !important; border: none !important; transition: none !important; }
 .rand-overlay-btn {
   font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 700;
   letter-spacing: 2px; text-transform: uppercase; cursor: pointer;
@@ -2321,6 +2322,12 @@ function concatAudioBuffers(buffers, sampleRate) {
 }
 
 
+function flashBtnBlue(id) {
+  const b = document.getElementById(id);
+  if (!b) return;
+  b.classList.add('btn-flash-blue');
+  setTimeout(() => b.classList.remove('btn-flash-blue'), 300);
+}
 function flashBtn(id) {
   const b = document.getElementById(id);
   if (!b) return;
@@ -2559,7 +2566,7 @@ function audioBufferToWav(buffer, tempoHint) {
 }
 
 function fullClear() {
-  flashBtn('clearBtn');
+  flashBtnBlue('clearBtn');
   if (playing) togglePlay();
   beatPlaying = false; _beatPending = false;
   const _clrBb = document.getElementById('beatBtn'); if (_clrBb) _clrBb.classList.remove('active');
@@ -2783,7 +2790,7 @@ function randAll(mode) {
     } else {
       // Single tap — one rand
       if (autoRandInterval) { stopAuto(); }
-      else { const rb=document.getElementById('randBtn'); rb.style.background='#5e18eb'; rb.style.color='#fff'; setTimeout(()=>{rb.style.background='';rb.style.color='';},200); queueRand(); }
+      else { const rb=document.getElementById('randBtn'); flashBtnBlue('randBtn'); queueRand(); }
     }
     lastTap = now;
   };
@@ -3265,7 +3272,7 @@ if ('serviceWorker' in navigator) {
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
-      if (target.id === 'randBtn') { flashBtn('randBtn'); queueRand(); }
+      if (target.id === 'randBtn') { flashBtnBlue('randBtn'); queueRand(); }
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
@@ -3296,6 +3303,7 @@ function startScratch() {
   if (!ctx || _scratchActive) return;
   ctx.resume();
   _scratchActive = true;
+  flashBtnBlue('scratchBtn');
   document.getElementById('scratchBtn').classList.add('active');
 
   // Fast scratch — two 16th notes, crunchy
@@ -3384,7 +3392,7 @@ function stopScratch() {
     const target = el.closest('#randBtn');
     if (target && !target.dataset.scratchTriggered) {
       target.dataset.scratchTriggered = '1';
-      flashBtn('randBtn'); queueRand();
+      flashBtnBlue('randBtn'); queueRand();
     }
   }, { passive: false });
   btn.addEventListener('touchend', () => {
