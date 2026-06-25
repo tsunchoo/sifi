@@ -135,6 +135,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
+  touch-action: none;
   width: 32px; flex-shrink: 0; background: #b0b0b0;
   border: none;
   color: var(--text); font-family: 'DM Sans', sans-serif;
@@ -157,6 +158,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-vol-bar.muted .track-vol-fill { background: transparent; }
 .row-muted .track-ctrl-icon-btn,
 .row-muted .shift-btn {
+  touch-action: none;
   background: #ccc !important; border: none !important; color: #888 !important;
   animation: none !important;
 }
@@ -1509,11 +1511,6 @@ function playPwrGuitar(freq, durSec, isAccent, time, tr) {
   sub.connect(subEnv); subEnv.connect(dest);
   sub.start(time); sub.stop(time + durSec + 0.02);
 
-  // Hard clip waveshaper for crunch
-  const ws = ctx.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i*2)/256-1; curve[i] = Math.tanh(x * 4); }
-  ws.curve = curve;
 }
 
 function playKick(t) {
@@ -1865,6 +1862,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes')  playRhodes(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
+    else if (key === 'pguit')   playPwrGuitar(freq, dur, isAccent, t, tr);
   } else {
     playBuffer(key, isAccent, t, tr);
   }
