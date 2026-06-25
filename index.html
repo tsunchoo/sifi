@@ -618,8 +618,6 @@ function scheduler() {
     // Fire pending auto-rand on downbeat
     if (step === 0 && _autoRandPending) {
       _autoRandPending = false;
-      const rb = document.getElementById('randBtn');
-      if (rb && !autoRandInterval) rb.classList.remove('pulsing');
       randAll(_autoRandMode); _autoRandMode = undefined;
     }
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
@@ -2436,8 +2434,6 @@ function queueRand(mode) {
   if (playing) {
     _autoRandPending = true;
     _autoRandMode = mode;
-    const rb = document.getElementById('randBtn');
-    if (rb) rb.classList.add('pulsing');
   } else {
     randAll(mode);
   }
@@ -3377,9 +3373,13 @@ function startScratch() {
   if (!_scratchBuf) return;
 
   const t = ctx.currentTime;
+  const twoBeats = (60 / bpm) * 2;
   const src = ctx.createBufferSource();
   src.buffer = _scratchBuf;
+  // Adjust playback rate so sample fills exactly two beats
+  src.playbackRate.value = _scratchBuf.duration / twoBeats;
   src.loop = true;
+  src.loopEnd = _scratchBuf.duration;
   const gain = ctx.createGain(); gain.gain.value = 0.6;
   src.connect(gain); gain.connect(masterGain);
   src.start(t);
@@ -3390,7 +3390,20 @@ function startScratch() {
     dg.cancelScheduledValues(t);
     dg.setValueAtTime(1, t);
     dg.linearRampToValueAtTime(0.112, t + 0.01);
+    dg.linearRampToValueAtTime(1, t + twoBeats + 0.02);
   }
+
+  // Auto-stop after two beats
+  setTimeout(() => {
+    _scratchActive = false;
+    _scratchNodes = null;
+    document.getElementById('scratchBtn').classList.remove('active');
+    try { src.stop(); } catch(e) {}
+    if (window._duckGain) {
+      window._duckGain.gain.cancelScheduledValues(ctx.currentTime);
+      window._duckGain.gain.setValueAtTime(1, ctx.currentTime);
+    }
+  }, (twoBeats + 0.05) * 1000);
 }
 
 function stopScratch() {
