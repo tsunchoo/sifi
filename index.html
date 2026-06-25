@@ -564,7 +564,7 @@ function playBuffer(key, isAccent, time, tr) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'cowb') ? 0.631 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
+  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'cowb') ? 0.631 : (key === 'guiro') ? 0.631 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
   // S: reverse sweep — play sample reversed leading into note
   if (tr !== undefined && trackSweep[tr] && buf) {
     const revLen = Math.min(buf.duration, stepDuration() * 2);
@@ -2979,6 +2979,13 @@ function placeNotes(tr, noteCount, accentRatio, level) {
   const key = trackInstruments[tr];
   // Kick: never land on beat 1 (step 0) or beat 3 (step 8) — those belong to the BEAT
   if (key === 'skick') { grid[tr][0] = 0; grid[tr][8] = 0; }
+  // Guiro: max 2 accents per measure
+  if (key === 'guiro') {
+    let accCount = 0;
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] === 2) { if (accCount >= 2) grid[tr][s] = 1; else accCount++; }
+    }
+  }
   const maxConsec = (key === 'skick' || key === 'ssnare' || key === 'clap' || key === 'cowb') ? 2 : (level === 2 ? 4 : 99);
   const maxAccentConsec = level === 2 ? 2 : 99;
 
@@ -3362,7 +3369,7 @@ function startScratch() {
   const src = ctx.createBufferSource();
   src.buffer = _scratchBuf;
   src.loop = true;
-  const gain = ctx.createGain(); gain.gain.value = 1.2;
+  const gain = ctx.createGain(); gain.gain.value = 0.6;
   src.connect(gain); gain.connect(masterGain);
   src.start(t);
   _scratchNodes = { src, gain };
