@@ -127,6 +127,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 .track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; }
 .track-ctrl-icon-btn.sweep-on { background: #5bbcb8; color: #fff; }
+.rand-btn { touch-action: none !important; }
 .rand-btn.pulsing { color: #fff; animation: pulse 0.5s infinite alternate; }
 #randBtn.pulsing { background: #0468f4; color: #fff; animation: rand-pulse 0.5s infinite alternate; }
 @keyframes rand-pulse { from { background: #0468f4; color: #fff; } to { background: #0247a8; color: #fff; } }
@@ -135,7 +136,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
-  touch-action: none;
+  touch-action: none !important;
   width: 32px; flex-shrink: 0; background: #b0b0b0;
   border: none;
   color: var(--text); font-family: 'DM Sans', sans-serif;
@@ -158,7 +159,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-vol-bar.muted .track-vol-fill { background: transparent; }
 .row-muted .track-ctrl-icon-btn,
 .row-muted .shift-btn {
-  touch-action: none;
+  touch-action: none !important;
   background: #ccc !important; border: none !important; color: #888 !important;
   animation: none !important;
 }
@@ -3140,8 +3141,10 @@ function wireShiftButton(btn, tr, dir) {
   };
 
   const onDown = () => {
+    console.log('shift pointerdown');
     didHold = false;
     holdTimer = setTimeout(() => {
+      console.log('shift hold fired');
       didHold = true;
       btn.classList.add('pulsing');
       doShift();
@@ -3151,18 +3154,18 @@ function wireShiftButton(btn, tr, dir) {
   };
 
   const onUp = () => {
+    console.log('shift pointerup didHold=', didHold, 'holdTimer=', holdTimer);
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (!didHold) doShift();          // tap = shift once
-    else stopAuto();                   // release after hold = stop auto
+    if (!didHold) doShift();
+    else stopAuto();
     didHold = false;
   };
 
+  btn.addEventListener('touchstart', e => { e.preventDefault(); console.log('shift touch'); onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
+  btn.addEventListener('touchcancel', () => { console.log('shift cancel'); clearTimeout(holdTimer); holdTimer = null; stopAuto(); }, { passive: false });
   btn.addEventListener('mousedown', onDown);
   btn.addEventListener('mouseup', onUp);
-  btn.addEventListener('mouseleave', () => { clearTimeout(holdTimer); holdTimer = null; });
-  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-  btn.addEventListener('touchcancel', () => { clearTimeout(holdTimer); holdTimer = null; stopAuto(); });
 }
 
 // Global registry so clearAll can stop all active auto-shifts
@@ -3204,12 +3207,9 @@ function wireRandomizeButton(btn, tr) {
     didHold = false;
   };
 
-  btn.addEventListener('mousedown', onDown);
-  btn.addEventListener('mouseup', onUp);
-  btn.addEventListener('mouseleave', () => { clearTimeout(holdTimer); holdTimer = null; });
-  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-  btn.addEventListener('touchcancel', () => { clearTimeout(holdTimer); holdTimer = null; });
+  btn.addEventListener('pointerdown', e => { btn.setPointerCapture(e.pointerId); onDown(); });
+  btn.addEventListener('pointerup', onUp);
+  btn.addEventListener('pointercancel', () => { clearTimeout(holdTimer); holdTimer = null; });
 }
 
 buildUI();
@@ -3266,9 +3266,7 @@ async function initAudio() {
     _initStarted = false;
   }
 }
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW:', e));
-}
+
 
 
 // PLAY button wiring — single tap = play/stop, double tap = clear
