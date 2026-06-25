@@ -135,6 +135,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 #scratchBtn.active { background: #0468f4 !important; color: #fff !important; }
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
+.shift-btn.pulsing { background: #0468f4 !important; color: #fff !important; }
 .shift-btn {
   touch-action: none !important;
   width: 32px; flex-shrink: 0; background: #b0b0b0;
@@ -158,7 +159,8 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-vol-bar.muted { background: #ccc; }
 .track-vol-bar.muted .track-vol-fill { background: transparent; }
 .row-muted .track-ctrl-icon-btn,
-.row-muted .shift-btn {
+.row-muted .shift-btn.pulsing { background: #0468f4 !important; color: #fff !important; }
+.shift-btn {
   touch-action: none !important;
   background: #ccc !important; border: none !important; color: #888 !important;
   animation: none !important;
@@ -997,7 +999,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'stab' || key === 'pguit') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'pguit') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -1477,8 +1479,10 @@ function playMetronome(t, isAccent) {
 
 // ── Power Guitar: 8-bit Nintendo power chord ──
 function playPwrGuitar(freq, durSec, isAccent, time, tr) {
+  console.log("playPwrGuitar", freq, durSec, tr, !!ctx, !!dest);
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
+  console.log("dest=", dest);
   const vel = isAccent ? 0.38 : 0.26;
 
   // Power chord = root + fifth + octave
@@ -3143,25 +3147,27 @@ function wireShiftButton(btn, tr, dir) {
   const onDown = () => {
     didHold = false;
     holdTimer = setTimeout(() => {
+      holdTimer = null;
       didHold = true;
       btn.classList.add('pulsing');
       doShift();
-      const barMs = stepDuration() * NUM_STEPS * 1000;
+      const barMs = (60 / bpm) * 4 * 1000;
       autoInterval = setInterval(() => { doShift(); }, barMs);
     }, 400);
   };
 
   const onUp = () => {
     if (holdTimer !== null) { clearTimeout(holdTimer); holdTimer = null; doShift(); return; }
-    if (didHold) stopAuto();
+    if (didHold) { stopAuto(); didHold = false; return; }
     didHold = false;
   };
 
-  btn.addEventListener('touchstart', e => { e.preventDefault(); console.log('shift touch'); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-  btn.addEventListener('touchcancel', () => { console.log('shift cancel'); clearTimeout(holdTimer); holdTimer = null; stopAuto(); }, { passive: false });
-  btn.addEventListener('mousedown', onDown);
-  btn.addEventListener('mouseup', onUp);
+  let _isTouch = false;
+  btn.addEventListener('touchstart', e => { e.preventDefault(); _isTouch = true; onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); _isTouch = false; }, { passive: false });
+  btn.addEventListener('touchcancel', () => { _isTouch = false; clearTimeout(holdTimer); holdTimer = null; stopAuto(); }, { passive: false });
+  btn.addEventListener('mousedown', () => { if (!_isTouch) onDown(); });
+  btn.addEventListener('mouseup', () => { if (!_isTouch) onUp(); });
 }
 
 // Global registry so clearAll can stop all active auto-shifts
@@ -3187,10 +3193,11 @@ function wireRandomizeButton(btn, tr) {
   const onDown = () => {
     didHold = false;
     holdTimer = setTimeout(() => {
+      holdTimer = null;
       didHold = true;
       btn.classList.add('pulsing');
       doRandomize();
-      const barMs = stepDuration() * NUM_STEPS * 1000;
+      const barMs = (60 / bpm) * 4 * 1000;
       autoInterval = setInterval(() => { doRandomize(); }, barMs);
       autoShiftStops[tr] = stopAuto;
     }, 400);
@@ -3198,13 +3205,16 @@ function wireRandomizeButton(btn, tr) {
 
   const onUp = () => {
     if (holdTimer !== null) { clearTimeout(holdTimer); holdTimer = null; doRandomize(); return; }
-    if (didHold) stopAuto();
+    if (didHold) { stopAuto(); didHold = false; return; }
     didHold = false;
   };
 
-  btn.addEventListener('pointerdown', e => { btn.setPointerCapture(e.pointerId); onDown(); });
-  btn.addEventListener('pointerup', onUp);
-  btn.addEventListener('pointercancel', () => { clearTimeout(holdTimer); holdTimer = null; });
+  let _isTouch = false;
+  btn.addEventListener('touchstart', e => { e.preventDefault(); _isTouch = true; onDown(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); _isTouch = false; }, { passive: false });
+  btn.addEventListener('touchcancel', () => { _isTouch = false; clearTimeout(holdTimer); holdTimer = null; }, { passive: false });
+  btn.addEventListener('mousedown', () => { if (!_isTouch) onDown(); });
+  btn.addEventListener('mouseup', () => { if (!_isTouch) onUp(); });
 }
 
 buildUI();
