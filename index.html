@@ -434,7 +434,6 @@ const INSTRUMENTS = {
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
-  pguit:  { name: 'PWR GUITAR',  soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'CHOIR',       soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
@@ -560,7 +559,6 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'sparkle') { return; } // handled in scheduler
   if (key === 'rhodes')  { return; } // handled in scheduler
   if (key === 'rhodes2')  { return; }
-  if (key === 'pguit')    { return; }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
 
@@ -620,6 +618,8 @@ function scheduler() {
     // Fire pending auto-rand on downbeat
     if (step === 0 && _autoRandPending) {
       _autoRandPending = false;
+      const rb = document.getElementById('randBtn');
+      if (rb && !autoRandInterval) rb.classList.remove('pulsing');
       randAll(_autoRandMode); _autoRandMode = undefined;
     }
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
@@ -707,7 +707,6 @@ function scheduler() {
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
-          if (key === 'pguit')   playPwrGuitar(freq, dur, val === 2, t, tr);
           // E: filter envelope — bright open, sweep closed over note duration
           if (trackChop[tr] && trackEnvFilters[tr]) {
             const ef = trackEnvFilters[tr];
@@ -977,7 +976,7 @@ const trackBassScale = {}; // tr -> [freq, ...]
 
 // Global scale root — shared by all tonal tracks, cleared by CLEAR
 let globalScaleRoot = null;
-const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','stab','sstring','sleg','sparkle','rhodes','rhodes2','pguit']);
+const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','stab','sstring','sleg','sparkle','rhodes','rhodes2']);
 
 function buildScaleFromRoot(root) {
   const scale = [];
@@ -994,7 +993,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'stab' || key === 'pguit') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'stab') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -1472,49 +1471,6 @@ function playMetronome(t, isAccent) {
   noise.start(t);
 }
 
-// ── Power Guitar: 8-bit Nintendo power chord ──
-function playPwrGuitar(freq, durSec, isAccent, time, tr) {
-  if (!ctx || !freq) return;
-  const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.38 : 0.26;
-
-  // Power chord = root + fifth + octave
-  const intervals = [1, 1.5, 2]; // root, perfect fifth, octave
-  // 8-bit: square waves with slight detune per voice
-  const detunes = [0, 5, -4];
-
-  intervals.forEach((ratio, i) => {
-    const osc = ctx.createOscillator(); osc.type = 'square';
-    osc.frequency.value = freq * ratio;
-    osc.detune.value = detunes[i];
-    const voiceVol = i === 0 ? 1 : i === 1 ? 0.7 : 0.5;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(vel * voiceVol, time + 0.004); // sharp attack
-    env.gain.exponentialRampToValueAtTime(vel * voiceVol * 0.65, time + 0.03); // slight drop
-    env.gain.setValueAtTime(vel * voiceVol * 0.65, time + durSec - 0.02);
-    env.gain.linearRampToValueAtTime(0, time + durSec + 0.01); // hard cut
-    osc.connect(env); env.connect(dest);
-    osc.start(time); osc.stop(time + durSec + 0.02);
-  });
-
-  // Bit-crusher feel: add a pulse wave an octave down for body
-  const sub = ctx.createOscillator(); sub.type = 'square';
-  sub.frequency.value = freq * 0.5;
-  const subEnv = ctx.createGain();
-  subEnv.gain.setValueAtTime(0, time);
-  subEnv.gain.linearRampToValueAtTime(vel * 0.4, time + 0.004);
-  subEnv.gain.exponentialRampToValueAtTime(vel * 0.15, time + 0.08);
-  subEnv.gain.linearRampToValueAtTime(0, time + durSec);
-  sub.connect(subEnv); subEnv.connect(dest);
-  sub.start(time); sub.stop(time + durSec + 0.02);
-
-  // Hard clip waveshaper for crunch
-  const ws = ctx.createWaveShaper();
-  const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i*2)/256-1; curve[i] = Math.tanh(x * 4); }
-  ws.curve = curve;
-}
 
 function playKick(t) {
   const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -2236,19 +2192,6 @@ async function renderSlotToWav(snap) {
           src2.connect(lp); lp.connect(notch); notch.connect(env); env.connect(offDest);
           src2.start(t); src2.stop(t+decay+0.02);
 
-        } else if (key === 'pguit') {
-          const pVel = isAccent ? 0.38 : 0.26;
-          [[1,0],[1.5,5],[2,-4],[0.5,0]].forEach(([ratio, det], i) => {
-            const osc = offline.createOscillator(); osc.type = 'square';
-            osc.frequency.value = freq * ratio; osc.detune.value = det;
-            const voiceVol = [1, 0.7, 0.5, 0.4][i];
-            const env = offline.createGain();
-            env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(pVel*voiceVol,t+0.004);
-            env.gain.exponentialRampToValueAtTime(pVel*voiceVol*0.65,t+0.03);
-            env.gain.setValueAtTime(pVel*voiceVol*0.65,t+dur-0.02);
-            env.gain.linearRampToValueAtTime(0,t+dur+0.01);
-            osc.connect(env); env.connect(offDest); osc.start(t); osc.stop(t+dur+0.02);
-          });
 
         } else if (key === 'rhodes2') {
           // Match playRhodes2 — warm electric piano
@@ -2492,8 +2435,9 @@ let _autoRandPending = false;
 function queueRand(mode) {
   if (playing) {
     _autoRandPending = true;
-    // Store mode for when it fires
     _autoRandMode = mode;
+    const rb = document.getElementById('randBtn');
+    if (rb) rb.classList.add('pulsing');
   } else {
     randAll(mode);
   }
@@ -3100,7 +3044,7 @@ function randomizeTrack(tr) {
     if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(defaultVol * 100) + '%'; }
   }
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'pguit') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2') {
     randomizeBassTrack(tr, level); return;
   }
 
