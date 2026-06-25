@@ -1520,11 +1520,11 @@ function toggleBeat() {
       btn.classList.add('active');
       updateBeatPulse();
     } else {
-      // Not playing — arm it, will activate when play starts
+      // Not playing — activate and start playback
       beatPlaying = true;
       btn.classList.add('active');
       updateBeatPulse();
-      // Do NOT start playback automatically
+      togglePlay();
     }
   }
 }
@@ -3200,6 +3200,7 @@ async function initAudio() {
     unlock.getChannelData(0)[0]=0.001;
     const src=ctx.createBufferSource(); src.buffer=unlock; src.connect(ctx.destination); src.start(0);
     msg.textContent = 'LOADING SAMPLES...';
+    loadScratchSample();
     await loadSamples();
   } catch(e) {
     msg.style.fontSize = '1rem';
@@ -3340,7 +3341,12 @@ if ('serviceWorker' in navigator) {
 })();
 
 // ── Scratch effect ──
-let _scratchActive = false, _scratchNodes = null;
+let _scratchActive = false, _scratchNodes = null, _scratchBuf = null;
+// Load scratch sample when ctx is ready
+function loadScratchSample() {
+  if (!ctx) return;
+  fetch('Sounds/Scratch.wav').then(r=>r.arrayBuffer()).then(ab=>ctx.decodeAudioData(ab)).then(buf=>{ _scratchBuf=buf; }).catch(e=>console.warn('scratch.wav:',e));
+}
 
 function startScratch() {
   if (!ctx || _scratchActive) return;
@@ -3349,69 +3355,35 @@ function startScratch() {
   flashBtnBlue('scratchBtn');
   document.getElementById('scratchBtn').classList.add('active');
 
-  // Fast scratch — two 16th notes, crunchy
-  const dur = (60 / bpm) / 2;
-  const bufLen = ctx.sampleRate * 2;
-  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
-  const noise = ctx.createBufferSource(); noise.buffer = buf; noise.loop = true;
-
-  // Waveshaper for crunch
-  const ws = ctx.createWaveShaper();
-  const wsCurve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i*2)/256-1; wsCurve[i] = Math.tanh(x * 12); }
-  ws.curve = wsCurve;
-
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 8;
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 300;
-
   const t = ctx.currentTime;
-  const lo = 100, hi = 800;
-  bp.frequency.setValueAtTime(hi, t);
-  bp.frequency.exponentialRampToValueAtTime(lo, t + dur * 0.45);
-  bp.frequency.exponentialRampToValueAtTime(hi, t + dur);
+  const dur = _scratchBuf ? _scratchBuf.duration : (60 / bpm) / 2;
 
-  // +3dB on top of previous (×1.413): 1.067→1.508, 0.356→0.503, 0.979→1.384
-  const ampEnv = ctx.createGain();
-  ampEnv.gain.setValueAtTime(0, t);
-  ampEnv.gain.linearRampToValueAtTime(2.131, t + 0.005);
-  ampEnv.gain.setValueAtTime(2.131, t + dur * 0.35);
-  ampEnv.gain.linearRampToValueAtTime(0.711, t + dur * 0.5);
-  ampEnv.gain.linearRampToValueAtTime(1.956, t + dur * 0.82);
-  ampEnv.gain.linearRampToValueAtTime(0, t + dur + 0.015);
+  if (_scratchBuf) {
+    const src = ctx.createBufferSource(); src.buffer = _scratchBuf;
+    const gain = ctx.createGain(); gain.gain.value = 1.2;
+    src.connect(gain); gain.connect(masterGain);
+    src.start(t);
+    _scratchNodes = { src, gain };
+  }
 
-  const twoBeats = dur; // alias for duck timing
-
-  // Duck master output while scratching
+  // Duck master output
   if (window._duckGain) {
     const dg = window._duckGain.gain;
     dg.cancelScheduledValues(t);
     dg.setValueAtTime(1, t);
     dg.linearRampToValueAtTime(0.112, t + 0.01);
-    dg.linearRampToValueAtTime(1, t + twoBeats + 0.05);
+    dg.linearRampToValueAtTime(1, t + dur + 0.05);
   }
-  noise.connect(ws); ws.connect(bp); bp.connect(hp); hp.connect(ampEnv); ampEnv.connect(masterGain);
-  noise.start();
-  _scratchNodes = { noise, bp, hp, ampEnv };
-  // Auto-reset after envelope completes so button works again
+
   setTimeout(() => {
     _scratchActive = false;
     _scratchNodes = null;
     document.getElementById('scratchBtn').classList.remove('active');
-    try { noise.stop(); } catch(e) {}
   }, (dur + 0.05) * 1000);
 }
-
 function stopScratch() {
-  if (!_scratchActive || !_scratchNodes) return;
+  // Sample plays to completion — just allow repeat on next press
   _scratchActive = false;
-  document.getElementById('scratchBtn').classList.remove('active');
-  const { noise, ampEnv } = _scratchNodes;
-  ampEnv.gain.cancelScheduledValues(ctx.currentTime);
-  ampEnv.gain.setValueAtTime(ampEnv.gain.value, ctx.currentTime);
-  ampEnv.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
-  setTimeout(() => { try { noise.stop(); } catch(e) {} _scratchNodes = null; }, 250);
 }
 
 // Wire SCRATCH button — hold=scratch, drag to RAND=trigger rand too
