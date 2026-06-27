@@ -45,6 +45,8 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 .reel-wrap.recording .reel { filter: brightness(0) saturate(100%) invert(16%) sepia(90%) saturate(7000%) hue-rotate(355deg) brightness(100%) !important; }
 .reel-wrap.hiss-on .reel { filter: brightness(0) sepia(1) saturate(3) hue-rotate(40deg) brightness(1.2); }
 .reel-wrap.compress-on .reel { filter: brightness(0) sepia(1) saturate(6) hue-rotate(20deg) brightness(1.4); }
+.reel-wrap.reel-beat-pulse { animation: reel-pulse 0.12s ease-out; }
+@keyframes reel-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.15); } 100% { transform: scale(1); } }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .reel-wrap.spinning { animation: spin 2s linear infinite; transform-origin: center; }
 .transport {
@@ -569,20 +571,26 @@ function playBuffer(key, isAccent, time, tr) {
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
   instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'cowb') ? 0.631 : (key === 'guiro') ? 0.501 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
-  // S: reverse sweep — play sample reversed leading into note
-  if (tr !== undefined && trackSweep[tr] && buf) {
-    const revLen = Math.min(buf.duration, stepDuration() * 2);
-    const revBuf = reverseBuffer(buf, revLen);
-    if (revBuf) {
-      const revSrc = ctx.createBufferSource(); revSrc.buffer = revBuf;
-      const revGain = ctx.createGain();
-      const revStartTime = Math.max(ctx.currentTime, time - revLen);
-      revGain.gain.setValueAtTime(0, revStartTime);
-      revGain.gain.linearRampToValueAtTime(instrumentGain.gain.value * 0.8, time);
-      const revDest = (tr !== undefined && trackFxNodes[tr] && trackFx[tr] && (trackFx[tr].x > 0)) ? trackFxNodes[tr].fxSend : ((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
-      revSrc.connect(revGain); revGain.connect(revDest);
-      revSrc.start(revStartTime);
+  // V: verb button — apply reverb based on level (1=gate, 2=room, 3=hall)
+  if (tr !== undefined && trackSweep[tr] > 0) {
+    const verbLevel = trackSweep[tr];
+    const verbDest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+    // IR lengths: gate=0.08s, room=0.6s, hall=one measure
+    const irLens = [0, 0.08, 0.6, stepDuration() * NUM_STEPS];
+    const irLen = Math.ceil(ctx.sampleRate * irLens[verbLevel]);
+    const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = irBuf.getChannelData(ch);
+      for (let i = 0; i < irLen; i++) {
+        const decay = verbLevel === 1 ? Math.pow(1 - i/irLen, 3) :  // gate: hard cutoff
+                      verbLevel === 2 ? Math.pow(1 - i/irLen, 1.5) : // room: natural
+                                        Math.pow(1 - i/irLen, 0.6);  // hall: slow tail
+        d[i] = (Math.random() * 2 - 1) * decay;
+      }
     }
+    const conv = ctx.createConvolver(); conv.buffer = irBuf;
+    const wetGain = ctx.createGain(); wetGain.gain.value = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.4 : 0.35;
+    src.connect(conv); conv.connect(wetGain); wetGain.connect(verbDest);
   }
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -604,7 +612,7 @@ const trackInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
 const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
 const trackOffset = new Array(NUM_TRACKS).fill(0);
 const trackMuted  = new Array(NUM_TRACKS).fill(false);
-const trackSweep  = new Array(NUM_TRACKS).fill(false);
+const trackSweep  = new Array(NUM_TRACKS).fill(0); // 0=off,1=gate,2=room,3=hall
 const trackChop   = new Array(NUM_TRACKS).fill(false);
 const trackVolume = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
@@ -642,7 +650,7 @@ function scheduler() {
         }
         if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; setFxActive(tr, trackFx[tr]); }
         if (snap.trackFxMode) trackFxMode[tr] = snap.trackFxMode[tr] || 0;
-        if (snap.trackSweep) trackSweep[tr] = snap.trackSweep[tr] || false;
+        if (snap.trackSweep !== undefined) trackSweep[tr] = snap.trackSweep[tr] || 0;
         if (snap.trackChop)  trackChop[tr]  = snap.trackChop[tr]  || false;
         if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
       }
@@ -656,7 +664,7 @@ function scheduler() {
           const tb = document.getElementById(`tbtn-${tr}`);
           if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.toggle('muted', trackMuted[tr]); setTrackNameColor(tr, trackInstruments[tr]); }
           const sb = document.getElementById(`swpbtn-${tr}`);
-          if (sb) { const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'S'; sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr]); }
+          if (sb) { const tonal = TONAL_KEYS.has(trackInstruments[tr]); if (!tonal) { const vl = ['V','V1','V2','V3']; sb.textContent = trackSweep[tr] > 0 ? vl[trackSweep[tr]] : 'V'; } sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr] > 0); }
           const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.toggle('on', trackFx[tr].x > 0 || trackFx[tr].y > 0);
           const row = document.getElementById(`ctrlrow-${tr}`); if (row) row.classList.toggle('row-muted', trackMuted[tr]);
           const vb = document.getElementById(`vbar-${tr}`); if (vb) { vb.classList.toggle('muted', trackMuted[tr]); const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -804,6 +812,11 @@ function updatePlayhead(step) {
     if (_recArmed) {
       const rb = document.getElementById('saveBtn');
       if (rb) { rb.classList.remove('rec-beat-pulse'); void rb.offsetWidth; rb.classList.add('rec-beat-pulse'); }
+    }
+    if (_compressOn) {
+      document.querySelectorAll('.reel-wrap').forEach(r => {
+        r.classList.remove('reel-beat-pulse'); void r.offsetWidth; r.classList.add('reel-beat-pulse');
+      });
     }
   }
 }
@@ -977,6 +990,7 @@ let PENTA_MINOR = SCALES['penta-min']; // alias used by buildScaleFromRoot
 // Bass roots: A1–A2 range
 const BASS_ROOTS    = [55, 58, 62, 65, 69, 73];   // A1 B1 D2 F2 A2 C#2
 const MELODY_ROOTS  = [220, 247, 262, 294, 330];   // A3 B3 C4 D4 E4
+const MID_ROOTS     = [110, 123, 131, 147, 165];   // A2 B2 C3 D3 E3 (one octave below melody)
 const SPARKLE_ROOTS = [82, 98, 110, 130, 147, 165];  // E2 G2 A2 C3 D3 E3
 
 // Per-track pentatonic scale (set on each R press for tonal tracks)
@@ -1001,7 +1015,8 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'stab') return MELODY_ROOTS;
+  if (key === 'stab') return MID_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2') return MELODY_ROOTS;
   return BASS_ROOTS;
 }
 
@@ -1704,20 +1719,29 @@ function buildUI() {
     fxBtn.addEventListener('touchend', e => { e.preventDefault(); toggleFxBtn(); }, { passive: false });
     ctrlRow.appendChild(fxBtn);
 
-    // Sweep / E button
+    // Verb / E button
     const sweepBtn = document.createElement('button'); sweepBtn.className = 'track-ctrl-icon-btn'; sweepBtn.id = `swpbtn-${tr}`;
     const isTonal = TONAL_KEYS.has(trackInstruments[tr]);
-    sweepBtn.textContent = isTonal ? 'E' : 'S';
-    sweepBtn.classList.toggle('sweep-on', isTonal ? trackChop[tr] : trackSweep[tr]);
+    const verbLabels = ['V', 'V1', 'V2', 'V3'];
+    const updateVerbBtn = () => {
+      const tonal = TONAL_KEYS.has(trackInstruments[tr]);
+      if (tonal) {
+        sweepBtn.textContent = trackChop[tr] ? 'E' : 'E';
+        sweepBtn.classList.toggle('sweep-on', trackChop[tr]);
+      } else {
+        sweepBtn.textContent = trackSweep[tr] > 0 ? verbLabels[trackSweep[tr]] : 'V';
+        sweepBtn.classList.toggle('sweep-on', trackSweep[tr] > 0);
+      }
+    };
+    updateVerbBtn();
     sweepBtn.addEventListener('click', () => {
       const tonal = TONAL_KEYS.has(trackInstruments[tr]);
       if (tonal) {
         trackChop[tr] = !trackChop[tr];
-        sweepBtn.classList.toggle('sweep-on', trackChop[tr]);
       } else {
-        trackSweep[tr] = !trackSweep[tr];
-        sweepBtn.classList.toggle('sweep-on', trackSweep[tr]);
+        trackSweep[tr] = (trackSweep[tr] + 1) % 4;
       }
+      updateVerbBtn();
       markModified();
     });
     ctrlRow.appendChild(sweepBtn);
@@ -2616,7 +2640,7 @@ function fullClear() {
   const defaultInstruments = ['shak','sleg','sparkle','sbass3','congHi','congLo'];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
-    trackMuted[tr] = false; trackSweep[tr] = false; trackChop[tr] = false;
+    trackMuted[tr] = false; trackSweep[tr] = 0; trackChop[tr] = false;
     trackRLevel[tr] = 0;
     trackVolume[tr] = tr === 1 ? 0.505 : 0.8;
     trackFx[tr] = { x: 0, y: 0 }; trackFxMode[tr] = 0;
@@ -2883,7 +2907,7 @@ function restoreState(snap) {
     if (snap.trackSweep) { trackSweep[tr] = snap.trackSweep[tr] || false; }
     if (snap.trackChop)  { trackChop[tr]  = snap.trackChop[tr]  || false; }
     const sb=document.getElementById(`swpbtn-${tr}`);
-    if (sb) { const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'S'; sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr]); }
+    if (sb) { const tonal = TONAL_KEYS.has(trackInstruments[tr]); if (!tonal) { const vl = ['V','V1','V2','V3']; sb.textContent = trackSweep[tr] > 0 ? vl[trackSweep[tr]] : 'V'; } sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr] > 0); }
     const tb=document.getElementById(`tbtn-${tr}`);
     if(tb) {
       tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1);
