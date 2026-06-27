@@ -629,8 +629,9 @@ function scheduler() {
     const t = nextStepTime;
     // Fire pending auto-rand on downbeat
     if (step === 0) {
-      // Auto-save for RECALL on every bar
-      _recallSnap = snapshotState();
+      // Auto-save for RECALL: keep previous bar, update with current
+      _recallSnap = _currentBarSnap || snapshotState();
+      _currentBarSnap = snapshotState();
       if (_autoRandPending) {
         _autoRandPending = false;
         randAll(_autoRandMode); _autoRandMode = undefined;
@@ -2894,7 +2895,9 @@ function snapshotState() {
     trackRLevel: [...trackRLevel],
     trackBassScale: Object.fromEntries(Object.entries(trackBassScale).map(([k,v])=>[k,[...v]])),
     globalScaleRoot,
-    bpm, masterVol
+    bpm, masterVol,
+    speciesName: _currentSpecies,
+    barColor: _currentBarColor
   };
 }
 function restoreState(snap) {
@@ -2926,7 +2929,15 @@ function restoreState(snap) {
   document.getElementById('bpmSlider').value=bpm;
   document.getElementById('bpmVal').textContent=bpm;
   if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
-
+  if (snap.speciesName) {
+    _currentSpecies = snap.speciesName;
+    const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = _currentSpecies;
+  }
+  if (snap.barColor) {
+    _currentBarColor = snap.barColor;
+    const barEl = document.querySelector('#nameDisplay')?.parentElement;
+    if (barEl) barEl.style.background = _currentBarColor;
+  }
 }
 function markModified() {
   // Any edit deactivates the active slot (turns it back to green)
@@ -3396,6 +3407,7 @@ function loadScratchSample() {
 
 // RECALL button — saves last pattern every bar, tap to restore it
 let _recallSnap = null;
+let _currentBarSnap = null;
 let _recallInterval = null;
 
 function startRecallLoop() {
