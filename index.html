@@ -437,6 +437,7 @@ const INSTRUMENTS = {
   bongHi: { name: 'BONGO HI',    soft: 'Sounds/BongHi50.wav', accent: 'Sounds/BongHi100.wav', group: 'perc' },
   bongLo: { name: 'BONGO LO',    soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav', group: 'perc' },
   ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc'  },
+  ride:   { name: 'RIDE',        soft: null, accent: null, group: 'kit'  },
   guiro:  { name: 'GUIRO',       soft: 'Sounds/Guiro.wav', accent: 'Sounds/Guiro_Scratch.wav', group: 'perc'  },
   // cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
   sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
@@ -580,7 +581,7 @@ function playBuffer(key, isAccent, time, tr) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'guiro') ? 0.355 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
+  instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'guiro') ? 0.355 : (key === 'ride') ? 0.45 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -751,6 +752,8 @@ function scheduler() {
             ef.frequency.setValueAtTime(22050, t + sweepDur + 0.01); // reopen instantly after
           }
 
+        } else if (key === 'ride') {
+          playRide(val === 2, t, tr);
         } else if (key === 'ngate') {
           // Noise gate triggered by its own grid notes
           triggerNoiseGate(tr, val === 2, t);
@@ -1532,6 +1535,56 @@ function playMetronome(t, isAccent) {
   noise.start(t);
 }
 
+
+// ── Ride cymbal: warm body + high sizzle, not harsh ──
+function playRide(isAccent, time, tr) {
+  if (!ctx) return;
+  const dest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+  const vel = isAccent ? 0.7 : 0.45;
+
+  // Body: two detuned metallic tones — bell-like
+  [[251, 0], [293, 7], [397, -5]].forEach(([freq, det]) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = freq; osc.detune.value = det;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(vel * 0.35, time);
+    env.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 1.8 : 1.2));
+    osc.connect(env); env.connect(dest);
+    osc.start(time); osc.stop(time + (isAccent ? 1.9 : 1.3));
+  });
+
+  // Sizzle: filtered noise — roll off the harsh top, keep airy shimmer
+  const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.5 : 1.0));
+  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+  const nd = nBuf.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
+  const noise = ctx.createBufferSource(); noise.buffer = nBuf;
+
+  // Bandpass centred on shimmer zone, LP to soften harsh top
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+  bp.frequency.value = 7000; bp.Q.value = 0.8;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.value = 10000; // roll off extreme highs
+
+  const nEnv = ctx.createGain();
+  nEnv.gain.setValueAtTime(vel * 0.18, time);
+  nEnv.gain.exponentialRampToValueAtTime(vel * 0.04, time + 0.08); // fast initial drop
+  nEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 1.2 : 0.8));
+
+  noise.connect(bp); bp.connect(lp); lp.connect(nEnv); nEnv.connect(dest);
+  noise.start(time);
+
+  // Attack click: short transient for stick definition
+  const clickLen = Math.ceil(ctx.sampleRate * 0.006);
+  const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
+  const cd = cBuf.getChannelData(0);
+  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 2);
+  const click = ctx.createBufferSource(); click.buffer = cBuf;
+  const cBP = ctx.createBiquadFilter(); cBP.type = 'bandpass'; cBP.frequency.value = 5000; cBP.Q.value = 2;
+  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.6;
+  click.connect(cBP); cBP.connect(cEnv); cEnv.connect(dest);
+  click.start(time);
+}
 
 // ── BOOG: fluid legato synth lead with strong portamento ──
 const _boogGlide = {};
@@ -3247,7 +3300,7 @@ function placeNotes(tr, noteCount, accentRatio, level) {
       if (grid[tr][s] === 2) { if (accCount >= 2) grid[tr][s] = 1; else accCount++; }
     }
   }
-  const maxConsec = (key === 'skick' || key === 'ssnare' || key === 'clap') ? 2 : (level === 2 ? 4 : 99);
+  const maxConsec = (key === 'skick' || key === 'ssnare' || key === 'clap' || key === 'ride') ? 2 : (level === 2 ? 4 : 99);
   const maxAccentConsec = level === 2 ? 2 : 99;
 
   // Iterate until no violations remain
