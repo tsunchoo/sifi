@@ -605,7 +605,7 @@ const trackOffset = new Array(NUM_TRACKS).fill(0);
 const trackMuted  = new Array(NUM_TRACKS).fill(false);
 const trackSweep  = new Array(NUM_TRACKS).fill(false); // L button toggle
 const trackChop   = new Array(NUM_TRACKS).fill(false);
-const trackVolume = [0.25, 0.25, 0.25, 0.25, 0.25, 0.25];
+const trackVolume = [0.30, 0.30, 0.30, 0.30, 0.30, 0.30];
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackFxMode = new Array(NUM_TRACKS).fill(0); // 0=CHOKE/SLAP, 1=CRUNCH/ENV
 const trackGainNodes = [];
@@ -1683,7 +1683,7 @@ function playSynthAttack(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const vel = isAccent ? 0.32 : 0.22;
-  const tail = 2.5; // long tail regardless of step duration
+  const tail = 1.25; // tail halved
 
   // Sharp metallic attack: two slightly detuned saws
   [-4, 4].forEach(det => {
@@ -2999,7 +2999,7 @@ function randAll(mode) {
     if (sb) { sb.textContent = 'L'; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
     trackRLevel[tr] = level;
     randomizeTrack(tr);
-    trackVolume[tr] = (pool[tr] === 'skick') ? 0.175 : (pool[tr] === 'guiro') ? 0.125 : (pool[tr] === 'satk') ? 0.15 : (pool[tr] === 'stab') ? 0.15 : (pool[tr] === 'boog') ? 0.15 : 0.25;
+    trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
     // Reset FX to off first — setFxActive will apply -6dB if FX gets turned on
