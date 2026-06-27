@@ -3164,17 +3164,6 @@ function randomizeTrack(tr) {
   const level = cappedLevel;
   trackRLevel[tr] = (trackRLevel[tr] + 1) % 3;
 
-  // Reset volume to default only if FX and S/E are both inactive
-  const fxOn = !!(trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
-  const seOn = TONAL_KEYS.has(trackInstruments[tr]) ? !!trackChop[tr] : !!trackSweep[tr];
-  if (!fxOn && !seOn) {
-    const defaultVol = (tr === 1) ? 0.505 : 0.8;
-    trackVolume[tr] = defaultVol;
-    if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(defaultVol, ctx.currentTime, 0.01);
-    const vb = document.getElementById(`vbar-${tr}`);
-    if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(defaultVol * 100) + '%'; }
-  }
-
   if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'satk') {
     randomizeBassTrack(tr, level); return;
   }
