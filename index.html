@@ -630,8 +630,6 @@ function scheduler() {
     // Fire pending auto-rand on downbeat
     if (step === 0 && _autoRandPending) {
       _autoRandPending = false;
-      const rb = document.getElementById('randBtn');
-      if (rb && !autoRandInterval) rb.classList.remove('pulsing');
       randAll(_autoRandMode); _autoRandMode = undefined;
     }
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
@@ -2467,8 +2465,6 @@ function queueRand(mode) {
   if (playing) {
     _autoRandPending = true;
     _autoRandMode = mode;
-    const rb = document.getElementById('randBtn');
-    if (rb && !rb.classList.contains('pulsing')) rb.classList.add('pulsing');
   } else {
     randAll(mode);
   }
@@ -2715,7 +2711,7 @@ function randAll(mode) {
   const allRoots = [...BASS_ROOTS, ...MELODY_ROOTS];
   globalScaleRoot = allRoots[Math.floor(Math.random() * allRoots.length)];
   const bassKeys = new Set(['sbass','sbass3','sbass4']);
-  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate' && k !== 'cowb' && !(k === 'guiro' && Math.random() < 0.5));
+  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && k !== 'ngate' && k !== 'cowb');
   const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
   const allKeys = Object.keys(INSTRUMENTS);
 
@@ -2757,17 +2753,7 @@ function randAll(mode) {
     pool = mixed.sort(() => Math.random() - 0.5);
   }
 
-  // 30% chance: only fill 5 tracks, leave one random track empty
-  const skipTrack = Math.random() < 0.3 ? Math.floor(Math.random() * NUM_TRACKS) : -1;
-
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    if (tr === skipTrack) {
-      // Clear this track
-      grid[tr].fill(0);
-      delete trackBassScale[tr];
-      redrawTrackCells(tr);
-      continue;
-    }
     const k = pool[tr];
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && typeof _noiseGateNodes !== 'undefined' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
@@ -2841,9 +2827,6 @@ function randAll(mode) {
   const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = (_currentSpecies || '');
   const kd = document.getElementById('keyDisplay');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
-  // Clear RAND pending state
-  const rb = document.getElementById('randBtn');
-  if (rb && !autoRandInterval) rb.classList.remove('pulsing');
   markModified();
 }
 
