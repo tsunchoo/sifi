@@ -2858,6 +2858,7 @@ function randAll(mode) {
   // Randomize FX for tonal instruments (25% chance of crunch on)
   // setFxActive handles both gain node and vol bar correctly
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr]) continue; // locked
     if (TONAL_KEYS.has(pool[tr])) {
       const fxOn = Math.random() < 0.25;
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
@@ -2870,7 +2871,7 @@ function randAll(mode) {
       }
       const fb = document.getElementById(`fxbtn-${tr}`);
       if (fb) fb.classList.toggle('on', fxOn);
-    } else {
+    } else if (!trackSweep[tr]) {
       // Perc/non-tonal: FX already reset above, just update bar
       const vb = document.getElementById(`vbar-${tr}`);
       if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
