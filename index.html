@@ -631,6 +631,7 @@ function scheduler() {
     if (step === 0) {
       if (_autoRandPending) {
         _autoRandPending = false;
+        if (!_recallSnap || _recallSnap.speciesName === _currentSpecies) _recallSnap = snapshotState();
         randAll(_autoRandMode); _autoRandMode = undefined;
       }
     }
@@ -2904,7 +2905,9 @@ function restoreState(snap) {
   globalScaleRoot = snap.globalScaleRoot ?? null;
   for (let tr=0; tr<NUM_TRACKS; tr++) {
     grid[tr]=[...snap.grid[tr]]; trackOffset[tr]=snap.trackOffset[tr];
-    trackInstruments[tr]=snap.trackInstruments[tr]; trackMuted[tr]=snap.trackMuted[tr];
+    const snapInst = snap.trackInstruments[tr];
+    trackInstruments[tr] = INSTRUMENTS[snapInst] ? snapInst : Object.keys(INSTRUMENTS)[0];
+    trackMuted[tr]=snap.trackMuted[tr];
     if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
     if (snap.trackBassScale?.[tr]) trackBassScale[tr] = [...snap.trackBassScale[tr]];
     else delete trackBassScale[tr];
