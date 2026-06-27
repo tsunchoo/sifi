@@ -751,7 +751,8 @@ function scheduler() {
         });
       }
       if (beatPlaying) {
-        if (step % 8 === 0) {
+        if (step === 0 || step === 8) {
+          // Kick on beats 1 and 3
           playKick(t);
           if (window._duckGain) {
             const dg = window._duckGain.gain;
@@ -759,7 +760,8 @@ function scheduler() {
             dg.linearRampToValueAtTime(0.5, t + 0.005);
             dg.setTargetAtTime(1, t + 0.020, 0.08);
           }
-        } else {
+        } else if (step === 4 || step === 12) {
+          // Snare on beats 2 and 4
           playSnare(t);
         }
       }
