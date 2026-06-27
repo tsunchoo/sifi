@@ -547,10 +547,35 @@ function getSynthConnectNode(tr) {
   // Returns the node synth voices should connect to — routes through FX chain if active
   const fxVal = tr !== undefined ? trackFx[tr] : null;
   const fxOn = fxVal && (fxVal.x > 0 || fxVal.y > 0);
-  if (tr !== undefined && trackFxNodes[tr]) {
-    return fxOn ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain;
+  const baseNode = (tr !== undefined && trackFxNodes[tr])
+    ? (fxOn ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain)
+    : ((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
+
+  // If verb is active, return a convolver wired to baseNode
+  if (tr !== undefined && trackSweep[tr] > 0 && ctx) {
+    const verbLevel = trackSweep[tr];
+    console.log("VERB APPLIED level", verbLevel);
+    const irLens = [0, 0.08, 0.6, stepDuration() * NUM_STEPS];
+    const irLen = Math.ceil(ctx.sampleRate * irLens[verbLevel]);
+    const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = irBuf.getChannelData(ch);
+      for (let i = 0; i < irLen; i++) {
+        const decay = verbLevel === 1 ? Math.pow(1-i/irLen,3) : verbLevel === 2 ? Math.pow(1-i/irLen,1.5) : Math.pow(1-i/irLen,0.6);
+        d[i] = (Math.random()*2-1)*decay;
+      }
+    }
+    const conv = ctx.createConvolver(); conv.buffer = irBuf;
+    const wetGain = ctx.createGain(); wetGain.gain.value = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.4 : 0.35;
+    const dryGain = ctx.createGain(); dryGain.gain.value = 0.6;
+    // Create a splitter: return a gain node that feeds both dry and wet paths
+    const input = ctx.createGain(); input.gain.value = 1;
+    input.connect(dryGain); dryGain.connect(baseNode);
+    input.connect(conv); conv.connect(wetGain); wetGain.connect(baseNode);
+    return input;
   }
-  return (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+
+  return baseNode;
 }
 
 function playBuffer(key, isAccent, time, tr) {
@@ -576,8 +601,10 @@ function playBuffer(key, isAccent, time, tr) {
   const instrumentGain = ctx.createGain();
   instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'guiro') ? 0.355 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
   // V: verb button — apply reverb based on level (1=gate, 2=room, 3=hall)
+  console.log("verb check:", key, tr, trackSweep[tr]);
   if (tr !== undefined && trackSweep[tr] > 0) {
     const verbLevel = trackSweep[tr];
+    console.log("VERB APPLIED level", verbLevel);
     const verbDest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
     // IR lengths: gate=0.08s, room=0.6s, hall=one measure
     const irLens = [0, 0.08, 0.6, stepDuration() * NUM_STEPS];
@@ -1689,7 +1716,7 @@ function selectSound(tr, k) {
   const sb = document.getElementById(`swpbtn-${tr}`);
   if (sb) {
     const tonal = TONAL_KEYS.has(k);
-    sb.textContent = tonal ? 'E' : 'S';
+    { const vl2=['V','V1','V2','V3']; sb.textContent = tonal ? 'E' : (trackSweep[tr] > 0 ? vl2[trackSweep[tr]] : 'V'); }
     sb.classList.toggle('sweep-on', tonal ? trackChop[tr] : trackSweep[tr]);
   }
   closeSoundPicker();
@@ -2752,7 +2779,7 @@ function fullClear() {
     if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1); tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
     const sb = document.getElementById(`swpbtn-${tr}`);
-    if (sb) { sb.classList.remove('sweep-on'); const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'S'; }
+    if (sb) { sb.classList.remove('sweep-on'); const tonal = TONAL_KEYS.has(trackInstruments[tr]); sb.textContent = tonal ? 'E' : 'V'; }
     const rb = document.getElementById(`randbtn-${tr}`); if (rb) rb.classList.remove('pulsing');
     const cr = document.getElementById(`ctrlrow-${tr}`); if (cr) cr.classList.remove('row-muted');
     const vb = document.getElementById(`vbar-${tr}`);
@@ -2871,7 +2898,7 @@ function randAll(mode) {
     const tb = document.getElementById(`tbtn-${tr}`); if (tb) tb.textContent = INSTRUMENTS[k]?.name || k;
     setTrackNameColor(tr, k);
     const sb = document.getElementById(`swpbtn-${tr}`);
-    if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'S'; }
+    if (sb) { const tonal = TONAL_KEYS.has(k); sb.textContent = tonal ? 'E' : 'V'; }
     trackRLevel[tr] = level;
     randomizeTrack(tr);
     trackVolume[tr] = (pool[tr] === 'skick') ? 0.35 : (pool[tr] === 'guiro') ? 0.25 : (pool[tr] === 'satk') ? 0.30 : (pool[tr] === 'stab') ? 0.30 : 0.5;
