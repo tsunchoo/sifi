@@ -617,6 +617,16 @@ function scheduler() {
     const t = nextStepTime;
     // Fire pending auto-rand on downbeat
     if (step === 0) {
+      // Flip reels forward when recalled pattern starts playing
+      if (window._reelReversePending) {
+        window._reelReversePending = false;
+        requestAnimationFrame(() => {
+          document.querySelectorAll('.reel-wrap').forEach(r => {
+            r.classList.remove('spinning-reverse');
+            r.classList.add('spinning');
+          });
+        });
+      }
       if (_autoRandPending) {
         _autoRandPending = false;
         _recallSnap = snapshotState(); // save before change
@@ -845,7 +855,8 @@ function togglePlay() {
     startRecallLoop();
     btn.classList.add('playing'); const pbi=document.getElementById('playBtnImg'); if(pbi) pbi.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAWgAAAFoCAYAAAB65WHVAAAENElEQVR4nO3UsQ3AIADAMOj/P9MHujAgosq+IFPGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA2zdsBJ6211u0G4Lw55y9f9twOAOCbQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDRBk0QJRBA0QZNECUQQNEGTRAlEEDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwLYXypoF9ldPS50AAAAASUVORK5CYII=';
     updateBeatPulse();
-    document.querySelectorAll('.reel-wrap').forEach(r => r.classList.add('spinning'));
+    document.querySelectorAll('.reel-wrap').forEach(r => { r.classList.remove('spinning-reverse'); r.classList.add('spinning'); });
+    window._reelReversePending = false;
 
     // Auto-start recording if armed
     if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') {
@@ -856,7 +867,8 @@ function togglePlay() {
     clearInterval(scheduleInterval); scheduleInterval = null;
     btn.classList.remove('playing'); const pbi2=document.getElementById('playBtnImg'); if(pbi2) pbi2.src='data:image/png;base64,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';
     updateBeatPulse();
-    document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning'));
+    document.querySelectorAll('.reel-wrap').forEach(r => { r.classList.remove('spinning'); r.classList.remove('spinning-reverse'); });
+    window._reelReversePending = false;
     // Stop and deactivate beat
     // Beat stays armed when stop is pressed — will re-engage on next play
     _beatPending = false;
@@ -3513,14 +3525,7 @@ function stopRecallLoop() {
       });
       restoreState(_recallSnap);
       flashBtnBlue('scratchBtn');
-      window._reelReversePending = true;
-      // If not playing, flip back after 800ms
-      if (!playing) setTimeout(() => {
-        if (window._reelReversePending) {
-          window._reelReversePending = false;
-          document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning-reverse'));
-        }
-      }, 800);
+window._reelReversePending = true;
     }
   };
 
