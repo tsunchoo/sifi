@@ -128,6 +128,9 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-ctrl-icon-btn.on { background: var(--playhead); color: #fff; }
 .track-ctrl-icon-btn.sweep-on { background: #5bbcb8; color: #fff; }
 .rand-btn.pulsing { color: #fff; animation: pulse 0.5s infinite alternate; }
+.rand-btn.rand-pending { background: var(--playhead) !important; color: #fff !important; animation: rand-pending-pulse 0.2s infinite alternate; }
+@keyframes rand-pending-pulse { from { background: var(--playhead); } to { background: #7a1000; } }
+.rand-btn.rand-auto { background: var(--playhead) !important; color: #fff !important; }
 #randBtn.pulsing { background: #0468f4; color: #fff; animation: rand-pulse 0.5s infinite alternate; }
 @keyframes rand-pulse { from { background: #0468f4; color: #fff; } to { background: #0247a8; color: #fff; } }
 #clearBtn.active { background: #0468f4 !important; color: #fff !important; }
@@ -791,6 +794,10 @@ function updatePlayhead(step) {
       const bb = document.getElementById('beatBtn');
       if (bb) { bb.classList.remove('btn-beat-pulse'); void bb.offsetWidth; bb.classList.add('btn-beat-pulse'); }
     }
+    // Flash R buttons in auto mode on every beat
+    document.querySelectorAll('.rand-btn.rand-auto').forEach(rb => {
+      rb.classList.remove('rand-auto'); void rb.offsetWidth; rb.classList.add('rand-auto');
+    });
     if (_recArmed) {
       const rb = document.getElementById('saveBtn');
       if (rb) { rb.classList.remove('rec-beat-pulse'); void rb.offsetWidth; rb.classList.add('rec-beat-pulse'); }
@@ -3101,73 +3108,65 @@ function wireShiftButton(btn, tr, dir) {
 const autoShiftStops = {};
 
 function wireRandomizeButton(btn, tr) {
-  let shiftInterval = null, pulseInterval = null;
-  let autoShifting = false, holdTimer = null, didHold = false;
+  let autoInterval = null, pendingTimeout = null;
 
-  const startAutoShift = () => {
-    autoShifting = true;
-    autoShiftStops[tr] = stopAutoShift;
-    btn.classList.add('pulsing');
-    const tbtn = document.getElementById(`tbtn-${tr}`);
-    const barMs = stepDuration() * NUM_STEPS * 1000;
-    shiftInterval = setInterval(() => {
-      if (grid[tr].every(v => v === 0)) return;
-      trackOffset[tr] = (trackOffset[tr] + 1 + NUM_STEPS) % NUM_STEPS;
-      redrawTrackCells(tr); markModified();
-    }, barMs);
-    const quarterMs = stepDuration() * 4 * 1000;
-    let pulseOn = true;
-    pulseInterval = setInterval(() => {
-      pulseOn = !pulseOn;
-      btn.classList.toggle('pulsing', pulseOn);
-      if (tbtn) tbtn.classList.toggle('shifting', pulseOn);
-    }, quarterMs);
-    if (tbtn) tbtn.classList.add('shifting');
+  const doRand = () => {
+    randomizeTrack(tr);
+    trackVolume[tr] = 0.5;
+    if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
+    const vb = document.getElementById(`vbar-${tr}`);
+    if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
   };
 
-  const stopAutoShift = () => {
-    autoShifting = false;
-    clearInterval(shiftInterval); shiftInterval = null;
-    clearInterval(pulseInterval); pulseInterval = null;
-    btn.classList.remove('pulsing');
-    const tbtn = document.getElementById(`tbtn-${tr}`);
-    if (tbtn) tbtn.classList.remove('shifting');
+  const stopAuto = () => {
+    clearInterval(autoInterval); autoInterval = null;
+    btn.classList.remove('rand-auto');
     delete autoShiftStops[tr];
   };
 
-  const onDown = () => {
-    didHold = false;
-    holdTimer = setTimeout(() => {
-      didHold = true;
-      if (autoShifting) stopAutoShift();
-      else startAutoShift();
-    }, 400);
+  // Called from scheduler on quarter note when in auto mode
+  btn._randBeatPulse = () => {
+    if (!autoInterval) return;
+    btn.classList.remove('rand-auto'); void btn.offsetWidth; btn.classList.add('rand-auto');
   };
 
-  const onUp = () => {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (!didHold) {
-      if (autoShifting) stopAutoShift();
-      else {
-        randomizeTrack(tr);
-        // Set track volume to 50% (middle)
-        trackVolume[tr] = 0.5;
-        if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setTargetAtTime(0.5, ctx.currentTime, 0.01);
-        const vb = document.getElementById(`vbar-${tr}`);
-        if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = '50%'; }
-      }
+  // Single tap: pulse red, queue rand on next downbeat
+  const doSingleTap = () => {
+    if (autoInterval) { stopAuto(); return; }
+    btn.classList.add('rand-pending');
+    // Queue rand on next step 0, or immediately if stopped
+    if (playing) {
+      _autoRandPending = true; _autoRandMode = undefined;
+      // Clear pending style when it fires — poll until _autoRandPending clears
+      pendingTimeout = setInterval(() => {
+        if (!_autoRandPending) { btn.classList.remove('rand-pending'); clearInterval(pendingTimeout); pendingTimeout = null; doRand(); }
+      }, 50);
+    } else {
+      doRand();
+      btn.classList.remove('rand-pending');
     }
   };
 
-  btn.addEventListener('mousedown', onDown);
-  btn.addEventListener('mouseup', onUp);
-  btn.addEventListener('mouseleave', () => {
-    // Only cancel the hold-start timer, don't stop autoShift
-    clearTimeout(holdTimer); holdTimer = null;
-  });
-  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-  btn.addEventListener('touchcancel', () => { clearTimeout(holdTimer); holdTimer = null; });
+  // Double tap: start auto-randomize every bar
+  const doDoubleTap = () => {
+    if (autoInterval) { stopAuto(); return; }
+    btn.classList.add('rand-auto');
+    doRand();
+    autoInterval = setInterval(() => { doRand(); }, (60 / bpm) * 4 * 1000);
+    autoShiftStops[tr] = stopAuto;
+  };
+
+  let lastTap = 0;
+  const onTap = () => {
+    const now = Date.now();
+    if (now - lastTap < 400) { doDoubleTap(); }
+    else { doSingleTap(); }
+    lastTap = now;
+  };
+
+  btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); onTap(); }, { passive: false });
+  btn.addEventListener('click', onTap);
 }
 
 buildUI();
