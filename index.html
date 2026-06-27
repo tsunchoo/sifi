@@ -2903,6 +2903,8 @@ function randAll(mode) {
     trackRLevel[tr] = level;
     randomizeTrack(tr);
     trackVolume[tr] = (pool[tr] === 'skick') ? 0.35 : (pool[tr] === 'guiro') ? 0.25 : (pool[tr] === 'satk') ? 0.30 : (pool[tr] === 'stab') ? 0.30 : 0.5;
+    if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
+    const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
     // Reset FX to off first — setFxActive will apply -6dB if FX gets turned on
     trackFx[tr] = { x: 0, y: 0 };
     if (ctx && trackFxNodes[tr]) setFxActive(tr, { x: 0, y: 0 });
