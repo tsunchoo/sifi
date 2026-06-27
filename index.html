@@ -681,6 +681,16 @@ function scheduler() {
         const bb = document.getElementById('beatBtn');
         if (bb) bb.classList.toggle('active', beatPlaying);
         updateBeatPulse();
+        // Restore species name and bar color
+        if (snap.speciesName) { _currentSpecies = snap.speciesName; const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = _currentSpecies; }
+        if (snap.barColor) {
+          _currentBarColor = snap.barColor;
+          const barEl = document.querySelector('#nameDisplay')?.parentElement;
+          if (barEl) { barEl.style.background = _currentBarColor; barEl.style.color = '#111'; }
+          document.documentElement.style.setProperty('--bar-color', _currentBarColor);
+        }
+        if (snap.currentScaleName) { currentScaleName = snap.currentScaleName; }
+        const kd = document.getElementById('keyDisplay'); if (kd) kd.textContent = (getKeyName()||'').replace(/-/g,' ');
         updateSlotButtons();
       });
     }
