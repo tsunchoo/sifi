@@ -554,24 +554,18 @@ function getSynthConnectNode(tr) {
   // If verb is active, return a convolver wired to baseNode
   if (tr !== undefined && trackSweep[tr] > 0 && ctx) {
     const verbLevel = trackSweep[tr];
-    console.log("VERB APPLIED level", verbLevel);
-    const irLens = [0, 0.08, 0.6, stepDuration() * NUM_STEPS];
-    const irLen = Math.ceil(ctx.sampleRate * irLens[verbLevel]);
-    const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = irBuf.getChannelData(ch);
-      for (let i = 0; i < irLen; i++) {
-        const decay = verbLevel === 1 ? Math.pow(1-i/irLen,3) : verbLevel === 2 ? Math.pow(1-i/irLen,1.5) : Math.pow(1-i/irLen,0.6);
-        d[i] = (Math.random()*2-1)*decay;
-      }
-    }
-    const conv = ctx.createConvolver(); conv.buffer = irBuf;
-    const wetGain = ctx.createGain(); wetGain.gain.value = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.4 : 0.35;
     const dryGain = ctx.createGain(); dryGain.gain.value = 0.6;
-    // Create a splitter: return a gain node that feeds both dry and wet paths
     const input = ctx.createGain(); input.gain.value = 1;
     input.connect(dryGain); dryGain.connect(baseNode);
-    input.connect(conv); conv.connect(wetGain); wetGain.connect(baseNode);
+    const delayTimes = [[0.03, 0.05, 0.07], [0.08, 0.15, 0.25], [0.2, 0.4, 0.7]];
+    const wetVol = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.45 : 0.4;
+    const feedback = verbLevel === 1 ? 0 : verbLevel === 2 ? 0.3 : 0.5;
+    delayTimes[verbLevel - 1].forEach((dt, i) => {
+      const delay = ctx.createDelay(2.0); delay.delayTime.value = dt;
+      const dGain = ctx.createGain(); dGain.gain.value = wetVol * Math.pow(0.6, i);
+      input.connect(delay); delay.connect(dGain); dGain.connect(baseNode);
+      if (feedback > 0) { dGain.connect(delay); }
+    });
     return input;
   }
 
@@ -600,28 +594,20 @@ function playBuffer(key, isAccent, time, tr) {
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
   instrumentGain.gain.value = (key === 'shak') ? 0.5 : (key === 'clap') ? 0.354 : (key === 'tamb') ? 0.794 : (key === 'guiro') ? 0.355 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.631 : 1.0;
-  // V: verb button — apply reverb based on level (1=gate, 2=room, 3=hall)
-  console.log("verb check:", key, tr, trackSweep[tr]);
+  // V: verb button — delay-based reverb (3 taps)
   if (tr !== undefined && trackSweep[tr] > 0) {
     const verbLevel = trackSweep[tr];
-    console.log("VERB APPLIED level", verbLevel);
     const verbDest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
-    // IR lengths: gate=0.08s, room=0.6s, hall=one measure
-    const irLens = [0, 0.08, 0.6, stepDuration() * NUM_STEPS];
-    const irLen = Math.ceil(ctx.sampleRate * irLens[verbLevel]);
-    const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
-    for (let ch = 0; ch < 2; ch++) {
-      const d = irBuf.getChannelData(ch);
-      for (let i = 0; i < irLen; i++) {
-        const decay = verbLevel === 1 ? Math.pow(1 - i/irLen, 3) :  // gate: hard cutoff
-                      verbLevel === 2 ? Math.pow(1 - i/irLen, 1.5) : // room: natural
-                                        Math.pow(1 - i/irLen, 0.6);  // hall: slow tail
-        d[i] = (Math.random() * 2 - 1) * decay;
-      }
-    }
-    const conv = ctx.createConvolver(); conv.buffer = irBuf;
-    const wetGain = ctx.createGain(); wetGain.gain.value = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.4 : 0.35;
-    src.connect(conv); conv.connect(wetGain); wetGain.connect(verbDest);
+    // delay times: gate=short tight, room=medium, hall=long
+    const delayTimes = [[0.03, 0.05, 0.07], [0.08, 0.15, 0.25], [0.2, 0.4, 0.7]];
+    const wetVol = verbLevel === 1 ? 0.5 : verbLevel === 2 ? 0.45 : 0.4;
+    const feedback = verbLevel === 1 ? 0 : verbLevel === 2 ? 0.3 : 0.5;
+    delayTimes[verbLevel - 1].forEach((dt, i) => {
+      const delay = ctx.createDelay(2.0); delay.delayTime.value = dt;
+      const dGain = ctx.createGain(); dGain.gain.value = wetVol * Math.pow(0.6, i);
+      src.connect(delay); delay.connect(dGain); dGain.connect(verbDest);
+      if (feedback > 0) { dGain.connect(delay); } // feedback loop
+    });
   }
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
