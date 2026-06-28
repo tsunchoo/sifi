@@ -2932,18 +2932,25 @@ function randAll(mode) {
   const allRoots = [...BASS_ROOTS, ...MELODY_ROOTS];
   globalScaleRoot = allRoots[Math.floor(Math.random() * allRoots.length)];
   const bassKeys = new Set(['sbass','sbass3','sbass4']);
-  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k));
-  const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
-  const allKeys = Object.keys(INSTRUMENTS);
+  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && !lockedInstruments.has(k));
+  const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && !lockedInstruments.has(k));
+  const allKeys = Object.keys(INSTRUMENTS).filter(k => !lockedInstruments.has(k));
 
   const soloPercKeys = new Set(['tamb','shak','ngate','clap','guiro']); // max one of these
+  const soloLeadKeys = new Set(['sflute','boog']); // max one of these
+  // Exclude instruments already locked on other tracks
+  const lockedInstruments = new Set();
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr]) lockedInstruments.add(trackInstruments[tr]);
+  }
 
   function buildPool(keys) {
     const shuffled = [...keys].sort(() => Math.random() - 0.5);
-    const result = []; let bassUsed = false; let soloPercUsed = false;
+    const result = []; let bassUsed = false; let soloPercUsed = false; let soloLeadUsed = false;
     for (const k of shuffled) {
       if (bassKeys.has(k)) { if (bassUsed) continue; bassUsed = true; }
       if (soloPercKeys.has(k)) { if (soloPercUsed) continue; soloPercUsed = true; }
+      if (soloLeadKeys.has(k)) { if (soloLeadUsed) continue; soloLeadUsed = true; }
       result.push(k);
       if (result.length === NUM_TRACKS) break;
     }
