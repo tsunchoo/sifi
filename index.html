@@ -1313,15 +1313,28 @@ function initNoiseGate(tr) {
 function triggerNoiseGate(tr, isAccent, time) {
   if (!ctx || !_noiseGateNodes[tr]) return;
   const { gate, filt } = _noiseGateNodes[tr];
-  // Velocity variation: accent is louder and brighter with more randomness
+
+  // Scale filter sweep to density of busiest active track (0-16 notes = 200-8000Hz)
+  let maxNotes = 0;
+  for (let t = 0; t < NUM_TRACKS; t++) {
+    if (t === tr || trackMuted[t]) continue;
+    const count = grid[t].filter(v => v > 0).length;
+    if (count > maxNotes) maxNotes = count;
+  }
+  // Map 0-16 notes to filter range 200-8000Hz
+  const densityRatio = maxNotes / NUM_STEPS; // 0.0-1.0
+  const sweepTop = 300 + densityRatio * 7700; // 300Hz (sparse) to 8000Hz (dense)
+  const sweepBot = 100 + densityRatio * 400;  // narrows as density increases
+
   const velBase = isAccent ? 0.221 : 0.095;
-  const vel = velBase * (0.75 + Math.random() * 0.5); // ±25% randomness
-  const sweepStart = isAccent ? (2000 + Math.random() * 2000) : (600 + Math.random() * 800);
-  const sweepEnd   = isAccent ? (100 + Math.random() * 200)  : (300 + Math.random() * 200);
+  const vel = velBase * (0.75 + Math.random() * 0.5);
+  const sweepStart = sweepTop * (0.8 + Math.random() * 0.4);
+  const sweepEnd   = Math.max(80, sweepBot * (0.7 + Math.random() * 0.6));
   const dur = stepDuration() * (0.6 + Math.random() * 0.4);
+
   filt.frequency.cancelScheduledValues(time);
-  filt.frequency.setValueAtTime(sweepStart, time);
-  filt.frequency.exponentialRampToValueAtTime(sweepEnd, time + dur * 0.5);
+  filt.frequency.setValueAtTime(Math.max(80, sweepStart), time);
+  filt.frequency.exponentialRampToValueAtTime(Math.max(80, sweepEnd), time + dur * 0.5);
   gate.gain.cancelScheduledValues(time);
   gate.gain.setValueAtTime(0, time);
   gate.gain.linearRampToValueAtTime(vel, time + 0.003);
@@ -2992,17 +3005,24 @@ function randAll(mode) {
     const percSlots = Math.max(0, unlockedTracks.length - tonalSlots);
 
     // Build exact pool for unlocked slots
-    const bassAvail = tonalKeys.filter(k => bassKeys.has(k));
-    const allBassKeys = Object.keys(INSTRUMENTS).filter(k => bassKeys.has(k));
-    const bassChoice = bassAvail.length > 0
-      ? bassAvail[Math.floor(Math.random() * bassAvail.length)]
-      : allBassKeys[Math.floor(Math.random() * allBassKeys.length)];
-    const nonBassAvail = tonalKeys.filter(k => !bassKeys.has(k));
-    if (nonBassAvail.includes('boog')) nonBassAvail.push('boog');
-    const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, Math.max(0, tonalSlots - 1));
-    const tPool = tonalSlots > 0 ? [bassChoice, ...nonBassShuffle].slice(0, tonalSlots) : [];
+    // Never duplicate anything already in the current deck (locked or not)
+    const currentDeck = new Set(trackInstruments);
 
-    const pShuffle = [...percKeys].sort(() => Math.random() - 0.5);
+    // Bass: max one across all 6 tracks — if a locked track already has bass, skip
+    const bassAlreadyLocked = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && bassKeys.has(trackInstruments[tr]));
+    let bassChoice = null;
+    if (!bassAlreadyLocked && tonalSlots > 0) {
+      const bassAvail = tonalKeys.filter(k => bassKeys.has(k) && !currentDeck.has(k));
+      if (bassAvail.length > 0) bassChoice = bassAvail[Math.floor(Math.random() * bassAvail.length)];
+    }
+
+    const nonBassAvail = tonalKeys.filter(k => !bassKeys.has(k) && !currentDeck.has(k));
+    if (nonBassAvail.includes('boog')) nonBassAvail.push('boog');
+    const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, Math.max(0, tonalSlots - (bassChoice ? 1 : 0)));
+    const tPool = [...(bassChoice ? [bassChoice] : []), ...nonBassShuffle].slice(0, tonalSlots);
+
+    const percAvail = percKeys.filter(k => !currentDeck.has(k));
+    const pShuffle = [...percAvail].sort(() => Math.random() - 0.5);
     const pPool = percSlots > 0 ? buildPool(pShuffle).slice(0, percSlots) : [];
 
     pool = [...tPool, ...pPool];
