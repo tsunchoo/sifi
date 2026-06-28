@@ -1553,35 +1553,34 @@ function playRide(isAccent, time, tr) {
     osc.start(time); osc.stop(time + (isAccent ? 0.6 : 0.4));
   });
 
-  // Sizzle: filtered noise — roll off the harsh top, keep airy shimmer
-  const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.5 : 1.0));
+  // Sizzle: tight, clean shimmer with narrow BP and gentle decay
+  const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.2 : 0.8));
   const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
   const nd = nBuf.getChannelData(0);
   for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
 
-  // Bandpass centred on shimmer zone, LP to soften harsh top
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
-  bp.frequency.value = 7000; bp.Q.value = 0.8;
+  bp.frequency.value = 6000; bp.Q.value = 2.5; // narrower, more controlled
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
-  lp.frequency.value = 10000; // roll off extreme highs
+  lp.frequency.value = 8000; // softer top end
 
   const nEnv = ctx.createGain();
-  nEnv.gain.setValueAtTime(vel * 0.18, time);
-  nEnv.gain.exponentialRampToValueAtTime(vel * 0.04, time + 0.08); // fast initial drop
-  nEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 1.2 : 0.8));
+  nEnv.gain.setValueAtTime(vel * 0.10, time);
+  nEnv.gain.exponentialRampToValueAtTime(vel * 0.025, time + 0.06);
+  nEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 1.0 : 0.65));
 
   noise.connect(bp); bp.connect(lp); lp.connect(nEnv); nEnv.connect(dest);
   noise.start(time);
 
-  // Attack click: short transient for stick definition
-  const clickLen = Math.ceil(ctx.sampleRate * 0.006);
+  // Soft stick tap — gentler than before
+  const clickLen = Math.ceil(ctx.sampleRate * 0.005);
   const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
   const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 2);
+  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 3);
   const click = ctx.createBufferSource(); click.buffer = cBuf;
-  const cBP = ctx.createBiquadFilter(); cBP.type = 'bandpass'; cBP.frequency.value = 5000; cBP.Q.value = 2;
-  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.6;
+  const cBP = ctx.createBiquadFilter(); cBP.type = 'bandpass'; cBP.frequency.value = 4000; cBP.Q.value = 3;
+  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.3;
   click.connect(cBP); cBP.connect(cEnv); cEnv.connect(dest);
   click.start(time);
 }
@@ -2978,16 +2977,34 @@ function randAll(mode) {
   // At highest density level, only fill 5 tracks
   const skipTrack = (level === 2) ? Math.floor(Math.random() * NUM_TRACKS) : -1;
 
+  // Sort pool into fixed visual order: top=hihat, perc, tonal, bass, kick=bottom
+  const kickKeys = new Set(['skick']);
+  const bassKeys2 = new Set(['sbass','sbass3','sbass4']);
+  const hihatKeys = new Set(['shihat']);
+  const tonalNonBassKeys = new Set([...TONAL_KEYS].filter(k => !bassKeys2.has(k)));
+  const sortedPool = [
+    ...pool.filter(k => hihatKeys.has(k)),        // hihat top
+    ...pool.filter(k => !hihatKeys.has(k) && !tonalNonBassKeys.has(k) && !bassKeys2.has(k) && !kickKeys.has(k)), // perc
+    ...pool.filter(k => tonalNonBassKeys.has(k)), // tonal
+    ...pool.filter(k => bassKeys2.has(k)),         // bass
+    ...pool.filter(k => kickKeys.has(k)),          // kick bottom
+  ];
+  // Pad to NUM_TRACKS if needed
+  while (sortedPool.length < NUM_TRACKS) sortedPool.push(pool[sortedPool.length] || pool[0]);
+  pool = sortedPool.slice(0, NUM_TRACKS);
+
+  // Assign sorted pool sequentially to unlocked tracks
+  let poolIdx = 0;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    // L button — locked tracks are skipped by RAND
-    if (trackSweep[tr]) continue;
+    if (trackSweep[tr]) continue; // L button locked — skip
     if (tr === skipTrack) {
       grid[tr].fill(0);
       delete trackBassScale[tr];
       redrawTrackCells(tr);
+      poolIdx++;
       continue;
     }
-    const k = pool[tr];
+    const k = pool[poolIdx++] || pool[pool.length - 1];
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && typeof _noiseGateNodes !== 'undefined' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
