@@ -2979,16 +2979,19 @@ function randAll(mode) {
     pool = buildPool(tonalKeys);
   } else {
     // Equal chance: pick 3 tonal and 3 perc, then shuffle
-    const tShuffle = [...tonalKeys].sort(() => Math.random() - 0.5);
+    // Always include one bass in tonal selection
+    const bassAvail = tonalKeys.filter(k => bassKeys.has(k));
+    const nonBassAvail = tonalKeys.filter(k => !bassKeys.has(k));
+    const chosenBass = bassAvail.length > 0 ? [bassAvail[Math.floor(Math.random() * bassAvail.length)]] : [];
+    const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, 3 - chosenBass.length);
+    const tPool = [...chosenBass, ...nonBassShuffle];
+
     const pShuffle = [...percKeys].sort(() => Math.random() - 0.5);
-    const tPool = buildPool(tShuffle.slice(0, Math.ceil(tonalKeys.length)));
-    const pPool = buildPool(pShuffle.slice(0, Math.ceil(percKeys.length)));
+    const pPool = buildPool(pShuffle);
     const mixed = [];
-    let ti = 0, pi = 0;
-    // Alternate tonal/perc, 3 each
-    for (let i = 0; i < 3 && ti < tPool.length; i++) mixed.push(tPool[ti++]);
-    for (let i = 0; i < 3 && pi < pPool.length; i++) mixed.push(pPool[pi++]);
-    pool = mixed.sort(() => Math.random() - 0.5);
+    for (let i = 0; i < 3 && i < tPool.length; i++) mixed.push(tPool[i]);
+    for (let i = 0; i < 3 && i < pPool.length; i++) mixed.push(pPool[i]);
+    pool = mixed;
   }
 
   // Sort pool: hihat top → perc → tonal → bass → kick bottom
@@ -3632,7 +3635,7 @@ if ('serviceWorker' in navigator) {
     bp.frequency.exponentialRampToValueAtTime(8000, t + dur);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
-    gain.gain.linearRampToValueAtTime(0.34, t + 0.05);
+    gain.gain.linearRampToValueAtTime(0.34, t + 0.008);
     noise.connect(bp); bp.connect(gain); gain.connect(masterGain);
     noise.start(t);
     sweepNodes = { noise, bp, gain };
