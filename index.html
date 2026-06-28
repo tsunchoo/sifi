@@ -3621,19 +3621,19 @@ if ('serviceWorker' in navigator) {
   function startSweep() {
     if (!ctx) return;
     ctx.resume();
-    const dur = stepDuration() * 16;
     const t = ctx.currentTime;
 
-    const noise = ctx.createBufferSource();
-    const bufLen = Math.ceil(ctx.sampleRate * (dur + 1));
+    // Use oscillator-based noise (looping short buffer) — can be stopped instantly
+    const bufLen = ctx.sampleRate * 0.5; // short looping buffer
     const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
     noise.buffer = buf;
+    noise.loop = true;
 
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
     bp.frequency.setValueAtTime(200, t);
-    bp.frequency.exponentialRampToValueAtTime(8000, t + dur);
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
@@ -3644,6 +3644,9 @@ if ('serviceWorker' in navigator) {
     sweepNodes = { noise, bp, gain };
     _activeSweepNoise = noise; _activeSweepGain = gain;
     sweepStartTime = Date.now();
+    // Continuously ramp BP up while held
+    const holdDur = 8; // max 8 seconds
+    bp.frequency.exponentialRampToValueAtTime(8000, t + holdDur);
     btn.classList.add('active');
   }
 
@@ -3670,13 +3673,12 @@ if ('serviceWorker' in navigator) {
 
     const t = ctx.currentTime;
     const quarterNote = stepDuration() * 4;
-    // Fall back down over a quarter note
     bp.frequency.cancelScheduledValues(t);
     bp.frequency.exponentialRampToValueAtTime(200, t + quarterNote);
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);
     gain.gain.linearRampToValueAtTime(0, t + quarterNote);
-    setTimeout(() => { try { noise.stop(); } catch(e) {} sweepNodes = null; }, quarterNote * 1000 + 100);
+    setTimeout(() => { try { noise.stop(); } catch(e) {} sweepNodes = null; _activeSweepNoise = null; _activeSweepGain = null; }, quarterNote * 1000 + 100);
     btn.classList.remove('active');
   }
 
