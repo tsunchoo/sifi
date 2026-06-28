@@ -2980,22 +2980,32 @@ function randAll(mode) {
   } else {
     // Equal chance: pick 3 tonal and 3 perc, then shuffle
     // Always include one bass in tonal selection
-    // Always pick a bass — from unlocked first, fall back to any bass if all locked
+    // Count unlocked slots and what categories they want (based on sort rank)
+    // Rank: 0=hihat, 1=perc, 2=tonal, 3=bass, 4=kick
+    const unlockedTracks = [...Array(NUM_TRACKS)].map((_, tr) => tr).filter(tr => !trackSweep[tr]);
+    const needsTonal = unlockedTracks.filter(tr => {
+      // Tracks that will get tonal after sort: positions that rank 2,3,4 in sorted pool
+      // Approximate: bottom half gets tonal/bass
+      return tr >= Math.floor(NUM_TRACKS / 2);
+    });
+    const tonalSlots = Math.max(1, Math.round(unlockedTracks.length / 2));
+    const percSlots = Math.max(0, unlockedTracks.length - tonalSlots);
+
+    // Build exact pool for unlocked slots
     const bassAvail = tonalKeys.filter(k => bassKeys.has(k));
     const allBassKeys = Object.keys(INSTRUMENTS).filter(k => bassKeys.has(k));
     const bassChoice = bassAvail.length > 0
       ? bassAvail[Math.floor(Math.random() * bassAvail.length)]
       : allBassKeys[Math.floor(Math.random() * allBassKeys.length)];
     const nonBassAvail = tonalKeys.filter(k => !bassKeys.has(k));
-    const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, 2);
-    const tPool = [bassChoice, ...nonBassShuffle];
+    if (nonBassAvail.includes('boog')) nonBassAvail.push('boog');
+    const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, Math.max(0, tonalSlots - 1));
+    const tPool = tonalSlots > 0 ? [bassChoice, ...nonBassShuffle].slice(0, tonalSlots) : [];
 
     const pShuffle = [...percKeys].sort(() => Math.random() - 0.5);
-    const pPool = buildPool(pShuffle);
-    const mixed = [];
-    for (let i = 0; i < 3 && i < tPool.length; i++) mixed.push(tPool[i]);
-    for (let i = 0; i < 3 && i < pPool.length; i++) mixed.push(pPool[i]);
-    pool = mixed;
+    const pPool = percSlots > 0 ? buildPool(pShuffle).slice(0, percSlots) : [];
+
+    pool = [...tPool, ...pPool];
   }
 
   // Sort pool: hihat top → perc → tonal → bass → kick bottom
