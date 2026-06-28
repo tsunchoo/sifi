@@ -1590,7 +1590,7 @@ const _boogGlide = {};
 function playBoog(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.019 : 0.013;
+  const vel = isAccent ? 0.011 : 0.007;
 
   const prevFreq = _boogGlide[tr] || freq;
   _boogGlide[tr] = freq;
@@ -2974,6 +2974,18 @@ function randAll(mode) {
     pool = mixed.sort(() => Math.random() - 0.5);
   }
 
+  // Sort pool: hihat top → perc → tonal → bass → kick bottom
+  pool.sort((a, b) => {
+    const rank = k => {
+      if (k === 'shihat') return 0;
+      if (!TONAL_KEYS.has(k) && k !== 'skick') return 1;
+      if (TONAL_KEYS.has(k) && !['sbass','sbass3','sbass4'].includes(k)) return 2;
+      if (['sbass','sbass3','sbass4'].includes(k)) return 3;
+      return 4; // skick
+    };
+    return rank(a) - rank(b);
+  });
+
   // At highest density level, only fill 5 tracks
   const skipTrack = (level === 2) ? Math.floor(Math.random() * NUM_TRACKS) : -1;
 
@@ -2982,16 +2994,16 @@ function randAll(mode) {
   const bassKeys2 = new Set(['sbass','sbass3','sbass4']);
   const hihatKeys = new Set(['shihat']);
   const tonalNonBassKeys = new Set([...TONAL_KEYS].filter(k => !bassKeys2.has(k)));
-  const sortedPool = [
-    ...pool.filter(k => hihatKeys.has(k)),        // hihat top
-    ...pool.filter(k => !hihatKeys.has(k) && !tonalNonBassKeys.has(k) && !bassKeys2.has(k) && !kickKeys.has(k)), // perc
-    ...pool.filter(k => tonalNonBassKeys.has(k)), // tonal
-    ...pool.filter(k => bassKeys2.has(k)),         // bass
-    ...pool.filter(k => kickKeys.has(k)),          // kick bottom
-  ];
-  // Pad to NUM_TRACKS if needed
-  while (sortedPool.length < NUM_TRACKS) sortedPool.push(pool[sortedPool.length] || pool[0]);
-  pool = sortedPool.slice(0, NUM_TRACKS);
+
+  // Rank each instrument: 0=hihat, 1=perc, 2=tonal, 3=bass, 4=kick
+  function trackRank(k) {
+    if (hihatKeys.has(k)) return 0;
+    if (kickKeys.has(k)) return 4;
+    if (bassKeys2.has(k)) return 3;
+    if (tonalNonBassKeys.has(k)) return 2;
+    return 1; // perc
+  }
+  pool = [...pool].sort((a, b) => trackRank(a) - trackRank(b));
 
   // Assign sorted pool sequentially to unlocked tracks
   let poolIdx = 0;
