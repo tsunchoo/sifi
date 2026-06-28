@@ -249,7 +249,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .step-lane {
   flex: 1; display: flex; flex-direction: column;
   border: none;
-  border-bottom: 3px solid var(--border);
+  border-bottom: 3px solid #111;
   overflow: visible;
 }
 .step-lane-cells {
@@ -1760,16 +1760,17 @@ function setBeatVol(v) {
 (function() {
   const btn = document.getElementById('beatBtn');
   if (!btn) return;
-  let ht = null;
+  let ht = null, didHold = false;
   const openOverlay = () => {
+    didHold = true;
     const ov = document.getElementById('beatVolOverlay');
     ov.style.display = 'flex';
-    setTimeout(() => { ov.addEventListener('click', () => { ov.style.display = 'none'; }, { once: true }); }, 300);
+    setTimeout(() => { ov.addEventListener('click', () => { ov.style.display = 'none'; }, { once: true }); }, 400);
   };
-  btn.addEventListener('touchstart', e => { e.preventDefault(); ht = setTimeout(() => { ht = null; openOverlay(); }, 600); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); if (ht) { clearTimeout(ht); ht = null; toggleBeat(); } }, { passive: false });
-  btn.addEventListener('mousedown', () => { ht = setTimeout(() => { ht = null; openOverlay(); }, 600); });
-  btn.addEventListener('mouseup', () => { if (ht) { clearTimeout(ht); ht = null; toggleBeat(); } });
+  btn.addEventListener('touchstart', e => { e.preventDefault(); didHold = false; ht = setTimeout(openOverlay, 600); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); clearTimeout(ht); ht = null; if (!didHold) toggleBeat(); didHold = false; }, { passive: false });
+  btn.addEventListener('mousedown', () => { didHold = false; ht = setTimeout(openOverlay, 600); });
+  btn.addEventListener('mouseup', () => { clearTimeout(ht); ht = null; if (!didHold) toggleBeat(); didHold = false; });
 })();
 
 function toggleBeat() {
@@ -3605,6 +3606,7 @@ async function initAudio() {
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.75; window._beatGain.connect(masterGain);
     window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = window.masterLimiter;
     masterLimiter.threshold.value = -1;
     masterLimiter.knee.value = 0;
