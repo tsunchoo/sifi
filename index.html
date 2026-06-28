@@ -2939,9 +2939,16 @@ function randAll(mode) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) lockedInstruments.add(trackInstruments[tr]);
   }
-  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && !lockedInstruments.has(k) && !(k === 'guiro' && Math.random() < 0.5));
-  const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && !lockedInstruments.has(k));
-  const allKeys = Object.keys(INSTRUMENTS).filter(k => !lockedInstruments.has(k));
+  // Prefer non-locked instruments but allow locked ones if category is depleted
+  const percKeysAll = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && !(k === 'guiro' && Math.random() < 0.5));
+  const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k));
+  const percKeys = percKeysAll.filter(k => !lockedInstruments.has(k)).length > 0
+    ? percKeysAll.filter(k => !lockedInstruments.has(k))
+    : percKeysAll;
+  const tonalKeys = tonalKeysAll.filter(k => !lockedInstruments.has(k)).length > 0
+    ? tonalKeysAll.filter(k => !lockedInstruments.has(k))
+    : tonalKeysAll;
+  const allKeys = Object.keys(INSTRUMENTS);
 
   function buildPool(keys) {
     const shuffled = [...keys].sort(() => Math.random() - 0.5);
@@ -3485,21 +3492,9 @@ function wireRandomizeButton(btn, tr) {
   // Single tap: pulse red, randomize this track on next downbeat (or immediately if stopped)
   const doSingleTap = () => {
     if (autoInterval) { stopAuto(); return; }
+    doRand();
     btn.classList.add('rand-pending');
-    if (playing) {
-      // Wait for next step 0 then randomize just this track
-      const checkStep = setInterval(() => {
-        if (currentStep === 0) {
-          clearInterval(checkStep);
-          doRand();
-          btn.classList.remove('rand-pending');
-        }
-      }, 20);
-      pendingTimeout = checkStep;
-    } else {
-      doRand();
-      btn.classList.remove('rand-pending');
-    }
+    setTimeout(() => btn.classList.remove('rand-pending'), 200);
   };
 
   // Double tap: start auto-randomize every bar
