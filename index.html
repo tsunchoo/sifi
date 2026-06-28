@@ -3649,13 +3649,10 @@ if ('serviceWorker' in navigator) {
     if (!sweepNodes || !ctx) return;
     const { bp, gain, noise } = sweepNodes;
     const t = ctx.currentTime;
-    const quarterNote = stepDuration() * 4;
-    bp.frequency.cancelScheduledValues(t);
-    bp.frequency.exponentialRampToValueAtTime(200, t + quarterNote);
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);
-    gain.gain.linearRampToValueAtTime(0, t + quarterNote);
-    setTimeout(() => { try { noise.stop(); } catch(e) {} sweepNodes = null; }, quarterNote * 1000 + 100);
+    gain.gain.linearRampToValueAtTime(0, t + 0.08); // fast fade out
+    setTimeout(() => { try { noise.stop(); } catch(e) {} sweepNodes = null; }, 150);
     btn.classList.remove('active');
   }
 
