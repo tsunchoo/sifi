@@ -535,16 +535,16 @@ function setFxActive(tr, fxVal) {
   dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? 0 : 1, now);
   fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
   preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.25 : 0, now);
+  // Compensate for crunch loudness in postGain (×0.5 when on = -6dB)
+  // so fader position sounds the same with or without FX
+  if (trackFxNodes[tr].postGain) {
+    trackFxNodes[tr].postGain.gain.cancelScheduledValues(now);
+    trackFxNodes[tr].postGain.gain.setValueAtTime(on ? 0.25 : 0.5, now);
+  }
   if (trackGainNodes[tr]) {
-    if (on) {
-      trackVolume[tr] = 0.2; // FX on → set to 20%
-      if (trackInstruments[tr] === 'sleg') trackVolume[tr] = 0.18; // Strings+ extra -10%
-    }
     const fxComp = trackVolume[tr];
     trackGainNodes[tr].gain.cancelScheduledValues(now);
     trackGainNodes[tr].gain.setValueAtTime(fxComp, now);
-    const vb = document.getElementById(`vbar-${tr}`);
-    if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(fxComp * 100) + '%'; }
   }
 }
 
@@ -2932,10 +2932,6 @@ function randAll(mode) {
   const allRoots = [...BASS_ROOTS, ...MELODY_ROOTS];
   globalScaleRoot = allRoots[Math.floor(Math.random() * allRoots.length)];
   const bassKeys = new Set(['sbass','sbass3','sbass4']);
-  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && !lockedInstruments.has(k));
-  const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && !lockedInstruments.has(k));
-  const allKeys = Object.keys(INSTRUMENTS).filter(k => !lockedInstruments.has(k));
-
   const soloPercKeys = new Set(['tamb','shak','ngate','clap','guiro']); // max one of these
   const soloLeadKeys = new Set(['sflute','boog']); // max one of these
   // Exclude instruments already locked on other tracks
@@ -2943,6 +2939,9 @@ function randAll(mode) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) lockedInstruments.add(trackInstruments[tr]);
   }
+  const percKeys = Object.keys(INSTRUMENTS).filter(k => !TONAL_KEYS.has(k) && !lockedInstruments.has(k) && !(k === 'guiro' && Math.random() < 0.5));
+  const tonalKeys = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && !lockedInstruments.has(k));
+  const allKeys = Object.keys(INSTRUMENTS).filter(k => !lockedInstruments.has(k));
 
   function buildPool(keys) {
     const shuffled = [...keys].sort(() => Math.random() - 0.5);
