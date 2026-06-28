@@ -3613,64 +3613,34 @@ if ('serviceWorker' in navigator) {
 (function() {
   const btn = document.getElementById('clearBtn');
   if (!btn) return;
-  let sweepNodes = null, sweepStartTime = 0, sweepIsTap = false;
-  let _activeSweepNoise = null, _activeSweepGain = null;
-  let holdTimer = null;
-  let didHold = false;
+  let sweepNodes = null;
 
   function startSweep() {
-    if (!ctx) return;
+    if (!ctx || sweepNodes) return;
     ctx.resume();
+    const dur = stepDuration() * 16;
     const t = ctx.currentTime;
-
-    // Use oscillator-based noise (looping short buffer) — can be stopped instantly
-    const bufLen = ctx.sampleRate * 0.5; // short looping buffer
-    const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * (dur + 1)), ctx.sampleRate);
     const d = buf.getChannelData(0);
-    for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
-    const noise = ctx.createBufferSource();
-    noise.buffer = buf;
-    noise.loop = true;
-
+    for (let i = 0; i < buf.length; i++) d[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
     bp.frequency.setValueAtTime(200, t);
-
+    bp.frequency.exponentialRampToValueAtTime(8000, t + dur);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0, t);
     gain.gain.linearRampToValueAtTime(0.34, t + 0.05);
-
     noise.connect(bp); bp.connect(gain); gain.connect(masterGain);
     noise.start(t);
     sweepNodes = { noise, bp, gain };
-    _activeSweepNoise = noise; _activeSweepGain = gain;
-    sweepStartTime = Date.now();
-    // Continuously ramp BP up while held
-    const holdDur = 8; // max 8 seconds
-    bp.frequency.exponentialRampToValueAtTime(8000, t + holdDur);
     btn.classList.add('active');
-  }
-
-  function stopSweepImmediate() {
-    if (_activeSweepGain && ctx) {
-      _activeSweepGain.gain.cancelScheduledValues(ctx.currentTime);
-      _activeSweepGain.gain.setValueAtTime(0, ctx.currentTime);
-    }
-    if (_activeSweepNoise) { try { _activeSweepNoise.stop(); } catch(e) {} _activeSweepNoise = null; }
-    if (_activeSweepGain) { try { _activeSweepGain.disconnect(); } catch(e) {} _activeSweepGain = null; }
-    sweepNodes = null;
-    btn.classList.remove('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    // Tap: ensure at least 4 beats have played
-    if (sweepIsTap) {
-      const minMs = stepDuration() * 4 * 1000; // one beat
-      const elapsed = Date.now() - sweepStartTime;
-      if (elapsed < minMs) { setTimeout(stopSweep, minMs - elapsed); return; }
-    }
     const { bp, gain, noise } = sweepNodes;
-
+    sweepNodes = null;
+    btn.classList.remove('active');
     const t = ctx.currentTime;
     const quarterNote = stepDuration() * 4;
     bp.frequency.cancelScheduledValues(t);
@@ -3678,40 +3648,15 @@ if ('serviceWorker' in navigator) {
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);
     gain.gain.linearRampToValueAtTime(0, t + quarterNote);
-    setTimeout(() => { try { noise.stop(); } catch(e) {} sweepNodes = null; _activeSweepNoise = null; _activeSweepGain = null; }, quarterNote * 1000 + 100);
-    btn.classList.remove('active');
+    setTimeout(() => { try { noise.stop(); } catch(e) {} }, quarterNote * 1000 + 100);
   }
 
-  const onDown = () => {
-    didHold = false;
-    sweepIsTap = false;
-    holdTimer = setTimeout(() => {
-      didHold = true;
-      startSweep();
-    }, 150);
-  };
-
-  const onUp = () => {
-    if (holdTimer) {
-      // Released before hold threshold — treat as tap, start sweep for 4 beats
-      clearTimeout(holdTimer); holdTimer = null;
-      sweepIsTap = true;
-      startSweep();
-      stopSweep(); // will delay 4 beats internally
-    } else if (sweepNodes) {
-      // Released after hold — stop immediately (no minimum)
-      sweepIsTap = false;
-      stopSweepImmediate();
-    }
-    didHold = false;
-  };
-
-  btn.addEventListener('mousedown', onDown);
-  btn.addEventListener('mouseup', onUp);
-  btn.addEventListener('mouseleave', onUp);
-  btn.addEventListener('touchstart', e => { e.preventDefault(); onDown(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); onUp(); }, { passive: false });
-  btn.addEventListener('touchcancel', onUp);
+  btn.addEventListener('touchstart', e => { e.preventDefault(); startSweep(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); stopSweep(); }, { passive: false });
+  btn.addEventListener('touchcancel', stopSweep);
+  btn.addEventListener('mousedown', startSweep);
+  btn.addEventListener('mouseup', stopSweep);
+  btn.addEventListener('mouseleave', stopSweep);
 
   // Drag from SWEEP onto BEAT or RAND to trigger them simultaneously
   btn.addEventListener('touchmove', e => {
@@ -3719,7 +3664,7 @@ if ('serviceWorker' in navigator) {
     const touch = e.touches[0];
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!el) return;
-    const target = el.closest('#beatBtn, #randBtn');
+    const target = el.closest('#beatBtn, #randBtn, #scratchBtn');
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
@@ -3727,7 +3672,7 @@ if ('serviceWorker' in navigator) {
       if (target.id === 'scratchBtn') { if (_recallSnap) { restoreState(_recallSnap); flashBtnBlue('scratchBtn'); } }
     }
   }, { passive: false });
-  btn.addEventListener('touchend', e => {
+  btn.addEventListener('touchend', () => {
     document.querySelectorAll('[data-sweep-triggered]').forEach(el => delete el.dataset.sweepTriggered);
   }, { passive: false });
 })();
