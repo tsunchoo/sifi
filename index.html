@@ -369,7 +369,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 21:56</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 22:17</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1701,7 +1701,7 @@ const _boogGlide = {};
 function playBoog(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.0020 : 0.0013;
+  const vel = isAccent ? 0.055 : 0.038;
 
   const prevFreq = _boogGlide[tr] || freq;
   _boogGlide[tr] = freq;
@@ -1798,7 +1798,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
 function playSynthAttack(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.32 : 0.22;
+  const vel = isAccent ? 0.226 : 0.156;
   const tail = 1.25; // tail halved
 
   // Sharp metallic attack: two slightly detuned saws
@@ -3161,9 +3161,18 @@ function randAll(mode) {
     const pShuffle = [...percAvail].sort(() => Math.random() - 0.5);
     const pPool = percSlots > 0 ? buildPool(pShuffle).slice(0, percSlots) : [];
 
-    // Deduplicate pool — no instrument should ever appear twice
+    // Deduplicate and enforce max one bass
     const seenInPool = new Set();
-    pool = [...tPool, ...pPool].filter(k => { if (seenInPool.has(k)) return false; seenInPool.add(k); return true; });
+    let bassInPool = false;
+    pool = [...tPool, ...pPool].filter(k => {
+      if (seenInPool.has(k)) return false;
+      if (bassKeys.has(k)) {
+        if (bassInPool) return false; // already have a bass
+        bassInPool = true;
+      }
+      seenInPool.add(k);
+      return true;
+    });
   }
 
   // Sort pool: hihat top → perc → tonal → bass → kick bottom
