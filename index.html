@@ -287,7 +287,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   background: transparent;
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
-  top: 50%; bottom: -3px; left: 1px; right: 1px;
+  top: 0; bottom: 0; left: 1px; right: 1px;
 }
 .step-cell.soft::after { background: var(--track-color, var(--text)); opacity: 0.4; }
 .step-cell.on::after   { background: var(--track-color, var(--text)); opacity: 1; }
@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 22:58</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 23:08</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -494,7 +494,7 @@ function playUiSound(name) {
   if (!ctx || !window._uiSoundBufs || !window._uiSoundBufs[name]) return;
   const src = ctx.createBufferSource(); src.buffer = window._uiSoundBufs[name];
   src.playbackRate.value = name === 'rewind' ? 1.5 : 1.0; // rewind plays faster
-  const g = ctx.createGain(); g.gain.value = name === 'rewind' ? 0.496 : 0.7; // rewind -3dB
+  const g = ctx.createGain(); g.gain.value = name === 'rewind' ? 0.394 : 0.7; // rewind -3dB
   src.connect(g); g.connect(masterGain);
   src.start();
 }
@@ -1478,7 +1478,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
 function playStab(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.049 : 0.034;
+  const vel = isAccent ? 0.035 : 0.024;
 
   // 3-oscillator detuned stack — chord-like spread
   const detunes = [-7, 0, 7, 12];
@@ -1702,7 +1702,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 function playBlunt(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.143 : 0.096;
+  const vel = isAccent ? 0.080 : 0.054;
   const tail = 2.0;
   [-14, 14].forEach(det => {
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
@@ -3394,7 +3394,8 @@ function snapshotState() {
     bpm, masterVol,
     speciesName: _currentSpecies,
     barColor: _currentBarColor,
-    beatPlaying: beatPlaying
+    beatPlaying: beatPlaying,
+    trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr])
   };
 }
 function restoreState(snap) {
@@ -3445,6 +3446,19 @@ function restoreState(snap) {
     updateBeatPulse();
   }
   const kd = document.getElementById('keyDisplay'); if (kd) kd.textContent = (getKeyName()||''). replace(/-/g,' ');
+  // Restore auto-rand lane colors
+  if (snap.trackAutoRand) {
+    snap.trackAutoRand.forEach((isAuto, tr) => {
+      const lane = document.getElementById(`lane-${tr}`);
+      if (!lane) return;
+      if (isAuto) {
+        lane.style.setProperty('--track-color', '#f71aff');
+      } else {
+        lane.style.removeProperty('--track-color');
+        setTrackNameColor(tr, trackInstruments[tr]);
+      }
+    });
+  }
 }
 function markModified() {
   // Any edit deactivates the active slot (turns it back to green)
