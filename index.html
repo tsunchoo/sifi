@@ -369,7 +369,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 21:39</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 21:56</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -560,12 +560,12 @@ function setFxActive(tr, fxVal) {
   const now = ctx.currentTime;
   dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? 0 : 1, now);
   fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
-  preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.25 : 0, now);
+  preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.12 : 0, now);
   // Compensate for crunch loudness in postGain (×0.5 when on = -6dB)
   // so fader position sounds the same with or without FX
   if (trackFxNodes[tr].postGain) {
     trackFxNodes[tr].postGain.gain.cancelScheduledValues(now);
-    trackFxNodes[tr].postGain.gain.setValueAtTime(on ? 0.25 : 0.5, now);
+    trackFxNodes[tr].postGain.gain.setValueAtTime(0.5, now); // no volume change on FX toggle
   }
   if (trackGainNodes[tr]) {
     const fxComp = trackVolume[tr];
@@ -1379,7 +1379,7 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   const saw2 = ctx.createOscillator(); saw2.type = 'sawtooth'; saw2.frequency.value = freq; saw2.detune.value = 3;
   const sub  = ctx.createOscillator(); sub.type  = 'sine';   sub.frequency.value  = freq * 0.5;
 
-  const mix = ctx.createGain(); mix.gain.value = 0.55; // more square for body
+  const mix = ctx.createGain(); mix.gain.value = vel * 0.55; // scaled by vel
 
   // Tight lowpass — closed, punchy, no bloom
   const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 0.8;
@@ -1651,7 +1651,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
   lfo.frequency.value = 4.5 + Math.random() * 1.5;
   const lfoGain = ctx.createGain(); lfoGain.gain.value = freq * 0.012;
   lfo.connect(lfoGain); lfoGain.connect(osc1.frequency); lfoGain.connect(osc2.frequency);
-  const mix = ctx.createGain(); mix.gain.value = 0.55; // more square for body
+  const mix = ctx.createGain(); mix.gain.value = vel * 0.55; // scaled by vel
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
   env.gain.linearRampToValueAtTime(vel, time + 0.03);
@@ -1667,7 +1667,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 function playBlunt(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.114 : 0.076;
+  const vel = isAccent ? 0.057 : 0.038;
   const tail = 2.0;
   [-14, 14].forEach(det => {
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
@@ -1701,7 +1701,7 @@ const _boogGlide = {};
 function playBoog(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.0039 : 0.0025;
+  const vel = isAccent ? 0.0020 : 0.0013;
 
   const prevFreq = _boogGlide[tr] || freq;
   _boogGlide[tr] = freq;
@@ -1731,7 +1731,7 @@ function playBoog(freq, durSec, isAccent, time, tr) {
   env.gain.setValueAtTime(vel * 0.9, time + durSec - 0.04);
   env.gain.linearRampToValueAtTime(0, time + durSec + 0.08);
 
-  const env2 = ctx.createGain(); env2.gain.value = 0.35;
+  const env2 = ctx.createGain(); env2.gain.value = vel * 0.35;
 
   osc1.connect(lp); lp.connect(env); env.connect(dest);
   osc2.connect(env2); env2.connect(dest);
@@ -1744,7 +1744,7 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 function playSynthFlute(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.125 : 0.080;
+  const vel = isAccent ? 0.070 : 0.045;
 
   // FM synthesis: carrier sine + modulator for breathiness
   const modFreq = freq * 2.01; // modulator slightly detuned
@@ -3131,17 +3131,13 @@ function randAll(mode) {
     pool = buildPool(tonalKeys);
   } else {
     // Equal chance: pick 3 tonal and 3 perc, then shuffle
-    // Always include one bass in tonal selection
-    // Count unlocked slots and what categories they want (based on sort rank)
-    // Rank: 0=hihat, 1=perc, 2=tonal, 3=bass, 4=kick
-    const unlockedTracks = [...Array(NUM_TRACKS)].map((_, tr) => tr).filter(tr => !trackSweep[tr]);
-    const needsTonal = unlockedTracks.filter(tr => {
-      // Tracks that will get tonal after sort: positions that rank 2,3,4 in sorted pool
-      // Approximate: bottom half gets tonal/bass
-      return tr >= Math.floor(NUM_TRACKS / 2);
-    });
-    const tonalSlots = Math.max(1, Math.round(unlockedTracks.length / 2));
-    const percSlots = Math.max(0, unlockedTracks.length - tonalSlots);
+    // Fixed 50/50 split: always 3 tonal + 3 perc for full deck
+    // Count how many of each are already locked in
+    const lockedTonal = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr])).length;
+    const lockedPerc = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && !TONAL_KEYS.has(trackInstruments[tr])).length;
+    // Remaining slots needed to fill out the 3/3 split
+    const tonalSlots = Math.max(0, 3 - lockedTonal);
+    const percSlots = Math.max(0, 3 - lockedPerc);
 
     // Build exact pool for unlocked slots
     // Never duplicate anything already in the current deck
@@ -3669,7 +3665,9 @@ function wireRandomizeButton(btn, tr) {
     clearInterval(autoInterval); autoInterval = null;
     btn.classList.remove('rand-auto');
     delete autoShiftStops[tr];
-    const lane = document.getElementById(`lane-${tr}`); if (lane) lane.classList.remove('track-auto-rand'); if (lane) lane.style.removeProperty('--track-color'); setTrackNameColor(tr, trackInstruments[tr]);
+    const _lane2 = document.getElementById(`lane-${tr}`);
+    if (_lane2) { _lane2.classList.remove('track-auto-rand'); _lane2.style.removeProperty('--track-color'); }
+    setTrackNameColor(tr, trackInstruments[tr]);
   };
 
   // Called from scheduler on quarter note when in auto mode
@@ -3691,6 +3689,8 @@ function wireRandomizeButton(btn, tr) {
   const doDoubleTap = () => {
     if (autoInterval) { stopAuto(); return; }
     btn.classList.add('rand-auto');
+    const _lane = document.getElementById(`lane-${tr}`);
+    if (_lane) _lane.style.setProperty('--track-color', '#f71aff');
     doRand();
     autoInterval = setInterval(() => { doRand(); }, (60 / bpm) * 4 * 1000);
     autoShiftStops[tr] = stopAuto;
