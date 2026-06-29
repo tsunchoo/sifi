@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 07:26</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 07:31</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3929,16 +3929,16 @@ function stopRecallLoop() {
   if (!btn) return;
 
   const doRecall = () => {
-    playUiSound('rewind');
     if (_recallSnap) {
+      // Spin reels backwards for one bar then restore
       document.querySelectorAll('.reel-wrap').forEach(r => {
         r.classList.remove('spinning');
         r.classList.add('spinning-reverse');
       });
       restoreState(_recallSnap);
       flashBtnOrange('scratchBtn');
+      playUiSound('rewind');
       window._reelReversePending = true;
-      // If not playing, flip back after one bar
       if (!playing) {
         setTimeout(() => {
           window._reelReversePending = false;
@@ -3948,6 +3948,7 @@ function stopRecallLoop() {
     }
   };
 
+  btn.addEventListener('click', doRecall);
   btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); doRecall(); }, { passive: false });
 })();
