@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 06:05</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 06:16</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1765,11 +1765,15 @@ async function startMicRecord(tr) {
       const slices = sliceBuffer(audioBuf, 8);
       _micBuffers[tr] = slices;
       _micRecording[tr] = false;
+      // Restore main output
+      if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol, ctx.currentTime, 0.05);
       // Update R button back to normal
       const rb = document.getElementById(`randbtn-${tr}`);
       if (rb) { rb.textContent = 'R'; rb.style.background = ''; rb.style.color = ''; }
     };
     _micRecording[tr] = true;
+    // Duck main output -10dB during recording
+    if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterGain.gain.value * 0.316, ctx.currentTime, 0.05);
     // Flash R button red while recording
     const rb = document.getElementById(`randbtn-${tr}`);
     if (rb) { rb.textContent = '●'; rb.style.background = '#c0392b'; rb.style.color = '#fff'; }
@@ -1807,8 +1811,8 @@ function sliceBuffer(buf, n) {
 function playMicSlice(tr, stepVal, time) {
   const slices = _micBuffers[tr];
   if (!slices || slices.length === 0) return;
-  // Pick slice based on step position within measure
-  const idx = Math.floor(Math.random() * slices.length);
+  // Pick slice based on current step
+  const idx = currentStep % slices.length;
   const buf = slices[idx];
   const src = ctx.createBufferSource(); src.buffer = buf;
   const g = ctx.createGain();
@@ -1883,7 +1887,7 @@ function setBeatVol(v) {
 })();
 
 function toggleBeat() {
-  playUiSound('click');
+  playUiSound((beatPlaying || _beatPending) ? 'clickoff' : 'click');
   if (ctx) ctx.resume();
   const btn = document.getElementById('beatBtn');
   if (beatPlaying || _beatPending) {
@@ -2862,7 +2866,7 @@ function getKeyName() {
 function onRecClick() { toggleRecord(); }
 
 function toggleRecord() {
-  playUiSound('play');
+  if (playing) playUiSound('play');
   if (!ctx) { alert('Start playback first'); return; }
 
   // If already armed/recording — stop and share
@@ -3727,7 +3731,7 @@ async function initAudio() {
     // UI Sounds
     const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
-    ['click','play','rewind'].forEach(name => {
+    ['click','play','rewind','clickoff'].forEach(name => {
       fetch(`Sounds/${name}.wav`).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf, decoded => { _uiSoundBufs[name] = decoded; })).catch(()=>{});
     });
     window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = window.masterLimiter;
