@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 07:54</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 20:27</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -658,7 +658,7 @@ function scheduler() {
       }
       if (_autoRandPending) {
         _autoRandPending = false;
-        _recallSnap = snapshotState(); // save before change
+        _recallSnapB = snapshotState(); // save current as previous before change
         randAll(_autoRandMode); _autoRandMode = undefined;
       }
     }
@@ -2808,7 +2808,7 @@ async function saveAllCombined() {
 let _autoRandPending = false;
 
 function queueRand(mode) {
-  _recallSnap = snapshotState(); // save before change
+  _recallSnapB = snapshotState(); // save current as previous before change
   if (playing) {
     _autoRandPending = true;
     _autoRandMode = mode;
@@ -3878,8 +3878,9 @@ function loadScratchSample() {
 
 
 // RECALL button — saves last pattern every bar, tap to restore it
-let _recallSnap = null;
-let _currentBarSnap = null;
+let _recallSnapA = null; // currently playing
+let _recallSnapB = null; // previous
+let _recallSnap = null; // kept for compatibility
 let _recallInterval = null;
 
 function startRecallLoop() {
