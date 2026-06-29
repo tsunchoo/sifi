@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 07:18</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 07:26</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3450,15 +3450,18 @@ function updateSlotButtons() {
       btn.style.background = color;
       if (i === activeSlot) {
         btn.classList.add('loaded');
-        btn.style.color = '#ffe033'; // yellow when active
+        btn.style.color = '#ffe033';
+        btn.style.border = 'none';
       } else {
         btn.classList.add('saved');
         btn.style.color = '#ffe033';
+        btn.style.border = 'none';
       }
     } else {
       btn.style.background = 'transparent';
       btn.style.color = 'var(--text)';
       btn.style.border = '2px solid #111';
+      btn.style.borderRadius = '';
     }
   }
 }
@@ -3928,18 +3931,23 @@ function stopRecallLoop() {
   const doRecall = () => {
     playUiSound('rewind');
     if (_recallSnap) {
-      // Spin reels backwards for one bar then restore
       document.querySelectorAll('.reel-wrap').forEach(r => {
         r.classList.remove('spinning');
         r.classList.add('spinning-reverse');
       });
       restoreState(_recallSnap);
       flashBtnOrange('scratchBtn');
-window._reelReversePending = true;
+      window._reelReversePending = true;
+      // If not playing, flip back after one bar
+      if (!playing) {
+        setTimeout(() => {
+          window._reelReversePending = false;
+          document.querySelectorAll('.reel-wrap').forEach(r => r.classList.remove('spinning-reverse'));
+        }, (60 / bpm) * 4 * 1000);
+      }
     }
   };
 
-  btn.addEventListener('click', doRecall);
   btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); doRecall(); }, { passive: false });
 })();
