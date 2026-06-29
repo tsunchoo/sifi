@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 06:23</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 06:39</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -522,7 +522,7 @@ async function loadSamples() {
   }));
   document.getElementById('loadingOverlay').classList.add('hidden');
   // Request mic permission early
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+  navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } }).then(stream => {
     window._micStream = stream;
     // Keep stream alive but don't use it yet
   }).catch(err => console.log('Mic permission denied:', err));
@@ -1754,7 +1754,8 @@ let _micMediaRecorder = null;
 async function _micStartRecord(tr) {
   if (_micRecording[tr]) return;
   try {
-    const stream = window._micStream || await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true, sampleRate: 44100 } });
+    window._micStream = stream;
     window._micStream = stream;
     const chunks = [];
     const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
@@ -1768,6 +1769,10 @@ async function _micStartRecord(tr) {
         const audioBuf = await ctx.decodeAudioData(arrayBuf);
         const slices = sliceBuffer(audioBuf, 8);
         _micBuffers[tr] = slices;
+        // Lock track so recording can't be easily erased
+        trackSweep[tr] = true;
+        const sb = document.getElementById(`swpbtn-${tr}`);
+        if (sb) { sb.textContent = 'L'; sb.classList.add('sweep-on'); }
       } catch(e) { console.error('Mic decode failed:', e); }
       _micRecording[tr] = false;
       _micMediaRecorder = null;
@@ -1804,7 +1809,14 @@ function sliceBuffer(buf, n) {
     const len = e - s;
     if (len < 100) continue;
     const sb = ctx.createBuffer(1, len, ctx.sampleRate);
-    sb.getChannelData(0).set(data.slice(s, e));
+    const sliceData = data.slice(s, e);
+    // Normalize to peak then boost
+    let peak = 0;
+    for (let j = 0; j < sliceData.length; j++) peak = Math.max(peak, Math.abs(sliceData[j]));
+    const boost = peak > 0.001 ? Math.min(1.0 / peak, 10) : 1; // normalize, cap at +20dB
+    const normalized = new Float32Array(sliceData.length);
+    for (let j = 0; j < sliceData.length; j++) normalized[j] = sliceData[j] * boost;
+    sb.getChannelData(0).set(normalized);
     slices.push(sb);
   }
   return slices;
@@ -1818,7 +1830,7 @@ function playMicSlice(tr, stepVal, time) {
   const buf = slices[idx];
   const src = ctx.createBufferSource(); src.buffer = buf;
   const g = ctx.createGain();
-  g.gain.setValueAtTime(stepVal === 2 ? 0.9 : 0.6, time);
+  g.gain.setValueAtTime(stepVal === 2 ? 2.85 : 1.9, time); // +10dB boost
   g.gain.exponentialRampToValueAtTime(0.001, time + buf.duration);
   src.connect(g); g.connect(trackGainNodes[tr] || masterGain);
   src.start(time);
@@ -2050,7 +2062,7 @@ function buildUI() {
         ctrlRow.style.background = '#c0392b';
         nameBtn.style.background = '#c0392b';
         nameBtn.style.color = '#fff';
-        if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol * 0.316, ctx.currentTime, 0.05);
+        if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol * 0.178, ctx.currentTime, 0.05); // -15dB while recording
         _micStartRecord(tr);
       } else {
         ht = setTimeout(() => { ht = null; openSoundPicker(tr); }, 400);
