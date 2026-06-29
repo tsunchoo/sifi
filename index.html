@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 20:27</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 20:33</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3844,7 +3844,7 @@ if ('serviceWorker' in navigator) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
       if (target.id === 'randBtn') { flashBtnBlue('randBtn'); queueRand(); }
-      if (target.id === 'scratchBtn') { if (_recallSnap) { restoreState(_recallSnap); flashBtnOrange('scratchBtn'); } }
+      if (target.id === 'scratchBtn') { if (_recallSnapB) { const _cur = snapshotState(); restoreState(_recallSnapB); flashBtnOrange('scratchBtn'); window._reelReversePending = true; _recallSnapB = _cur; playUiSound('rewind'); } }
     }
   }, { passive: false });
   btn.addEventListener('touchend', () => {
@@ -3899,17 +3899,17 @@ function stopRecallLoop() {
   if (!btn) return;
 
   const doRecall = () => {
+    if (!_recallSnapB) return;
     playUiSound('rewind');
-    if (_recallSnap) {
-      // Spin reels backwards for one bar then restore
-      document.querySelectorAll('.reel-wrap').forEach(r => {
-        r.classList.remove('spinning');
-        r.classList.add('spinning-reverse');
-      });
-      restoreState(_recallSnap);
-      flashBtnOrange('scratchBtn');
-      window._reelReversePending = true;
-    }
+    const current = snapshotState();
+    document.querySelectorAll('.reel-wrap').forEach(r => {
+      r.classList.remove('spinning');
+      r.classList.add('spinning-reverse');
+    });
+    restoreState(_recallSnapB);
+    flashBtnOrange('scratchBtn');
+    window._reelReversePending = true;
+    _recallSnapB = current;
   };
 
   btn.addEventListener('click', doRecall);
