@@ -369,7 +369,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 21:33</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 21:39</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3158,7 +3158,6 @@ function randAll(mode) {
     }
 
     const nonBassAvail = tonalKeys.filter(k => !bassKeys.has(k) && !currentDeck.has(k));
-    if (nonBassAvail.includes('boog')) nonBassAvail.push('boog');
     const nonBassShuffle = [...nonBassAvail].sort(() => Math.random() - 0.5).slice(0, Math.max(0, tonalSlots - (bassChoice ? 1 : 0)));
     const tPool = [...(bassChoice ? [bassChoice] : []), ...nonBassShuffle].slice(0, tonalSlots);
 
@@ -3166,7 +3165,9 @@ function randAll(mode) {
     const pShuffle = [...percAvail].sort(() => Math.random() - 0.5);
     const pPool = percSlots > 0 ? buildPool(pShuffle).slice(0, percSlots) : [];
 
-    pool = [...tPool, ...pPool];
+    // Deduplicate pool — no instrument should ever appear twice
+    const seenInPool = new Set();
+    pool = [...tPool, ...pPool].filter(k => { if (seenInPool.has(k)) return false; seenInPool.add(k); return true; });
   }
 
   // Sort pool: hihat top → perc → tonal → bass → kick bottom
