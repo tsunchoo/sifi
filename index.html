@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 23:08</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 23:18</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3446,15 +3446,17 @@ function restoreState(snap) {
     updateBeatPulse();
   }
   const kd = document.getElementById('keyDisplay'); if (kd) kd.textContent = (getKeyName()||''). replace(/-/g,' ');
-  // Restore auto-rand lane colors
+  // Restore auto-rand lane colors and R button state
   if (snap.trackAutoRand) {
     snap.trackAutoRand.forEach((isAuto, tr) => {
       const lane = document.getElementById(`lane-${tr}`);
-      if (!lane) return;
+      const rb = document.getElementById(`randbtn-${tr}`);
       if (isAuto) {
-        lane.style.setProperty('--track-color', '#f71aff');
+        if (lane) lane.style.setProperty('--track-color', '#f71aff');
+        if (rb) { rb.classList.add('rand-auto'); rb.textContent = 'A'; }
       } else {
-        lane.style.removeProperty('--track-color');
+        if (lane) { lane.style.removeProperty('--track-color'); }
+        if (rb) { rb.classList.remove('rand-auto'); rb.textContent = 'R'; }
         setTrackNameColor(tr, trackInstruments[tr]);
       }
     });
@@ -3722,16 +3724,18 @@ function wireRandomizeButton(btn, tr) {
   const stopAuto = () => {
     clearInterval(autoInterval); autoInterval = null;
     btn.classList.remove('rand-auto');
+    btn.textContent = 'R';
     delete autoShiftStops[tr];
     const _lane2 = document.getElementById(`lane-${tr}`);
     if (_lane2) { _lane2.classList.remove('track-auto-rand'); _lane2.style.removeProperty('--track-color'); }
     setTrackNameColor(tr, trackInstruments[tr]);
   };
 
-  // Called from scheduler on quarter note when in auto mode
+  // Called from scheduler on quarter note when in auto mode — pulse A
   btn._randBeatPulse = () => {
     if (!autoInterval) return;
-    btn.classList.remove('rand-auto'); void btn.offsetWidth; btn.classList.add('rand-auto');
+    btn.style.opacity = '0.4';
+    setTimeout(() => { btn.style.opacity = '1'; }, 80);
   };
 
   // Single tap: pulse red, randomize this track on next downbeat (or immediately if stopped)
@@ -3747,6 +3751,7 @@ function wireRandomizeButton(btn, tr) {
   const doDoubleTap = () => {
     if (autoInterval) { stopAuto(); return; }
     btn.classList.add('rand-auto');
+    btn.textContent = 'A';
     const _lane = document.getElementById(`lane-${tr}`);
     if (_lane) _lane.style.setProperty('--track-color', '#f71aff');
     doRand();
