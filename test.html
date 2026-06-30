@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:18</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:26</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1433,7 +1433,7 @@ const _rhodesGlide = {};
 function playRhodes(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.240 : 0.164;
+  const vel = isAccent ? 0.191 : 0.130;
   _rhodesGlide[tr] = freq;
 
   // Old sample piano: thin, slightly detuned, short decay, nasal quality
@@ -2048,7 +2048,7 @@ function playSynthAttack(freq, durSec, isAccent, time, tr) {
 function playGlassBell(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.057 : 0.035;
+  const vel = isAccent ? 0.045 : 0.028;
   const tail = isAccent ? 2.6 : 1.8;
 
   // Inharmonic partials — classic bell ratios, not integer multiples
@@ -3573,12 +3573,13 @@ function randAll(mode) {
     if (ctx && trackFxNodes[tr]) setFxActive(tr, { x: 0, y: 0 });
     const fxBtn = document.getElementById(`fxbtn-${tr}`); if (fxBtn) fxBtn.classList.remove('on');
   }
-  // Randomize FX for tonal instruments (25% chance of crunch on)
+  // Randomize FX for tonal instruments (25% chance, higher for synth/punk bass)
   // setFxActive handles both gain node and vol bar correctly
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
     if (TONAL_KEYS.has(pool[tr])) {
-      const fxOn = Math.random() < 0.25;
+      const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
+      const fxOn = Math.random() < (isBass ? 0.6 : 0.25);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -4276,7 +4277,7 @@ if ('serviceWorker' in navigator) {
     // baseGain holds the "intended" envelope level; duckGain applies sidechain ducking on top
     const baseGain = ctx.createGain();
     baseGain.gain.setValueAtTime(0, t);
-    baseGain.gain.linearRampToValueAtTime(0.191, t + 0.008);
+    baseGain.gain.linearRampToValueAtTime(0.303, t + 0.008);
     const duckGain = ctx.createGain();
     duckGain.gain.value = 1;
 
@@ -4404,8 +4405,8 @@ function stopRecallLoop() {
   };
 
   btn.addEventListener('click', doRecall);
-  btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
-  btn.addEventListener('touchend', e => { e.preventDefault(); doRecall(); }, { passive: false });
+  btn.addEventListener('touchstart', e => { e.preventDefault(); doRecall(); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); }, { passive: false });
 })();
 
 // Key display tap — cycle through notes and scales
@@ -4560,7 +4561,7 @@ function toggleTurbo() {
       window.masterLimiter.release.value = 0.1;
     }
   }
-  if (btn) btn.style.background = _turboOn ? '#111' : '#f17d21';
+  if (btn) btn.style.background = _turboOn ? '#f17d21' : '#555';
 }
 
 
