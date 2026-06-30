@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:08</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:12</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1908,9 +1908,7 @@ function playVox(isAccent, time, tr) {
     utter.rate = isAccent ? 1.1 : 0.95;
     utter.pitch = isAccent ? 1.15 : 1.0;
     utter.volume = isAccent ? 1.0 : 0.7;
-    // Fire as close to 'now' as possible — speechSynthesis has no sample-accurate scheduling
-    const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
-    setTimeout(() => { try { speechSynthesis.speak(utter); } catch(e) {} }, delayMs);
+    speechSynthesis.speak(utter); // must fire synchronously — iOS blocks delayed/scheduled calls
   } catch(e) { /* speechSynthesis unsupported or blocked */ }
 }
 
