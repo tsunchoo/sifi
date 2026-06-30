@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:37</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:42</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -485,8 +485,9 @@ function setMasterVol(v) {
   const readout = document.getElementById('swingReadout');
   if (readout) readout.textContent = Math.round(getSwingOffsetMs()) + 'ms';
 }
+let _committedSwing = 0; // only updates at bar start to avoid mid-bar timing artifacts
 function getSwingOffsetMs() {
-  return masterVol * 60; // 0 at min, 60ms at max
+  return _committedSwing * 60; // 0 at min, 60ms at max
 }
 function updateMasterVolCells() {
   const slider = document.getElementById('masterVolBar');
@@ -672,6 +673,7 @@ function scheduler() {
     const t = nextStepTime + (swingMs / 1000);
     // Fire pending auto-rand on downbeat
     if (step === 0) {
+      _committedSwing = masterVol; // commit swing amount only at bar start
       // Flip reels forward when recalled pattern starts playing
       if (window._reelReversePending) {
         window._reelReversePending = false;
@@ -712,7 +714,8 @@ function scheduler() {
         if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
       }
       if (snap.bpm) bpm = snap.bpm;
-      if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
+      // masterVol is now swing — don't restore it from old slot saves to avoid surprise changes
+      // if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
       if (snap.beatPlaying !== undefined) {
         beatPlaying = snap.beatPlaying;
         _beatPending = false;
