@@ -346,7 +346,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 </head>
 <body>
 
-<button id="loadingOverlay" onclick="this.style.pointerEvents='none'; document.getElementById('loadingMsg').textContent='LOADING...'; initAudio()">
+<button id="loadingOverlay" onclick="this.style.pointerEvents='none'; document.getElementById('loadingMsg').textContent='LOADING...'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>BBOX</h2>
   <p id="loadingMsg">Tap to load</p>
 </button>
@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:12</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:16</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1955,26 +1955,12 @@ function setBeatVol(v) {
   if (window._beatGain && ctx) window._beatGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
 }
 
-// BEAT button: tap=toggle, hold=volume overlay
+// BEAT button: instant toggle, same responsiveness as save slots
 (function() {
   const btn = document.getElementById('beatBtn');
   if (!btn) return;
   btn.removeAttribute('onclick');
-  let pressStart = 0;
-  btn.addEventListener('touchstart', e => { e.preventDefault(); pressStart = Date.now(); }, { passive: false });
-  btn.addEventListener('touchend', e => {
-    e.preventDefault();
-    const held = Date.now() - pressStart;
-    if (held >= 600) {
-      // Long press — open overlay
-      const ov = document.getElementById('beatVolOverlay');
-      ov.style.display = 'flex';
-      setTimeout(() => { ov.addEventListener('click', () => { ov.style.display = 'none'; }, { once: true }); }, 300);
-    } else {
-      // Short tap — toggle
-      toggleBeat();
-    }
-  }, { passive: false });
+  btn.addEventListener('touchstart', e => { e.preventDefault(); toggleBeat(); }, { passive: false });
 })();
 
 function toggleBeat() {
@@ -3877,7 +3863,7 @@ async function initAudio() {
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.531; window._beatGain.connect(masterGain);
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.668; window._beatGain.connect(masterGain);
     // UI Sounds
     const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
