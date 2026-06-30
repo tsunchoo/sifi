@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:28</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:34</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -450,7 +450,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
     </div>
 
-    <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
+    <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
   </div>
 </div>
 
@@ -764,7 +764,7 @@ function scheduler() {
       }
     }
     // Apply pending slot swap before audio is scheduled so step 0 plays from the new pattern
-    if (step === 0 && _pendingSlot >= 0) {
+    if ((step === 0 || step === 4 || step === 8 || step === 12) && _pendingSlot >= 0) {
       const pi = _pendingSlot; _pendingSlot = -1;
       const snap = slots[pi];
       // Audio-critical state only — no DOM work here
@@ -3792,9 +3792,8 @@ function slotPress(i) {
     activeSlot = i;
     updateSlotButtons();
   } else {
-    // Playing — restore immediately like RECALL
-    _pendingSlot = -1;
-    restoreState(slots[i]);
+    // Playing — queue to next quarter note to avoid mid-note click/noise
+    _pendingSlot = i;
     activeSlot = i;
     updateSlotButtons();
   }
