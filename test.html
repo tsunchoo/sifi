@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:04</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 22:18</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -418,11 +418,13 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <div id="settingsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);" id="settingsBg">
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;">
 
-    <!-- Info row: song name, key (tappable), bpm -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid #ddd;">
-      <div style="font-size:1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;" id="settingsNameDisplay"></div>
-      <div id="keyDisplay" style="font-size:1rem;font-weight:700;color:#111;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key"></div>
-      <div id="bpmVal" style="font-size:1rem;font-weight:700;color:#111;">110 BPM</div>
+    <!-- Song name on its own line, scale + tempo on the line below -->
+    <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid #ddd;">
+      <div style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;" id="settingsNameDisplay"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div id="keyDisplay" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key"></div>
+        <div id="bpmVal" style="font-size:0.85rem;font-weight:700;color:#555;">110 BPM</div>
+      </div>
     </div>
 
     <!-- Three sliders grouped together -->
@@ -447,6 +449,8 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
       </div>
 
     </div>
+
+    <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
   </div>
 </div>
 
@@ -4535,7 +4539,30 @@ function startHiss() {
   _hissNode._extras = { crackNode, crackGain, rumble, rumbleLFO, rumbleGain };
 }
 
-// turbo compression removed — reel tap now opens settings panel
+
+// ── Turbo Boost: hard brickwall limiting ──
+let _turboOn = false;
+function toggleTurbo() {
+  _turboOn = !_turboOn;
+  const btn = document.getElementById('turboBtn');
+  if (window.masterLimiter) {
+    if (_turboOn) {
+      window.masterLimiter.threshold.value = -20;
+      window.masterLimiter.ratio.value = 20;
+      window.masterLimiter.knee.value = 0;
+      window.masterLimiter.attack.value = 0.001;
+      window.masterLimiter.release.value = 0.05;
+    } else {
+      window.masterLimiter.threshold.value = -1;
+      window.masterLimiter.ratio.value = 20;
+      window.masterLimiter.knee.value = 0;
+      window.masterLimiter.attack.value = 0.0003;
+      window.masterLimiter.release.value = 0.1;
+    }
+  }
+  if (btn) btn.style.background = _turboOn ? '#111' : '#f17d21';
+}
+
 
 // Wire reel hold — opens settings panel
 let _reelHoldTimer = null;
