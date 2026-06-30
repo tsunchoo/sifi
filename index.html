@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:59</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:10</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -464,13 +464,13 @@ const INSTRUMENTS = {
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
-  sstring:{ name: 'CHOIR',       soft: null, accent: null, group: 'tonal' },
+  sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'THMB PIANO',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
-  satk:   { name: 'SYN ATTACK',  soft: null, accent: null, group: 'tonal' },
+  satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
   fflute: { name: 'GLASS BELL', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'BLUNT',        soft: null, accent: null, group: 'tonal' },
@@ -489,14 +489,14 @@ function setMasterVol(v) {
 function updateSwingReadout() {
   const readout = document.getElementById('swingReadout');
   if (!readout) return;
-  const liveMs = Math.round(masterVol * 60);
-  const committedMs = Math.round(_committedSwing * 60);
+  const liveMs = Math.round(masterVol * 40);
+  const committedMs = Math.round(_committedSwing * 40);
   readout.textContent = liveMs + 'ms';
   readout.style.opacity = (liveMs !== committedMs && playing) ? '0.45' : '1';
 }
 let _committedSwing = 0; // only updates at bar start to avoid mid-bar timing artifacts
 function getSwingOffsetMs() {
-  return _committedSwing * 60; // 0 at min, 60ms at max
+  return _committedSwing * 40; // 0 at min, 40ms at max
 }
 function updateMasterVolCells() {
   const slider = document.getElementById('masterVolBar');
@@ -1189,59 +1189,70 @@ function randomizeBassTrack(tr, level) {
   redrawTrackCells(tr); markModified();
 }
 
+// ── CYBER PAD: granular-feeling atmospheric texture, rainy cyberpunk, sparse strings-like ──
 function playStringSynth(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vol = isAccent ? 1.960 : 1.340;
+  const vol = isAccent ? 0.034 : 0.022;
+  const tail = 2.4; // long evolving tail
 
-  // Choir: formant-filtered sawtooth voices simulating vowel "aah"
-  // Formants: F1~800Hz, F2~1200Hz, F3~2600Hz (open "ah" vowel)
-  const formants = [
-    { freq: 800,  Q: 8,  gain: 1.0 },
-    { freq: 1200, Q: 10, gain: 0.6 },
-    { freq: 2600, Q: 12, gain: 0.3 },
-  ];
+  // Cloud of slightly detuned sines — granular shimmer via fast random gain flicker
+  const grainCount = 7;
+  const detunes = [-22, -14, -7, 0, 7, 14, 22];
 
-  const voiceDetunes = [-8, -3, 0, 3, 8, 12];
-  // Reverb for space
-  const irLen = Math.floor(ctx.sampleRate * 0.6);
+  const masterEnv = ctx.createGain();
+  masterEnv.gain.setValueAtTime(0, time);
+  masterEnv.gain.linearRampToValueAtTime(vol, time + 0.6); // slow attack — pad swells in
+  masterEnv.gain.setValueAtTime(vol, time + Math.max(durSec, 0.3));
+  masterEnv.gain.exponentialRampToValueAtTime(0.0008, time + durSec + tail);
+
+  // Dark, slowly shifting LP filter — cyberpunk haze
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.7;
+  lp.frequency.setValueAtTime(freq * 2.2, time);
+  lp.frequency.linearRampToValueAtTime(freq * 4.5, time + durSec * 0.5);
+  lp.frequency.linearRampToValueAtTime(freq * 1.5, time + durSec + tail);
+
+  // Sparse reverb-like diffusion via short noise IR for rainy ambience
+  const irLen = Math.floor(ctx.sampleRate * 1.2);
   const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = irBuf.getChannelData(ch);
-    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/irLen,1.0);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.8);
   }
   const rev = ctx.createConvolver(); rev.buffer = irBuf;
+  const revG = ctx.createGain(); revG.gain.value = 0.5;
+  const dryG = ctx.createGain(); dryG.gain.value = 0.55;
 
-  const env = ctx.createGain();
-  env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vol, time + 0.18);
-  env.gain.setValueAtTime(vol, time + durSec - 0.05);
-  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + 0.8);
+  masterEnv.connect(lp);
+  lp.connect(dryG); dryG.connect(dest);
+  lp.connect(rev); rev.connect(revG); revG.connect(dest);
 
-  const dryG = ctx.createGain(); dryG.gain.value = 0.55; dryG.connect(dest);
-  const revG2 = ctx.createGain(); revG2.gain.value = 0.45;
-  rev.connect(revG2); revG2.connect(dest);
-
-  voiceDetunes.forEach((det, i) => {
-    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+  detunes.forEach((det, i) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
     osc.frequency.value = freq; osc.detune.value = det;
-    const lfo = ctx.createOscillator(); lfo.type = 'sine';
-    lfo.frequency.value = 4.5 + i * 0.25;
-    const lfoG = ctx.createGain(); lfoG.gain.value = 3 + i;
-    lfo.connect(lfoG); lfoG.connect(osc.detune);
-    const vg = ctx.createGain(); vg.gain.value = 1 / voiceDetunes.length;
-    osc.connect(vg);
-    formants.forEach(({ freq: fFreq, Q, gain }) => {
-      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
-      bp.frequency.value = fFreq; bp.Q.value = Q;
-      const fg = ctx.createGain(); fg.gain.value = gain * 0.5;
-      vg.connect(bp); bp.connect(fg); fg.connect(env);
-    });
-    lfo.start(time); lfo.stop(time + durSec + 0.6);
-    osc.start(time); osc.stop(time + durSec + 0.6);
+
+    // Granular flicker — fast random-ish gain modulation per grain voice
+    const grainLfo = ctx.createOscillator(); grainLfo.type = 'sine';
+    grainLfo.frequency.value = 3 + Math.random() * 9; // 3-12Hz per-grain flutter
+    const grainLfoGain = ctx.createGain(); grainLfoGain.gain.value = 0.4;
+    const grainGain = ctx.createGain(); grainGain.gain.value = (1 / grainCount) * (0.6 + Math.random() * 0.4);
+
+    grainLfo.connect(grainLfoGain); grainLfoGain.connect(grainGain.gain);
+    osc.connect(grainGain); grainGain.connect(masterEnv);
+
+    grainLfo.start(time); grainLfo.stop(time + durSec + tail);
+    osc.start(time); osc.stop(time + durSec + tail);
   });
 
-  env.connect(dryG); env.connect(rev);
+  // High shimmer partial — distant, glassy, slightly delayed entry
+  const shimmer = ctx.createOscillator(); shimmer.type = 'sine';
+  shimmer.frequency.value = freq * 4.02;
+  const shimEnv = ctx.createGain();
+  shimEnv.gain.setValueAtTime(0, time);
+  shimEnv.gain.linearRampToValueAtTime(vol * 0.18, time + 1.0);
+  shimEnv.gain.exponentialRampToValueAtTime(0.0005, time + durSec + tail);
+  shimmer.connect(shimEnv); shimEnv.connect(dest);
+  shimmer.start(time); shimmer.stop(time + durSec + tail);
 }
 
 // ── Strings: natural bowed string feel with strong attack and warm body ──
@@ -1878,37 +1889,46 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
 }
 
 // ── Synth Attack: sharp attack with long shimmer tail ──
+// ── TALK BOX: sawtooth through sweeping vowel formants — "ooh-wah" without speech ──
 function playSynthAttack(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.226 : 0.156;
-  const tail = 1.25; // tail halved
+  const vel = isAccent ? 0.20 : 0.13;
+  const tail = Math.max(durSec * 0.5, 0.25);
 
-  // Sharp metallic attack: two slightly detuned saws
-  [-4, 4].forEach(det => {
-    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
-    osc.frequency.value = freq; osc.detune.value = det;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(vel, time);
-    env.gain.exponentialRampToValueAtTime(vel * 0.4, time + 0.015); // sharp initial drop
-    env.gain.exponentialRampToValueAtTime(0.001, time + tail);
-    osc.connect(env); env.connect(dest);
-    osc.start(time); osc.stop(time + tail + 0.1);
-  });
+  // Bright sawtooth core — raw buzzy source, like the talkbox driver tone
+  const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+  osc.frequency.value = freq;
+  const osc2 = ctx.createOscillator(); osc2.type = 'sawtooth';
+  osc2.frequency.value = freq; osc2.detune.value = 7; // slight thickening
 
-  // High shimmer layer: high octave sine
-  const shimmer = ctx.createOscillator(); shimmer.type = 'sine';
-  shimmer.frequency.value = freq * 4;
-  const shimEnv = ctx.createGain();
-  shimEnv.gain.setValueAtTime(vel * 0.3, time);
-  shimEnv.gain.exponentialRampToValueAtTime(0.001, time + tail * 0.7);
-  shimmer.connect(shimEnv); shimEnv.connect(dest);
-  shimmer.start(time); shimmer.stop(time + tail);
+  // Two vowel formants sweeping from "OO" to "AH" — the talkbox vowel sweep
+  // OO: F1~300, F2~870 | AH: F1~700, F2~1100
+  const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 12;
+  f1.frequency.setValueAtTime(300, time);
+  f1.frequency.linearRampToValueAtTime(700, time + durSec * 0.6);
 
-  // LP filter sweep: bright to warm
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2;
-  lp.frequency.setValueAtTime(freq * 12, time);
-  lp.frequency.exponentialRampToValueAtTime(freq * 2, time + 0.3);
+  const f2 = ctx.createBiquadFilter(); f2.type = 'bandpass'; f2.Q.value = 14;
+  f2.frequency.setValueAtTime(870, time);
+  f2.frequency.linearRampToValueAtTime(1100, time + durSec * 0.6);
+
+  const f1Gain = ctx.createGain(); f1Gain.gain.value = 1.0;
+  const f2Gain = ctx.createGain(); f2Gain.gain.value = 0.6;
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.012); // punchy attack
+  env.gain.setValueAtTime(vel * 0.85, time + durSec * 0.7);
+  env.gain.exponentialRampToValueAtTime(0.001, time + durSec + tail);
+
+  const mix = ctx.createGain(); mix.gain.value = 1;
+  osc.connect(mix); osc2.connect(mix);
+  mix.connect(f1); f1.connect(f1Gain); f1Gain.connect(env);
+  mix.connect(f2); f2.connect(f2Gain); f2Gain.connect(env);
+  env.connect(dest);
+
+  osc.start(time); osc.stop(time + durSec + tail + 0.1);
+  osc2.start(time); osc2.stop(time + durSec + tail + 0.1);
 }
 
 
