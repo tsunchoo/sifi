@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 08:09</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 08:20</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -627,10 +627,10 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
   if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
   if (key === 'shihat') {
-    // Occasional 32nd-note flam — ghost hit just before the main hit
     if (!isAccent && Math.random() < 0.18) {
-      const flamOffset = stepDuration() * 0.5; // half a 16th = one 32nd
+      const flamOffset = stepDuration() * 0.5;
       playSynthHihat(false, time - flamOffset, tr);
+      markStepAsSplit32(tr, time);
     }
     playSynthHihat(isAccent, time, tr);
     return;
@@ -650,10 +650,10 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'boog')     { return; }
   if (key === 'fflute')   { return; }
   if (key === 'blunt')    { return; }
-  // Occasional 32nd-note flam for CONGA HI / BONGO HI
   if ((key === 'congHi' || key === 'bongHi') && !isAccent && Math.random() < 0.18) {
     const flamOffset = stepDuration() * 0.5;
     playBuffer(key, false, time - flamOffset, tr);
+    markStepAsSplit32(tr, time);
   }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
@@ -822,15 +822,31 @@ function scheduler() {
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') {
-            // Occasional 32nd-note flam — ghost hit just before the main hit
             if (val !== 2 && Math.random() < 0.18) {
               const flamOffset = stepDuration() * 0.5;
               playSparkle(freq, dur * 0.5, false, t - flamOffset, tr);
+              markStepAsSplit32(tr, t);
             }
             playSparkle(freq, dur, val === 2, t, tr);
           }
-          if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
-          if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes') {
+            if (val !== 2 && _split32CycleCount < 3 && Math.random() < 0.12) {
+              const flamOffset = stepDuration() * 0.5;
+              playRhodes(freq, dur * 0.5, false, t - flamOffset, tr);
+              markStepAsSplit32(tr, t);
+              _split32CycleCount++;
+            }
+            playRhodes(freq, dur, val === 2, t, tr);
+          }
+          if (key === 'rhodes2') {
+            if (val !== 2 && _split32CycleCount < 3 && Math.random() < 0.12) {
+              const flamOffset = stepDuration() * 0.5;
+              playRhodes2(freq, dur * 0.5, false, t - flamOffset, tr);
+              markStepAsSplit32(tr, t);
+              _split32CycleCount++;
+            }
+            playRhodes2(freq, dur, val === 2, t, tr);
+          }
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
           if (key === 'boog')    playBoog(freq, dur, val === 2, t, tr);
@@ -2038,6 +2054,21 @@ function playGlassBell(freq, durSec, isAccent, time, tr) {
   click.start(time);
 }
 
+// Permanently mark the grid step as a 32nd-split when a runtime flam fires, and redraw the cell
+function markStepAsSplit32(tr, time) {
+  const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
+  setTimeout(() => {
+    const stepNow = currentStep;
+    if (stepNow < 0) return;
+    const gs = (stepNow - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+    if (grid[tr][gs] === 0) return; // only mark steps that actually have a note
+    grid[tr][gs] = 3;
+    const cell = document.querySelector(`[data-track="${tr}"][data-step="${stepNow}"]`);
+    if (cell) { cell.classList.remove('on','soft'); cell.classList.add('split32'); }
+    markModified();
+  }, delayMs);
+}
+
 function playKick(t) {
   const beatDest = window._beatGain || masterGain;
   const osc = ctx.createOscillator(), g = ctx.createGain();
@@ -2643,7 +2674,12 @@ async function renderSlotToWav(snap) {
         s3.buffer=nb; s3.connect(hp); hp.connect(g); g.connect(offDest);
         g.gain.setValueAtTime(isAccent?0.35:0.22,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur3); s3.start(t); continue;
       }
-      const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
+      if ((key === 'congHi' || key === 'bongHi') && !isAccent && Math.random() < 0.18) {
+    const flamOffset = stepDuration() * 0.5;
+    playBuffer(key, false, time - flamOffset, tr);
+    markStepAsSplit32(tr, time);
+  }
+  const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
 
       // Synth voices — rendered to match live voices exactly
       if (TONAL_KEYS.has(key)) {
@@ -3282,7 +3318,9 @@ function handleRandTap() {
   _randHeld = false;
 }
 
+let _split32CycleCount = 0; // resets each RAND cycle, caps flam-promoted splits across the whole pattern
 function randAll(mode) {
+  _split32CycleCount = 0;
   mode = mode || 'all';
   const level = randAllLevel;
   // Stop all auto-rand tracks and reset to R
@@ -3792,6 +3830,14 @@ function placeNotes(tr, noteCount, accentRatio, level) {
       }
     }
     if (!anyChange) break;
+  }
+
+  // Occasionally promote a soft hit to a 32nd-note split — favours hihat/perc, never the very first hit
+  const split32Keys = new Set(['shihat','sparkle','congHi','bongHi','tamb','shak']);
+  if (split32Keys.has(key)) {
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] === 1 && Math.random() < 0.15) grid[tr][s] = 3;
+    }
   }
 }
 
