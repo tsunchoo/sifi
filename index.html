@@ -295,7 +295,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .step-cell.on.playing::after   { background: var(--playhead); opacity: 1; }
 .step-cell.soft.playing::after { background: var(--playhead); opacity: 0.7; }
 .step-cell.split32::after {
-  background: repeating-linear-gradient(to bottom, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
+  background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: 1;
 }
 
@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:54</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 08:03</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -439,11 +439,15 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
   <button class="ghost-btn" onclick="fullClear()">&#10005;</button>
 </div>
 <div class="vol-section">
+  <div class="vol-title">MAIN VOL</div>
+  <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider">
+</div>
+<div class="vol-section">
   <div style="display:flex;flex-direction:column;flex-shrink:0;">
     <div class="vol-title">SWING</div>
-    <div id="swingReadout" style="font-size:1.1rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;line-height:1.1;">0ms</div>
+    <div id="swingReadout" style="font-size:1.1rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;line-height:1.1;">25ms</div>
   </div>
-  <input type="range" id="masterVolBar" min="0" max="100" value="0" class="master-vol-slider">
+  <input type="range" id="swingBar" min="0" max="100" value="62" class="master-vol-slider">
 </div>
 <div class="vol-title" style="margin-top:10px;margin-bottom:2px;width:100%;max-width:960px;text-align:left;">SAVED PATTERNS</div>
 <div class="slot-bar" id="slotBar"></div>
@@ -481,30 +485,40 @@ const INSTRUMENTS = {
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
 let ctx = null, masterGain = null;
-let masterVol = 0.0; // now repurposed: 0-1 controls swing amount, 0-60ms on offbeat steps
-const FIXED_MASTER_GAIN = 0.8; // actual output level, no longer user-controlled by this slider
+let masterVol = 0.8; // actual master output volume
 
 function setMasterVol(v) {
   masterVol = Math.max(0, Math.min(1, v));
+  if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol, ctx.currentTime, 0.01);
   const slider = document.getElementById('masterVolBar');
   if (slider) slider.value = Math.round(masterVol * 100);
+}
+
+let swingVal = 0.625; // 0-1, independent of master vol — default ~25ms
+
+function setSwingVal(v) {
+  swingVal = Math.max(0, Math.min(1, v));
+  const slider = document.getElementById('swingBar');
+  if (slider) slider.value = Math.round(swingVal * 100);
   updateSwingReadout();
 }
 function updateSwingReadout() {
   const readout = document.getElementById('swingReadout');
   if (!readout) return;
-  const liveMs = Math.round(masterVol * 40);
+  const liveMs = Math.round(swingVal * 40);
   const committedMs = Math.round(_committedSwing * 40);
   readout.textContent = liveMs + 'ms';
   readout.style.opacity = (liveMs !== committedMs && playing) ? '0.45' : '1';
 }
-let _committedSwing = 0; // only updates at bar start to avoid mid-bar timing artifacts
+let _committedSwing = 0.625; // only updates at bar start to avoid mid-bar timing artifacts
 function getSwingOffsetMs() {
   return _committedSwing * 40; // 0 at min, 40ms at max
 }
 function updateMasterVolCells() {
   const slider = document.getElementById('masterVolBar');
   if (slider) slider.value = Math.round(masterVol * 100);
+  const swSlider = document.getElementById('swingBar');
+  if (swSlider) swSlider.value = Math.round(swingVal * 100);
   updateSwingReadout();
 }
 
@@ -685,7 +699,7 @@ function scheduler() {
     const t = nextStepTime + (swingMs / 1000);
     // Fire pending auto-rand on downbeat
     if (step === 0) {
-      _committedSwing = masterVol; // commit swing amount only at bar start
+      _committedSwing = swingVal; // commit swing amount only at bar start
       requestAnimationFrame(updateSwingReadout);
       // Flip reels forward when recalled pattern starts playing
       if (window._reelReversePending) {
@@ -1500,7 +1514,7 @@ function playSparkle(freq, durSec, isAccent, time, tr) {
   // Karplus-Strong style: noise burst into tuned comb gives dry woody dampened string tone
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 1.1 : 0.79;
+  const vel = isAccent ? 1.35 : 0.97;
   const period = 1 / freq;
   const bufLen = Math.ceil(ctx.sampleRate * period);
 
@@ -1518,9 +1532,9 @@ function playSparkle(freq, durSec, isAccent, time, tr) {
   lp.frequency.setValueAtTime(freq * 6, time);
   lp.frequency.exponentialRampToValueAtTime(freq * 1.2, time + 0.025);
 
-  // Notch to thin out the midrange boxiness
+  // Notch to thin out the midrange boxiness — gentler so FX crunch doesn't hollow it out
   const notch = ctx.createBiquadFilter(); notch.type = 'notch';
-  notch.frequency.value = freq * 3; notch.Q.value = 1.5;
+  notch.frequency.value = freq * 3; notch.Q.value = 0.8;
 
   const env = ctx.createGain();
   const decay = Math.min(0.18, durSec * 0.6); // always short regardless of legato
@@ -2742,7 +2756,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'sparkle') {
           // Match playSparkle exactly (Karplus-Strong)
-          const vel = isAccent ? 1.1 : 0.79;
+          const vel = isAccent ? 1.35 : 0.97;
           const period = 1/freq;
           const bufLen = Math.ceil(sampleRate*period);
           const noiseBuf = o.createBuffer(1,bufLen,sampleRate);
@@ -3956,12 +3970,15 @@ updateMasterVolCells();
   const slider = document.getElementById('masterVolBar');
   if (!slider) return;
   slider.value = Math.round(masterVol * 100);
-  const SNAP_ZONE = 5; // within 5% of zero, magnetically snap to exactly 0
-  slider.addEventListener('input', () => {
-    let v = +slider.value;
-    if (v <= SNAP_ZONE) v = 0;
-    setMasterVol(v / 100);
-  });
+  slider.addEventListener('input', () => setMasterVol(slider.value / 100));
+})();
+
+// Swing slider
+(function() {
+  const slider = document.getElementById('swingBar');
+  if (!slider) return;
+  slider.value = Math.round(swingVal * 100);
+  slider.addEventListener('input', () => setSwingVal(slider.value / 100));
 })();
 
 let _initStarted = false;
@@ -3977,7 +3994,7 @@ async function initAudio() {
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
     attachCtxStateWatch();
-    masterGain = ctx.createGain(); masterGain.gain.value = FIXED_MASTER_GAIN;
+    masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.668; window._beatGain.connect(masterGain);
     // UI Sounds
     const _uiSoundBufs = {};
