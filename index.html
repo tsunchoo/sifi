@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:31</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:40</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -4058,9 +4058,9 @@ if ('serviceWorker' in navigator) {
         sumSq += v * v;
       }
       const rms = Math.sqrt(sumSq / _sweepAnalyserData.length); // 0-1ish
-      const duckAmount = Math.min(1, rms * 3.2); // sensitivity
-      const targetGain = 1 - duckAmount * 0.75; // duck down to 25% at loudest, never fully silent
-      duckGain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.04);
+      const duckAmount = Math.min(1, rms * 6.5); // sensitivity — more reactive
+      const targetGain = 1 - duckAmount * 0.95; // duck down to 5% at loudest — near silent at peaks
+      duckGain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.02); // faster response
       _sweepDuckLoop = requestAnimationFrame(duckLoop);
     };
     duckLoop();
