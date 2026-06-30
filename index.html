@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:16</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 06:27</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -469,7 +469,7 @@ const INSTRUMENTS = {
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'SYN ATTACK',  soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
-  fflute: { name: 'VOX', soft: null, accent: null, group: 'tonal' },
+  fflute: { name: 'GLASS BELL', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'BLUNT',        soft: null, accent: null, group: 'tonal' },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
@@ -790,7 +790,7 @@ function scheduler() {
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
           if (key === 'boog')    playBoog(freq, dur, val === 2, t, tr);
-          if (key === 'fflute')  playVox(val === 2, t, tr);
+          if (key === 'fflute')  playGlassBell(freq, dur, val === 2, t, tr);
           if (key === 'blunt')   playBlunt(freq, dur, val === 2, t, tr);
           // E: filter envelope — bright open, sweep closed over note duration
           if (trackChop[tr] && trackEnvFilters[tr]) {
@@ -1104,7 +1104,7 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sflute' || key === 'boog') return HIGH_ROOTS;
+  if (key === 'sflute' || key === 'boog' || key === 'fflute') return HIGH_ROOTS;
   if (key === 'blunt') return MID_ROOTS;
   if (key === 'stab') return MID_ROOTS;
   if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2') return MELODY_ROOTS;
@@ -1890,26 +1890,58 @@ function playSynthAttack(freq, durSec, isAccent, time, tr) {
 }
 
 
-// ── VOX: speaks the song name, one word per trigger, browser-native TTS only ──
-let _voxWords = [];
-let _voxWordIdx = 0;
-function _voxRefreshWords() {
-  const name = (typeof _currentSpecies === 'string' && _currentSpecies) ? _currentSpecies : 'BBOX';
-  _voxWords = name.split(/\s+/).filter(Boolean);
-  if (_voxWords.length === 0) _voxWords = ['BBOX'];
-}
-function playVox(isAccent, time, tr) {
-  if (!('speechSynthesis' in window)) return;
-  _voxRefreshWords();
-  const word = _voxWords[_voxWordIdx % _voxWords.length];
-  _voxWordIdx++;
-  try {
-    const utter = new SpeechSynthesisUtterance(word);
-    utter.rate = isAccent ? 1.1 : 0.95;
-    utter.pitch = isAccent ? 1.15 : 1.0;
-    utter.volume = isAccent ? 1.0 : 0.7;
-    speechSynthesis.speak(utter); // must fire synchronously — iOS blocks delayed/scheduled calls
-  } catch(e) { /* speechSynthesis unsupported or blocked */ }
+// ── GLASS BELL: inharmonic FM bell/bowl tone — metallic, glassy, struck ──
+function playGlassBell(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.16 : 0.10;
+  const tail = isAccent ? 2.6 : 1.8;
+
+  // Inharmonic partials — classic bell ratios, not integer multiples
+  const partials = [
+    { ratio: 1.00, amp: 1.00, dec: 1.00 },
+    { ratio: 2.76, amp: 0.55, dec: 0.55 },
+    { ratio: 5.40, amp: 0.32, dec: 0.32 },
+    { ratio: 8.93, amp: 0.18, dec: 0.20 },
+    { ratio: 3.51, amp: 0.22, dec: 0.40 }, // slightly detuned partial for shimmer beating
+  ];
+
+  partials.forEach(p => {
+    const carrier = ctx.createOscillator(); carrier.type = 'sine';
+    carrier.frequency.value = freq * p.ratio;
+
+    // FM modulator for metallic edge on the fundamental partial only
+    let modGain = null, mod = null;
+    if (p.ratio === 1.00) {
+      mod = ctx.createOscillator(); mod.type = 'sine';
+      mod.frequency.value = freq * 1.41; // inharmonic mod ratio for clangorous attack
+      modGain = ctx.createGain();
+      modGain.gain.setValueAtTime(freq * 1.2, time);
+      modGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15); // FM decays fast — metallic strike only
+      mod.connect(modGain); modGain.connect(carrier.frequency);
+      mod.start(time); mod.stop(time + 0.2);
+    }
+
+    const env = ctx.createGain();
+    const partialDec = tail * p.dec;
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(vel * p.amp, time + 0.004); // near-instant strike
+    env.gain.exponentialRampToValueAtTime(0.0001, time + partialDec);
+
+    carrier.connect(env); env.connect(dest);
+    carrier.start(time); carrier.stop(time + partialDec + 0.05);
+  });
+
+  // Soft noise click for the strike transient
+  const clickLen = 0.006;
+  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
+  const cd = clickBuf.getChannelData(0);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cd.length, 2);
+  const click = ctx.createBufferSource(); click.buffer = clickBuf;
+  const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = freq * 3;
+  const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.5;
+  click.connect(clickHP); clickHP.connect(clickEnv); clickEnv.connect(dest);
+  click.start(time);
 }
 
 function playKick(t) {
@@ -2273,7 +2305,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
     else if (key === 'boog')    playBoog(freq, dur, isAccent, t, tr);
-    else if (key === 'fflute')  playVox(isAccent, t, tr);
+    else if (key === 'fflute')  playGlassBell(freq, dur, isAccent, t, tr);
     else if (key === 'blunt')   playBlunt(freq, dur, isAccent, t, tr);
   } else {
     playBuffer(key, isAccent, t, tr);
