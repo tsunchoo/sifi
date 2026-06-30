@@ -387,7 +387,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 18:14</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 18:18</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -491,7 +491,7 @@ const INSTRUMENTS = {
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
-  sleg:   { name: 'STRINGS+',    soft: null, accent: null, group: 'tonal' },
+  sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'THMB PIANO',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
@@ -1319,85 +1319,70 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
 
 // ── Strings: natural bowed string feel with strong attack and warm body ──
 const _slegGlide = {};
+// ── SOLAR PAD: natural, sparkly, evolving pad — warmer and more organic than CYBER PAD ──
 function playSynthLeg(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vol = isAccent ? 0.042 : 0.028;
+  const vol = isAccent ? 0.048 : 0.032;
+  const tail = 2.2;
 
-  // Bow pressure noise burst on attack — the natural string transient
-  const bowLen = Math.min(0.04, durSec * 0.15);
-  const bowBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bowLen), ctx.sampleRate);
-  const bd = bowBuf.getChannelData(0);
-  for (let i = 0; i < bd.length; i++) bd[i] = (Math.random()*2-1) * Math.pow(1-i/bd.length, 0.5);
-  const bow = ctx.createBufferSource(); bow.buffer = bowBuf;
-  const bowBP = ctx.createBiquadFilter(); bowBP.type = 'bandpass';
-  bowBP.frequency.value = freq * 2; bowBP.Q.value = 2;
-  const bowEnv = ctx.createGain();
-  bowEnv.gain.setValueAtTime(vol * 1.8, time);
-  bowEnv.gain.exponentialRampToValueAtTime(0.0001, time + bowLen);
-  bow.connect(bowBP); bowBP.connect(bowEnv); bowEnv.connect(dest);
-  bow.start(time);
+  // Core: 5 sine voices in natural harmonic ratios with gentle detuning — organic, not buzzy
+  const ratios = [1.0, 1.501, 2.0, 2.997, 4.0]; // close to harmonics but slightly mistuned for beating
+  const dets   = [0,    7,    -5,   3,    -8];   // subtle per-voice detune for chorus shimmer
+  const masterEnv = ctx.createGain();
+  masterEnv.gain.setValueAtTime(0, time);
+  masterEnv.gain.linearRampToValueAtTime(vol, time + 0.35);   // slow natural swell
+  masterEnv.gain.setValueAtTime(vol, time + Math.max(durSec, 0.4));
+  masterEnv.gain.exponentialRampToValueAtTime(0.0008, time + durSec + tail);
 
-  // Main string body: detuned saws — warm, slightly spread
-  const strEnv = ctx.createGain();
-  // Bright attack then warm sustain via LP sweep
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.2;
-  lp.frequency.setValueAtTime(freq * 8, time);
-  lp.frequency.exponentialRampToValueAtTime(freq * 3, time + 0.06);
-  lp.frequency.exponentialRampToValueAtTime(freq * 2, time + durSec * 0.4);
+  ratios.forEach((ratio, i) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = freq * ratio; osc.detune.value = dets[i];
+    // Individual amplitude LFOs at different rates for breathing/evolving texture
+    const ampLfo = ctx.createOscillator(); ampLfo.type = 'sine';
+    ampLfo.frequency.value = 0.3 + i * 0.11 + Math.random() * 0.05;
+    const ampLfoGain = ctx.createGain(); ampLfoGain.gain.value = 0.25;
+    const ampBase = ctx.createGain(); ampBase.gain.value = (1 - i * 0.15);
+    ampLfo.connect(ampLfoGain); ampLfoGain.connect(ampBase.gain);
+    osc.connect(ampBase); ampBase.connect(masterEnv);
+    ampLfo.start(time); ampLfo.stop(time + durSec + tail);
+    osc.start(time); osc.stop(time + durSec + tail);
+  });
 
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 180; hp.Q.value = 0.5;
+  // Sparkle: high inharmonic sine cluster (bell-like overtones, short decay)
+  [3.72, 5.83, 7.01].forEach((ratio, i) => {
+    const sp = ctx.createOscillator(); sp.type = 'sine';
+    sp.frequency.value = freq * ratio;
+    const spEnv = ctx.createGain();
+    spEnv.gain.setValueAtTime(vol * 0.14, time + 0.01 + i * 0.02);
+    spEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.4 + i * 0.2);
+    sp.connect(spEnv); spEnv.connect(dest);
+    sp.start(time); sp.stop(time + 0.7);
+  });
 
-  // Short room reverb
-  const irLen = Math.floor(ctx.sampleRate * 0.35);
+  // Evolving filter: slowly opens and breathes, giving motion to the pad
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.5;
+  lp.frequency.setValueAtTime(freq * 1.5, time);
+  lp.frequency.linearRampToValueAtTime(freq * 5.5, time + durSec * 0.4);
+  lp.frequency.linearRampToValueAtTime(freq * 2.5, time + durSec * 0.8);
+  lp.frequency.exponentialRampToValueAtTime(freq * 1.2, time + durSec + tail);
+
+  // Gentle highpass to keep it airy
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = freq * 0.6; hp.Q.value = 0.5;
+
+  // Natural reverb — longer IR for spaciousness
+  const irLen = Math.floor(ctx.sampleRate * 0.9);
   const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
   for (let ch = 0; ch < 2; ch++) {
     const d = irBuf.getChannelData(ch);
-    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 2);
+    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.4);
   }
   const rev = ctx.createConvolver(); rev.buffer = irBuf;
-  const dryG = ctx.createGain(); dryG.gain.value = 0.65; dryG.connect(dest);
-  const revG = ctx.createGain(); revG.gain.value = 0.35; revG.connect(dest);
+  const dryG = ctx.createGain(); dryG.gain.value = 0.55; dryG.connect(dest);
+  const revG = ctx.createGain(); revG.gain.value = 0.55; revG.connect(dest);
 
-  // 7 detuned voices for a wider, richer ensemble
-  [-12, -8, -4, 0, 4, 8, 12].forEach(det => {
-    const o = ctx.createOscillator(); o.type = 'sawtooth';
-    o.frequency.value = freq; o.detune.value = det;
-    o.connect(strEnv); o.start(time); o.stop(time + durSec + 0.3);
-  });
-
-  // Sub-octave layer for body and warmth underneath the ensemble
-  const sub = ctx.createOscillator(); sub.type = 'triangle';
-  sub.frequency.value = freq * 0.5;
-  const subEnv = ctx.createGain();
-  subEnv.gain.setValueAtTime(0, time);
-  subEnv.gain.linearRampToValueAtTime(vol * 0.45, time + 0.025);
-  subEnv.gain.setValueAtTime(vol * 0.45, time + durSec - 0.05);
-  subEnv.gain.exponentialRampToValueAtTime(0.0001, time + durSec + 0.15);
-  sub.connect(subEnv); subEnv.connect(dest);
-  sub.start(time); sub.stop(time + durSec + 0.3);
-
-  // Slight chorus shimmer — high octave detuned pair, subtle
-  [-6, 6].forEach(det => {
-    const sh = ctx.createOscillator(); sh.type = 'sawtooth';
-    sh.frequency.value = freq * 2; sh.detune.value = det;
-    const shEnv = ctx.createGain();
-    shEnv.gain.setValueAtTime(0, time);
-    shEnv.gain.linearRampToValueAtTime(vol * 0.18, time + 0.03);
-    shEnv.gain.setValueAtTime(vol * 0.18, time + durSec - 0.05);
-    shEnv.gain.exponentialRampToValueAtTime(0.0001, time + durSec + 0.15);
-    sh.connect(shEnv); shEnv.connect(dest);
-    sh.start(time); sh.stop(time + durSec + 0.3);
-  });
-
-  strEnv.connect(lp); lp.connect(hp);
+  masterEnv.connect(lp); lp.connect(hp);
   hp.connect(dryG); hp.connect(rev); rev.connect(revG);
-
-  // Amplitude: strong fast attack (bowing), sustain, natural release
-  strEnv.gain.setValueAtTime(0, time);
-  strEnv.gain.linearRampToValueAtTime(vol, time + 0.018);   // fast bow attack
-  strEnv.gain.setValueAtTime(vol, time + durSec - 0.05);
-  strEnv.gain.exponentialRampToValueAtTime(0.0001, time + durSec + 0.15);
 }
 
 const _sparkleGlideState = {};
