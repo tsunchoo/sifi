@@ -294,6 +294,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .step-cell.playing { background: rgba(192,57,43,0.07); }
 .step-cell.on.playing::after   { background: var(--playhead); opacity: 1; }
 .step-cell.soft.playing::after { background: var(--playhead); opacity: 0.7; }
+.step-cell.split32::after {
+  background: repeating-linear-gradient(to bottom, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
+  opacity: 1;
+}
 
 /* ── Track lane label — now inside ctrl row, removed ── */
 
@@ -370,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:52</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 07:54</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -763,7 +767,9 @@ function scheduler() {
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (trackMuted[tr]) continue;
       const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-      const val = grid[tr][gs];
+      const rawVal = grid[tr][gs];
+      const is32Split = rawVal === 3;
+      const val = is32Split ? 2 : rawVal; // treat split as accent-level for the main hit
       if (val > 0) {
         const key = trackInstruments[tr];
         if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'stab' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'satk' || key === 'boog' || key === 'fflute' || key === 'blunt') {
@@ -838,6 +844,36 @@ function scheduler() {
             if (ng !== tr && !trackMuted[ng] && trackInstruments[ng] === 'ngate') {
               triggerNoiseGate(ng, val === 2, t);
             }
+          }
+        }
+        // 32nd-note split: fire a second quick hit half a 16th later
+        if (is32Split) {
+          const t2 = t + stepDuration() * 0.5;
+          if (key === 'ride') {
+            playRide(false, t2, tr);
+          } else if (key === 'ngate') {
+            triggerNoiseGate(tr, false, t2);
+          } else if (TONAL_KEYS.has(key)) {
+            const scale2 = trackBassScale[tr] || [110];
+            const noteIdx2 = gs % scale2.length;
+            const freq2 = scale2[noteIdx2];
+            const dur2 = stepDuration() * 0.5;
+            if (key === 'sbass')   playSynthBass(freq2, dur2, false, t2, tr);
+            if (key === 'sbass3')  playMotownBass(freq2, dur2, false, t2, tr);
+            if (key === 'sbass4')  playPlunkBass(freq2, dur2, false, t2, tr);
+            if (key === 'stab')    playStab(freq2, dur2, false, t2, tr);
+            if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
+            if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
+            if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes')  playRhodes(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
+            if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
+            if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
+            if (key === 'boog')    playBoog(freq2, dur2, false, t2, tr);
+            if (key === 'fflute')  playGlassBell(freq2, dur2, false, t2, tr);
+            if (key === 'blunt')   playBlunt(freq2, dur2, false, t2, tr);
+          } else {
+            playBuffer(key, false, t2, tr);
           }
         }
       }
@@ -2356,9 +2392,9 @@ function previewNote(tr, isAccent) {
 
 function tapStep(tr, s, cell) {
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  grid[tr][gs] = (grid[tr][gs] + 1) % 4;
   const val = grid[tr][gs];
-  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1); cell.classList.toggle('split32', val === 3);
   const tbtn = document.getElementById(`tbtn-${tr}`);
   if (tbtn) tbtn.classList.toggle('has-notes', grid[tr].some(v => v > 0));
   if (val > 0 && ctx) previewNote(tr, val === 2);
@@ -2373,12 +2409,12 @@ document.addEventListener('touchstart', e => {
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
   // Always cycle on tap — drag will use this value to extend
-  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  grid[tr][gs] = (grid[tr][gs] + 1) % 4;
   dragWriteVal = grid[tr][gs] > 0 ? grid[tr][gs] : -1; // -1 = erasing
   dragWriteTrack = tr;
   dragWrittenSteps = new Set([s]);
   const val = grid[tr][gs];
-  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1); cell.classList.toggle('split32', val === 3);
   if (val > 0) previewNote(tr, val === 2);
   markModified();
   e.preventDefault();
@@ -2409,11 +2445,11 @@ document.addEventListener('mousedown', e => {
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-  grid[tr][gs] = (grid[tr][gs] + 1) % 3;
+  grid[tr][gs] = (grid[tr][gs] + 1) % 4;
   dragWriteVal = grid[tr][gs] > 0 ? grid[tr][gs] : -1;
   dragWriteTrack = tr; dragWrittenSteps = new Set([s]);
   const val = grid[tr][gs];
-  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1);
+  cell.classList.toggle('on', val === 2); cell.classList.toggle('soft', val === 1); cell.classList.toggle('split32', val === 3);
   if (val > 0) previewNote(tr, val === 2);
   markModified();
 });
