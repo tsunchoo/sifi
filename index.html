@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 15:39</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 15:51</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -623,14 +623,14 @@ function getSynthConnectNode(tr) {
   return baseNode;
 }
 
-function playBuffer(key, isAccent, time, tr) {
+function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
   if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
   if (key === 'shihat') {
     if (!isAccent && Math.random() < 0.18) {
       const flamOffset = stepDuration() * 0.5;
       playSynthHihat(false, time - flamOffset, tr);
-      markStepAsSplit32(tr, time);
+      if (stepIdx != null) markStepAsSplit32(tr, stepIdx);
     }
     playSynthHihat(isAccent, time, tr);
     return;
@@ -653,7 +653,7 @@ function playBuffer(key, isAccent, time, tr) {
   if ((key === 'congHi' || key === 'bongHi') && !isAccent && Math.random() < 0.18) {
     const flamOffset = stepDuration() * 0.5;
     playBuffer(key, false, time - flamOffset, tr);
-    markStepAsSplit32(tr, time);
+    if (stepIdx != null) markStepAsSplit32(tr, stepIdx);
   }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
@@ -825,7 +825,7 @@ function scheduler() {
             if (val !== 2 && Math.random() < 0.18) {
               const flamOffset = stepDuration() * 0.5;
               playSparkle(freq, dur * 0.5, false, t - flamOffset, tr);
-              markStepAsSplit32(tr, t);
+              markStepAsSplit32(tr, step);
             }
             playSparkle(freq, dur, val === 2, t, tr);
           }
@@ -833,7 +833,7 @@ function scheduler() {
             if (val !== 2 && _split32CycleCount < 3 && Math.random() < 0.12) {
               const flamOffset = stepDuration() * 0.5;
               playRhodes(freq, dur * 0.5, false, t - flamOffset, tr);
-              markStepAsSplit32(tr, t);
+              markStepAsSplit32(tr, step);
               _split32CycleCount++;
             }
             playRhodes(freq, dur, val === 2, t, tr);
@@ -842,7 +842,7 @@ function scheduler() {
             if (val !== 2 && _split32CycleCount < 3 && Math.random() < 0.12) {
               const flamOffset = stepDuration() * 0.5;
               playRhodes2(freq, dur * 0.5, false, t - flamOffset, tr);
-              markStepAsSplit32(tr, t);
+              markStepAsSplit32(tr, step);
               _split32CycleCount++;
             }
             playRhodes2(freq, dur, val === 2, t, tr);
@@ -870,7 +870,7 @@ function scheduler() {
           // Noise gate triggered by its own grid notes
           triggerNoiseGate(tr, val === 2, t);
         } else {
-          playBuffer(key, val === 2, t, tr);
+          playBuffer(key, val === 2, t, tr, step);
           // If any other track has ngate, trigger it from this hit
           for (let ng = 0; ng < NUM_TRACKS; ng++) {
             if (ng !== tr && !trackMuted[ng] && trackInstruments[ng] === 'ngate') {
@@ -2055,18 +2055,15 @@ function playGlassBell(freq, durSec, isAccent, time, tr) {
 }
 
 // Permanently mark the grid step as a 32nd-split when a runtime flam fires, and redraw the cell
-function markStepAsSplit32(tr, time) {
-  const delayMs = Math.max(0, (time - ctx.currentTime) * 1000);
-  setTimeout(() => {
-    const stepNow = currentStep;
-    if (stepNow < 0) return;
-    const gs = (stepNow - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-    if (grid[tr][gs] === 0) return; // only mark steps that actually have a note
-    grid[tr][gs] = 3;
-    const cell = document.querySelector(`[data-track="${tr}"][data-step="${stepNow}"]`);
-    if (cell) { cell.classList.remove('on','soft'); cell.classList.add('split32'); }
-    markModified();
-  }, delayMs);
+// stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
+function markStepAsSplit32(tr, stepNow) {
+  if (stepNow == null || stepNow < 0) return;
+  const gs = (stepNow - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+  if (grid[tr][gs] === 0) return; // only mark steps that actually have a note
+  grid[tr][gs] = 3;
+  const cell = document.querySelector(`[data-track="${tr}"][data-step="${stepNow}"]`);
+  if (cell) { cell.classList.remove('on','soft'); cell.classList.add('split32'); }
+  markModified();
 }
 
 function playKick(t) {
