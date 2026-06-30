@@ -17,12 +17,12 @@
   --vol-fill: #ffac00;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { overflow: hidden; overflow-x: hidden; height: 100dvh; max-height: 100dvh; }
+html, body { overflow: hidden; overflow-x: hidden; height: 100svh; max-height: 100svh; }
 button, .step-cell, .track-header-btn, .vol-mute-col, .fx-btn { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 body {
   background: var(--bg); color: var(--text);
   font-family: 'DM Sans', sans-serif;
-  height: 100dvh; max-height: 100dvh; overflow: hidden; display: flex; flex-direction: column; align-items: center;
+  height: 100svh; max-height: 100svh; overflow: hidden; display: flex; flex-direction: column; align-items: center;
   padding: 16px 4px 16px 4px; user-select: none; -webkit-user-select: none; box-sizing: border-box;
 }
 body::before {
@@ -109,14 +109,14 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 /* ── Per-track inline control row ── */
 .track-ctrl-row {
-  display: flex; align-items: stretch; gap: 5px;
-  height: 32px;
+  display: flex; align-items: stretch; gap: clamp(2px, 1vw, 5px);
+  height: clamp(28px, 8vw, 32px);
 }
 .track-name-btn {
-  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+  font-size: clamp(0.52rem, 2.2vw, 0.72rem); font-weight: 700; letter-spacing: 0; text-transform: uppercase;
   cursor: pointer; background: #b0b0b0; color: var(--text);
-  border: none; padding: 0 8px; white-space: nowrap; overflow: hidden;
-  font-family: 'DM Sans', sans-serif; flex-shrink: 0; width: 96px;
+  border: none; padding: 0 4px; white-space: nowrap; overflow: hidden;
+  font-family: 'DM Sans', sans-serif; flex-shrink: 0; width: clamp(68px, 22vw, 96px);
   display: flex; align-items: center;
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   transition: background 0.06s, color 0.06s;
@@ -126,10 +126,10 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .track-name-btn.playing { background: var(--playhead) !important; color: #fff !important; opacity: 1; transition: background 0.3s; }
 .track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.5s infinite alternate; }
 .track-ctrl-icon-btn {
-  width: 32px; flex-shrink: 0;
+  width: clamp(24px, 6.5vw, 32px); flex-shrink: 0;
   background: #b0b0b0; border: none; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 0.72rem; font-weight: 700;
-  letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: clamp(0.55rem, 1.8vw, 0.72rem); font-weight: 700;
+  letter-spacing: 0; text-transform: uppercase; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   touch-action: manipulation; transition: background 0.1s;
 }
@@ -235,7 +235,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 .vol-overlay-label { font-size: 1.1rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
 .vol-overlay-pct { font-size: 2.5rem; font-weight: 700; line-height: 1; min-width: 3ch; text-align: center; }
 .vol-bar-track {
-  width: 100px; height: 20px; background: var(--border); position: relative;
+  width: clamp(50px, 14vw, 100px); height: 16px; background: var(--border); position: relative;
   border: none;
 }
 .vol-bar-fill {
@@ -244,7 +244,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 }
 
 /* ── Sequencer grid (middle) ── */
-.seq-wrap { width: 100%; max-width: 960px; margin-top: 0; margin-bottom: 0; display: flex; flex-direction: column; gap: 10px; }
+.seq-wrap { width: 100%; max-width: 960px; margin-top: 0; margin-bottom: 0; display: flex; flex-direction: column; gap: clamp(4px, 2vw, 10px); }
 .track-wrap { display: flex; flex-direction: column; gap: 4px; }
 .track-row {
   display: flex; align-items: stretch;
@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 32px; height: 32px; background: var
 
 <header>
   <h1>BBOX</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">29Jun26 23:27</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">30Jun26 05:11</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -589,7 +589,15 @@ function getSynthConnectNode(tr) {
 function playBuffer(key, isAccent, time, tr) {
   if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
   if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
-  if (key === 'shihat') { playSynthHihat(isAccent, time, tr); return; }
+  if (key === 'shihat') {
+    // Occasional 32nd-note flam — ghost hit just before the main hit
+    if (!isAccent && Math.random() < 0.18) {
+      const flamOffset = stepDuration() * 0.5; // half a 16th = one 32nd
+      playSynthHihat(false, time - flamOffset, tr);
+    }
+    playSynthHihat(isAccent, time, tr);
+    return;
+  }
   if (key === 'sbass')   { return; } // handled in scheduler with legato duration
   if (key === 'ngate')   { return; } // handled in scheduler
   if (key === 'sbass3')  { return; }
@@ -605,6 +613,11 @@ function playBuffer(key, isAccent, time, tr) {
   if (key === 'boog')     { return; }
   if (key === 'fflute')   { return; }
   if (key === 'blunt')    { return; }
+  // Occasional 32nd-note flam for CONGA HI / BONGO HI
+  if ((key === 'congHi' || key === 'bongHi') && !isAccent && Math.random() < 0.18) {
+    const flamOffset = stepDuration() * 0.5;
+    playBuffer(key, false, time - flamOffset, tr);
+  }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
 
@@ -763,7 +776,14 @@ function scheduler() {
           if (key === 'stab')    playStab(freq, dur, val === 2, t, tr);
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
-          if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
+          if (key === 'sparkle') {
+            // Occasional 32nd-note flam — ghost hit just before the main hit
+            if (val !== 2 && Math.random() < 0.18) {
+              const flamOffset = stepDuration() * 0.5;
+              playSparkle(freq, dur * 0.5, false, t - flamOffset, tr);
+            }
+            playSparkle(freq, dur, val === 2, t, tr);
+          }
           if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
