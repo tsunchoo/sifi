@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SCI-FI BAR</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 02:38</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 03:42</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -4379,19 +4379,25 @@ if ('serviceWorker' in navigator) {
   btn.addEventListener('mouseleave', stopSweep);
 
   // Drag from SWEEP onto BEAT or RAND to trigger them simultaneously
-  btn.addEventListener('touchmove', e => {
-    e.preventDefault();
+  // Also fire on document touchmove so drag works even if touchstart hit the loading overlay
+  const sweepMoveHandler = e => {
     const touch = e.touches[0];
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!el) return;
+    // Only act if finger is over SWEEP or dragging across transport buttons
+    const onSweep = el.closest('#clearBtn');
     const target = el.closest('#beatBtn, #randBtn, #scratchBtn');
+    if (!onSweep && !target) return;
+    if (e.cancelable) e.preventDefault();
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
       if (target.id === 'randBtn') { flashBtnBlue('randBtn'); queueRand(); }
       if (target.id === 'scratchBtn') { if (_recallSnapB) { const _cur = snapshotState(); restoreState(_recallSnapB); flashBtnOrange('scratchBtn'); window._reelReversePending = true; _recallSnapB = _cur; playUiSound(Math.random() < 0.5 ? 'rewind' : 'rewind2'); } }
     }
-  }, { passive: false });
+  };
+  btn.addEventListener('touchmove', sweepMoveHandler, { passive: false });
+  document.addEventListener('touchmove', sweepMoveHandler, { passive: false });
   btn.addEventListener('touchend', () => {
     document.querySelectorAll('[data-sweep-triggered]').forEach(el => delete el.dataset.sweepTriggered);
   }, { passive: false });
