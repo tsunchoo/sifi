@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SCI-FI BAR</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 02:15</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 02:22</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -792,10 +792,17 @@ function scheduler() {
         if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
         if (snap.trackAutoRand) {
           const isAuto = !!snap.trackAutoRand[tr];
-          if (isAuto && !autoShiftStops[tr]) {
-            autoShiftStops[tr] = true;
-          } else if (!isAuto && autoShiftStops[tr]) {
-            autoShiftStops[tr] = false;
+          const lane = document.getElementById(`lane-${tr}`);
+          const rb = document.getElementById(`randbtn-${tr}`);
+          if (isAuto) {
+            if (lane) lane.style.setProperty('--track-color', '#f71aff');
+            if (rb) { rb.classList.add('rand-auto'); rb.textContent = 'A'; }
+            if (!autoShiftStops[tr] && rb && rb._restartAuto) rb._restartAuto();
+          } else {
+            if (lane) lane.style.removeProperty('--track-color');
+            if (rb) { rb.classList.remove('rand-auto'); rb.textContent = 'R'; }
+            if (autoShiftStops[tr]) autoShiftStops[tr]();
+            setTrackNameColor(tr, trackInstruments[tr]);
           }
         }
       }
@@ -2150,46 +2157,24 @@ function showCelestialMap() {
 
   const [tx, ty] = coord;
 
-  // Phase 1: zoom from full map down to the name (150x150)
-  const midW = 150, midH = 150;
-  const midVB = {
-    x: Math.max(0, Math.min(CMAP_VIEW.w - midW, tx - midW/2)),
-    y: Math.max(0, Math.min(CMAP_VIEW.h - midH, ty - midH/2)),
-    w: midW, h: midH
-  };
-  // Phase 2: continue zooming through the star center to near-zero
-  const finalW = 6, finalH = 6;
-  const finalVB = { x: tx - finalW/2, y: ty - finalH/2, w: finalW, h: finalH };
-
-  const phase1Ms = 5000;   // time to reach name
-  const phase2Ms = 2000;   // time to punch through
-  const totalMs  = phase1Ms + phase2Ms;
+  // Single continuous zoom: full map → dot → black over 12 seconds
+  // Uses exponential interpolation on viewBox size for a natural zoom feel
+  const totalMs = 12000;
   const startTime = performance.now();
-  const easeOut  = t => 1 - Math.pow(1 - t, 3);
-  const easeIn   = t => t * t * t;
+  const ease = t => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; // easeInOutQuad
 
   function animate(now) {
     const elapsed = now - startTime;
-    if (elapsed < phase1Ms) {
-      const t = elapsed / phase1Ms;
-      const e = easeOut(t);
-      const x = startVB.x + (midVB.x - startVB.x) * e;
-      const y = startVB.y + (midVB.y - startVB.y) * e;
-      const w = startVB.w + (midVB.w - startVB.w) * e;
-      const h = startVB.h + (midVB.h - startVB.h) * e;
-
-      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
-    } else {
-      const t = Math.min(1, (elapsed - phase1Ms) / phase2Ms);
-      const e = easeIn(t);
-      const x = midVB.x + (finalVB.x - midVB.x) * e;
-      const y = midVB.y + (finalVB.y - midVB.y) * e;
-      const w = midVB.w + (finalVB.w - midVB.w) * e;
-      const h = midVB.h + (finalVB.h - midVB.h) * e;
-
-      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
-    }
-    if (elapsed < totalMs) {
+    const t = Math.min(1, elapsed / totalMs);
+    const e = ease(t);
+    // Exponential size interpolation: 3000 → 0.1 (near-zero = black)
+    const startSize = CMAP_VIEW.w;
+    const endSize = 0.1;
+    const size = startSize * Math.pow(endSize / startSize, e);
+    const x = startVB.x + (tx - startVB.x) * e - size / 2;
+    const y = startVB.y + (ty - startVB.y) * e - size / 2;
+    svg.setAttribute('viewBox', `${x} ${y} ${size} ${size}`);
+    if (t < 1) {
       _cmapAnimFrame = requestAnimationFrame(animate);
     } else {
       _cmapAnimFrame = null;
@@ -3715,7 +3700,7 @@ function randAll(mode) {
   btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); onTap(); }, { passive: false });
   btn.addEventListener('click', onTap);
-  btn.addEventListener('mouseup', () => { setBtnBlueHeld('randBtn'); queueRand(); }); // drag-over: bypass double-tap logic
+  btn.addEventListener('mouseup', () => { setBtnBlueHeld('randBtn'); queueRand(); setTimeout(() => clearBtnBlueHeld('randBtn'), 300); }); // drag-over
 })();
 
 const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
@@ -4292,7 +4277,7 @@ if ('serviceWorker' in navigator) {
   btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); onTap(); }, { passive: false });
   btn.addEventListener('click', onTap);
-  btn.addEventListener('mouseup', () => { setBtnBlueHeld('randBtn'); queueRand(); }); // drag-over: bypass double-tap logic
+  btn.addEventListener('mouseup', () => { setBtnBlueHeld('randBtn'); queueRand(); setTimeout(() => clearBtnBlueHeld('randBtn'), 300); }); // drag-over
 })();
 
 // SWEEP button wiring — hold = rising noise sweep, release = descend
@@ -4397,7 +4382,7 @@ if ('serviceWorker' in navigator) {
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
-      if (target.id === 'randBtn') { setBtnBlueHeld('randBtn'); queueRand(); }
+      if (target.id === 'randBtn') { setBtnBlueHeld('randBtn'); queueRand(); setTimeout(() => clearBtnBlueHeld('randBtn'), 300); }
       if (target.id === 'scratchBtn') { if (_recallSnapB) { const _cur = snapshotState(); restoreState(_recallSnapB); flashBtnOrange('scratchBtn'); window._reelReversePending = true; _recallSnapB = _cur; playUiSound(Math.random() < 0.5 ? 'rewind' : 'rewind2'); } }
     }
   }, { passive: false });
