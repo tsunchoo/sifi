@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SCI-FI BAR</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 03:42</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 06:29</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -2151,36 +2151,55 @@ function showCelestialMap() {
   const startVB = { x: 0, y: 0, w: CMAP_VIEW.w, h: CMAP_VIEW.h };
   svg.setAttribute('viewBox', `${startVB.x} ${startVB.y} ${startVB.w} ${startVB.h}`);
 
-
+  // Random starting rotation, unwinds to 0 as we zoom in
+  const startRotation = Math.random() * 360;
+  const rotator = null; // cmapRotator removed
 
   if (!coord) return; // no target — stay zoomed out
 
   const [tx, ty] = coord;
 
-  // Continuous zoom over 12 seconds:
-  // - Interpolate center from map center → target dot
-  // - Interpolate size from full map → near-zero (black)
-  // - Start position/scale unchanged from original behavior
-  const totalMs = 12000;
-  const startTime = performance.now();
-  const ease = t => 1 - Math.pow(1 - t, 3); // easeOut — fast start, gentle end
+  // Phase 1: zoom from full map down to the name (150x150)
+  const midW = 150, midH = 150;
+  const midVB = {
+    x: Math.max(0, Math.min(CMAP_VIEW.w - midW, tx - midW/2)),
+    y: Math.max(0, Math.min(CMAP_VIEW.h - midH, ty - midH/2)),
+    w: midW, h: midH
+  };
+  // Phase 2: continue zooming through the star center to near-zero
+  const finalW = 6, finalH = 6;
+  const finalVB = { x: tx - finalW/2, y: ty - finalH/2, w: finalW, h: finalH };
 
-  const startCx = startVB.x + startVB.w / 2;
-  const startCy = startVB.y + startVB.h / 2;
-  const startSize = startVB.w;
-  const endSize = 0.5; // near-zero = black
+  const phase1Ms = 5000;   // time to reach name
+  const phase2Ms = 2000;   // time to punch through
+  const totalMs  = phase1Ms + phase2Ms;
+  const startTime = performance.now();
+  const easeOut  = t => 1 - Math.pow(1 - t, 3);
+  const easeIn   = t => t * t * t;
 
   function animate(now) {
     const elapsed = now - startTime;
-    const t = Math.min(1, elapsed / totalMs);
-    const e = ease(t);
-    // Exponential size: shrinks smoothly to near-zero
-    const size = startSize * Math.pow(endSize / startSize, e);
-    // Center pan from map center to target
-    const cx = startCx + (tx - startCx) * e;
-    const cy = startCy + (ty - startCy) * e;
-    svg.setAttribute('viewBox', `${cx - size/2} ${cy - size/2} ${size} ${size}`);
-    if (t < 1) {
+    if (elapsed < phase1Ms) {
+      const t = elapsed / phase1Ms;
+      const e = easeOut(t);
+      const x = startVB.x + (midVB.x - startVB.x) * e;
+      const y = startVB.y + (midVB.y - startVB.y) * e;
+      const w = startVB.w + (midVB.w - startVB.w) * e;
+      const h = startVB.h + (midVB.h - startVB.h) * e;
+      const rot1 = startRotation * (1 - e);
+
+      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    } else {
+      const t = Math.min(1, (elapsed - phase1Ms) / phase2Ms);
+      const e = easeIn(t);
+      const x = midVB.x + (finalVB.x - midVB.x) * e;
+      const y = midVB.y + (finalVB.y - midVB.y) * e;
+      const w = midVB.w + (finalVB.w - midVB.w) * e;
+      const h = midVB.h + (finalVB.h - midVB.h) * e;
+
+      svg.setAttribute('viewBox', `${x} ${y} ${w} ${h}`);
+    }
+    if (elapsed < totalMs) {
       _cmapAnimFrame = requestAnimationFrame(animate);
     } else {
       _cmapAnimFrame = null;
@@ -4392,7 +4411,7 @@ if ('serviceWorker' in navigator) {
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
       if (target.id === 'beatBtn') toggleBeat();
-      if (target.id === 'randBtn') { flashBtnBlue('randBtn'); queueRand(); }
+      if (target.id === 'randBtn') { queueRand(); requestAnimationFrame(() => flashBtnBlue('randBtn')); }
       if (target.id === 'scratchBtn') { if (_recallSnapB) { const _cur = snapshotState(); restoreState(_recallSnapB); flashBtnOrange('scratchBtn'); window._reelReversePending = true; _recallSnapB = _cur; playUiSound(Math.random() < 0.5 ? 'rewind' : 'rewind2'); } }
     }
   };
