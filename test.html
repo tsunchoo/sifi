@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 19:01</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 19:08</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3214,7 +3214,7 @@ function snapFilename(sn) {
 // Record 2 bars of a snap in real time, returns Promise<Blob>
 async function recordSnapRealtime(snap) {
   const savedState = snapshotState();
-  restoreState(snap);
+  restoreState(snap.snap || snap);
   await new Promise(r => setTimeout(r, 50)); // let state settle
 
   const dest = ctx.createMediaStreamDestination();
@@ -3223,7 +3223,8 @@ async function recordSnapRealtime(snap) {
   const mr = new MediaRecorder(dest.stream);
   mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
-  const barDuration = (60 / (snap.bpm || bpm)) * 4 * 1000; // 1 bar in ms
+  const snapData = snap.snap || snap;
+  const barDuration = (60 / (snapData.bpm || bpm)) * 4 * 1000; // 1 bar in ms
   const recordDuration = barDuration * 2; // 2 bars
 
   return new Promise((resolve, reject) => {
