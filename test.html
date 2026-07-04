@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SI-FI</title>
+<title>Si-Fi</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
@@ -366,7 +366,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <body>
 
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
-  <h2>SI-FI</h2>
+  <h2>Si-Fi</h2>
   <p id="loadingMsg">Tap to load</p>
 </button>
 
@@ -388,8 +388,8 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 </div>
 
 <header>
-  <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 18:51</div>
+  <h1>Si-Fi</h1>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 19:01</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3034,7 +3034,25 @@ async function renderSlotToWav(snap) {
         continue;
       }
 
-      // No sample buffer — instrument not handled in offline render, skip
+      // WAV sample instruments — fetch and play
+      { const inst = INSTRUMENTS[key];
+        const wavPath = isAccent ? inst?.accent : inst?.soft;
+        if (wavPath) {
+          try {
+            const resp = await fetch(wavPath);
+            const ab = await resp.arrayBuffer();
+            const decoded = await offline.decodeAudioData(ab);
+            const s = offline.createBufferSource(); s.buffer = decoded;
+            const g = offline.createGain();
+            // Per-instrument gain to match live levels
+            const gainMap = { shak:0.25, clap:0.177, tamb:0.397, guiro:0.178, ride:0.225,
+              congHi:0.355, congLo:0.355, bongHi:0.355, bongLo:0.355 };
+            g.gain.value = gainMap[key] ?? 0.5;
+            s.connect(g); g.connect(fxOn ? fxSend : dryGain);
+            s.start(t);
+          } catch(e) { /* sample fetch failed — skip */ }
+        }
+      }
       continue;
     }
     } // end measure loop
@@ -3140,6 +3158,7 @@ function flashBtn(id) {
   // Tap = record toggle, hold (600ms) = bounce menu
   let holdTimer = null, didHold = false;
   const onDown = e => {
+    if (playing) return; // bounce only when stopped
     didHold = false;
     holdTimer = setTimeout(() => {
       didHold = true;
@@ -3170,7 +3189,7 @@ function getExportSnaps() {
 }
 
 async function shareOrDownload(files) {
-  const shareData = { files, title: 'SI-FI loops' };
+  const shareData = { files, title: 'Si-Fi loops' };
   try {
     await navigator.share(shareData);
   } catch(e) {
@@ -3185,26 +3204,56 @@ async function shareOrDownload(files) {
   }
 }
 
+function snapFilename(sn) {
+  const snapBpm = Math.round(sn.snap.bpm || bpm);
+  const snapName = sn.snap.speciesName || sn.label;
+  const snapKey = (() => { const root = sn.snap.globalScaleRoot; const sname = sn.snap.currentScaleName; if (!root||!sname) return ''; const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; const midi=Math.round(12*Math.log2(root/440))+69; const note=NOTE_NAMES[((midi%12)+12)%12]; return note+'-'+sname; })();
+  return [snapName, snapKey, snapBpm+'bpm'].filter(Boolean).join(' ');
+}
+
+// Record 2 bars of a snap in real time, returns Promise<Blob>
+async function recordSnapRealtime(snap) {
+  const savedState = snapshotState();
+  restoreState(snap);
+  await new Promise(r => setTimeout(r, 50)); // let state settle
+
+  const dest = ctx.createMediaStreamDestination();
+  masterGain.connect(dest);
+  const chunks = [];
+  const mr = new MediaRecorder(dest.stream);
+  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  const barDuration = (60 / (snap.bpm || bpm)) * 4 * 1000; // 1 bar in ms
+  const recordDuration = barDuration * 2; // 2 bars
+
+  return new Promise((resolve, reject) => {
+    mr.onstop = () => {
+      try { masterGain.disconnect(dest); } catch(e) {}
+      restoreState(savedState);
+      resolve(new Blob(chunks, { type: mr.mimeType }));
+    };
+    mr.start();
+    if (!playing) togglePlay();
+    setTimeout(() => { mr.stop(); if (playing) togglePlay(); }, recordDuration + 100);
+  });
+}
 async function saveAllSeparate() {
   if (!ctx) { alert('Load audio first'); return; }
   const btn = document.getElementById('saveBtn');
-  btn.textContent = '...'; btn.disabled = true;
+  btn.disabled = true;
   try {
     const snaps = getExportSnaps();
     const files = [];
     for (let i = 0; i < snaps.length; i++) {
-      btn.textContent = `${i+1}/${snaps.length}`;
-      const wav = await renderSlotToWav(snaps[i].snap);
-      const sn = snaps[i]; const snapBpm = Math.round(sn.snap.bpm || bpm);
-      const snapName = sn.snap.speciesName || sn.label;
-      const snapKey = (() => { const root = sn.snap.globalScaleRoot; const sname = sn.snap.currentScaleName; if (!root||!sname) return ''; const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; const midi=Math.round(12*Math.log2(root/440))+69; const note=NOTE_NAMES[((midi%12)+12)%12]; return note+'-'+sname; })();
-      const fname = [snapName, snapKey, snapBpm+'bpm'].filter(Boolean).join(' ');
-      files.push(new File([wav], fname+'.wav', { type: 'audio/wav' }));
+      const blob = await recordSnapRealtime(snaps[i]);
+      const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
+      files.push(new File([blob], snapFilename(snaps[i]) + '.' + ext, { type: blob.type }));
+      await new Promise(r => setTimeout(r, 300)); // gap between slots
     }
     await shareOrDownload(files);
   } catch(e) {
     console.error('Save failed', e);
-    alert('Save error: ' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n'));
+    alert('Save error: ' + e.message);
   }
   btn.disabled = false;
 }
@@ -3212,28 +3261,43 @@ async function saveAllSeparate() {
 async function saveAllCombined() {
   if (!ctx) { alert('Load audio first'); return; }
   const btn = document.getElementById('saveBtn');
-  btn.textContent = '...'; btn.disabled = true;
+  btn.disabled = true;
   try {
     const snaps = getExportSnaps();
-    const renderedBuffers = [];
+    // Record all slots back to back as one continuous take
+    const dest = ctx.createMediaStreamDestination();
+    masterGain.connect(dest);
+    const chunks = [];
+    const mr = new MediaRecorder(dest.stream);
+    mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+    const barMs = bpm => (60 / bpm) * 4 * 1000;
+
+    const savedState = snapshotState();
+    mr.start();
+    if (!playing) togglePlay();
+
     for (let i = 0; i < snaps.length; i++) {
-      btn.textContent = `${i+1}/${snaps.length}`;
-      const wav = await renderSlotToWav(snaps[i].snap);
-      const decoded = await ctx.decodeAudioData(wav.slice(0));
-      renderedBuffers.push(decoded);
+      restoreState(snaps[i].snap);
+      await new Promise(r => setTimeout(r, barMs(snaps[i].snap.bpm || bpm) * 2 + 100));
     }
-    const combined = concatAudioBuffers(renderedBuffers, ctx.sampleRate);
-    const wavData = audioBufferToWav(combined, snaps[0].snap.bpm || bpm);
-    const firstSnap = snaps[0].snap; const cbpm = Math.round(firstSnap.bpm || bpm);
-    const cname = firstSnap.speciesName || 'sifi'; const ckey = (() => { const root = firstSnap.globalScaleRoot; const sname = firstSnap.currentScaleName; if (!root||!sname) return ''; const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; const midi=Math.round(12*Math.log2(root/440))+69; const note=NOTE_NAMES[((midi%12)+12)%12]; return note+'-'+sname; })();
-    const cFname = [cname, ckey, cbpm+'bpm', snaps.length+'slots'].filter(Boolean).join(' ');
-    const file = new File([wavData], cFname+'.wav', { type: 'audio/wav' });
+
+    mr.stop();
+    if (playing) togglePlay();
+
+    await new Promise(resolve => { mr.onstop = resolve; });
+    try { masterGain.disconnect(dest); } catch(e) {}
+    restoreState(savedState);
+
+    const blob = new Blob(chunks, { type: mr.mimeType });
+    const ext = blob.type.includes('ogg') ? 'ogg' : blob.type.includes('mp4') ? 'm4a' : 'webm';
+    const firstSnap = snaps[0];
+    const file = new File([blob], snapFilename(firstSnap) + '-' + snaps.length + 'slots.' + ext, { type: blob.type });
     await shareOrDownload([file]);
   } catch(e) {
     console.error('Save failed', e);
-    alert('Save error: ' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n'));
+    alert('Save error: ' + e.message);
   }
-  btn.textContent = 'SAVE'; btn.disabled = false;
+  btn.disabled = false;
 }
 
 // ── Live recording via MediaRecorder ──
