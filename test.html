@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 18:24</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 18:39</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3127,7 +3127,7 @@ function flashBtn(id) {
   b.classList.add('btn-flash');
   setTimeout(() => b.classList.remove('btn-flash'), 300);
 }
-// ── REC button wiring — tap=record toggle, hold=export overlay ──
+// ── REC button wiring — tap=record toggle, hold=bounce menu ──
 (function() {
   const saveBtn = document.getElementById('saveBtn');
   const overlay = document.getElementById('saveOverlay');
@@ -3138,6 +3138,29 @@ function flashBtn(id) {
   overlay.addEventListener('click', e => { if (e.target === overlay) hideOverlay(); });
   document.getElementById('saveSeparateBtn').addEventListener('click', () => { hideOverlay(); saveAllSeparate(); });
   document.getElementById('saveCombinedBtn').addEventListener('click', () => { hideOverlay(); saveAllCombined(); });
+
+  // Tap = record toggle, hold (600ms) = bounce menu
+  let holdTimer = null, didHold = false;
+  const onDown = e => {
+    didHold = false;
+    holdTimer = setTimeout(() => {
+      didHold = true;
+      showOverlay();
+    }, 600);
+  };
+  const onUp = e => {
+    clearTimeout(holdTimer); holdTimer = null;
+    if (!didHold) toggleRecord();
+    didHold = false;
+  };
+  // Remove onclick so it doesn't double-fire
+  saveBtn.removeAttribute('onclick');
+  saveBtn.addEventListener('mousedown', onDown);
+  saveBtn.addEventListener('mouseup', onUp);
+  saveBtn.addEventListener('mouseleave', () => { clearTimeout(holdTimer); holdTimer = null; didHold = false; });
+  saveBtn.addEventListener('touchstart', e => { e.preventDefault(); onDown(e); }, { passive: false });
+  saveBtn.addEventListener('touchend', e => { e.preventDefault(); onUp(e); }, { passive: false });
+  saveBtn.addEventListener('touchcancel', () => { clearTimeout(holdTimer); holdTimer = null; didHold = false; });
 })();
 
 // Collect filled slots (or current state if none saved)
@@ -3174,7 +3197,11 @@ async function saveAllSeparate() {
     for (let i = 0; i < snaps.length; i++) {
       btn.textContent = `${i+1}/${snaps.length}`;
       const wav = await renderSlotToWav(snaps[i].snap);
-      files.push(new File([wav], `boombot-${snaps[i].label}-${Math.round(snaps[i].snap.bpm||bpm)}bpm.wav`, { type: 'audio/wav' }));
+      const sn = snaps[i]; const snapBpm = Math.round(sn.snap.bpm || bpm);
+      const snapName = sn.snap.speciesName || sn.label;
+      const snapKey = (() => { const root = sn.snap.globalScaleRoot; const sname = sn.snap.currentScaleName; if (!root||!sname) return ''; const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; const midi=Math.round(12*Math.log2(root/440))+69; const note=NOTE_NAMES[((midi%12)+12)%12]; return note+'-'+sname; })();
+      const fname = [snapName, snapKey, snapBpm+'bpm'].filter(Boolean).join(' ');
+      files.push(new File([wav], fname+'.wav', { type: 'audio/wav' }));
     }
     await shareOrDownload(files);
   } catch(e) {
@@ -3199,7 +3226,10 @@ async function saveAllCombined() {
     }
     const combined = concatAudioBuffers(renderedBuffers, ctx.sampleRate);
     const wavData = audioBufferToWav(combined, snaps[0].snap.bpm || bpm);
-    const file = new File([wavData], `boombot-${snaps.length}slots.wav`, { type: 'audio/wav' });
+    const firstSnap = snaps[0].snap; const cbpm = Math.round(firstSnap.bpm || bpm);
+    const cname = firstSnap.speciesName || 'sifi'; const ckey = (() => { const root = firstSnap.globalScaleRoot; const sname = firstSnap.currentScaleName; if (!root||!sname) return ''; const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B']; const midi=Math.round(12*Math.log2(root/440))+69; const note=NOTE_NAMES[((midi%12)+12)%12]; return note+'-'+sname; })();
+    const cFname = [cname, ckey, cbpm+'bpm', snaps.length+'slots'].filter(Boolean).join(' ');
+    const file = new File([wavData], cFname+'.wav', { type: 'audio/wav' });
     await shareOrDownload([file]);
   } catch(e) {
     console.error('Save failed', e);
