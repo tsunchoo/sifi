@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 18:39</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">04Jul26 18:51</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3034,10 +3034,8 @@ async function renderSlotToWav(snap) {
         continue;
       }
 
-      if (!buf) continue;
-      const src = offline.createBufferSource(); src.buffer = buf;
-      src.connect(fxOn ? fxSend : dryGain);
-      src.start(t);
+      // No sample buffer — instrument not handled in offline render, skip
+      continue;
     }
     } // end measure loop
   }
@@ -3206,9 +3204,9 @@ async function saveAllSeparate() {
     await shareOrDownload(files);
   } catch(e) {
     console.error('Save failed', e);
-    alert('Save error: ' + e.message);
+    alert('Save error: ' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n'));
   }
-  btn.textContent = 'SAVE'; btn.disabled = false;
+  btn.disabled = false;
 }
 
 async function saveAllCombined() {
@@ -3233,7 +3231,7 @@ async function saveAllCombined() {
     await shareOrDownload([file]);
   } catch(e) {
     console.error('Save failed', e);
-    alert('Save error: ' + e.message);
+    alert('Save error: ' + e.message + '\n' + (e.stack||'').split('\n').slice(0,3).join('\n'));
   }
   btn.textContent = 'SAVE'; btn.disabled = false;
 }
