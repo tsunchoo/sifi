@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">06Jul26 23:40</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">06Jul26 23:53</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -745,12 +745,11 @@ async function startAudioInRecord(tr) {
   updateAudioTrackUI(tr);
   if (!playing) togglePlay();
 
-  // Set up mic: monitor through speakers + record
-  const micSource = ctx.createMediaStreamSource(stream);
-  const micGain = ctx.createGain(); micGain.gain.value = 0.9;
-  micSource.connect(micGain); micGain.connect(ctx.destination); // live monitoring
+  // Recording path — monitoring already running from selection
+  const s2 = audioTrackState[tr];
+  const micSource = s2?._monitorSource || ctx.createMediaStreamSource(stream);
   const micDest = ctx.createMediaStreamDestination();
-  micSource.connect(micDest); // recording path
+  micSource.connect(micDest);
 
   // Wait for step 0
   await new Promise(resolve => {
@@ -781,7 +780,7 @@ async function startAudioInRecord(tr) {
   setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, recDuration);
 
   mr.onstop = () => {
-    try { micSource.disconnect(); micGain.disconnect(); } catch(e) {}
+    try { micSource.disconnect(micDest); } catch(e) {} // keep monitor running
     const blob = new Blob(chunks, { type: mr.mimeType });
     s.blob = blob;
     s.url = URL.createObjectURL(blob);
@@ -791,6 +790,11 @@ async function startAudioInRecord(tr) {
     const fill2 = document.getElementById(`audio-fill-${tr}`);
     if (fill2) { fill2.style.width = '100%'; fill2.style.background = '#7a2a7a'; }
     updateAudioTrackUI(tr);
+    // Immediately decode and start looping from next step 0
+    fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      s.audioBuffer = buf;
+      if (playing) playAudioInBuffer(tr, ctx.currentTime);
+    });
   };
 }
 
@@ -2510,12 +2514,23 @@ function selectSound(tr, k) {
     setTrackNameColor(tr, k);
     const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = 'AUDIO IN';
     buildAudioInRow(tr);
-    closeSoundPicker(); markModified(); return;
+    closeSoundPicker(); markModified();
+    // Request mic and start monitoring immediately
+    getMicStream().then(stream => {
+      if (!stream || !ctx) return;
+      if (!audioTrackState[tr]) audioTrackState[tr] = { barLen: 4, state: 'empty' };
+      const s = audioTrackState[tr];
+      if (s._monitorSource) { try { s._monitorSource.disconnect(); } catch(e) {} }
+      s._monitorSource = ctx.createMediaStreamSource(stream);
+      s._monitorGain = ctx.createGain(); s._monitorGain.gain.value = 0.9;
+      s._monitorSource.connect(s._monitorGain); s._monitorGain.connect(ctx.destination);
+    });
+    return;
   }
   if (prevKey === 'audioin' && k !== 'audioin') {
-    // Restore normal step row
     if (audioTrackState[tr]) {
       const s = audioTrackState[tr];
+      if (s._monitorSource) try { s._monitorSource.disconnect(); s._monitorGain?.disconnect(); } catch(e) {}
       if (s.source) try { s.source.stop(); } catch(e) {}
       if (s.url) URL.revokeObjectURL(s.url);
       delete audioTrackState[tr];
@@ -2607,6 +2622,18 @@ function updateVolMuteCol(tr) { updateTrackMute(tr); }
 function attachVolMuteEvents() {}
 
 
+function setAudioInCtrlRow(tr, isAudio) {
+  // Hide/show track control buttons that are irrelevant for audio tracks
+  const ids = [`swpbtn-${tr}`, `fxbtn-${tr}`, `randbtn-${tr}`];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isAudio ? 'none' : '';
+  });
+  // Hide shift buttons (< >) in this track's ctrl row
+  const ctrlRow = document.getElementById(`ctrlrow-${tr}`);
+  if (ctrlRow) ctrlRow.querySelectorAll('.shift-btn').forEach(b => b.style.display = isAudio ? 'none' : '');
+}
+
 function buildAudioInRow(tr) {
   if (!audioTrackState[tr]) audioTrackState[tr] = { barLen: 4, state: 'empty' };
   const stepRow = document.getElementById(`lane-${tr}`);
@@ -2657,7 +2684,11 @@ function buildAudioInRow(tr) {
   stepRow.appendChild(cell);
 }
 
+  setAudioInCtrlRow(tr, true);
+}
+
 function buildNormalRow(tr) {
+  setAudioInCtrlRow(tr, false);
   // Rebuild the normal step grid for this track
   const stepRow = document.getElementById(`lane-${tr}`);
   if (!stepRow) return;
