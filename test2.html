@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 05:13</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 05:20</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -752,46 +752,32 @@ async function startAudioInRecord(tr) {
   }, 50);
 
   mr.onstop = () => {
-    // Stop all mic tracks to fully release the audio session
+    // Stop mic tracks, force iOS back to playback-only mode, then decode
     stream.getTracks().forEach(t => t.stop());
     _micStream = null;
-    // Suspend and resume ctx to force iOS to reset hardware buffer size
+    const recBlob = new Blob(chunks, { type: mr.mimeType });
     ctx.suspend().then(() => ctx.resume()).then(() => {
-      _doRecordingDecode(tr, chunks, mr, lbl, fill);
-    });
-  };
-
-  function _doRecordingDecode(tr, chunks, mr, lbl, fill) {
-    const lbl = document.getElementById(`audio-count-${tr}`);
-    if (lbl) lbl.textContent = 'STOPPED';
-    const blob = new Blob(chunks, { type: mr.mimeType });
-    if (lbl) lbl.textContent = 'BLOB:' + Math.round(blob.size/1024) + 'kb';
-    s.state = 'ready';
-    if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
-    updateAudioTrackUI(tr);
-    s.url = URL.createObjectURL(blob);
-    blob.arrayBuffer().then(ab => {
-      if (lbl) lbl.textContent = 'DECODING ' + ab.byteLength + 'b';
-      return ctx.decodeAudioData(ab);
-    }).then(buf => {
-      // Trim buffer to exactly 1 bar at recorded BPM so it retriggers in sync
+      const recLbl = document.getElementById(`audio-count-${tr}`);
+      if (recLbl) recLbl.textContent = 'DECODING...';
+      s.state = 'ready';
+      if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
+      updateAudioTrackUI(tr);
+      return recBlob.arrayBuffer();
+    }).then(ab => ctx.decodeAudioData(ab)).then(buf => {
       const exactBarSamples = Math.round((60 / bpm) * 4 * buf.sampleRate);
       const trimmed = ctx.createBuffer(buf.numberOfChannels, exactBarSamples, buf.sampleRate);
       for (let ch = 0; ch < buf.numberOfChannels; ch++) {
-        const src = buf.getChannelData(ch);
-        const dst = trimmed.getChannelData(ch);
-        dst.set(src.subarray(0, exactBarSamples));
+        trimmed.getChannelData(ch).set(buf.getChannelData(ch).subarray(0, exactBarSamples));
       }
       s.audioBuffer = trimmed;
-      if (lbl) lbl.textContent = 'READY — PRESS PLAY';
-      const ms = audioTrackState[tr];
-      if (ms?._monitorSource && ms?._monitorGain && ctx) {
-        try { ms._monitorSource.connect(ms._monitorGain); ms._monitorGain.connect(ctx.destination); } catch(e) {}
-      }
+      s.url = URL.createObjectURL(recBlob);
+      const recLbl2 = document.getElementById(`audio-count-${tr}`);
+      if (recLbl2) recLbl2.textContent = 'READY — PRESS PLAY';
     }).catch(e => {
-      if (lbl) lbl.textContent = 'ERR:' + e.message;
+      const recLbl3 = document.getElementById(`audio-count-${tr}`);
+      if (recLbl3) recLbl3.textContent = 'ERR:' + e.message;
     });
-  }
+  };
 
   // Fully tear down monitoring and mic session before recording
   // This forces iOS out of play-and-record mode so timing stays clean
