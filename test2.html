@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 01:23</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 04:56</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -737,7 +737,9 @@ async function startAudioInRecord(tr) {
 
   const barDur = (60 / bpm) * 4 * 1000;
   const fill = document.getElementById(`audio-fill-${tr}`);
-  const recStartWall = performance.now();
+  s._mr = mr;
+  s._barDur = barDur;
+  s._recStartWall = performance.now();
 
   mr.onstop = () => {
     const lbl = document.getElementById(`audio-count-${tr}`);
@@ -753,7 +755,7 @@ async function startAudioInRecord(tr) {
       return ctx.decodeAudioData(ab);
     }).then(buf => {
       s.audioBuffer = buf;
-      if (lbl) lbl.textContent = 'BUF:' + buf.duration.toFixed(2) + 's CH:' + buf.numberOfChannels;
+      if (lbl) lbl.textContent = 'READY — PRESS PLAY (instr:' + trackInstruments[tr] + ')';
       const ms = audioTrackState[tr];
       if (ms?._monitorSource && ms?._monitorGain && ctx) {
         try { ms._monitorSource.connect(ms._monitorGain); ms._monitorGain.connect(ctx.destination); } catch(e) {}
@@ -772,11 +774,7 @@ async function startAudioInRecord(tr) {
   if (!playing) togglePlay();
   mr.start();
 
-  // Stop recording and loop after 1 bar
-  setTimeout(() => {
-    if (mr.state === 'recording') mr.stop();
-    if (playing) togglePlay();
-  }, barDur);
+  // Stop is handled by external timer set on s._mr
 
   // Progress bar
   const animFill = () => {
@@ -811,12 +809,26 @@ function playAudioInBuffer(tr, time) {
   if (s.source) { try { s.source.stop(); } catch(e) {} }
   const src = ctx.createBufferSource();
   src.buffer = s.audioBuffer;
-  // Route through track gain node if available, else master
+  src.loop = true; // loop continuously — scheduler will restart on each step 0 anyway
   const dest = (trackGainNodes && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
   src.connect(dest);
   const offset = s.playbackOffset || 0;
   src.start(Math.max(ctx.currentTime, time || 0), offset);
   s.source = src;
+}
+
+
+// Check for audio in tracks that need to stop recording
+function checkAudioInRecording() {
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const s = audioTrackState[tr];
+    if (!s || s.state !== 'recording' || !s._mr || !s._barDur || !s._recStartWall) continue;
+    if (performance.now() - s._recStartWall >= s._barDur) {
+      if (s._mr.state === 'recording') s._mr.stop();
+      if (playing) togglePlay();
+      s._recStartWall = null;
+    }
+  }
 }
 
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
@@ -935,6 +947,7 @@ const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
 function stepDuration() { return 60 / bpm / 4; }
 
 function scheduler() {
+  checkAudioInRecording();
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider
