@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:00</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:04</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -4530,8 +4530,14 @@ async function initAudio() {
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
-    // Prime mic stream so iOS audio session starts in play-and-record mode immediately
-    navigator.mediaDevices?.getUserMedia({ audio: true }).then(s => { _micStream = s; s.getTracks().forEach(t => t.stop()); }).catch(() => {});
+    // Keep a silent mic node permanently connected so iOS stays in play-and-record mode
+    // This prevents the session switch skip when Audio In monitoring is enabled
+    navigator.mediaDevices?.getUserMedia({ audio: true }).then(s => {
+      _micStream = s;
+      const silentSrc = ctx.createMediaStreamSource(s);
+      const silentGain = ctx.createGain(); silentGain.gain.value = 0;
+      silentSrc.connect(silentGain); silentGain.connect(ctx.destination);
+    }).catch(() => {});
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
