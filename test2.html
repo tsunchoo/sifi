@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:48</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:51</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -755,48 +755,45 @@ async function startAudioInRecord(tr) {
   if (fill) { fill.style.width = '0%'; fill.style.background = '#d00'; }
   requestAnimationFrame(animFill);
 
+  const recStartWall = performance.now();
   mr.start();
 
-  // Stop recording after exactly 1 bar
-  await new Promise(resolve => { setTimeout(resolve, barDur); });
-  if (mr.state === 'recording') mr.stop();
+  // Everything after recording lives in onstop — no more awaits after this point
+  mr.onstop = async () => {
+    // Stop the loop
+    if (playing) togglePlay();
+    try { recMicSrc.disconnect(); } catch(e) {}
 
-  // Stop the loop while we process
-  if (playing) togglePlay();
-  try { recMicSrc.disconnect(); } catch(e) {}
+    const recEndWall = performance.now();
+    const actualDur = (recEndWall - recStartWall) / 1000;
+    const latencyOffset = Math.max(0, actualDur - (barDur / 1000));
 
-  // How long after loop start did MediaRecorder actually begin capturing?
-  // This is our latency offset — mr.start() to first data is typically 20-100ms
-  const latencyOffset = Math.max(0, ctx.currentTime - recStartCtxTime - (barDur / 1000));
+    s.state = 'ready';
+    if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
+    const countEl3 = document.getElementById(`audio-count-${tr}`);
+    if (countEl3) countEl3.textContent = 'DECODING...';
+    updateAudioTrackUI(tr);
 
-  // Wait for onstop to fire and blob to be ready
-  const blob = await new Promise(resolve => {
-    mr.onstop = () => resolve(new Blob(chunks, { type: mr.mimeType }));
-  });
+    try {
+      const blob = new Blob(chunks, { type: mr.mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+      const ab = await fetch(blobUrl).then(r => r.arrayBuffer());
+      const buf = await ctx.decodeAudioData(ab);
+      s.audioBuffer = buf;
+      s.url = blobUrl;
+      s.playbackOffset = Math.max(0, latencyOffset);
+      if (countEl3) countEl3.textContent = 'RECORDED';
+      s._playOnNextBar = true;
+      if (!playing) togglePlay();
+    } catch(e) {
+      console.warn('Audio In decode failed:', e);
+      const countEl3b = document.getElementById(`audio-count-${tr}`);
+      if (countEl3b) countEl3b.textContent = 'ERROR';
+    }
+  };
 
-  s.state = 'ready';
-  if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
-  if (countEl2) countEl2.textContent = 'DECODING...';
-  updateAudioTrackUI(tr);
-
-  // Decode with no timing pressure — loop is stopped
-  try {
-    const blobUrl = URL.createObjectURL(blob);
-    const ab = await fetch(blobUrl).then(r => r.arrayBuffer());
-    const buf = await ctx.decodeAudioData(ab);
-    s.audioBuffer = buf;
-    s.url = blobUrl;
-    // playbackOffset trims buffer start to compensate for MediaRecorder latency
-    s.playbackOffset = Math.max(0, latencyOffset);
-    if (countEl2) countEl2.textContent = 'RECORDED';
-    // Start loop — scheduler will trigger playAudioInBuffer at next step 0
-    // Flag it so scheduler knows to play on the very first step 0
-    s._playOnNextBar = true;
-    if (!playing) togglePlay();
-  } catch(e) {
-    console.warn('Audio In decode failed:', e);
-    if (countEl2) countEl2.textContent = 'ERROR';
-  }
+  // Stop after exactly 1 bar
+  setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, barDur);
 }
 // Play back audio in track at step 0
 function triggerAudioInTrack(tr, time) {
