@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 23:22</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 23:23</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1222,43 +1222,46 @@ function playSynthSnare_legacy(isAccent, time, tr) {
   body.connect(bg); bg.connect(dest); body.start(time); body.stop(time + 0.06);
 }
 function playSynthSnare(isAccent, time, tr) {
-  // Synth sidestick: tuned noise burst + rimshot click + short resonant tone
+  // Natural sidestick: wood-body thud + high rimshot crack + subtle snare rattle
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
-  const vol = isAccent ? 0.28 : 0.18;
+  const vol = isAccent ? 0.30 : 0.19;
 
-  // Rimshot click — very short noise transient
-  const clickLen = 0.004;
-  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
+  // Wood body — low bandpass thud, very short, gives the "knock" character
+  const woodOsc = ctx.createOscillator(); woodOsc.type = 'triangle';
+  woodOsc.frequency.setValueAtTime(480, time);
+  woodOsc.frequency.exponentialRampToValueAtTime(220, time + 0.025);
+  const woodBP = ctx.createBiquadFilter(); woodBP.type = 'bandpass'; woodBP.frequency.value = 380; woodBP.Q.value = 2.5;
+  const woodG = ctx.createGain();
+  woodG.gain.setValueAtTime(vol * 0.9, time);
+  woodG.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+  woodOsc.connect(woodBP); woodBP.connect(woodG); woodG.connect(dest);
+  woodOsc.start(time); woodOsc.stop(time + 0.04);
+
+  // Rim crack — short sharp noise burst, high-passed for brightness
+  const crackLen = 0.006;
+  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
   const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * (1 - i/cd.length);
-  const click = ctx.createBufferSource();
-  click.buffer = cBuf;
-  const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = 2000;
-  const clickG = ctx.createGain(); clickG.gain.value = vol * 1.4;
-  click.connect(clickHP); clickHP.connect(clickG); clickG.connect(dest);
-  click.start(time);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.5);
+  const crack = ctx.createBufferSource(); crack.buffer = cBuf;
+  const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
+  const crackG = ctx.createGain(); crackG.gain.value = vol * 1.8;
+  crack.connect(crackHP); crackHP.connect(crackG); crackG.connect(dest);
+  crack.start(time);
 
-  // Stick tone — short bandpass resonance like hitting a rim
-  const tone = ctx.createOscillator(); tone.type = 'sine';
-  tone.frequency.setValueAtTime(800, time);
-  tone.frequency.exponentialRampToValueAtTime(400, time + 0.03);
-  const toneG = ctx.createGain();
-  toneG.gain.setValueAtTime(vol * 0.6, time);
-  toneG.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
-  tone.connect(toneG); toneG.connect(dest);
-  tone.start(time); tone.stop(time + 0.05);
-
-  // Short noise body — drier than snare
-  const bodyLen = isAccent ? 0.08 : 0.05;
-  const nBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bodyLen), ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random()*2-1) * Math.pow(1 - i/nd.length, 3);
-  const noise = ctx.createBufferSource(); noise.buffer = nBuf;
-  const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 2400; nbp.Q.value = 1.2;
-  const noiseG = ctx.createGain(); noiseG.gain.value = vol * 0.5;
-  noise.connect(nbp); nbp.connect(noiseG); noiseG.connect(dest);
-  noise.start(time);
+  // Snare rattle — subtle, gives it that live drum feel
+  const rattleLen = isAccent ? 0.06 : 0.04;
+  const rBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * rattleLen), ctx.sampleRate);
+  const rd = rBuf.getChannelData(0);
+  for (let i = 0; i < rd.length; i++) rd[i] = (Math.random()*2-1) * Math.pow(1 - i/rd.length, 1.8);
+  const rattle = ctx.createBufferSource(); rattle.buffer = rBuf;
+  const rattleHP = ctx.createBiquadFilter(); rattleHP.type = 'highpass'; rattleHP.frequency.value = 1200;
+  const rattleBP = ctx.createBiquadFilter(); rattleBP.type = 'bandpass'; rattleBP.frequency.value = 5000; rattleBP.Q.value = 0.8;
+  const rattleG = ctx.createGain();
+  rattleG.gain.setValueAtTime(vol * 0.3, time + 0.004); // slight delay — arrives after the stick
+  rattleG.gain.exponentialRampToValueAtTime(0.001, time + rattleLen);
+  rattle.connect(rattleHP); rattleHP.connect(rattleBP); rattleBP.connect(rattleG); rattleG.connect(dest);
+  rattle.start(time + 0.004);
 }
 
 function playSynthHihat(isAccent, time, tr) {
