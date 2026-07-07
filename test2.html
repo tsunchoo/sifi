@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 19:03</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 19:12</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -454,9 +454,9 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
     <!-- NASA Audio -->
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">NASA AUDIO</div>
-      <div style="display:flex;gap:6px;align-items:center;">
-        <button id="nasaBtn" onclick="toggleNasa()" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">▶ NASA</button>
-        <button onclick="nextNasaClip()" style="background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;padding:10px 10px;cursor:pointer;">▶▶</button>
+      <div style="display:flex;gap:6px;">
+        <button id="nasaBtn" onclick="toggleNasa()" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;touch-action:manipulation;">▶ PLAY</button>
+        <button onclick="nextNasaClip()" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;touch-action:manipulation;">NEXT</button>
       </div>
       <div id="nasaLabel" style="font-size:0.55rem;color:var(--dim);letter-spacing:0.5px;min-height:14px;"></div>
       <input type="range" min="0" max="100" value="18" style="width:100%;" oninput="setNasaVol(this.value/100)" class="master-vol-slider">
@@ -687,70 +687,92 @@ const NASA_CLIPS = [
   { url: 'https://archive.org/download/NasaAudioHighlightReels/apollo13highlights_vbr.mp3', label: 'Apollo 13 · Highlights' },
 ];
 
-let _nasaAudio = null;
 let _nasaGain = null;
+let _nasaSource = null;
+let _nasaBuffer = null;
 let _nasaClipIdx = 0;
 let _nasaPlaying = false;
+let _nasaStartTime = 0;
+let _nasaOffset = 0;
+let _nasaLoading = false;
 
 function initNasaGain() {
   if (_nasaGain || !ctx) return;
   _nasaGain = ctx.createGain();
-  _nasaGain.gain.value = 0.18; // quiet under the mix
+  _nasaGain.gain.value = 0.18;
   _nasaGain.connect(masterGain);
 }
 
 function toggleNasa() {
-  if (!ctx) { initAudio().then(toggleNasa); return; }
+  if (!ctx) return;
   initNasaGain();
-  if (_nasaPlaying) {
-    stopNasa();
-  } else {
-    playNasaClip(_nasaClipIdx);
-  }
-  updateNasaBtn();
+  if (_nasaPlaying) { stopNasa(); }
+  else { loadAndPlayNasa(_nasaClipIdx); }
 }
 
-function playNasaClip(idx) {
-  stopNasa(true);
+async function loadAndPlayNasa(idx) {
+  if (_nasaLoading) return;
   _nasaClipIdx = idx % NASA_CLIPS.length;
   const clip = NASA_CLIPS[_nasaClipIdx];
-  _nasaAudio = new Audio();
-  _nasaAudio.crossOrigin = 'anonymous';
-  _nasaAudio.src = clip.url;
-  _nasaAudio.preload = 'auto';
-  const src = ctx.createMediaElementSource(_nasaAudio);
-  src.connect(_nasaGain);
-  _nasaAudio._src = src;
-  _nasaAudio.onended = () => {
-    // Auto-advance to next clip
-    _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
-    if (_nasaPlaying) playNasaClip(_nasaClipIdx);
-  };
-  _nasaAudio.onerror = () => {
-    // Skip failed clips
-    _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
-    if (_nasaPlaying) setTimeout(() => playNasaClip(_nasaClipIdx), 500);
-  };
-  _nasaAudio.play().catch(e => console.warn('NASA audio:', e));
-  _nasaPlaying = true;
-  updateNasaLabel();
+  updateNasaLabel('LOADING...');
+  _nasaLoading = true;
+  try {
+    const resp = await fetch(clip.url);
+    if (!resp.ok) throw new Error('fetch failed');
+    const ab = await resp.arrayBuffer();
+    _nasaBuffer = await ctx.decodeAudioData(ab);
+    _nasaOffset = 0;
+    _nasaLoading = false;
+    if (!_nasaPlaying) startNasaSource();
+  } catch(e) {
+    _nasaLoading = false;
+    console.warn('NASA clip failed:', clip.url, e);
+    updateNasaLabel('FAILED — try next');
+  }
 }
 
-function stopNasa(silent) {
-  if (_nasaAudio) {
-    _nasaAudio.pause();
-    _nasaAudio.src = '';
-    try { if (_nasaAudio._src) _nasaAudio._src.disconnect(); } catch(e) {}
-    _nasaAudio = null;
+function startNasaSource() {
+  if (!_nasaBuffer || !ctx) return;
+  stopNasaSource();
+  _nasaSource = ctx.createBufferSource();
+  _nasaSource.buffer = _nasaBuffer;
+  _nasaSource.connect(_nasaGain);
+  _nasaSource.onended = () => {
+    if (_nasaPlaying) {
+      _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
+      _nasaBuffer = null;
+      loadAndPlayNasa(_nasaClipIdx);
+    }
+  };
+  _nasaSource.start(0, _nasaOffset);
+  _nasaStartTime = ctx.currentTime - _nasaOffset;
+  _nasaPlaying = true;
+  updateNasaBtn();
+  updateNasaLabel(NASA_CLIPS[_nasaClipIdx].label);
+}
+
+function stopNasaSource() {
+  if (_nasaSource) {
+    _nasaOffset = Math.min(ctx.currentTime - _nasaStartTime, _nasaBuffer?.duration || 0);
+    try { _nasaSource.stop(); _nasaSource.disconnect(); } catch(e) {}
+    _nasaSource = null;
   }
-  if (!silent) _nasaPlaying = false;
+}
+
+function stopNasa() {
+  stopNasaSource();
+  _nasaPlaying = false;
+  _nasaOffset = 0;
   updateNasaBtn();
 }
 
 function nextNasaClip() {
+  stopNasaSource();
+  _nasaBuffer = null;
+  _nasaOffset = 0;
   _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
-  if (_nasaPlaying) playNasaClip(_nasaClipIdx);
-  else updateNasaLabel();
+  if (_nasaPlaying) loadAndPlayNasa(_nasaClipIdx);
+  else updateNasaLabel(NASA_CLIPS[_nasaClipIdx].label);
 }
 
 function setNasaVol(v) {
@@ -760,14 +782,14 @@ function setNasaVol(v) {
 function updateNasaBtn() {
   const btn = document.getElementById('nasaBtn');
   if (btn) {
-    btn.textContent = _nasaPlaying ? '■ NASA' : '▶ NASA';
+    btn.textContent = _nasaPlaying ? '■ STOP' : '▶ PLAY';
     btn.style.background = _nasaPlaying ? '#f17d21' : '#555';
   }
 }
 
-function updateNasaLabel() {
+function updateNasaLabel(txt) {
   const lbl = document.getElementById('nasaLabel');
-  if (lbl) lbl.textContent = NASA_CLIPS[_nasaClipIdx].label;
+  if (lbl) lbl.textContent = txt !== undefined ? txt : NASA_CLIPS[_nasaClipIdx].label;
 }
 
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
@@ -2248,7 +2270,7 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 function playSynthFlute(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.070 : 0.045;
+  const vel = isAccent ? 0.056 : 0.036;
 
   // FM + reed layer: carrier sine + square wave reed + heavy noise texture
   const modFreq = freq * 2.01;
