@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si•Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 08:14</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 08:18</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -3566,7 +3566,7 @@ function randAll(mode) {
   _split32CycleCount = 0;
   mode = mode || 'all';
   const level = randAllLevel;
-  const noteLevel = Math.min(level, 2); // note density capped at 3 tiers
+  const noteLevel = Math.min(level, 2);
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
     autoShiftStops[tr]();
@@ -3728,15 +3728,11 @@ function randAll(mode) {
     if (ctx && trackFxNodes[tr]) setFxActive(tr, { x: 0, y: 0 });
     const fxBtn = document.getElementById(`fxbtn-${tr}`); if (fxBtn) fxBtn.classList.remove('on');
   }
-  // Level 3+4: more FX, some auto-rand tracks
-  const isHighLevel = level >= 3;
-  const fxBoost    = level >= 4 ? 0.7 : (level === 3 ? 0.5 : 1.0); // multiplier on FX chance
-  const autoCount  = level === 3 ? (1 + Math.floor(Math.random() * 2)) :  // 1-2 auto tracks
-                     level === 4 ? (2 + Math.floor(Math.random() * 2)) : 0; // 2-3 auto tracks
-  if (autoCount > 0) {
+  // Levels 3+4: activate auto-rand on some tracks and boost FX
+  if (level >= 3) {
+    const autoCount = level === 3 ? (1 + Math.floor(Math.random() * 2)) : (2 + Math.floor(Math.random() * 2));
     const eligible = pool.map((k, i) => i).filter(i => !trackSweep[i]);
-    const shuffled = eligible.sort(() => Math.random() - 0.5);
-    shuffled.slice(0, autoCount).forEach(tr => {
+    eligible.sort(() => Math.random() - 0.5).slice(0, autoCount).forEach(tr => {
       const rb = document.getElementById(`randbtn-${tr}`);
       if (rb && rb._restartAuto) rb._restartAuto();
     });
@@ -3749,8 +3745,8 @@ function randAll(mode) {
     if (TONAL_KEYS.has(pool[tr])) {
       const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
       const isClap = pool[tr] === 'clap';
-      const baseFxChance = isClap ? 1.0 : (isBass ? 0.6 : 0.25);
-      const fxOn = isHighLevel ? Math.random() < Math.min(0.9, baseFxChance + fxBoost) : isClap ? true : Math.random() < (isBass ? 0.6 : 0.25);
+      const fxBoost = level >= 4 ? 0.65 : (level === 3 ? 0.45 : 0);
+      const fxOn = isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.6 : 0.25) + fxBoost);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
