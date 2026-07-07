@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:22</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:26</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -804,15 +804,17 @@ async function startAudioInRecord(tr) {
     const fill2 = document.getElementById(`audio-fill-${tr}`);
     if (fill2) { fill2.style.width = '100%'; fill2.style.background = '#7a2a7a'; }
     updateAudioTrackUI(tr);
-    // Decode after a short delay to avoid disrupting the audio thread
-    // Flag that we need to start on the next step 0
+    // Decode the blob — briefly mute master so decode glitch isn't audible
     s._pendingPlayback = true;
-    setTimeout(() => {
-      fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
-        s.audioBuffer = buf;
-        // Start playback on the very next step 0 via the pending flag
-      }).catch(e => console.warn('Audio In decode failed:', e));
-    }, 500); // wait 500ms after recording stops before decoding
+    const preDecode = ctx.currentTime;
+    if (masterGain) {
+      masterGain.gain.cancelScheduledValues(preDecode);
+      masterGain.gain.setValueAtTime(0, preDecode);
+      masterGain.gain.setValueAtTime(masterVol, preDecode + 0.8);
+    }
+    fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      s.audioBuffer = buf;
+    }).catch(e => console.warn('Audio In decode failed:', e));
   };
 }
 
