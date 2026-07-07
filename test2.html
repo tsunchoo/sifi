@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:31</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:36</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1316,7 +1316,7 @@ function randomizeBassTrack(tr, level) {
     [5, 8,  0.40],
     [8, 13, 0.60],
   ];
-  const [minN, maxN, accentRatio] = levelTable[level];
+  const [minN, maxN, accentRatio] = levelTable[Math.min(level, 2)];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
@@ -3716,7 +3716,7 @@ function randAll(mode) {
     setTrackNameColor(tr, k);
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.textContent = 'L'; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
-    trackRLevel[tr] = level;
+    trackRLevel[tr] = Math.min(level, 2);
     randomizeTrack(tr);
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
@@ -3731,9 +3731,14 @@ function randAll(mode) {
     const autoCount = level === 3 ? (1 + Math.floor(Math.random() * 2)) : (2 + Math.floor(Math.random() * 2));
     // Use actual track indices, not pool indices
     const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i]);
-    eligible.sort(() => Math.random() - 0.5).slice(0, autoCount).forEach(tr => {
+    const selected = eligible.sort(() => Math.random() - 0.5).slice(0, autoCount);
+    selected.forEach(tr => {
       const rb = document.getElementById(`randbtn-${tr}`);
-      if (rb && rb._restartAuto) rb._restartAuto();
+      if (rb && rb._restartAuto) {
+        // Stop first to reset state, then start auto
+        if (autoShiftStops[tr]) autoShiftStops[tr]();
+        rb._restartAuto();
+      }
     });
   }
 
@@ -4093,7 +4098,7 @@ function placeNotes(tr, noteCount, accentRatio, level) {
 
 function randomizeTrack(tr) {
   const key = trackInstruments[tr];
-  const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : trackRLevel[tr];
+  const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : Math.min(trackRLevel[tr], 2);
   const level = cappedLevel;
   trackRLevel[tr] = (trackRLevel[tr] + 1) % 3;
 
