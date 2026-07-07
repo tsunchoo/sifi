@@ -323,7 +323,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
   grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 2px;
 }
 .slot-btn {
-  background: transparent; border: 2px solid #111; color: var(--text);
+  background: transparent; border: 2px solid #888; color: #888;
   font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: 0;
   padding: 16px 0; cursor: pointer; text-align: center;
   touch-action: manipulation; transition: background 0.1s;
@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 16:51</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 19:26</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -622,6 +622,49 @@ async function loadSamples() {
   document.getElementById('loadingOverlay').classList.add('hidden');
   document.getElementById('status').textContent = '';
 }
+
+
+
+// Auto-disconnect all source nodes when they end — prevents node accumulation
+function _patchCtxForAutoCleanup(ctx) {
+  const _origCreateOsc = ctx.createOscillator.bind(ctx);
+  const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  ctx.createOscillator = function() {
+    const node = _origCreateOsc();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+  ctx.createBufferSource = function() {
+    const node = _origCreateBuf();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+}
+
+// ── Node lifecycle management ─────────────────────────────────────────────
+// Schedules disconnect() after a node stops to free it from the audio graph
+function scheduleDisconnect(node, stopTime) {
+  const delay = Math.max(0, (stopTime - (ctx?.currentTime || 0)) + 0.1);
+  setTimeout(() => { try { node.disconnect(); } catch(e) {} }, delay * 1000);
+}
+
+// Track approximate node count for health monitoring
+let _nodeCount = 0;
+
+
+// Simple node health monitor — high note counts can cause audio glitches on iOS
+let _totalNotesScheduled = 0;
+const _NOTE_WARN_THRESHOLD = 1500;
+let _nodeWarnShown = false;
+function _trackNote() {
+  _totalNotesScheduled++;
+  if (_totalNotesScheduled > _NOTE_WARN_THRESHOLD && !_nodeWarnShown) {
+    _nodeWarnShown = true;
+    console.warn('Si•Fi: high note count (' + _totalNotesScheduled + ') — audio graph may need refresh');
+  }
+}
+
+
 
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
 
@@ -1158,7 +1201,7 @@ function playSynthKick(isAccent, time, tr) {
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
 }
-function playSynthSnare(isAccent, time, tr) {
+function playSynthSnare_legacy(isAccent, time, tr) {
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
   const dur = isAccent ? 0.22 : 0.15, vol = isAccent ? 0.325 : 0.210;
@@ -1178,6 +1221,46 @@ function playSynthSnare(isAccent, time, tr) {
   bg.gain.setValueAtTime(vol * 0.35, time); bg.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
   body.connect(bg); bg.connect(dest); body.start(time); body.stop(time + 0.06);
 }
+function playSynthSnare(isAccent, time, tr) {
+  // Synth sidestick: tuned noise burst + rimshot click + short resonant tone
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const vol = isAccent ? 0.28 : 0.18;
+
+  // Rimshot click — very short noise transient
+  const clickLen = 0.004;
+  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
+  const cd = cBuf.getChannelData(0);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * (1 - i/cd.length);
+  const click = ctx.createBufferSource();
+  click.buffer = cBuf;
+  const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = 2000;
+  const clickG = ctx.createGain(); clickG.gain.value = vol * 1.4;
+  click.connect(clickHP); clickHP.connect(clickG); clickG.connect(dest);
+  click.start(time);
+
+  // Stick tone — short bandpass resonance like hitting a rim
+  const tone = ctx.createOscillator(); tone.type = 'sine';
+  tone.frequency.setValueAtTime(800, time);
+  tone.frequency.exponentialRampToValueAtTime(400, time + 0.03);
+  const toneG = ctx.createGain();
+  toneG.gain.setValueAtTime(vol * 0.6, time);
+  toneG.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+  tone.connect(toneG); toneG.connect(dest);
+  tone.start(time); tone.stop(time + 0.05);
+
+  // Short noise body — drier than snare
+  const bodyLen = isAccent ? 0.08 : 0.05;
+  const nBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bodyLen), ctx.sampleRate);
+  const nd = nBuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random()*2-1) * Math.pow(1 - i/nd.length, 3);
+  const noise = ctx.createBufferSource(); noise.buffer = nBuf;
+  const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 2400; nbp.Q.value = 1.2;
+  const noiseG = ctx.createGain(); noiseG.gain.value = vol * 0.5;
+  noise.connect(nbp); nbp.connect(noiseG); noiseG.connect(dest);
+  noise.start(time);
+}
+
 function playSynthHihat(isAccent, time, tr) {
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
@@ -1305,6 +1388,7 @@ function randomizeBassTrack(tr, level) {
   // Per-instrument note density rules
   const noteTables = {
     sstring: [[1,2,0.50],[1,3,0.70],[2,3,0.80]],   // Choir — very few, mostly accented
+    fflute: [[2,4,0.60],[3,6,0.70],[5,9,0.80]],   // SLAY — medium notes, no FX
     sleg:    [[1,2,0.10],[2,3,0.20],[2,5,0.30]],   // Strings — fewest
     satk:    [[1,2,0.25],[2,3,0.40],[2,3,0.50]],   // Syn Attack — max 3
     rhodes:  [[2,3,0.15],[3,6,0.30],[5,8,0.45]],   // Piano — medium
@@ -1712,7 +1796,7 @@ const _plunkGlide = {};
 function playPlunkBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.9 : 0.65;
+  const vel = isAccent ? 0.715 : 0.516;
   _plunkGlide[tr] = freq;
 
   // Distorted sawtooth through a tight bandpass — nasal, aggressive
@@ -1749,7 +1833,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.195 : 0.135;
+  const vel = isAccent ? 0.130 : 0.090;
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
@@ -1785,7 +1869,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
 function playRhodes2(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.090 : 0.062; // -3dB
+  const vel = isAccent ? 0.060 : 0.042;
 
   const B = 0.00008; // less inharmonicity = warmer
   const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
@@ -1975,8 +2059,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 function playBlunt(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
-  const vel = isAccent ? (fxOn ? 0.080 : 0.032) : (fxOn ? 0.053 : 0.021);
+  const vel = isAccent ? 0.018 : 0.012;
   const tail = 2.0;
   // Waveshaper for lo-fi crunch — quantises the waveform
   const crushCurve = new Float32Array(256);
@@ -2061,7 +2144,7 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 function playSynthFlute(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.070 : 0.045;
+  const vel = isAccent ? 0.056 : 0.036;
 
   // FM + reed layer: carrier sine + square wave reed + heavy noise texture
   const modFreq = freq * 2.01;
@@ -2122,6 +2205,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   mod.start(time); mod.stop(time + durSec + 0.2);
   reed.start(time); reed.stop(time + durSec + 0.2);
   carrier.start(time); carrier.stop(time + durSec + 0.2);
+  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); } catch(e) {} };
   noise.start(time);
 }
 
@@ -2216,6 +2300,8 @@ function playGlassBell(freq, durSec, isAccent, time, tr) {
     carrier.connect(ampEnv); ampEnv.connect(dest);
     mod.start(time); mod.stop(time + sustain + 0.05);
     carrier.start(time); carrier.stop(time + sustain + 0.05);
+    mod.onended = () => { try { mod.disconnect(); modEnv.disconnect(); } catch(e) {} };
+    carrier.onended = () => { try { carrier.disconnect(); ampEnv.disconnect(); } catch(e) {} };
   });
 
   // Slow LFO tremolo for shimmer movement
@@ -2232,6 +2318,8 @@ function playGlassBell(freq, durSec, isAccent, time, tr) {
   lfoCarrier.connect(lfoAmp); lfoAmp.connect(dest);
   lfo.start(time); lfo.stop(time + sustain + 0.05);
   lfoCarrier.start(time); lfoCarrier.stop(time + sustain + 0.05);
+  lfo.onended = () => { try { lfo.disconnect(); lfoGain.disconnect(); } catch(e) {} };
+  lfoCarrier.onended = () => { try { lfoCarrier.disconnect(); lfoAmp.disconnect(); } catch(e) {} };
 }
 
 // Permanently mark the grid step as a 32nd-split when a runtime flam fires, and redraw the cell
@@ -2981,7 +3069,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'sbass4') {
           // Match playPlunkBass exactly
-          const vel = isAccent ? 0.9 : 0.65;
+          const vel = isAccent ? 0.715 : 0.516;
           const osc1 = o.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
           const osc2 = o.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq*0.5;
           const mix = o.createGain(); mix.gain.value=0.4;
@@ -3696,6 +3784,9 @@ function randAll(mode) {
   pool = [...pool].sort((a, b) => trackRank(a) - trackRank(b));
 
   // Assign sorted pool sequentially to unlocked tracks
+  // Note budget: total notes spread across all tracks — busy tracks leave less for others
+  const _noteBudget = { remaining: [6, 9, 12][Math.min(level, 2)], tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
+
   let poolIdx = 0;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // L button locked — skip
@@ -3717,7 +3808,12 @@ function randAll(mode) {
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.textContent = 'L'; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
     trackRLevel[tr] = Math.min(level, 2);
-    randomizeTrack(tr);
+    const _tr = tr; const _lv = Math.min(level, 2);
+    const _tracksLeft = NUM_TRACKS - tr;
+    const _maxForThisTrack = Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft)));
+    _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
+    window._randNoteMax = _maxForThisTrack;
+    setTimeout(() => { window._randNoteMax = _maxForThisTrack; randomizeTrack(_tr); window._randNoteMax = null; }, _tr * 20); // stagger 20ms per track
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -3728,7 +3824,7 @@ function randAll(mode) {
   }
   // Levels 3+4: activate auto-rand on some tracks and boost FX
   if (level >= 3) {
-    const autoCount = level === 3 ? (1 + Math.floor(Math.random() * 2)) : (2 + Math.floor(Math.random() * 2));
+    const autoCount = level === 3 ? 1 : 2; // hard cap to limit node load
     // Use actual track indices, not pool indices
     const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i]);
     const selected = eligible.sort(() => Math.random() - 0.5).slice(0, autoCount);
@@ -3749,8 +3845,9 @@ function randAll(mode) {
     if (TONAL_KEYS.has(pool[tr])) {
       const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
       const isClap = pool[tr] === 'clap';
+      const isSlay = pool[tr] === 'fflute';
       const fxBoost = level >= 4 ? 0.65 : (level === 3 ? 0.45 : 0);
-      const fxOn = isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.6 : 0.25) + fxBoost);
+      const fxOn = isSlay ? false : isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.6 : 0.25) + fxBoost);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -4057,6 +4154,15 @@ function placeNotes(tr, noteCount, accentRatio, level) {
     if (Math.random() < 0.5) { grid[tr][4] = 2; grid[tr][12] = 2; }  // beats 2+4
     else { grid[tr][0] = 2; grid[tr][8] = 2; }  // beats 1+3
   }
+  // Tamb: 20% chance of full 16th note grid with accents on 2+4 (steps 4+12)
+  if (key === 'tamb' && Math.random() < 0.20) {
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+      grid[tr][gs] = (s === 4 || s === 12) ? 2 : 1; // accent on 2+4, soft elsewhere
+    }
+    redrawTrackCells(tr); markModified(); return;
+  }
+
   // Guiro: max 2 accents per measure, 40% chance of accent on beat 1
   if (key === 'guiro') {
     if (Math.random() < 0.4) { grid[tr][0] = 2; } // accent on the 1
@@ -4108,19 +4214,26 @@ function randomizeTrack(tr) {
 
   // Straight pattern logic
   const straightKeys = new Set(['shihat','shak','clap','sleg']);
-  // All tonal instruments: 25% chance of downbeats or upbeats
   const isTonalStraight = TONAL_KEYS.has(key) && !straightKeys.has(key) && Math.random() < 0.125;
 
   if (straightKeys.has(key) && Math.random() < 0.3 || isTonalStraight) {
     const isEighths = Math.random() < 0.5;
     const step = isEighths ? 2 : 4;
-    // Downbeats (0,4,8,12) or upbeats (2,6,10,14) — 50/50 for all straight instruments
-    const isUpbeat = Math.random() < 0.5;
+
+    // Check if current grid is already a downbeat pattern — if so, force upbeats
+    const _activeSteps = grid[tr].map((v,i) => v > 0 ? i : -1).filter(i => i >= 0);
+    const _isAlreadyDownbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 0);
+    const _isAlreadyUpbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 2);
+    let isUpbeat;
+    if (_isAlreadyDownbeat) isUpbeat = true;      // was downbeats → flip to upbeats
+    else if (_isAlreadyUpbeat) isUpbeat = false;  // was upbeats → flip to downbeats
+    else isUpbeat = Math.random() < 0.5;           // no pattern — pick randomly
+
     for (let s = 0; s < NUM_STEPS; s++) {
       const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
       const hits = isUpbeat
-        ? (s % 4 === 2) // upbeats: steps 2,6,10,14
-        : (s % step === 0); // downbeats
+        ? (s % 4 === 2)
+        : (s % step === 0);
       grid[tr][gs] = hits ? (s === 0 || s === 8 ? 2 : 1) : 0;
     }
     redrawTrackCells(tr); markModified(); return;
@@ -4147,7 +4260,8 @@ function randomizeTrack(tr) {
     [7, 11, 0.40],
     [11, 16, 0.60],
   ][Math.min(level, 2)];
-  const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
+  const _cap = window._randNoteMax || maxN;
+  const noteCount = Math.min(_cap, minN + Math.floor(Math.random() * (maxN - minN + 1)));
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
@@ -4380,6 +4494,7 @@ async function initAudio() {
   try {
     msg.textContent = 'STARTING...';
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+    _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
