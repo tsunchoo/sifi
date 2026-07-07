@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 18:55</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 19:03</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -450,6 +450,17 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
     </div>
 
     <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
+
+    <!-- NASA Audio -->
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">NASA AUDIO</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="nasaBtn" onclick="toggleNasa()" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">▶ NASA</button>
+        <button onclick="nextNasaClip()" style="background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;padding:10px 10px;cursor:pointer;">▶▶</button>
+      </div>
+      <div id="nasaLabel" style="font-size:0.55rem;color:var(--dim);letter-spacing:0.5px;min-height:14px;"></div>
+      <input type="range" min="0" max="100" value="18" style="width:100%;" oninput="setNasaVol(this.value/100)" class="master-vol-slider">
+    </div>
 
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
@@ -662,6 +673,101 @@ function _trackNote() {
     _nodeWarnShown = true;
     console.warn('Si•Fi: high note count (' + _totalNotesScheduled + ') — audio graph may need refresh');
   }
+}
+
+
+// ── NASA Audio Player ──────────────────────────────────────────────────────
+const NASA_CLIPS = [
+  { url: 'https://archive.org/download/NasaApollo11OnboardRecordings/11_highlight_1.mp3', label: 'Apollo 11 · Earth orbit' },
+  { url: 'https://archive.org/download/NasaApollo11OnboardRecordings/11_highlight_2.mp3', label: 'Apollo 11 · Lunar orbit' },
+  { url: 'https://archive.org/download/NasaApollo11OnboardRecordings/11_highlight_3.mp3', label: 'Apollo 11 · Earthrise' },
+  { url: 'https://archive.org/download/NasaApollo11OnboardRecordings/11_highlight_4.mp3', label: 'Apollo 11 · Eagle departs' },
+  { url: 'https://archive.org/download/NasaApollo11OnboardRecordings/11_highlight_5.mp3', label: 'Apollo 11 · Liftoff from Moon' },
+  { url: 'https://archive.org/download/Apollo13Highlights/Apollo13Highlights_vbr.mp3', label: 'Apollo 13 · Houston we have a problem' },
+  { url: 'https://archive.org/download/NasaAudioHighlightReels/apollo13highlights_vbr.mp3', label: 'Apollo 13 · Highlights' },
+];
+
+let _nasaAudio = null;
+let _nasaGain = null;
+let _nasaClipIdx = 0;
+let _nasaPlaying = false;
+
+function initNasaGain() {
+  if (_nasaGain || !ctx) return;
+  _nasaGain = ctx.createGain();
+  _nasaGain.gain.value = 0.18; // quiet under the mix
+  _nasaGain.connect(masterGain);
+}
+
+function toggleNasa() {
+  if (!ctx) { initAudio().then(toggleNasa); return; }
+  initNasaGain();
+  if (_nasaPlaying) {
+    stopNasa();
+  } else {
+    playNasaClip(_nasaClipIdx);
+  }
+  updateNasaBtn();
+}
+
+function playNasaClip(idx) {
+  stopNasa(true);
+  _nasaClipIdx = idx % NASA_CLIPS.length;
+  const clip = NASA_CLIPS[_nasaClipIdx];
+  _nasaAudio = new Audio();
+  _nasaAudio.crossOrigin = 'anonymous';
+  _nasaAudio.src = clip.url;
+  _nasaAudio.preload = 'auto';
+  const src = ctx.createMediaElementSource(_nasaAudio);
+  src.connect(_nasaGain);
+  _nasaAudio._src = src;
+  _nasaAudio.onended = () => {
+    // Auto-advance to next clip
+    _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
+    if (_nasaPlaying) playNasaClip(_nasaClipIdx);
+  };
+  _nasaAudio.onerror = () => {
+    // Skip failed clips
+    _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
+    if (_nasaPlaying) setTimeout(() => playNasaClip(_nasaClipIdx), 500);
+  };
+  _nasaAudio.play().catch(e => console.warn('NASA audio:', e));
+  _nasaPlaying = true;
+  updateNasaLabel();
+}
+
+function stopNasa(silent) {
+  if (_nasaAudio) {
+    _nasaAudio.pause();
+    _nasaAudio.src = '';
+    try { if (_nasaAudio._src) _nasaAudio._src.disconnect(); } catch(e) {}
+    _nasaAudio = null;
+  }
+  if (!silent) _nasaPlaying = false;
+  updateNasaBtn();
+}
+
+function nextNasaClip() {
+  _nasaClipIdx = (_nasaClipIdx + 1) % NASA_CLIPS.length;
+  if (_nasaPlaying) playNasaClip(_nasaClipIdx);
+  else updateNasaLabel();
+}
+
+function setNasaVol(v) {
+  if (_nasaGain) _nasaGain.gain.value = v;
+}
+
+function updateNasaBtn() {
+  const btn = document.getElementById('nasaBtn');
+  if (btn) {
+    btn.textContent = _nasaPlaying ? '■ NASA' : '▶ NASA';
+    btn.style.background = _nasaPlaying ? '#f17d21' : '#555';
+  }
+}
+
+function updateNasaLabel() {
+  const lbl = document.getElementById('nasaLabel');
+  if (lbl) lbl.textContent = NASA_CLIPS[_nasaClipIdx].label;
 }
 
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
@@ -1794,7 +1900,7 @@ const _plunkGlide = {};
 function playPlunkBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.9 : 0.65;
+  const vel = isAccent ? 0.715 : 0.516;
   _plunkGlide[tr] = freq;
 
   // Distorted sawtooth through a tight bandpass — nasal, aggressive
@@ -3067,7 +3173,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'sbass4') {
           // Match playPlunkBass exactly
-          const vel = isAccent ? 0.9 : 0.65;
+          const vel = isAccent ? 0.715 : 0.516;
           const osc1 = o.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
           const osc2 = o.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq*0.5;
           const mix = o.createGain(); mix.gain.value=0.4;
@@ -4212,19 +4318,26 @@ function randomizeTrack(tr) {
 
   // Straight pattern logic
   const straightKeys = new Set(['shihat','shak','clap','sleg']);
-  // All tonal instruments: 25% chance of downbeats or upbeats
   const isTonalStraight = TONAL_KEYS.has(key) && !straightKeys.has(key) && Math.random() < 0.125;
 
   if (straightKeys.has(key) && Math.random() < 0.3 || isTonalStraight) {
     const isEighths = Math.random() < 0.5;
     const step = isEighths ? 2 : 4;
-    // Downbeats (0,4,8,12) or upbeats (2,6,10,14) — 50/50 for all straight instruments
-    const isUpbeat = Math.random() < 0.5;
+
+    // Check if current grid is already a downbeat pattern — if so, force upbeats
+    const _activeSteps = grid[tr].map((v,i) => v > 0 ? i : -1).filter(i => i >= 0);
+    const _isAlreadyDownbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 0);
+    const _isAlreadyUpbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 2);
+    let isUpbeat;
+    if (_isAlreadyDownbeat) isUpbeat = true;      // was downbeats → flip to upbeats
+    else if (_isAlreadyUpbeat) isUpbeat = false;  // was upbeats → flip to downbeats
+    else isUpbeat = Math.random() < 0.5;           // no pattern — pick randomly
+
     for (let s = 0; s < NUM_STEPS; s++) {
       const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
       const hits = isUpbeat
-        ? (s % 4 === 2) // upbeats: steps 2,6,10,14
-        : (s % step === 0); // downbeats
+        ? (s % 4 === 2)
+        : (s % step === 0);
       grid[tr][gs] = hits ? (s === 0 || s === 8 ? 2 : 1) : 0;
     }
     redrawTrackCells(tr); markModified(); return;
