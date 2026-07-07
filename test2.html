@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:51</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:54</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -687,8 +687,8 @@ async function startAudioInRecord(tr) {
     s.state = 'empty';
     const lbl = document.getElementById(`audio-count-${tr}`);
     if (lbl) lbl.textContent = 'EMPTY';
-    const fill = document.getElementById(`audio-fill-${tr}`);
-    if (fill) fill.style.width = '0%';
+    const f = document.getElementById(`audio-fill-${tr}`);
+    if (f) f.style.width = '0%';
     updateAudioTrackUI(tr);
     return;
   }
@@ -723,57 +723,27 @@ async function startAudioInRecord(tr) {
 
   if (s.state !== 'counting') return;
 
-  // Start loop + recording simultaneously
+  // Record DIRECTLY from mic stream — no createMediaStreamSource, no audio session switch
+  // Loop starts simultaneously
   s.state = 'recording';
   updateAudioTrackUI(tr);
   const countEl2 = document.getElementById(`audio-count-${tr}`);
   if (countEl2) countEl2.textContent = 'REC';
-  if (!playing) togglePlay();
-
-  // Note ctx time when loop starts — this is our beat 1 reference
-  const recStartCtxTime = ctx.currentTime;
-
-  // Fresh mic source for recording only
-  const recMicSrc = ctx.createMediaStreamSource(stream);
-  const recDest = ctx.createMediaStreamDestination();
-  recMicSrc.connect(recDest);
 
   const chunks = [];
-  const mr = new MediaRecorder(recDest.stream);
+  const mr = new MediaRecorder(stream); // record raw mic stream directly
   s.mediaRecorder = mr;
   mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
   const barDur = (60 / bpm) * 4 * 1000;
   const fill = document.getElementById(`audio-fill-${tr}`);
-  const startT = performance.now();
-  const animFill = () => {
-    if (s.state !== 'recording') return;
-    const pct = Math.min(100, ((performance.now() - startT) / barDur) * 100);
-    if (fill) fill.style.width = pct + '%';
-    if (pct < 100) requestAnimationFrame(animFill);
-  };
-  if (fill) { fill.style.width = '0%'; fill.style.background = '#d00'; }
-  requestAnimationFrame(animFill);
-
   const recStartWall = performance.now();
-  mr.start();
 
-  // Everything after recording lives in onstop — no more awaits after this point
   mr.onstop = async () => {
-    // Stop the loop
-    if (playing) togglePlay();
-    try { recMicSrc.disconnect(); } catch(e) {}
-
-    const recEndWall = performance.now();
-    const actualDur = (recEndWall - recStartWall) / 1000;
-    const latencyOffset = Math.max(0, actualDur - (barDur / 1000));
-
     s.state = 'ready';
     if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
-    const countEl3 = document.getElementById(`audio-count-${tr}`);
-    if (countEl3) countEl3.textContent = 'DECODING...';
+    if (countEl2) countEl2.textContent = 'DECODING...';
     updateAudioTrackUI(tr);
-
     try {
       const blob = new Blob(chunks, { type: mr.mimeType });
       const blobUrl = URL.createObjectURL(blob);
@@ -781,19 +751,42 @@ async function startAudioInRecord(tr) {
       const buf = await ctx.decodeAudioData(ab);
       s.audioBuffer = buf;
       s.url = blobUrl;
-      s.playbackOffset = Math.max(0, latencyOffset);
-      if (countEl3) countEl3.textContent = 'RECORDED';
+      // Estimate latency from wall clock overshoot
+      s.playbackOffset = Math.max(0, ((performance.now() - recStartWall) / 1000) - (barDur / 1000));
+      if (countEl2) countEl2.textContent = 'RECORDED';
       s._playOnNextBar = true;
       if (!playing) togglePlay();
     } catch(e) {
       console.warn('Audio In decode failed:', e);
-      const countEl3b = document.getElementById(`audio-count-${tr}`);
-      if (countEl3b) countEl3b.textContent = 'ERROR';
+      if (countEl2) countEl2.textContent = 'ERROR';
     }
   };
 
-  // Stop after exactly 1 bar
-  setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, barDur);
+  // Start loop and recording together
+  if (!playing) togglePlay();
+  mr.start();
+
+  // Stop after 1 bar
+  setTimeout(() => {
+    if (mr.state === 'recording') mr.stop();
+    if (playing) togglePlay();
+    const animFill = () => {
+      if (s.state !== 'recording') return;
+      const pct = Math.min(100, ((performance.now() - recStartWall) / barDur) * 100);
+      if (fill) fill.style.width = pct + '%';
+      if (pct < 100) requestAnimationFrame(animFill);
+    };
+  }, barDur);
+
+  // Progress bar
+  const animFill = () => {
+    if (s.state !== 'recording') return;
+    const pct = Math.min(100, ((performance.now() - recStartWall) / barDur) * 100);
+    if (fill) fill.style.width = pct + '%';
+    if (pct < 100) requestAnimationFrame(animFill);
+  };
+  if (fill) { fill.style.width = '0%'; fill.style.background = '#d00'; }
+  requestAnimationFrame(animFill);
 }
 // Play back audio in track at step 0
 function triggerAudioInTrack(tr, time) {
