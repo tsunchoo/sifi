@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 06:16</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 06:22</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -451,6 +451,15 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
     </div>
 
     <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
+
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
+      <div style="display:flex;gap:6px;">
+        <button id="beatTypeDiscoBtn" onclick="setBeatType('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
+        <button id="beatTypeHalfBtn" onclick="setBeatType('halftime')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">HALFTIME</button>
+        <button id="beatTypeReggaeBtn" onclick="setBeatType('reggae')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -962,8 +971,22 @@ function scheduler() {
         });
       }
       if (beatPlaying) {
-        if (step === 0 || step === 8) {
-          // Kick on beats 1 and 3
+        let doKick = false, doSnare = false, doHat = false;
+        if (_beatType === 'disco') {
+          // Kick on 1+3, snare on 2+4
+          doKick  = (step === 0 || step === 8);
+          doSnare = (step === 4 || step === 12);
+        } else if (_beatType === 'halftime') {
+          // Kick on 1, snare on 3 only (half time feel)
+          doKick  = (step === 0);
+          doSnare = (step === 8);
+        } else if (_beatType === 'reggae') {
+          // Kick on 3, hats on 1+2+4 (steps 0,4,12), snare ghost on 2+4
+          doKick  = (step === 8);
+          doHat   = (step === 0 || step === 4 || step === 12);
+          doSnare = (step === 4 || step === 12);
+        }
+        if (doKick) {
           playKick(t);
           if (window._duckGain) {
             const dg = window._duckGain.gain;
@@ -971,10 +994,9 @@ function scheduler() {
             dg.linearRampToValueAtTime(0.5, t + 0.005);
             dg.setTargetAtTime(1, t + 0.020, 0.08);
           }
-        } else if (step === 4 || step === 12) {
-          // Snare on beats 2 and 4
-          playSnare(t);
         }
+        if (doSnare) playSnare(t);
+        if (doHat) playSynthHihat(false, t, -1);
       }
     }
     nextStepTime += stepDuration();
@@ -1086,6 +1108,7 @@ function togglePlay() {
 
 // ── Beat button: Kick on 1&3, Snare on 2&4 ──
 let beatPlaying = false, _beatPending = false;
+let _beatType = 'disco'; // 'disco' | 'halftime' | 'reggae'
 
 const _revBufCache = new WeakMap();
 function reverseBuffer(buf, revLen) {
@@ -4652,6 +4675,16 @@ function startHiss() {
   _hissNode._extras = { crackNode, crackGain, rumble, rumbleLFO, rumbleGain };
 }
 
+
+
+function setBeatType(type) {
+  _beatType = type;
+  const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn' };
+  Object.entries(btns).forEach(([t, id]) => {
+    const b = document.getElementById(id);
+    if (b) b.style.background = t === type ? '#f17d21' : '#555';
+  });
+}
 
 // ── Turbo Boost: hard brickwall limiting ──
 let _turboOn = false;
