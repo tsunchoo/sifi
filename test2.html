@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 22:03</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 22:05</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -625,21 +625,6 @@ async function loadSamples() {
 
 
 
-// Auto-disconnect all source nodes when they end — prevents node accumulation
-function _patchCtxForAutoCleanup(ctx) {
-  const _origCreateOsc = ctx.createOscillator.bind(ctx);
-  const _origCreateBuf = ctx.createBufferSource.bind(ctx);
-  ctx.createOscillator = function() {
-    const node = _origCreateOsc();
-    node.onended = () => { try { node.disconnect(); } catch(e) {} };
-    return node;
-  };
-  ctx.createBufferSource = function() {
-    const node = _origCreateBuf();
-    node.onended = () => { try { node.disconnect(); } catch(e) {} };
-    return node;
-  };
-}
 
 // ── Node lifecycle management ─────────────────────────────────────────────
 // Schedules disconnect() after a node stops to free it from the audio graph
@@ -4494,7 +4479,6 @@ async function initAudio() {
   try {
     msg.textContent = 'STARTING...';
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-    _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
