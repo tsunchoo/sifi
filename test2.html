@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:08</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:14</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -760,7 +760,17 @@ async function startAudioInRecord(tr) {
   const chunks = [];
   const mr = new MediaRecorder(micDest.stream);
   s.mediaRecorder = mr;
-  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+  // Measure latency: time between mr.start() and first chunk arriving
+  let recStartCtxTime = 0;
+  let firstChunkCtxTime = 0;
+  let firstChunk = true;
+  mr.ondataavailable = e => {
+    if (e.data.size > 0) {
+      if (firstChunk) { firstChunkCtxTime = ctx.currentTime; firstChunk = false; }
+      chunks.push(e.data);
+    }
+  };
 
   const recDuration = getAudioTrackBarDuration(tr) * 1000;
 
@@ -776,24 +786,28 @@ async function startAudioInRecord(tr) {
   if (fill) { fill.style.width = '0%'; fill.style.background = '#d00'; }
   requestAnimationFrame(animFill);
 
-  mr.start();
+  recStartCtxTime = ctx.currentTime;
+  mr.start(100); // 100ms timeslice so first chunk arrives quickly for latency measurement
   setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, recDuration);
 
   mr.onstop = () => {
-    try { micSource.disconnect(micDest); } catch(e) {} // keep monitor running
+    try { micSource.disconnect(micDest); } catch(e) {}
     const blob = new Blob(chunks, { type: mr.mimeType });
     s.blob = blob;
     s.url = URL.createObjectURL(blob);
+    // Calculate latency offset: how late the first chunk was vs when recording started
+    const measuredLatency = firstChunkCtxTime - recStartCtxTime; // seconds
+    s.latencyOffset = Math.max(0, Math.min(measuredLatency, 0.3)); // cap at 300ms
     s.state = 'ready';
     const lbl = document.getElementById(`audio-count-${tr}`);
     if (lbl) lbl.textContent = 'RECORDED';
     const fill2 = document.getElementById(`audio-fill-${tr}`);
     if (fill2) { fill2.style.width = '100%'; fill2.style.background = '#7a2a7a'; }
     updateAudioTrackUI(tr);
-    // Immediately decode and start looping from next step 0
+    // Decode then wait for next step 0 or 8 (beat 1 or 3) to start playback
     fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
       s.audioBuffer = buf;
-      if (playing) playAudioInBuffer(tr, ctx.currentTime);
+      // Playback will be triggered by scheduler at next step 0 or 8
     });
   };
 }
@@ -821,7 +835,10 @@ function playAudioInBuffer(tr, time) {
   const src = ctx.createBufferSource();
   src.buffer = s.audioBuffer;
   src.connect(trackGainNodes[tr] || masterGain);
-  src.start(time || ctx.currentTime);
+  // Apply latency compensation: start playback slightly early to account for recording buffer delay
+  const offset = s.latencyOffset || 0;
+  const scheduledTime = Math.max(ctx.currentTime, (time || ctx.currentTime) - offset);
+  src.start(scheduledTime);
   s.source = src;
 }
 
@@ -948,7 +965,7 @@ function scheduler() {
     const t = nextStepTime + (swingMs / 1000);
     // Fire pending auto-rand on downbeat
     if (step === 0) {
-      // Trigger any Audio In tracks (buffer must already be decoded — no async work in scheduler)
+      // Trigger any Audio In tracks on beat 1 (step 0) only
       for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackInstruments[tr] === 'audioin' && audioTrackState[tr]?.audioBuffer) playAudioInBuffer(tr, nextNoteTime); }
       _committedSwing = swingVal; // commit swing amount only at bar start
       requestAnimationFrame(updateSwingReadout);
