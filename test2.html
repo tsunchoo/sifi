@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:26</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:32</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -654,8 +654,7 @@ async function getMicStream() {
 }
 
 function getAudioTrackBarDuration(tr) {
-  const bars = audioTrackState[tr]?.barLen || 4;
-  return bars * (60 / bpm) * 4; // seconds
+  return (60 / bpm) * 4; // always 1 bar
 }
 
 function updateAudioTrackUI(tr) {
@@ -679,17 +678,19 @@ async function startAudioInRecord(tr) {
   const s = audioTrackState[tr];
   if (!s) return;
 
-  // If already recording, stop
-  if (s.state === 'recording') {
-    s.mediaRecorder?.stop();
-    return;
-  }
+  // Tap while recording = stop early
+  if (s.state === 'recording') { s.mediaRecorder?.stop(); return; }
 
-  // If ready (has recording), tap to clear
+  // Tap while ready = clear recording
   if (s.state === 'ready') {
     if (s.source) { try { s.source.stop(); } catch(e) {} }
     if (s.url) URL.revokeObjectURL(s.url);
-    s.blob = null; s.url = null; s.source = null; s.state = 'empty';
+    s.audioBuffer = null; s.blob = null; s.url = null; s.source = null;
+    s.state = 'empty';
+    const lbl = document.getElementById(`audio-count-${tr}`);
+    if (lbl) lbl.textContent = 'EMPTY';
+    const fill = document.getElementById(`audio-fill-${tr}`);
+    if (fill) { fill.style.width = '0%'; }
     updateAudioTrackUI(tr);
     return;
   }
@@ -697,127 +698,89 @@ async function startAudioInRecord(tr) {
   const stream = await getMicStream();
   if (!stream) return;
 
-  s.state = 'armed';
-  updateAudioTrackUI(tr);
-
-  // Stop playback, play count-in, then start
-  const wasPlaying = playing;
+  // Stop loop, count in 4 beats, restart loop on step 0
   if (playing) togglePlay();
-
-  // Count-in: 4 beats (1 bar) at current BPM
-  const countEl = document.getElementById(`audio-count-${tr}`);
-  const clickInterval = (60 / bpm) * 1000;
-
-  const totalClicks = 4;
-  let clickCount = 0;
-
   s.state = 'counting';
   updateAudioTrackUI(tr);
 
+  const clickInterval = (60 / bpm) * 1000;
   await new Promise(resolve => {
     let beat = 0;
     const tick = () => {
       if (s.state !== 'counting') { resolve(); return; }
       beat++;
-      const barBeat = ((beat - 1) % 4) + 1;
-      if (countEl) countEl.textContent = barBeat;
-      // Play click
-      if (ctx) {
-        const o = ctx.createOscillator();
-        const g = ctx.createGain();
-        o.frequency.value = barBeat === 1 ? 1200 : 800;
-        g.gain.setValueAtTime(0.4, ctx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-        o.connect(g); g.connect(ctx.destination);
-        o.start(); o.stop(ctx.currentTime + 0.06);
-      }
-      if (beat >= totalClicks) { setTimeout(resolve, clickInterval); return; }
+      const countEl = document.getElementById(`audio-count-${tr}`);
+      if (countEl) countEl.textContent = beat;
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = beat === 1 ? 1200 : 800;
+      g.gain.setValueAtTime(0.5, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime + 0.06);
+      if (beat >= 4) { setTimeout(resolve, clickInterval); return; }
       setTimeout(tick, clickInterval);
     };
     setTimeout(tick, clickInterval);
   });
 
-  if (s.state !== 'counting') return; // was cancelled
-  if (countEl) countEl.textContent = '';
+  if (s.state !== 'counting') return;
 
-  // Start the loop and recording simultaneously
+  // Start loop — wait for step 0 then begin recording
   s.state = 'recording';
   updateAudioTrackUI(tr);
+  const countEl2 = document.getElementById(`audio-count-${tr}`);
+  if (countEl2) countEl2.textContent = '';
   if (!playing) togglePlay();
 
-  // Recording path — monitoring already running from selection
-  const s2 = audioTrackState[tr];
-  const micSource = s2?._monitorSource || ctx.createMediaStreamSource(stream);
-  const micDest = ctx.createMediaStreamDestination();
-  micSource.connect(micDest);
-
-  // Wait for step 0
   await new Promise(resolve => {
     const check = () => { if (currentStep === 0 || !playing) resolve(); else requestAnimationFrame(check); };
     requestAnimationFrame(check);
   });
 
+  // Fresh mic source just for recording — never reuse monitor node
+  const recMicSrc = ctx.createMediaStreamSource(stream);
+  const recDest = ctx.createMediaStreamDestination();
+  recMicSrc.connect(recDest);
+
   const chunks = [];
-  const mr = new MediaRecorder(micDest.stream);
+  const mr = new MediaRecorder(recDest.stream);
   s.mediaRecorder = mr;
+  mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
-  // Measure latency: time between mr.start() and first chunk arriving
-  let recStartCtxTime = 0;
-  let firstChunkCtxTime = 0;
-  let firstChunk = true;
-  mr.ondataavailable = e => {
-    if (e.data.size > 0) {
-      if (firstChunk) { firstChunkCtxTime = ctx.currentTime; firstChunk = false; }
-      chunks.push(e.data);
-    }
-  };
-
-  const recDuration = getAudioTrackBarDuration(tr) * 1000;
-
-  // Progress bar
+  const barDur = (60 / bpm) * 4 * 1000; // 1 bar in ms
   const fill = document.getElementById(`audio-fill-${tr}`);
   const startT = performance.now();
   const animFill = () => {
     if (s.state !== 'recording') return;
-    const pct = Math.min(100, ((performance.now() - startT) / recDuration) * 100);
+    const pct = Math.min(100, ((performance.now() - startT) / barDur) * 100);
     if (fill) fill.style.width = pct + '%';
     if (pct < 100) requestAnimationFrame(animFill);
   };
   if (fill) { fill.style.width = '0%'; fill.style.background = '#d00'; }
   requestAnimationFrame(animFill);
 
-  recStartCtxTime = ctx.currentTime;
-  mr.start(100); // 100ms timeslice so first chunk arrives quickly for latency measurement
-  setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, recDuration);
+  mr.start();
+  setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, barDur);
 
   mr.onstop = () => {
-    try { micSource.disconnect(micDest); } catch(e) {}
-    const blob = new Blob(chunks, { type: mr.mimeType });
-    s.blob = blob;
-    s.url = URL.createObjectURL(blob);
-    // Calculate latency offset: how late the first chunk was vs when recording started
-    const measuredLatency = firstChunkCtxTime - recStartCtxTime; // seconds
-    s.latencyOffset = Math.max(0, Math.min(measuredLatency, 0.3)); // cap at 300ms
+    // Disconnect recording nodes — monitor stays connected separately
+    try { recMicSrc.disconnect(); } catch(e) {}
     s.state = 'ready';
     const lbl = document.getElementById(`audio-count-${tr}`);
     if (lbl) lbl.textContent = 'RECORDED';
-    const fill2 = document.getElementById(`audio-fill-${tr}`);
-    if (fill2) { fill2.style.width = '100%'; fill2.style.background = '#7a2a7a'; }
+    const f2 = document.getElementById(`audio-fill-${tr}`);
+    if (f2) { f2.style.width = '100%'; f2.style.background = '#7a2a7a'; }
     updateAudioTrackUI(tr);
-    // Decode the blob — briefly mute master so decode glitch isn't audible
-    s._pendingPlayback = true;
-    const preDecode = ctx.currentTime;
-    if (masterGain) {
-      masterGain.gain.cancelScheduledValues(preDecode);
-      masterGain.gain.setValueAtTime(0, preDecode);
-      masterGain.gain.setValueAtTime(masterVol, preDecode + 0.8);
-    }
-    fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
-      s.audioBuffer = buf;
-    }).catch(e => console.warn('Audio In decode failed:', e));
+    const blob = new Blob(chunks, { type: mr.mimeType });
+    s.url = URL.createObjectURL(blob);
+    // Decode after loop has had time to stabilise
+    setTimeout(() => {
+      fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
+        s.audioBuffer = buf;
+      }).catch(e => console.warn('decode failed:', e));
+    }, 1000);
   };
 }
-
 // Play back audio in track at step 0
 function triggerAudioInTrack(tr, time) {
   const s = audioTrackState[tr];
@@ -2672,19 +2635,6 @@ function buildAudioInRow(tr) {
   stepRow.style.flexDirection = 'row';
   stepRow.style.alignItems = 'stretch';
   stepRow.style.height = '44px';
-
-  // Bar length button (cycles 4/8/16/32)
-  const lenBtn = document.createElement('button');
-  lenBtn.className = 'audio-len-btn'; lenBtn.id = `audio-len-${tr}`;
-  lenBtn.textContent = audioTrackState[tr].barLen + ' bars';
-  lenBtn.style.cssText = 'background:#555;border:none;color:#fff;font-family:"DM Sans",sans-serif;font-size:0.65rem;font-weight:700;padding:0 10px;cursor:pointer;height:100%;flex-shrink:0;touch-action:manipulation;text-transform:uppercase;';
-  lenBtn.addEventListener('click', () => {
-    const lens = [4,8,16,32];
-    const cur = lens.indexOf(audioTrackState[tr].barLen);
-    audioTrackState[tr].barLen = lens[(cur+1) % lens.length];
-    lenBtn.textContent = audioTrackState[tr].barLen + ' bars';
-  });
-  stepRow.appendChild(lenBtn);
 
   // Record button
   const recBtn = document.createElement('button');
