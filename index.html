@@ -6,7 +6,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SI-FI</title>
+<title>Si•Fi</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
@@ -83,7 +83,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 #saveBtn.rec-active img { animation: rec-icon-pulse 0.5s infinite alternate; }
 #saveBtn.rec-beat-pulse { animation: rec-pump 0.12s ease-out; }
 @keyframes rec-pump { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
-#saveBtn, #randBtn { touch-action: none; }
+#saveBtn, #randBtn { touch-action: none; -webkit-touch-callout: none; }
 @keyframes rec-icon-pulse { from { filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(330deg) brightness(1.5); } to { filter: brightness(0) invert(1) sepia(1) saturate(20) hue-rotate(330deg) brightness(0.5); } }
 .btn-flash { background: var(--slot-saved) !important; color: #111 !important; border: none !important; transition: none !important; }
 .btn-flash-blue { background: #0468f4 !important; color: #fff !important; border: none !important; transition: none !important; }
@@ -323,7 +323,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
   grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 2px;
 }
 .slot-btn {
-  background: transparent; border: 2px solid #111; color: var(--text);
+  background: transparent; border: 2px solid #555; color: #b0b0b0;
   font-family: 'DM Sans', sans-serif; font-size: 1.6rem; font-weight: 700; letter-spacing: 0;
   padding: 16px 0; cursor: pointer; text-align: center;
   touch-action: manipulation; transition: background 0.1s;
@@ -366,8 +366,9 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <body>
 
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
-  <h2>SI-FI</h2>
+  <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 23:23</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -388,9 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 </div>
 
 <header>
-  <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">01Jul26 06:35</div>
-
+  <h1>Si•Fi</h1>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
       <img class="reel" id="reel1" src="tape_spool.png" alt="">
@@ -451,17 +450,20 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
     </div>
 
     <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
+
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
+      <div style="display:flex;gap:6px;">
+        <button id="beatTypeDiscoBtn" onclick="setBeatType('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
+        <button id="beatTypeHalfBtn" onclick="setBeatType('halftime')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">HALFTIME</button>
+        <button id="beatTypeReggaeBtn" onclick="setBeatType('reggae')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- Save overlay -->
-<div id="saveOverlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(245,240,232,0.95);align-items:center;justify-content:center;touch-action:none;">
-  <div style="display:flex;flex-direction:column;gap:12px;padding:24px;border:none;background:var(--bg);width:min(320px,88vw);">
-    <div style="font-size:0.65rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-family:'DM Sans',sans-serif;">EXPORT</div>
-    <button class="rand-overlay-btn" id="saveSeparateBtn">EXPORT SLOTS</button>
-    <button class="rand-overlay-btn" id="saveCombinedBtn">EXPORT LOOP</button>
-  </div>
-</div>
+
 
 <!-- BPM overlay -->
 <div id="bpmOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
@@ -503,7 +505,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <script>
 const INSTRUMENTS = {
   skick:  { name: 'KICK',        soft: null, accent: null, group: 'kit' },
-  ssnare: { name: 'SNARE',       soft: null, accent: null, group: 'kit' },
+  ssnare: { name: 'SIDESTICK',       soft: null, accent: null, group: 'kit' },
   shihat: { name: 'HIHAT',       soft: null, accent: null, group: 'kit' },
   ride:   { name: 'RIDE',        soft: null, accent: null, group: 'kit'  },
   tamb:   { name: 'TAMB',        soft: 'Sounds/Tamb50.wav',   accent: 'Sounds/Tamb100.wav',   group: 'perc' },
@@ -519,7 +521,7 @@ const INSTRUMENTS = {
   sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
   sbass4: { name: 'PUNK BASS',   soft: null, accent: null, group: 'tonal' },
-  stab:   { name: 'STAB',        soft: null, accent: null, group: 'tonal' },
+  stab:   { name: 'RYTM GTR',     soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
@@ -528,7 +530,7 @@ const INSTRUMENTS = {
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
-  fflute: { name: 'GLASS BELL', soft: null, accent: null, group: 'tonal' },
+  fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'BLUNT',        soft: null, accent: null, group: 'tonal' },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
@@ -621,6 +623,49 @@ async function loadSamples() {
   document.getElementById('status').textContent = '';
 }
 
+
+
+// Auto-disconnect all source nodes when they end — prevents node accumulation
+function _patchCtxForAutoCleanup(ctx) {
+  const _origCreateOsc = ctx.createOscillator.bind(ctx);
+  const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  ctx.createOscillator = function() {
+    const node = _origCreateOsc();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+  ctx.createBufferSource = function() {
+    const node = _origCreateBuf();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+}
+
+// ── Node lifecycle management ─────────────────────────────────────────────
+// Schedules disconnect() after a node stops to free it from the audio graph
+function scheduleDisconnect(node, stopTime) {
+  const delay = Math.max(0, (stopTime - (ctx?.currentTime || 0)) + 0.1);
+  setTimeout(() => { try { node.disconnect(); } catch(e) {} }, delay * 1000);
+}
+
+// Track approximate node count for health monitoring
+let _nodeCount = 0;
+
+
+// Simple node health monitor — high note counts can cause audio glitches on iOS
+let _totalNotesScheduled = 0;
+const _NOTE_WARN_THRESHOLD = 1500;
+let _nodeWarnShown = false;
+function _trackNote() {
+  _totalNotesScheduled++;
+  if (_totalNotesScheduled > _NOTE_WARN_THRESHOLD && !_nodeWarnShown) {
+    _nodeWarnShown = true;
+    console.warn('Si•Fi: high note count (' + _totalNotesScheduled + ') — audio graph may need refresh');
+  }
+}
+
+
+
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
 
 // x=0 clean, x=1 maximum waveshaper drive
@@ -655,11 +700,10 @@ function setFxActive(tr, fxVal) {
   dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? 0 : 1, now);
   fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
   preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.12 : 0, now);
-  // Compensate for crunch loudness in postGain (×0.5 when on = -6dB)
-  // so fader position sounds the same with or without FX
+  // postGain compensates for preGain(0.12) attenuation so FX on/off sounds same volume
   if (trackFxNodes[tr].postGain) {
     trackFxNodes[tr].postGain.gain.cancelScheduledValues(now);
-    trackFxNodes[tr].postGain.gain.setValueAtTime(0.5, now); // no volume change on FX toggle
+    trackFxNodes[tr].postGain.gain.setValueAtTime(0.599, now); // 1/0.12 * 0.36 ≈ unity
   }
   if (trackGainNodes[tr]) {
     const fxComp = trackVolume[tr];
@@ -891,7 +935,29 @@ function scheduler() {
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
           if (key === 'boog')    playBoog(freq, dur, val === 2, t, tr);
-          if (key === 'fflute')  playGlassBell(freq, dur, val === 2, t, tr);
+          if (key === 'fflute')  {
+            playGlassBell(freq, dur, val === 2, t, tr);
+          }
+          // Duck all pad tracks when busiest track fires
+          const _padKeys = new Set(['fflute','sstring','sleg','sparkle','rhodes','rhodes2']);
+          if (!_padKeys.has(key)) {
+            let _bestDensity = 0, _busiestTr = -1;
+            for (let _i = 0; _i < NUM_TRACKS; _i++) {
+              if (_padKeys.has(trackInstruments[_i]) || trackMuted[_i]) continue;
+              const _d = grid[_i].filter(v => v > 0).length;
+              if (_d > _bestDensity) { _bestDensity = _d; _busiestTr = _i; }
+            }
+            if (tr === _busiestTr) {
+              for (let _pi = 0; _pi < NUM_TRACKS; _pi++) {
+                if (!_padKeys.has(trackInstruments[_pi]) || trackMuted[_pi]) continue;
+                if (!trackGainNodes[_pi]) continue;
+                const _sg = trackGainNodes[_pi].gain;
+                _sg.cancelScheduledValues(t);
+                _sg.setTargetAtTime(0.05, t, 0.005);
+                _sg.setTargetAtTime(trackVolume[_pi], t + 0.10, 0.05);
+              }
+            }
+          }
           if (key === 'blunt')   playBlunt(freq, dur, val === 2, t, tr);
           // E: filter envelope — bright open, sweep closed over note duration
           if (trackChop[tr] && trackEnvFilters[tr]) {
@@ -968,8 +1034,21 @@ function scheduler() {
         });
       }
       if (beatPlaying) {
-        if (step === 0 || step === 8) {
-          // Kick on beats 1 and 3
+        let doKick = false, doSnare = false, doHat = false;
+        if (_beatType === 'disco') {
+          // Kick on 1+3, snare on 2+4
+          doKick  = (step === 0 || step === 8);
+          doSnare = (step === 4 || step === 12);
+        } else if (_beatType === 'halftime') {
+          // Kick on 1+2, snare on 3 (half time feel)
+          doKick  = (step === 0 || step === 4);
+          doSnare = (step === 8);
+        } else if (_beatType === 'reggae') {
+          // Kick on 3, hats on 1+2+4 (steps 0,4,12), snare ghost on 2+4
+          doKick  = (step === 4 || step === 12);
+          doHat   = (step === 2 || step === 6 || step === 10 || step === 14);
+        }
+        if (doKick) {
           playKick(t);
           if (window._duckGain) {
             const dg = window._duckGain.gain;
@@ -977,10 +1056,9 @@ function scheduler() {
             dg.linearRampToValueAtTime(0.5, t + 0.005);
             dg.setTargetAtTime(1, t + 0.020, 0.08);
           }
-        } else if (step === 4 || step === 12) {
-          // Snare on beats 2 and 4
-          playSnare(t);
         }
+        if (doSnare) playSnare(t);
+        if (doHat) playSynthHihat(false, t, -1);
       }
     }
     nextStepTime += stepDuration();
@@ -1092,6 +1170,7 @@ function togglePlay() {
 
 // ── Beat button: Kick on 1&3, Snare on 2&4 ──
 let beatPlaying = false, _beatPending = false;
+let _beatType = 'disco'; // 'disco' | 'halftime' | 'reggae'
 
 const _revBufCache = new WeakMap();
 function reverseBuffer(buf, revLen) {
@@ -1122,7 +1201,7 @@ function playSynthKick(isAccent, time, tr) {
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
 }
-function playSynthSnare(isAccent, time, tr) {
+function playSynthSnare_legacy(isAccent, time, tr) {
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
   const dur = isAccent ? 0.22 : 0.15, vol = isAccent ? 0.325 : 0.210;
@@ -1142,6 +1221,49 @@ function playSynthSnare(isAccent, time, tr) {
   bg.gain.setValueAtTime(vol * 0.35, time); bg.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
   body.connect(bg); bg.connect(dest); body.start(time); body.stop(time + 0.06);
 }
+function playSynthSnare(isAccent, time, tr) {
+  // Natural sidestick: wood-body thud + high rimshot crack + subtle snare rattle
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const vol = isAccent ? 0.30 : 0.19;
+
+  // Wood body — low bandpass thud, very short, gives the "knock" character
+  const woodOsc = ctx.createOscillator(); woodOsc.type = 'triangle';
+  woodOsc.frequency.setValueAtTime(480, time);
+  woodOsc.frequency.exponentialRampToValueAtTime(220, time + 0.025);
+  const woodBP = ctx.createBiquadFilter(); woodBP.type = 'bandpass'; woodBP.frequency.value = 380; woodBP.Q.value = 2.5;
+  const woodG = ctx.createGain();
+  woodG.gain.setValueAtTime(vol * 0.9, time);
+  woodG.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+  woodOsc.connect(woodBP); woodBP.connect(woodG); woodG.connect(dest);
+  woodOsc.start(time); woodOsc.stop(time + 0.04);
+
+  // Rim crack — short sharp noise burst, high-passed for brightness
+  const crackLen = 0.006;
+  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
+  const cd = cBuf.getChannelData(0);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.5);
+  const crack = ctx.createBufferSource(); crack.buffer = cBuf;
+  const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
+  const crackG = ctx.createGain(); crackG.gain.value = vol * 1.8;
+  crack.connect(crackHP); crackHP.connect(crackG); crackG.connect(dest);
+  crack.start(time);
+
+  // Snare rattle — subtle, gives it that live drum feel
+  const rattleLen = isAccent ? 0.06 : 0.04;
+  const rBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * rattleLen), ctx.sampleRate);
+  const rd = rBuf.getChannelData(0);
+  for (let i = 0; i < rd.length; i++) rd[i] = (Math.random()*2-1) * Math.pow(1 - i/rd.length, 1.8);
+  const rattle = ctx.createBufferSource(); rattle.buffer = rBuf;
+  const rattleHP = ctx.createBiquadFilter(); rattleHP.type = 'highpass'; rattleHP.frequency.value = 1200;
+  const rattleBP = ctx.createBiquadFilter(); rattleBP.type = 'bandpass'; rattleBP.frequency.value = 5000; rattleBP.Q.value = 0.8;
+  const rattleG = ctx.createGain();
+  rattleG.gain.setValueAtTime(vol * 0.3, time + 0.004); // slight delay — arrives after the stick
+  rattleG.gain.exponentialRampToValueAtTime(0.001, time + rattleLen);
+  rattle.connect(rattleHP); rattleHP.connect(rattleBP); rattleBP.connect(rattleG); rattleG.connect(dest);
+  rattle.start(time + 0.004);
+}
+
 function playSynthHihat(isAccent, time, tr) {
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
@@ -1269,6 +1391,7 @@ function randomizeBassTrack(tr, level) {
   // Per-instrument note density rules
   const noteTables = {
     sstring: [[1,2,0.50],[1,3,0.70],[2,3,0.80]],   // Choir — very few, mostly accented
+    fflute: [[2,4,0.60],[3,6,0.70],[5,9,0.80]],   // SLAY — medium notes, no FX
     sleg:    [[1,2,0.10],[2,3,0.20],[2,5,0.30]],   // Strings — fewest
     satk:    [[1,2,0.25],[2,3,0.40],[2,3,0.50]],   // Syn Attack — max 3
     rhodes:  [[2,3,0.15],[3,6,0.30],[5,8,0.45]],   // Piano — medium
@@ -1279,9 +1402,27 @@ function randomizeBassTrack(tr, level) {
     [5, 8,  0.40],
     [8, 13, 0.60],
   ];
-  const [minN, maxN, accentRatio] = levelTable[level];
+  const [minN, maxN, accentRatio] = levelTable[Math.min(level, 2)];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio, level);
+  placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
+
+  // Rhythm guitar: all downbeats, all upbeats, or random pattern
+  if (key === 'stab') {
+    const mode = Math.floor(Math.random() * 3); // 0=downbeats 1=upbeats 2=random
+    if (mode === 0) {
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        grid[tr][gs] = (s % 4 === 0) ? (s === 0 ? 2 : 1) : 0;
+      }
+    } else if (mode === 1) {
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        grid[tr][gs] = (s % 4 === 2) ? 1 : 0;
+      }
+    }
+    // mode 2 = falls through to normal random placeNotes below
+    if (mode < 2) { redrawTrackCells(tr); markModified(); return; }
+  }
 
   // Choir: redistribute notes to beat positions for longer legato stretches
   if (key === 'sstring') {
@@ -1516,6 +1657,28 @@ function playRhodes(freq, durSec, isAccent, time, tr) {
   const bodyEnv = ctx.createGain(); bodyEnv.gain.value = vel * 0.22;
   body.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(dest);
   body.start(time);
+
+  // Ghost note: half a beat later, half volume, slight drive
+  const ghostTime = time + stepDuration() * 0.5;
+  const ghostVel = vel * 0.45;
+  partials.slice(0, 2).forEach(({ n, amp, dec }) => {
+    const gosc = ctx.createOscillator(); gosc.type = 'sine';
+    gosc.frequency.value = inharmonic(n);
+    const genv = ctx.createGain();
+    const gpk = ghostVel * amp;
+    const gdecT = baseDec * dec * 0.7;
+    genv.gain.setValueAtTime(0, ghostTime);
+    genv.gain.linearRampToValueAtTime(gpk, ghostTime + 0.001);
+    genv.gain.exponentialRampToValueAtTime(gpk * 0.3, ghostTime + 0.008);
+    genv.gain.exponentialRampToValueAtTime(0.0001, ghostTime + gdecT);
+    // Mild drive via waveshaper
+    const gws = ctx.createWaveShaper();
+    const gwsCurve = new Float32Array(128);
+    for (let i = 0; i < 128; i++) { const x = (i / 64) - 1; gwsCurve[i] = Math.tanh(x * 2); }
+    gws.curve = gwsCurve;
+    gosc.connect(genv); genv.connect(gws); gws.connect(dest);
+    gosc.start(ghostTime); gosc.stop(ghostTime + gdecT + 0.05);
+  });
 }
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
@@ -1636,7 +1799,7 @@ const _plunkGlide = {};
 function playPlunkBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.9 : 0.65;
+  const vel = isAccent ? 0.715 : 0.516;
   _plunkGlide[tr] = freq;
 
   // Distorted sawtooth through a tight bandpass — nasal, aggressive
@@ -1670,43 +1833,46 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
 
 // ── Stab: short sharp synth chord stab, fast tail ──
 function playStab(freq, durSec, isAccent, time, tr) {
+  // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.035 : 0.024;
+  const vel = isAccent ? 0.130 : 0.090;
 
-  // 3-oscillator detuned stack — chord-like spread
-  const detunes = [-7, 0, 7, 12];
-  const env = ctx.createGain();
-  detunes.forEach(det => {
+  // Shared LP + waveshaper — all voices feed into one chain then to dest
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
+  lp.frequency.setValueAtTime(isAccent ? 5000 : 3500, time);
+  lp.frequency.exponentialRampToValueAtTime(500, time + 0.15);
+
+  // No internal waveshaper — FX chain handles crunch when on, cleaner when off
+  lp.connect(dest);
+
+  // Chord stack: root + 5th + octave, slightly detuned for strum spread
+  const strumDelays = [0, 0.004, 0.008];
+  const freqRatios  = [1.0, 1.498, 2.0];
+  const detunesCents = [0, +8, -6];
+
+  strumDelays.forEach((delay, i) => {
+    const t = time + delay;
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
-    osc.frequency.value = freq * (det === 12 ? 2 : 1);
-    osc.detune.value = det === 12 ? 0 : det * 2;
-    osc.connect(env); osc.start(time); osc.stop(time + 0.18);
+    osc.frequency.value = freq * freqRatios[i];
+    osc.detune.value = detunesCents[i];
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(vel * (i === 0 ? 1.0 : 0.6), t + 0.003);
+    env.gain.exponentialRampToValueAtTime(vel * 0.25, t + 0.06);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + (isAccent ? 0.40 : 0.25));
+
+    osc.connect(env); env.connect(lp);
+    osc.start(t); osc.stop(t + 0.55);
   });
-
-  // Punchy lowpass sweep + waveshaper crunch
-  const stabWs = ctx.createWaveShaper();
-  const stabCurve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; stabCurve[i] = Math.tanh(x * 5); }
-  stabWs.curve = stabCurve;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 6;
-  lp.frequency.setValueAtTime(isAccent ? 6000 : 4000, time);
-  lp.frequency.exponentialRampToValueAtTime(250, time + 0.05);
-
-  // Very fast amplitude decay — the stab
-  env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel, time + 0.002); // faster attack
-  env.gain.exponentialRampToValueAtTime(vel * 0.3, time + 0.025);
-  env.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
-
-  env.connect(stabWs); stabWs.connect(lp); lp.connect(dest);
 }
 
 // ── Rhodes 2: warm electric piano, more fundamental, softer attack ──
 function playRhodes2(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.127 : 0.088;
+  const vel = isAccent ? 0.060 : 0.042;
 
   const B = 0.00008; // less inharmonicity = warmer
   const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
@@ -1896,8 +2062,17 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 function playBlunt(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.080 : 0.054;
+  const vel = isAccent ? 0.018 : 0.012;
   const tail = 2.0;
+  // Waveshaper for lo-fi crunch — quantises the waveform
+  const crushCurve = new Float32Array(256);
+  const steps = 16; // low bit depth = crunchy
+  for (let i = 0; i < 256; i++) {
+    const x = (i / 128) - 1;
+    crushCurve[i] = Math.round(x * steps) / steps;
+  }
+  const crusher = ctx.createWaveShaper(); crusher.curve = crushCurve; crusher.oversample = 'none';
+
   [-14, 14].forEach(det => {
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
     osc.frequency.value = freq; osc.detune.value = det;
@@ -1906,7 +2081,7 @@ function playBlunt(freq, durSec, isAccent, time, tr) {
     env.gain.linearRampToValueAtTime(vel, time + 0.02);
     env.gain.setValueAtTime(vel * 0.7, time + 0.1);
     env.gain.exponentialRampToValueAtTime(0.001, time + tail);
-    osc.connect(env); env.connect(dest);
+    osc.connect(crusher); crusher.connect(env); env.connect(dest);
     osc.start(time); osc.stop(time + tail + 0.1);
   });
   const sub = ctx.createOscillator(); sub.type = 'sine';
@@ -1948,16 +2123,15 @@ function playBoog(freq, durSec, isAccent, time, tr) {
   osc2.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.5, 1), time + glide);
   osc2.detune.value = 7;
 
-  // Thin LP filter
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2;
-  lp.frequency.setValueAtTime(freq * 6, time);
-  lp.frequency.exponentialRampToValueAtTime(freq * 2.5, time + 0.08);
-  lp.frequency.exponentialRampToValueAtTime(freq * 2, time + durSec);
+  // Smooth LP — wide open, no resonance, no transient
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5;
+  lp.frequency.value = freq * 6;
 
+  // Very slow attack for seamless slide feel
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel, time + 0.025);
-  env.gain.setValueAtTime(vel * 0.9, time + durSec - 0.04);
+  env.gain.linearRampToValueAtTime(vel, time + 0.06); // slow attack — no click
+  env.gain.setValueAtTime(vel * 0.95, time + durSec - 0.04);
   env.gain.linearRampToValueAtTime(0, time + durSec + 0.08);
 
   const env2 = ctx.createGain(); env2.gain.value = vel * 0.35;
@@ -1973,53 +2147,68 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 function playSynthFlute(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.070 : 0.045;
+  const vel = isAccent ? 0.056 : 0.036;
 
-  // FM synthesis: carrier sine + modulator for breathiness
-  const modFreq = freq * 2.01; // modulator slightly detuned
-  const modDepth = freq * 1.8;
+  // FM + reed layer: carrier sine + square wave reed + heavy noise texture
+  const modFreq = freq * 2.01;
+  const modDepth = freq * 2.8; // more FM depth = reedier
 
   const mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.value = modFreq;
   const modGain = ctx.createGain();
   modGain.gain.setValueAtTime(0, time);
-  modGain.gain.linearRampToValueAtTime(modDepth, time + 0.05);
-  modGain.gain.setValueAtTime(modDepth * 0.7, time + durSec * 0.3);
+  modGain.gain.linearRampToValueAtTime(modDepth, time + 0.03);
+  modGain.gain.setValueAtTime(modDepth * 0.8, time + durSec * 0.3);
   modGain.gain.linearRampToValueAtTime(0, time + durSec + 0.1);
   mod.connect(modGain);
 
   const carrier = ctx.createOscillator(); carrier.type = 'sine';
   carrier.frequency.value = freq;
-  modGain.connect(carrier.frequency); // FM connection
+  modGain.connect(carrier.frequency);
+
+  // Reed layer: square wave through resonant bandpass for woody/reedy texture
+  const reed = ctx.createOscillator(); reed.type = 'square';
+  reed.frequency.value = freq;
+  const reedBP = ctx.createBiquadFilter(); reedBP.type = 'bandpass';
+  reedBP.frequency.value = freq * 2.5; reedBP.Q.value = 4;
+  const reedEnv = ctx.createGain();
+  reedEnv.gain.setValueAtTime(0, time);
+  reedEnv.gain.linearRampToValueAtTime(vel * 0.25, time + 0.05);
+  reedEnv.gain.linearRampToValueAtTime(vel * 0.15, time + durSec * 0.5);
+  reedEnv.gain.linearRampToValueAtTime(0, time + durSec + 0.1);
+  reed.connect(reedBP); reedBP.connect(reedEnv); reedEnv.connect(dest);
+
   // Pitch wobble LFO
   const pitchLfo = ctx.createOscillator(); pitchLfo.type = 'sine';
-  pitchLfo.frequency.value = 5.0 + Math.random() * 1.5;
-  const pitchLfoGain = ctx.createGain(); pitchLfoGain.gain.value = freq * 0.008; // subtle ±0.8% wobble
+  pitchLfo.frequency.value = 5.5 + Math.random() * 1.5;
+  const pitchLfoGain = ctx.createGain(); pitchLfoGain.gain.value = freq * 0.012;
   pitchLfo.connect(pitchLfoGain); pitchLfoGain.connect(carrier.frequency);
 
-  // Breath noise layer
+  // Breath noise — more present for texture
   const noiseLen = Math.ceil(ctx.sampleRate * Math.min(durSec + 0.2, 1.5));
   const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
   const nd = nBuf.getChannelData(0);
   for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
-  const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = freq * 3; nbp.Q.value = 8;
+  const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = freq * 2; nbp.Q.value = 3;
   const nGain = ctx.createGain();
   nGain.gain.setValueAtTime(0, time);
-  nGain.gain.linearRampToValueAtTime(vel * 0.15, time + 0.03);
-  nGain.gain.linearRampToValueAtTime(vel * 0.08, time + durSec * 0.4);
+  nGain.gain.linearRampToValueAtTime(vel * 0.30, time + 0.03); // more breath
+  nGain.gain.linearRampToValueAtTime(vel * 0.18, time + durSec * 0.4);
   nGain.gain.linearRampToValueAtTime(0, time + durSec + 0.05);
   noise.connect(nbp); nbp.connect(nGain); nGain.connect(dest);
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel, time + 0.04); // soft attack
-  env.gain.setValueAtTime(vel * 0.85, time + durSec * 0.5);
+  env.gain.linearRampToValueAtTime(vel * 0.8, time + 0.04);
+  env.gain.setValueAtTime(vel * 0.75, time + durSec * 0.5);
   env.gain.linearRampToValueAtTime(0, time + durSec + 0.12);
 
   carrier.connect(env); env.connect(dest);
   pitchLfo.start(time); pitchLfo.stop(time + durSec + 0.2);
   mod.start(time); mod.stop(time + durSec + 0.2);
+  reed.start(time); reed.stop(time + durSec + 0.2);
   carrier.start(time); carrier.stop(time + durSec + 0.2);
+  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); } catch(e) {} };
   noise.start(time);
 }
 
@@ -2071,54 +2260,69 @@ function playSynthAttack(freq, durSec, isAccent, time, tr) {
 function playGlassBell(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.045 : 0.028;
-  const tail = isAccent ? 2.6 : 1.8;
+  const vel = isAccent ? 0.012 : 0.008;
+  const sustain = isAccent ? 1.4 : 0.9; // trimmed sustain
 
-  // Inharmonic partials — classic bell ratios, not integer multiples
-  const partials = [
-    { ratio: 1.00, amp: 1.00, dec: 1.00 },
-    { ratio: 2.76, amp: 0.55, dec: 0.55 },
-    { ratio: 5.40, amp: 0.32, dec: 0.32 },
-    { ratio: 8.93, amp: 0.18, dec: 0.20 },
-    { ratio: 3.51, amp: 0.22, dec: 0.40 }, // slightly detuned partial for shimmer beating
+  // FM shimmer pad — 3 carrier/modulator pairs at slightly detuned ratios
+  // Modulation depth evolves slowly: blooms open rather than striking and decaying
+  const voices = [
+    { cRatio: 1.00, mRatio: 1.414, detune: 0,   initDepth: 0.15, peakDepth: 0.8, bloomT: 0.4 },
+    { cRatio: 2.00, mRatio: 0.997, detune: +7,  initDepth: 0.20, peakDepth: 1.0, bloomT: 0.6 },
+    { cRatio: 3.01, mRatio: 1.001, detune: -5,  initDepth: 0.10, peakDepth: 0.5, bloomT: 0.8 },
   ];
 
-  partials.forEach(p => {
+  voices.forEach((v, i) => {
+    const cFreq = freq * v.cRatio;
+    const mFreq = cFreq * v.mRatio;
+
+    const mod = ctx.createOscillator(); mod.type = 'sine';
+    mod.frequency.value = mFreq;
+
+    // Modulation depth: starts low, blooms to peak, then gently fades
+    const modEnv = ctx.createGain();
+    modEnv.gain.setValueAtTime(cFreq * v.initDepth, time);
+    modEnv.gain.linearRampToValueAtTime(cFreq * v.peakDepth, time + v.bloomT);
+    modEnv.gain.exponentialRampToValueAtTime(cFreq * 0.1, time + sustain * 0.9);
+    modEnv.gain.linearRampToValueAtTime(0, time + sustain);
+    mod.connect(modEnv);
+
     const carrier = ctx.createOscillator(); carrier.type = 'sine';
-    carrier.frequency.value = freq * p.ratio;
+    carrier.frequency.value = cFreq;
+    carrier.detune.value = v.detune;
+    modEnv.connect(carrier.frequency); // FM
 
-    // FM modulator for metallic edge on the fundamental partial only
-    let modGain = null, mod = null;
-    if (p.ratio === 1.00) {
-      mod = ctx.createOscillator(); mod.type = 'sine';
-      mod.frequency.value = freq * 1.41; // inharmonic mod ratio for clangorous attack
-      modGain = ctx.createGain();
-      modGain.gain.setValueAtTime(freq * 1.2, time);
-      modGain.gain.exponentialRampToValueAtTime(0.01, time + 0.15); // FM decays fast — metallic strike only
-      mod.connect(modGain); modGain.connect(carrier.frequency);
-      mod.start(time); mod.stop(time + 0.2);
-    }
+    // Amplitude: slow bloom in, long shimmer sustain
+    const ampEnv = ctx.createGain();
+    const peakAmp = vel * (i === 0 ? 1.0 : i === 1 ? 0.65 : 0.45);
+    ampEnv.gain.setValueAtTime(0, time);
+    ampEnv.gain.linearRampToValueAtTime(peakAmp * 0.2, time + 0.03); // soft attack
+    ampEnv.gain.linearRampToValueAtTime(peakAmp, time + v.bloomT);   // bloom
+    ampEnv.gain.setValueAtTime(peakAmp * 0.8, time + sustain * 0.6);
+    ampEnv.gain.linearRampToValueAtTime(0, time + sustain);
 
-    const env = ctx.createGain();
-    const partialDec = tail * p.dec;
-    env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(vel * p.amp, time + 0.004); // near-instant strike
-    env.gain.exponentialRampToValueAtTime(0.0001, time + partialDec);
-
-    carrier.connect(env); env.connect(dest);
-    carrier.start(time); carrier.stop(time + partialDec + 0.05);
+    carrier.connect(ampEnv); ampEnv.connect(dest);
+    mod.start(time); mod.stop(time + sustain + 0.05);
+    carrier.start(time); carrier.stop(time + sustain + 0.05);
+    mod.onended = () => { try { mod.disconnect(); modEnv.disconnect(); } catch(e) {} };
+    carrier.onended = () => { try { carrier.disconnect(); ampEnv.disconnect(); } catch(e) {} };
   });
 
-  // Soft noise click for the strike transient
-  const clickLen = 0.006;
-  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = clickBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cd.length, 2);
-  const click = ctx.createBufferSource(); click.buffer = clickBuf;
-  const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = freq * 3;
-  const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.5;
-  click.connect(clickHP); clickHP.connect(clickEnv); clickEnv.connect(dest);
-  click.start(time);
+  // Slow LFO tremolo for shimmer movement
+  const lfo = ctx.createOscillator(); lfo.type = 'sine';
+  lfo.frequency.value = 3.5 + Math.random() * 2;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = vel * 0.12;
+  const lfoCarrier = ctx.createOscillator(); lfoCarrier.type = 'sine';
+  lfoCarrier.frequency.value = freq * 1.5;
+  const lfoAmp = ctx.createGain();
+  lfoAmp.gain.setValueAtTime(0, time);
+  lfoAmp.gain.linearRampToValueAtTime(vel * 0.08, time + 0.3);
+  lfoAmp.gain.linearRampToValueAtTime(0, time + sustain);
+  lfo.connect(lfoGain); lfoGain.connect(lfoAmp.gain); // AM via LFO
+  lfoCarrier.connect(lfoAmp); lfoAmp.connect(dest);
+  lfo.start(time); lfo.stop(time + sustain + 0.05);
+  lfoCarrier.start(time); lfoCarrier.stop(time + sustain + 0.05);
+  lfo.onended = () => { try { lfo.disconnect(); lfoGain.disconnect(); } catch(e) {} };
+  lfoCarrier.onended = () => { try { lfoCarrier.disconnect(); lfoAmp.disconnect(); } catch(e) {} };
 }
 
 // Permanently mark the grid step as a 32nd-split when a runtime flam fires, and redraw the cell
@@ -2868,7 +3072,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'sbass4') {
           // Match playPlunkBass exactly
-          const vel = isAccent ? 0.9 : 0.65;
+          const vel = isAccent ? 0.715 : 0.516;
           const osc1 = o.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
           const osc2 = o.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq*0.5;
           const mix = o.createGain(); mix.gain.value=0.4;
@@ -3118,18 +3322,7 @@ function flashBtn(id) {
   b.classList.add('btn-flash');
   setTimeout(() => b.classList.remove('btn-flash'), 300);
 }
-// ── REC button wiring — tap=record toggle, hold=export overlay ──
-(function() {
-  const saveBtn = document.getElementById('saveBtn');
-  const overlay = document.getElementById('saveOverlay');
-  if (!saveBtn || !overlay) return;
-
-  function showOverlay() { overlay.style.display = 'flex'; }
-  function hideOverlay() { overlay.style.display = 'none'; }
-  overlay.addEventListener('click', e => { if (e.target === overlay) hideOverlay(); });
-  document.getElementById('saveSeparateBtn').addEventListener('click', () => { hideOverlay(); saveAllSeparate(); });
-  document.getElementById('saveCombinedBtn').addEventListener('click', () => { hideOverlay(); saveAllCombined(); });
-})();
+// REC button uses onclick="onRecClick()" — no hold functionality
 
 // Collect filled slots (or current state if none saved)
 function getExportSnaps() {
@@ -3140,7 +3333,7 @@ function getExportSnaps() {
 }
 
 async function shareOrDownload(files) {
-  const shareData = { files, title: 'SI-FI loops' };
+  const shareData = { files, title: 'Si•Fi loops' };
   try {
     await navigator.share(shareData);
   } catch(e) {
@@ -3467,7 +3660,7 @@ function randAll(mode) {
   Object.keys(autoShiftStops).forEach(tr => {
     autoShiftStops[tr]();
   });
-  randAllLevel = (randAllLevel + 1) % 3;
+  randAllLevel = (randAllLevel + 1) % 5;
   // Pick a fresh random scale and root for this randomize pass
   const scaleNames = Object.keys(SCALES);
   currentScaleName = scaleNames[Math.floor(Math.random() * scaleNames.length)];
@@ -3594,6 +3787,9 @@ function randAll(mode) {
   pool = [...pool].sort((a, b) => trackRank(a) - trackRank(b));
 
   // Assign sorted pool sequentially to unlocked tracks
+  // Note budget: total notes spread across all tracks — busy tracks leave less for others
+  const _noteBudget = { remaining: [6, 9, 12][Math.min(level, 2)], tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
+
   let poolIdx = 0;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // L button locked — skip
@@ -3614,8 +3810,13 @@ function randAll(mode) {
     setTrackNameColor(tr, k);
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.textContent = 'L'; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
-    trackRLevel[tr] = level;
-    randomizeTrack(tr);
+    trackRLevel[tr] = Math.min(level, 2);
+    const _tr = tr; const _lv = Math.min(level, 2);
+    const _tracksLeft = NUM_TRACKS - tr;
+    const _maxForThisTrack = Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft)));
+    _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
+    window._randNoteMax = _maxForThisTrack;
+    setTimeout(() => { window._randNoteMax = _maxForThisTrack; randomizeTrack(_tr); window._randNoteMax = null; }, _tr * 20); // stagger 20ms per track
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -3624,13 +3825,32 @@ function randAll(mode) {
     if (ctx && trackFxNodes[tr]) setFxActive(tr, { x: 0, y: 0 });
     const fxBtn = document.getElementById(`fxbtn-${tr}`); if (fxBtn) fxBtn.classList.remove('on');
   }
+  // Levels 3+4: activate auto-rand on some tracks and boost FX
+  if (level >= 3) {
+    const autoCount = level === 3 ? 1 : 2; // hard cap to limit node load
+    // Use actual track indices, not pool indices
+    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i]);
+    const selected = eligible.sort(() => Math.random() - 0.5).slice(0, autoCount);
+    selected.forEach(tr => {
+      const rb = document.getElementById(`randbtn-${tr}`);
+      if (rb && rb._restartAuto) {
+        // Stop first to reset state, then start auto
+        if (autoShiftStops[tr]) autoShiftStops[tr]();
+        rb._restartAuto();
+      }
+    });
+  }
+
   // Randomize FX for tonal instruments (25% chance, higher for synth/punk bass)
   // setFxActive handles both gain node and vol bar correctly
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
     if (TONAL_KEYS.has(pool[tr])) {
       const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
-      const fxOn = Math.random() < (isBass ? 0.6 : 0.25);
+      const isClap = pool[tr] === 'clap';
+      const isSlay = pool[tr] === 'fflute';
+      const fxBoost = level >= 4 ? 0.65 : (level === 3 ? 0.45 : 0);
+      const fxOn = isSlay ? false : isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.6 : 0.25) + fxBoost);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -3871,8 +4091,8 @@ function updateSlotButtons() {
       }
     } else {
       btn.style.background = 'transparent';
-      btn.style.color = 'var(--text)';
-      btn.style.border = '2px solid #111';
+      btn.style.color = '#b0b0b0';
+      btn.style.border = '2px solid #555';
     }
   }
 }
@@ -3937,6 +4157,15 @@ function placeNotes(tr, noteCount, accentRatio, level) {
     if (Math.random() < 0.5) { grid[tr][4] = 2; grid[tr][12] = 2; }  // beats 2+4
     else { grid[tr][0] = 2; grid[tr][8] = 2; }  // beats 1+3
   }
+  // Tamb: 20% chance of full 16th note grid with accents on 2+4 (steps 4+12)
+  if (key === 'tamb' && Math.random() < 0.20) {
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+      grid[tr][gs] = (s === 4 || s === 12) ? 2 : 1; // accent on 2+4, soft elsewhere
+    }
+    redrawTrackCells(tr); markModified(); return;
+  }
+
   // Guiro: max 2 accents per measure, 40% chance of accent on beat 1
   if (key === 'guiro') {
     if (Math.random() < 0.4) { grid[tr][0] = 2; } // accent on the 1
@@ -3978,7 +4207,7 @@ function placeNotes(tr, noteCount, accentRatio, level) {
 
 function randomizeTrack(tr) {
   const key = trackInstruments[tr];
-  const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : trackRLevel[tr];
+  const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : Math.min(trackRLevel[tr], 2);
   const level = cappedLevel;
   trackRLevel[tr] = (trackRLevel[tr] + 1) % 3;
 
@@ -3988,19 +4217,26 @@ function randomizeTrack(tr) {
 
   // Straight pattern logic
   const straightKeys = new Set(['shihat','shak','clap','sleg']);
-  // All tonal instruments: 25% chance of downbeats or upbeats
   const isTonalStraight = TONAL_KEYS.has(key) && !straightKeys.has(key) && Math.random() < 0.125;
 
   if (straightKeys.has(key) && Math.random() < 0.3 || isTonalStraight) {
     const isEighths = Math.random() < 0.5;
     const step = isEighths ? 2 : 4;
-    // Downbeats (0,4,8,12) or upbeats (2,6,10,14) — 50/50 for all straight instruments
-    const isUpbeat = Math.random() < 0.5;
+
+    // Check if current grid is already a downbeat pattern — if so, force upbeats
+    const _activeSteps = grid[tr].map((v,i) => v > 0 ? i : -1).filter(i => i >= 0);
+    const _isAlreadyDownbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 0);
+    const _isAlreadyUpbeat = _activeSteps.length > 0 && _activeSteps.every(s => s % 4 === 2);
+    let isUpbeat;
+    if (_isAlreadyDownbeat) isUpbeat = true;      // was downbeats → flip to upbeats
+    else if (_isAlreadyUpbeat) isUpbeat = false;  // was upbeats → flip to downbeats
+    else isUpbeat = Math.random() < 0.5;           // no pattern — pick randomly
+
     for (let s = 0; s < NUM_STEPS; s++) {
       const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
       const hits = isUpbeat
-        ? (s % 4 === 2) // upbeats: steps 2,6,10,14
-        : (s % step === 0); // downbeats
+        ? (s % 4 === 2)
+        : (s % step === 0);
       grid[tr][gs] = hits ? (s === 0 || s === 8 ? 2 : 1) : 0;
     }
     redrawTrackCells(tr); markModified(); return;
@@ -4008,11 +4244,16 @@ function randomizeTrack(tr) {
 
   // NOISE: always straight, full measure, either all downbeats or all upbeats
   if (key === 'ngate') {
-    const isUpbeat = Math.random() < 0.5;
-    for (let s = 0; s < NUM_STEPS; s++) {
-      const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-      const hits = isUpbeat ? (s % 4 === 2) : (s % 4 === 0);
-      grid[tr][gs] = hits ? (s === 0 ? 2 : 1) : 0;
+    if (Math.random() < 0.33) {
+      // Random placement 33% of the time
+      placeNotes(tr, 4 + Math.floor(Math.random() * 5), 0.3, level);
+    } else {
+      const isUpbeat = Math.random() < 0.5;
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        const hits = isUpbeat ? (s % 4 === 2) : (s % 4 === 0);
+        grid[tr][gs] = hits ? (s === 0 ? 2 : 1) : 0;
+      }
     }
     redrawTrackCells(tr); markModified(); return;
   }
@@ -4021,9 +4262,28 @@ function randomizeTrack(tr) {
     [4, 7,  0.20],
     [7, 11, 0.40],
     [11, 16, 0.60],
-  ][level];
-  const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio, level);
+  ][Math.min(level, 2)];
+  const _cap = window._randNoteMax || maxN;
+  const noteCount = Math.min(_cap, minN + Math.floor(Math.random() * (maxN - minN + 1)));
+  placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
+
+  // Rhythm guitar: all downbeats, all upbeats, or random pattern
+  if (key === 'stab') {
+    const mode = Math.floor(Math.random() * 3); // 0=downbeats 1=upbeats 2=random
+    if (mode === 0) {
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        grid[tr][gs] = (s % 4 === 0) ? (s === 0 ? 2 : 1) : 0;
+      }
+    } else if (mode === 1) {
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        grid[tr][gs] = (s % 4 === 2) ? 1 : 0;
+      }
+    }
+    // mode 2 = falls through to normal random placeNotes below
+    if (mode < 2) { redrawTrackCells(tr); markModified(); return; }
+  }
 
   // Choir: redistribute notes to beat positions for longer legato stretches
   if (key === 'sstring') {
@@ -4229,6 +4489,21 @@ function hideSettings() {
 })();
 
 let _initStarted = false;
+// Auto-disconnect all source nodes when they end — prevents node accumulation
+function _patchCtxForAutoCleanup(ctx) {
+  const _origCreateOsc = ctx.createOscillator.bind(ctx);
+  const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  ctx.createOscillator = function() {
+    const node = _origCreateOsc();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+  ctx.createBufferSource = function() {
+    const node = _origCreateBuf();
+    node.onended = () => { try { node.disconnect(); } catch(e) {} };
+    return node;
+  };
+}
 async function initAudio() {
   if (_initStarted) return; _initStarted = true;
   const msg = document.getElementById('loadingMsg');
@@ -4237,6 +4512,7 @@ async function initAudio() {
   try {
     msg.textContent = 'STARTING...';
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+    _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
@@ -4621,6 +4897,16 @@ function startHiss() {
   _hissNode._extras = { crackNode, crackGain, rumble, rumbleLFO, rumbleGain };
 }
 
+
+
+function setBeatType(type) {
+  _beatType = type;
+  const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn' };
+  Object.entries(btns).forEach(([t, id]) => {
+    const b = document.getElementById(id);
+    if (b) b.style.background = t === type ? '#f17d21' : '#555';
+  });
+}
 
 // ── Turbo Boost: hard brickwall limiting ──
 let _turboOn = false;
