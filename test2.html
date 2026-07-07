@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 01:00</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 01:06</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -740,41 +740,33 @@ async function startAudioInRecord(tr) {
   const recStartWall = performance.now();
 
   mr.onstop = () => {
+    // Loop already stopped by setTimeout below — decode while stopped, then restart
     s.state = 'ready';
     if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
     if (countEl2) countEl2.textContent = 'DECODING...';
     updateAudioTrackUI(tr);
     const blob = new Blob(chunks, { type: mr.mimeType });
     s.url = URL.createObjectURL(blob);
-    // Restart loop first, then decode after 2 bars so timing settles before the heavy operation
-    if (!playing) togglePlay();
-    const decodeDelay = (barDur * 2);
-    setTimeout(() => {
-      blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
-        s.audioBuffer = buf;
-        s.playbackOffset = 0;
-        if (countEl2) countEl2.textContent = 'RECORDED';
-      }).catch(e => {
-        console.warn('decode failed:', e);
-        if (countEl2) countEl2.textContent = 'ERROR';
-      });
-    }, decodeDelay);
+    // Decode while loop is stopped — no disruption to audio thread
+    blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
+      s.audioBuffer = buf;
+      s.playbackOffset = 0;
+      if (countEl2) countEl2.textContent = 'READY — PRESS PLAY';
+      // Leave loop stopped — user presses PLAY to start
+    }).catch(e => {
+      console.warn('decode failed:', e);
+      if (countEl2) countEl2.textContent = 'ERROR';
+    });
   };
 
   // Start loop and recording together
   if (!playing) togglePlay();
   mr.start();
 
-  // Stop after 1 bar
+  // Stop recording and loop after 1 bar
   setTimeout(() => {
     if (mr.state === 'recording') mr.stop();
     if (playing) togglePlay();
-    const animFill = () => {
-      if (s.state !== 'recording') return;
-      const pct = Math.min(100, ((performance.now() - recStartWall) / barDur) * 100);
-      if (fill) fill.style.width = pct + '%';
-      if (pct < 100) requestAnimationFrame(animFill);
-    };
   }, barDur);
 
   // Progress bar
@@ -810,10 +802,11 @@ function playAudioInBuffer(tr, time) {
   if (s.source) { try { s.source.stop(); } catch(e) {} }
   const src = ctx.createBufferSource();
   src.buffer = s.audioBuffer;
-  src.connect(trackGainNodes[tr] || masterGain);
-  // Use playbackOffset to trim buffer start for latency compensation
+  // Route through track gain node if available, else master
+  const dest = (trackGainNodes && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
+  src.connect(dest);
   const offset = s.playbackOffset || 0;
-  src.start(time || ctx.currentTime, offset);
+  src.start(Math.max(ctx.currentTime, time || 0), offset);
   s.source = src;
 }
 
