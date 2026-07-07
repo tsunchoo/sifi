@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>SI-FI</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 07:02</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 07:06</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -531,7 +531,7 @@ const INSTRUMENTS = {
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
-  fflute: { name: 'GLASS BELL', soft: null, accent: null, group: 'tonal' },
+  fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'BLUNT',        soft: null, accent: null, group: 'tonal' },
 };
 const INSTRUMENT_KEYS = Object.keys(INSTRUMENTS);
@@ -894,7 +894,27 @@ function scheduler() {
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
           if (key === 'boog')    playBoog(freq, dur, val === 2, t, tr);
-          if (key === 'fflute')  playGlassBell(freq, dur, val === 2, t, tr);
+          if (key === 'fflute')  {
+            playGlassBell(freq, dur, val === 2, t, tr);
+          }
+          if (key !== 'fflute' && trackInstruments.includes('fflute')) {
+            const _slayTr = trackInstruments.indexOf('fflute');
+            if (trackGainNodes[_slayTr] && !trackMuted[_slayTr]) {
+              // Find busiest track to use as sidechain source
+              let _bestDensity = 0, _busiestTr = -1;
+              for (let _i = 0; _i < NUM_TRACKS; _i++) {
+                if (_i === _slayTr || trackMuted[_i]) continue;
+                const _d = grid[_i].filter(v => v > 0).length;
+                if (_d > _bestDensity) { _bestDensity = _d; _busiestTr = _i; }
+              }
+              if (tr === _busiestTr) {
+                const _sg = trackGainNodes[_slayTr].gain;
+                _sg.cancelScheduledValues(t);
+                _sg.setTargetAtTime(0.05, t, 0.005);
+                _sg.setTargetAtTime(trackVolume[_slayTr], t + 0.10, 0.05);
+              }
+            }
+          }
           if (key === 'blunt')   playBlunt(freq, dur, val === 2, t, tr);
           // E: filter envelope — bright open, sweep closed over note duration
           if (trackChop[tr] && trackEnvFilters[tr]) {
@@ -1709,9 +1729,20 @@ function playStab(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const vel = isAccent ? 0.055 : 0.038;
 
+  // Shared LP + waveshaper — all voices feed into one chain then to dest
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
+  lp.frequency.setValueAtTime(isAccent ? 5000 : 3500, time);
+  lp.frequency.exponentialRampToValueAtTime(600, time + 0.06);
+
+  const ws = ctx.createWaveShaper();
+  const curve = new Float32Array(128);
+  for (let j = 0; j < 128; j++) { const x = (j / 64) - 1; curve[j] = Math.tanh(x * 2.5); }
+  ws.curve = curve;
+  lp.connect(ws); ws.connect(dest);
+
   // Chord stack: root + 5th + octave, slightly detuned for strum spread
-  const strumDelays = [0, 0.004, 0.008]; // stagger strings slightly
-  const freqRatios  = [1.0, 1.498, 2.0]; // root, 5th, octave
+  const strumDelays = [0, 0.004, 0.008];
+  const freqRatios  = [1.0, 1.498, 2.0];
   const detunesCents = [0, +8, -6];
 
   strumDelays.forEach((delay, i) => {
@@ -1720,25 +1751,13 @@ function playStab(freq, durSec, isAccent, time, tr) {
     osc.frequency.value = freq * freqRatios[i];
     osc.detune.value = detunesCents[i];
 
-    // Fast muted decay — guitar choke
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(vel * (i === 0 ? 1.0 : 0.6), t + 0.003);
     env.gain.exponentialRampToValueAtTime(vel * 0.15, t + 0.04);
     env.gain.exponentialRampToValueAtTime(0.0001, t + (isAccent ? 0.18 : 0.10));
 
-    // LP sweep: bright on attack, closes fast
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
-    lp.frequency.setValueAtTime(isAccent ? 5000 : 3500, t);
-    lp.frequency.exponentialRampToValueAtTime(400, t + 0.06);
-
-    // Mild waveshaper crunch
-    const ws = ctx.createWaveShaper();
-    const curve = new Float32Array(128);
-    for (let j = 0; j < 128; j++) { const x = (j / 64) - 1; curve[j] = Math.tanh(x * 3); }
-    ws.curve = curve;
-
-    osc.connect(env); env.connect(ws); ws.connect(lp); lp.connect(dest);
+    osc.connect(env); env.connect(lp);
     osc.start(t); osc.stop(t + 0.25);
   });
 }
