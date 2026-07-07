@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:36</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:41</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1750,7 +1750,8 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.155 : 0.107;
+  const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
+  const vel = isAccent ? (fxOn ? 0.310 : 0.155) : (fxOn ? 0.214 : 0.107); // compensate FX chain loss
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
