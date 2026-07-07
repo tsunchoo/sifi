@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:20</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:31</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1318,7 +1318,7 @@ function randomizeBassTrack(tr, level) {
   ];
   const [minN, maxN, accentRatio] = levelTable[level];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio, noteLevel);
+  placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
   if (key === 'stab') {
@@ -3565,7 +3565,6 @@ function randAll(mode) {
   _split32CycleCount = 0;
   mode = mode || 'all';
   const level = randAllLevel;
-  const noteLevel = Math.min(level, 2);
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
     autoShiftStops[tr]();
@@ -3730,7 +3729,8 @@ function randAll(mode) {
   // Levels 3+4: activate auto-rand on some tracks and boost FX
   if (level >= 3) {
     const autoCount = level === 3 ? (1 + Math.floor(Math.random() * 2)) : (2 + Math.floor(Math.random() * 2));
-    const eligible = pool.map((k, i) => i).filter(i => !trackSweep[i]);
+    // Use actual track indices, not pool indices
+    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i]);
     eligible.sort(() => Math.random() - 0.5).slice(0, autoCount).forEach(tr => {
       const rb = document.getElementById(`randbtn-${tr}`);
       if (rb && rb._restartAuto) rb._restartAuto();
@@ -4141,9 +4141,9 @@ function randomizeTrack(tr) {
     [4, 7,  0.20],
     [7, 11, 0.40],
     [11, 16, 0.60],
-  ][noteLevel];
+  ][Math.min(level, 2)];
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
-  placeNotes(tr, noteCount, accentRatio, noteLevel);
+  placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
   if (key === 'stab') {
