@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 01:11</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 01:23</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -740,26 +740,26 @@ async function startAudioInRecord(tr) {
   const recStartWall = performance.now();
 
   mr.onstop = () => {
-    // Loop already stopped by setTimeout below — decode while stopped, then restart
+    const lbl = document.getElementById(`audio-count-${tr}`);
+    if (lbl) lbl.textContent = 'STOPPED';
+    const blob = new Blob(chunks, { type: mr.mimeType });
+    if (lbl) lbl.textContent = 'BLOB:' + Math.round(blob.size/1024) + 'kb';
     s.state = 'ready';
     if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
-    if (countEl2) countEl2.textContent = 'DECODING...';
     updateAudioTrackUI(tr);
-    const blob = new Blob(chunks, { type: mr.mimeType });
     s.url = URL.createObjectURL(blob);
-    // Decode while loop is stopped — no disruption to audio thread
-    blob.arrayBuffer().then(ab => ctx.decodeAudioData(ab)).then(buf => {
+    blob.arrayBuffer().then(ab => {
+      if (lbl) lbl.textContent = 'DECODING ' + ab.byteLength + 'b';
+      return ctx.decodeAudioData(ab);
+    }).then(buf => {
       s.audioBuffer = buf;
-      s.playbackOffset = 0;
-      if (countEl2) countEl2.textContent = 'READY — PRESS PLAY';
-      // Reconnect monitor now that everything is settled
+      if (lbl) lbl.textContent = 'BUF:' + buf.duration.toFixed(2) + 's CH:' + buf.numberOfChannels;
       const ms = audioTrackState[tr];
       if (ms?._monitorSource && ms?._monitorGain && ctx) {
         try { ms._monitorSource.connect(ms._monitorGain); ms._monitorGain.connect(ctx.destination); } catch(e) {}
       }
     }).catch(e => {
-      console.warn('decode failed:', e);
-      if (countEl2) countEl2.textContent = 'ERROR';
+      if (lbl) lbl.textContent = 'ERR:' + e.message;
     });
   };
 
