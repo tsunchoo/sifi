@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:14</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:22</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -804,11 +804,15 @@ async function startAudioInRecord(tr) {
     const fill2 = document.getElementById(`audio-fill-${tr}`);
     if (fill2) { fill2.style.width = '100%'; fill2.style.background = '#7a2a7a'; }
     updateAudioTrackUI(tr);
-    // Decode then wait for next step 0 or 8 (beat 1 or 3) to start playback
-    fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
-      s.audioBuffer = buf;
-      // Playback will be triggered by scheduler at next step 0 or 8
-    });
+    // Decode after a short delay to avoid disrupting the audio thread
+    // Flag that we need to start on the next step 0
+    s._pendingPlayback = true;
+    setTimeout(() => {
+      fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
+        s.audioBuffer = buf;
+        // Start playback on the very next step 0 via the pending flag
+      }).catch(e => console.warn('Audio In decode failed:', e));
+    }, 500); // wait 500ms after recording stops before decoding
   };
 }
 
@@ -966,7 +970,13 @@ function scheduler() {
     // Fire pending auto-rand on downbeat
     if (step === 0) {
       // Trigger any Audio In tracks on beat 1 (step 0) only
-      for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackInstruments[tr] === 'audioin' && audioTrackState[tr]?.audioBuffer) playAudioInBuffer(tr, nextNoteTime); }
+      for (let tr = 0; tr < NUM_TRACKS; tr++) {
+        const ats = audioTrackState[tr];
+        if (trackInstruments[tr] === 'audioin' && ats?.audioBuffer) {
+          if (ats._pendingPlayback) { ats._pendingPlayback = false; }
+          playAudioInBuffer(tr, nextNoteTime);
+        }
+      }
       _committedSwing = swingVal; // commit swing amount only at bar start
       requestAnimationFrame(updateSwingReadout);
       // Flip reels forward when recalled pattern starts playing
