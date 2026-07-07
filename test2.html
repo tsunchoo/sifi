@@ -368,7 +368,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:41</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">07Jul26 08:44</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -657,11 +657,10 @@ function setFxActive(tr, fxVal) {
   dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? 0 : 1, now);
   fxSend.gain.cancelScheduledValues(now);  fxSend.gain.setValueAtTime(on ? 1 : 0, now);
   preGain.gain.cancelScheduledValues(now);  preGain.gain.setValueAtTime(on ? 0.12 : 0, now);
-  // Compensate for crunch loudness in postGain (×0.5 when on = -6dB)
-  // so fader position sounds the same with or without FX
+  // postGain compensates for preGain(0.12) attenuation so FX on/off sounds same volume
   if (trackFxNodes[tr].postGain) {
     trackFxNodes[tr].postGain.gain.cancelScheduledValues(now);
-    trackFxNodes[tr].postGain.gain.setValueAtTime(0.5, now); // no volume change on FX toggle
+    trackFxNodes[tr].postGain.gain.setValueAtTime(3.0, now); // 1/0.12 * 0.36 ≈ unity
   }
   if (trackGainNodes[tr]) {
     const fxComp = trackVolume[tr];
@@ -1750,8 +1749,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
-  const vel = isAccent ? (fxOn ? 0.310 : 0.155) : (fxOn ? 0.214 : 0.107); // compensate FX chain loss
+  const vel = isAccent ? 0.155 : 0.107;
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
