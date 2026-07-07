@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:32</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 00:40</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -678,10 +678,8 @@ async function startAudioInRecord(tr) {
   const s = audioTrackState[tr];
   if (!s) return;
 
-  // Tap while recording = stop early
   if (s.state === 'recording') { s.mediaRecorder?.stop(); return; }
 
-  // Tap while ready = clear recording
   if (s.state === 'ready') {
     if (s.source) { try { s.source.stop(); } catch(e) {} }
     if (s.url) URL.revokeObjectURL(s.url);
@@ -690,7 +688,7 @@ async function startAudioInRecord(tr) {
     const lbl = document.getElementById(`audio-count-${tr}`);
     if (lbl) lbl.textContent = 'EMPTY';
     const fill = document.getElementById(`audio-fill-${tr}`);
-    if (fill) { fill.style.width = '0%'; }
+    if (fill) fill.style.width = '0%';
     updateAudioTrackUI(tr);
     return;
   }
@@ -698,7 +696,7 @@ async function startAudioInRecord(tr) {
   const stream = await getMicStream();
   if (!stream) return;
 
-  // Stop loop, count in 4 beats, restart loop on step 0
+  // Stop loop, count in 4 beats
   if (playing) togglePlay();
   s.state = 'counting';
   updateAudioTrackUI(tr);
@@ -725,19 +723,17 @@ async function startAudioInRecord(tr) {
 
   if (s.state !== 'counting') return;
 
-  // Start loop — wait for step 0 then begin recording
+  // Start loop + recording simultaneously
   s.state = 'recording';
   updateAudioTrackUI(tr);
   const countEl2 = document.getElementById(`audio-count-${tr}`);
-  if (countEl2) countEl2.textContent = '';
+  if (countEl2) countEl2.textContent = 'REC';
   if (!playing) togglePlay();
 
-  await new Promise(resolve => {
-    const check = () => { if (currentStep === 0 || !playing) resolve(); else requestAnimationFrame(check); };
-    requestAnimationFrame(check);
-  });
+  // Note ctx time when loop starts — this is our beat 1 reference
+  const recStartCtxTime = ctx.currentTime;
 
-  // Fresh mic source just for recording — never reuse monitor node
+  // Fresh mic source for recording only
   const recMicSrc = ctx.createMediaStreamSource(stream);
   const recDest = ctx.createMediaStreamDestination();
   recMicSrc.connect(recDest);
@@ -747,7 +743,7 @@ async function startAudioInRecord(tr) {
   s.mediaRecorder = mr;
   mr.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
 
-  const barDur = (60 / bpm) * 4 * 1000; // 1 bar in ms
+  const barDur = (60 / bpm) * 4 * 1000;
   const fill = document.getElementById(`audio-fill-${tr}`);
   const startT = performance.now();
   const animFill = () => {
@@ -760,26 +756,44 @@ async function startAudioInRecord(tr) {
   requestAnimationFrame(animFill);
 
   mr.start();
-  setTimeout(() => { if (mr.state === 'recording') mr.stop(); }, barDur);
 
-  mr.onstop = () => {
-    // Disconnect recording nodes — monitor stays connected separately
-    try { recMicSrc.disconnect(); } catch(e) {}
-    s.state = 'ready';
-    const lbl = document.getElementById(`audio-count-${tr}`);
-    if (lbl) lbl.textContent = 'RECORDED';
-    const f2 = document.getElementById(`audio-fill-${tr}`);
-    if (f2) { f2.style.width = '100%'; f2.style.background = '#7a2a7a'; }
-    updateAudioTrackUI(tr);
-    const blob = new Blob(chunks, { type: mr.mimeType });
+  // Stop recording after exactly 1 bar
+  await new Promise(resolve => { setTimeout(resolve, barDur); });
+  if (mr.state === 'recording') mr.stop();
+
+  // Stop the loop while we process
+  if (playing) togglePlay();
+  try { recMicSrc.disconnect(); } catch(e) {}
+
+  // How long after loop start did MediaRecorder actually begin capturing?
+  // This is our latency offset — mr.start() to first data is typically 20-100ms
+  const latencyOffset = Math.max(0, ctx.currentTime - recStartCtxTime - (barDur / 1000));
+
+  // Wait for onstop to fire and blob to be ready
+  const blob = await new Promise(resolve => {
+    mr.onstop = () => resolve(new Blob(chunks, { type: mr.mimeType }));
+  });
+
+  s.state = 'ready';
+  if (fill) { fill.style.width = '100%'; fill.style.background = '#7a2a7a'; }
+  if (countEl2) countEl2.textContent = 'DECODING...';
+  updateAudioTrackUI(tr);
+
+  // Decode with no timing pressure
+  try {
+    const ab = await fetch(URL.createObjectURL(blob)).then(r => r.arrayBuffer());
+    const buf = await ctx.decodeAudioData(ab);
+    s.audioBuffer = buf;
     s.url = URL.createObjectURL(blob);
-    // Decode after loop has had time to stabilise
-    setTimeout(() => {
-      fetch(s.url).then(r => r.arrayBuffer()).then(ab => ctx.decodeAudioData(ab)).then(buf => {
-        s.audioBuffer = buf;
-      }).catch(e => console.warn('decode failed:', e));
-    }, 1000);
-  };
+    // Latency offset: trim the start of the buffer by this amount
+    s.playbackOffset = Math.max(0, latencyOffset);
+    if (countEl2) countEl2.textContent = 'RECORDED';
+    // Resume loop — audio will play from step 0
+    if (!playing) togglePlay();
+  } catch(e) {
+    console.warn('Audio In decode failed:', e);
+    if (countEl2) countEl2.textContent = 'ERROR';
+  }
 }
 // Play back audio in track at step 0
 function triggerAudioInTrack(tr, time) {
@@ -800,14 +814,14 @@ function triggerAudioInTrack(tr, time) {
 function playAudioInBuffer(tr, time) {
   const s = audioTrackState[tr];
   if (!s?.audioBuffer || !ctx) return;
+  if (trackMuted[tr]) return;
   if (s.source) { try { s.source.stop(); } catch(e) {} }
   const src = ctx.createBufferSource();
   src.buffer = s.audioBuffer;
   src.connect(trackGainNodes[tr] || masterGain);
-  // Apply latency compensation: start playback slightly early to account for recording buffer delay
-  const offset = s.latencyOffset || 0;
-  const scheduledTime = Math.max(ctx.currentTime, (time || ctx.currentTime) - offset);
-  src.start(scheduledTime);
+  // Use playbackOffset to trim buffer start for latency compensation
+  const offset = s.playbackOffset || 0;
+  src.start(time || ctx.currentTime, offset);
   s.source = src;
 }
 
