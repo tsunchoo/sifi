@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 07:24</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 07:34</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1727,12 +1727,12 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.055 : 0.038;
+  const vel = isAccent ? 0.155 : 0.107;
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
   lp.frequency.setValueAtTime(isAccent ? 5000 : 3500, time);
-  lp.frequency.exponentialRampToValueAtTime(600, time + 0.06);
+  lp.frequency.exponentialRampToValueAtTime(500, time + 0.15);
 
   // No internal waveshaper — FX chain handles crunch when on, cleaner when off
   lp.connect(dest);
@@ -1751,11 +1751,11 @@ function playStab(freq, durSec, isAccent, time, tr) {
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
     env.gain.linearRampToValueAtTime(vel * (i === 0 ? 1.0 : 0.6), t + 0.003);
-    env.gain.exponentialRampToValueAtTime(vel * 0.15, t + 0.04);
-    env.gain.exponentialRampToValueAtTime(0.0001, t + (isAccent ? 0.18 : 0.10));
+    env.gain.exponentialRampToValueAtTime(vel * 0.25, t + 0.06);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + (isAccent ? 0.40 : 0.25));
 
     osc.connect(env); env.connect(lp);
-    osc.start(t); osc.stop(t + 0.25);
+    osc.start(t); osc.stop(t + 0.55);
   });
 }
 
