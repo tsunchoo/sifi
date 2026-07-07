@@ -407,7 +407,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si-Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 04:56</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 05:13</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -740,8 +740,28 @@ async function startAudioInRecord(tr) {
   s._mr = mr;
   s._barDur = barDur;
   s._recStartWall = performance.now();
+  // Use a dedicated interval to stop recording — not the audio scheduler
+  const recStopInterval = setInterval(() => {
+    if (!s._recStartWall) { clearInterval(recStopInterval); return; }
+    if (performance.now() - s._recStartWall >= s._barDur) {
+      clearInterval(recStopInterval);
+      if (s._mr && s._mr.state === 'recording') s._mr.stop();
+      if (playing) togglePlay();
+      s._recStartWall = null;
+    }
+  }, 50);
 
   mr.onstop = () => {
+    // Stop all mic tracks to fully release the audio session
+    stream.getTracks().forEach(t => t.stop());
+    _micStream = null;
+    // Suspend and resume ctx to force iOS to reset hardware buffer size
+    ctx.suspend().then(() => ctx.resume()).then(() => {
+      _doRecordingDecode(tr, chunks, mr, lbl, fill);
+    });
+  };
+
+  function _doRecordingDecode(tr, chunks, mr, lbl, fill) {
     const lbl = document.getElementById(`audio-count-${tr}`);
     if (lbl) lbl.textContent = 'STOPPED';
     const blob = new Blob(chunks, { type: mr.mimeType });
@@ -754,8 +774,16 @@ async function startAudioInRecord(tr) {
       if (lbl) lbl.textContent = 'DECODING ' + ab.byteLength + 'b';
       return ctx.decodeAudioData(ab);
     }).then(buf => {
-      s.audioBuffer = buf;
-      if (lbl) lbl.textContent = 'READY — PRESS PLAY (instr:' + trackInstruments[tr] + ')';
+      // Trim buffer to exactly 1 bar at recorded BPM so it retriggers in sync
+      const exactBarSamples = Math.round((60 / bpm) * 4 * buf.sampleRate);
+      const trimmed = ctx.createBuffer(buf.numberOfChannels, exactBarSamples, buf.sampleRate);
+      for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+        const src = buf.getChannelData(ch);
+        const dst = trimmed.getChannelData(ch);
+        dst.set(src.subarray(0, exactBarSamples));
+      }
+      s.audioBuffer = trimmed;
+      if (lbl) lbl.textContent = 'READY — PRESS PLAY';
       const ms = audioTrackState[tr];
       if (ms?._monitorSource && ms?._monitorGain && ctx) {
         try { ms._monitorSource.connect(ms._monitorGain); ms._monitorGain.connect(ctx.destination); } catch(e) {}
@@ -763,18 +791,24 @@ async function startAudioInRecord(tr) {
     }).catch(e => {
       if (lbl) lbl.textContent = 'ERR:' + e.message;
     });
-  };
+  }
 
-  // Disconnect monitor to keep audio session stable during recording
-  const mon = audioTrackState[tr]?._monitorSource;
-  const monGain = audioTrackState[tr]?._monitorGain;
-  if (mon && monGain) { try { mon.disconnect(); monGain.disconnect(); } catch(e) {} }
+  // Fully tear down monitoring and mic session before recording
+  // This forces iOS out of play-and-record mode so timing stays clean
+  const mon = s._monitorSource;
+  const monGain = s._monitorGain;
+  if (mon) { try { mon.disconnect(); } catch(e) {} s._monitorSource = null; }
+  if (monGain) { try { monGain.disconnect(); } catch(e) {} s._monitorGain = null; }
+  if (_micStream) { _micStream.getTracks().forEach(t => t.stop()); _micStream = null; }
 
-  // Start loop and recording together
+  // Suspend/resume ctx to force iOS buffer size reset back to playback-only mode
+  await ctx.suspend();
+  await ctx.resume();
+
+  // Flag waiting — scheduler will start mr at step 0 nextNoteTime
+  s.state = 'waitingToRecord';
   if (!playing) togglePlay();
-  mr.start();
-
-  // Stop is handled by external timer set on s._mr
+  // mr.start() called from scheduler at step 0
 
   // Progress bar
   const animFill = () => {
@@ -809,7 +843,6 @@ function playAudioInBuffer(tr, time) {
   if (s.source) { try { s.source.stop(); } catch(e) {} }
   const src = ctx.createBufferSource();
   src.buffer = s.audioBuffer;
-  src.loop = true; // loop continuously — scheduler will restart on each step 0 anyway
   const dest = (trackGainNodes && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
   src.connect(dest);
   const offset = s.playbackOffset || 0;
@@ -820,6 +853,8 @@ function playAudioInBuffer(tr, time) {
 
 // Check for audio in tracks that need to stop recording
 function checkAudioInRecording() {
+  // Quick bail if no audio tracks recording
+  if (!Object.keys(audioTrackState).some(tr => audioTrackState[tr]?.state === 'recording')) return;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const s = audioTrackState[tr];
     if (!s || s.state !== 'recording' || !s._mr || !s._barDur || !s._recStartWall) continue;
@@ -947,7 +982,6 @@ const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
 function stepDuration() { return 60 / bpm / 4; }
 
 function scheduler() {
-  checkAudioInRecording();
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider
@@ -955,10 +989,17 @@ function scheduler() {
     const t = nextStepTime + (swingMs / 1000);
     // Fire pending auto-rand on downbeat
     if (step === 0) {
-      // Trigger any Audio In tracks on beat 1 (step 0) only
+      // Audio In tracks: start recording or trigger playback at step 0
       for (let tr = 0; tr < NUM_TRACKS; tr++) {
         const ats = audioTrackState[tr];
-        if (trackInstruments[tr] === 'audioin' && ats?.audioBuffer) {
+        if (trackInstruments[tr] !== 'audioin') continue;
+        if (ats?.state === 'waitingToRecord' && ats._mr) {
+          // Start recording exactly on this beat clock tick
+          ats._recNextNoteTime = nextNoteTime;
+          ats._mr.start();
+          ats.state = 'recording';
+          ats._recStartWall = performance.now();
+        } else if (ats?.audioBuffer) {
           ats._playOnNextBar = false;
           playAudioInBuffer(tr, nextNoteTime);
         }
@@ -1287,6 +1328,8 @@ function togglePlay() {
     }
   } else {
     clearInterval(scheduleInterval); scheduleInterval = null;
+    // Stop any playing Audio In sources
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const ats = audioTrackState[tr]; if (ats?.source) { try { ats.source.stop(); } catch(e) {} ats.source = null; } }
     btn.classList.remove('playing'); const pbi2=document.getElementById('playBtnImg'); if(pbi2) pbi2.src='data:image/png;base64,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';
     updateBeatPulse();
     document.querySelectorAll('.reel-wrap').forEach(r => { r.classList.remove('spinning'); r.classList.remove('spinning-reverse'); });
@@ -2688,6 +2731,36 @@ function buildAudioInRow(tr) {
     if (s && s.state === 'ready') { startAudioInRecord(tr); }
   });
   stepRow.appendChild(cell);
+
+  // Offset trim buttons: shift playback start in 5ms steps
+  const trimWrap = document.createElement('div');
+  trimWrap.style.cssText = 'display:flex;flex-direction:column;flex-shrink:0;height:100%;';
+  const trimUp = document.createElement('button');
+  trimUp.textContent = '+';
+  trimUp.style.cssText = 'background:#555;border:none;color:#fff;font-family:"DM Sans",sans-serif;font-size:0.65rem;font-weight:700;flex:1;cursor:pointer;padding:0 8px;touch-action:manipulation;';
+  const trimDown = document.createElement('button');
+  trimDown.textContent = '−';
+  trimDown.style.cssText = trimUp.style.cssText;
+  const trimLabel = document.createElement('div');
+  trimLabel.id = `audio-trim-${tr}`;
+  trimLabel.style.cssText = 'background:#444;color:#aaa;font-family:"DM Sans",sans-serif;font-size:0.55rem;font-weight:700;text-align:center;padding:2px 4px;flex-shrink:0;';
+  trimLabel.textContent = '0ms';
+
+  const updateTrim = (delta) => {
+    const s = audioTrackState[tr];
+    if (!s) return;
+    s.playbackOffset = Math.max(0, (s.playbackOffset || 0) + delta);
+    trimLabel.textContent = Math.round(s.playbackOffset * 1000) + 'ms';
+  };
+  trimUp.addEventListener('click', () => updateTrim(0.005));
+  trimDown.addEventListener('click', () => updateTrim(-0.005));
+  trimUp.addEventListener('touchend', e => { e.preventDefault(); updateTrim(0.005); }, { passive: false });
+  trimDown.addEventListener('touchend', e => { e.preventDefault(); updateTrim(-0.005); }, { passive: false });
+
+  trimWrap.appendChild(trimUp);
+  trimWrap.appendChild(trimLabel);
+  trimWrap.appendChild(trimDown);
+  stepRow.appendChild(trimWrap);
   setAudioInCtrlRow(tr, true);
 }
 
