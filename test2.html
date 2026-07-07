@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si•Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 07:54</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 08:02</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -1003,7 +1003,7 @@ function scheduler() {
         } else if (_beatType === 'reggae') {
           // Kick on 3, hats on 1+2+4 (steps 0,4,12), snare ghost on 2+4
           doKick  = (step === 4 || step === 12);
-          doHat   = (step === 0 || step === 4 || step === 6 || step === 7);
+          doHat   = (step === 2 || step === 6 || step === 10 || step === 14);
         }
         if (doKick) {
           playKick(t);
@@ -1727,7 +1727,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.195 : 0.135;
+  const vel = isAccent ? 0.155 : 0.107;
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
@@ -1953,7 +1953,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 function playBlunt(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.045 : 0.030;
+  const vel = isAccent ? 0.032 : 0.021;
   const tail = 2.0;
   // Waveshaper for lo-fi crunch — quantises the waveform
   const crushCurve = new Float32Array(256);
@@ -2014,25 +2014,15 @@ function playBoog(freq, durSec, isAccent, time, tr) {
   osc2.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.5, 1), time + glide);
   osc2.detune.value = 7;
 
-  // LP filter with some Q for resonance
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3.5;
-  lp.frequency.setValueAtTime(freq * 8, time);
-  lp.frequency.exponentialRampToValueAtTime(freq * 3, time + 0.06);
-  lp.frequency.exponentialRampToValueAtTime(freq * 2.2, time + durSec);
+  // Smooth LP — wide open, no resonance, no transient
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.5;
+  lp.frequency.value = freq * 6;
 
-  // Glassy upper partial — sine at 4th harmonic, short decay
-  const glass = ctx.createOscillator(); glass.type = 'sine';
-  glass.frequency.value = freq * 4.01;
-  const glassEnv = ctx.createGain();
-  glassEnv.gain.setValueAtTime(vel * 0.3, time);
-  glassEnv.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
-  glass.connect(glassEnv); glassEnv.connect(dest);
-  glass.start(time); glass.stop(time + 0.22);
-
+  // Very slow attack for seamless slide feel
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel, time + 0.020);
-  env.gain.setValueAtTime(vel * 0.9, time + durSec - 0.04);
+  env.gain.linearRampToValueAtTime(vel, time + 0.06); // slow attack — no click
+  env.gain.setValueAtTime(vel * 0.95, time + durSec - 0.04);
   env.gain.linearRampToValueAtTime(0, time + durSec + 0.08);
 
   const env2 = ctx.createGain(); env2.gain.value = vel * 0.35;
@@ -2161,7 +2151,7 @@ function playGlassBell(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const vel = isAccent ? 0.017 : 0.011;
-  const sustain = isAccent ? 2.8 : 1.8; // long shimmering sustain
+  const sustain = isAccent ? 1.4 : 0.9; // trimmed sustain
 
   // FM shimmer pad — 3 carrier/modulator pairs at slightly detuned ratios
   // Modulation depth evolves slowly: blooms open rather than striking and decaying
@@ -3719,7 +3709,8 @@ function randAll(mode) {
     if (trackSweep[tr]) continue; // locked
     if (TONAL_KEYS.has(pool[tr])) {
       const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
-      const fxOn = Math.random() < (isBass ? 0.6 : 0.25);
+      const isClap = pool[tr] === 'clap';
+      const fxOn = isClap ? true : Math.random() < (isBass ? 0.6 : 0.25);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
