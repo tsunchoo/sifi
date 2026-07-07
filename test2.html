@@ -389,7 +389,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 
 <header>
   <h1>Si•Fi</h1>
-  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 08:02</div>
+  <div style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:2px;">07Jul26 08:09</div>
 
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
@@ -897,21 +897,23 @@ function scheduler() {
           if (key === 'fflute')  {
             playGlassBell(freq, dur, val === 2, t, tr);
           }
-          if (key !== 'fflute' && trackInstruments.includes('fflute')) {
-            const _slayTr = trackInstruments.indexOf('fflute');
-            if (trackGainNodes[_slayTr] && !trackMuted[_slayTr]) {
-              // Find busiest track to use as sidechain source
-              let _bestDensity = 0, _busiestTr = -1;
-              for (let _i = 0; _i < NUM_TRACKS; _i++) {
-                if (_i === _slayTr || trackMuted[_i]) continue;
-                const _d = grid[_i].filter(v => v > 0).length;
-                if (_d > _bestDensity) { _bestDensity = _d; _busiestTr = _i; }
-              }
-              if (tr === _busiestTr) {
-                const _sg = trackGainNodes[_slayTr].gain;
+          // Duck all pad tracks when busiest track fires
+          const _padKeys = new Set(['fflute','sstring','sleg','sparkle','rhodes','rhodes2']);
+          if (!_padKeys.has(key)) {
+            let _bestDensity = 0, _busiestTr = -1;
+            for (let _i = 0; _i < NUM_TRACKS; _i++) {
+              if (_padKeys.has(trackInstruments[_i]) || trackMuted[_i]) continue;
+              const _d = grid[_i].filter(v => v > 0).length;
+              if (_d > _bestDensity) { _bestDensity = _d; _busiestTr = _i; }
+            }
+            if (tr === _busiestTr) {
+              for (let _pi = 0; _pi < NUM_TRACKS; _pi++) {
+                if (!_padKeys.has(trackInstruments[_pi]) || trackMuted[_pi]) continue;
+                if (!trackGainNodes[_pi]) continue;
+                const _sg = trackGainNodes[_pi].gain;
                 _sg.cancelScheduledValues(t);
                 _sg.setTargetAtTime(0.05, t, 0.005);
-                _sg.setTargetAtTime(trackVolume[_slayTr], t + 0.10, 0.05);
+                _sg.setTargetAtTime(trackVolume[_pi], t + 0.10, 0.05);
               }
             }
           }
@@ -1570,6 +1572,28 @@ function playRhodes(freq, durSec, isAccent, time, tr) {
   const bodyEnv = ctx.createGain(); bodyEnv.gain.value = vel * 0.22;
   body.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(dest);
   body.start(time);
+
+  // Ghost note: half a beat later, half volume, slight drive
+  const ghostTime = time + stepDuration() * 0.5;
+  const ghostVel = vel * 0.45;
+  partials.slice(0, 2).forEach(({ n, amp, dec }) => {
+    const gosc = ctx.createOscillator(); gosc.type = 'sine';
+    gosc.frequency.value = inharmonic(n);
+    const genv = ctx.createGain();
+    const gpk = ghostVel * amp;
+    const gdecT = baseDec * dec * 0.7;
+    genv.gain.setValueAtTime(0, ghostTime);
+    genv.gain.linearRampToValueAtTime(gpk, ghostTime + 0.001);
+    genv.gain.exponentialRampToValueAtTime(gpk * 0.3, ghostTime + 0.008);
+    genv.gain.exponentialRampToValueAtTime(0.0001, ghostTime + gdecT);
+    // Mild drive via waveshaper
+    const gws = ctx.createWaveShaper();
+    const gwsCurve = new Float32Array(128);
+    for (let i = 0; i < 128; i++) { const x = (i / 64) - 1; gwsCurve[i] = Math.tanh(x * 2); }
+    gws.curve = gwsCurve;
+    gosc.connect(genv); genv.connect(gws); gws.connect(dest);
+    gosc.start(ghostTime); gosc.stop(ghostTime + gdecT + 0.05);
+  });
 }
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
@@ -1763,7 +1787,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
 function playRhodes2(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.127 : 0.088;
+  const vel = isAccent ? 0.090 : 0.062; // -3dB
 
   const B = 0.00008; // less inharmonicity = warmer
   const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
