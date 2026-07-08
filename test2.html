@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:19</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:23</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -4587,7 +4587,7 @@ async function initAudio() {
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
     const makeupGain = ctx.createGain(); makeupGain.gain.value = 1.585; // +4dB fixed output boost
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.668; window._beatGain.connect(masterGain);
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.473; window._beatGain.connect(masterGain);
     // UI Sounds
     const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -5011,4 +5011,15 @@ document.querySelectorAll('.reel-wrap').forEach(r => {
 
 </script>
 </body>
-</html>
+</html
+  // Randomise delay for all tracks
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr]) continue;
+    const delayChance = 0.20 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
+    const delayOn = Math.random() < delayChance;
+    trackDelay[tr] = delayOn;
+    const db = document.getElementById(`delaybtn-${tr}`);
+    if (db) db.classList.toggle('on', delayOn);
+    if (!delayOn && _delayNodes[tr]) { try { _delayNodes[tr].delay.disconnect(); _delayNodes[tr].feedback.disconnect(); _delayNodes[tr].wetGain.disconnect(); } catch(e) {} delete _delayNodes[tr]; }
+  }
+>
