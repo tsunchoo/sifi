@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:27</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:32</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2487,7 +2487,7 @@ function playKick(t) {
   osc.connect(g); g.connect(beatDest);
   osc.frequency.setValueAtTime(160, t);
   osc.frequency.exponentialRampToValueAtTime(35, t + 0.35);
-  g.gain.setValueAtTime(0.635, t);
+  g.gain.setValueAtTime(0.504, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
   osc.start(t); osc.stop(t + 0.46);
 }
@@ -2505,11 +2505,11 @@ function playSnare(t) {
   // body tone
   const body = ctx.createOscillator(), bodyGain = ctx.createGain();
   body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
-  bodyGain.gain.setValueAtTime(0.278, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  bodyGain.gain.setValueAtTime(0.350, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
   const snDest = window._beatGain || masterGain;
   body.connect(bodyGain); bodyGain.connect(snDest); body.start(t); body.stop(t + 0.1);
   src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(snDest);
-  g.gain.setValueAtTime(0.437, t);
+  g.gain.setValueAtTime(0.550, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   src.start(t);
 }
@@ -3968,7 +3968,12 @@ function randAll(mode) {
   // Randomise delay for all tracks
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue;
-    const delayChance = 0.20 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
+    // Don't add delay if track has >6 notes with >3 consecutive hits
+    const _g = grid[tr]; const _noteCount = _g.filter(v => v > 0).length;
+    let _maxConsec = 0, _consec = 0;
+    for (let s = 0; s < NUM_STEPS; s++) { if (_g[s] > 0) { _consec++; _maxConsec = Math.max(_maxConsec, _consec); } else _consec = 0; }
+    const _tooManyConsec = _noteCount > 6 && _maxConsec > 3;
+    const delayChance = _tooManyConsec ? 0 : 0.20 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
     const delayOn = Math.random() < delayChance;
     trackDelay[tr] = delayOn;
     const db = document.getElementById(`delaybtn-${tr}`);
