@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:11</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:13</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2482,20 +2482,38 @@ function hideCelestialMap() {
 }
 function playKick(t) {
   const beatDest = window._beatGain || masterGain;
-  const osc = ctx.createOscillator(), g = ctx.createGain();
+
+  // Low sine — starts low, drops slow for a round "floomp" not a tight punch
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(72, t);              // lower start = darker
+  osc.frequency.exponentialRampToValueAtTime(38, t + 0.18); // slow drop = more body
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.7, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.32); // longer tail = floomp
   osc.connect(g); g.connect(beatDest);
-  osc.frequency.setValueAtTime(120, t);
-  osc.frequency.exponentialRampToValueAtTime(45, t + 0.07); // faster pitch drop = less tonal
-  g.gain.setValueAtTime(0.635, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t + 0.16); // much shorter tail
-  osc.start(t); osc.stop(t + 0.17);
-  // short noise click for attack definition without adding tone
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.012), ctx.sampleRate);
+  osc.start(t); osc.stop(t + 0.33);
+
+  // Sub sine octave below for depth
+  const sub = ctx.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(36, t);
+  sub.frequency.exponentialRampToValueAtTime(22, t + 0.18);
+  const subG = ctx.createGain();
+  subG.gain.setValueAtTime(0.35, t);
+  subG.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+  sub.connect(subG); subG.connect(beatDest);
+  sub.start(t); sub.stop(t + 0.26);
+
+  // Very soft attack transient — just enough to hear the beat, no click
+  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.006), ctx.sampleRate);
   const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2);
   const click = ctx.createBufferSource(); click.buffer = buf;
-  const clickGain = ctx.createGain(); clickGain.gain.value = 0.238;
-  click.connect(clickGain); clickGain.connect(beatDest); click.start(t);
+  const cLP = ctx.createBiquadFilter(); cLP.type = 'lowpass'; cLP.frequency.value = 800; // dull the click
+  const clickG = ctx.createGain(); clickG.gain.value = 0.12;
+  click.connect(cLP); cLP.connect(clickG); clickG.connect(beatDest);
+  click.start(t);
 }
 function playSnare(t) {
   const dur = 0.22;
