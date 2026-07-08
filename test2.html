@@ -157,6 +157,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
   touch-action: manipulation;
 }
 .shift-btn:active { opacity: 0.4; }
+.shift-btn.on { background: #f17d21; color: #fff; }
 .track-vol-bar {
   flex: 1; position: relative; overflow: hidden;
   background: #555; border: none;
@@ -369,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 00:08</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 03:54</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -666,6 +667,50 @@ function _trackNote() {
 
 
 
+
+// ── Per-track delay effect ─────────────────────────────────────────────────
+function getOrCreateDelay(tr) {
+  if (_delayNodes[tr]) return _delayNodes[tr];
+  const delayTime = (60 / bpm) * 0.375; // dotted 8th at current BPM
+  const delay = ctx.createDelay(2.0);
+  delay.delayTime.value = delayTime;
+  const feedback = ctx.createGain();
+  feedback.gain.value = 0.35;
+  const wetGain = ctx.createGain();
+  wetGain.gain.value = 0.5;
+  delay.connect(feedback);
+  feedback.connect(delay);
+  delay.connect(wetGain);
+  wetGain.connect(masterGain);
+  _delayNodes[tr] = { delay, feedback, wetGain };
+  return _delayNodes[tr];
+}
+
+function toggleTrackDelay(tr) {
+  trackDelay[tr] = !trackDelay[tr];
+  const btn = document.getElementById(`delaybtn-${tr}`);
+  if (btn) btn.classList.toggle('on', trackDelay[tr]);
+  if (!trackDelay[tr] && _delayNodes[tr]) {
+    // Disconnect delay when turned off
+    try { _delayNodes[tr].wetGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1); } catch(e) {}
+    setTimeout(() => {
+      try {
+        _delayNodes[tr].delay.disconnect();
+        _delayNodes[tr].feedback.disconnect();
+        _delayNodes[tr].wetGain.disconnect();
+      } catch(e) {}
+      delete _delayNodes[tr];
+    }, 500);
+  }
+}
+
+// Connect a source node to delay if enabled for that track
+function connectToDelay(tr, sourceNode) {
+  if (!trackDelay[tr] || !ctx) return;
+  const d = getOrCreateDelay(tr);
+  sourceNode.connect(d.delay);
+}
+
 // ── FX: XY pad per track ─────────────────────────────────────────────────────
 
 // x=0 clean, x=1 maximum waveshaper drive
@@ -713,12 +758,20 @@ function setFxActive(tr, fxVal) {
 }
 
 function getSynthConnectNode(tr) {
-  // Returns the node synth voices should connect to — routes through FX chain if active
   const fxVal = tr !== undefined ? trackFx[tr] : null;
   const fxOn = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   const baseNode = (tr !== undefined && trackFxNodes[tr])
     ? (fxOn ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain)
     : ((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
+
+  // If delay is on, return a splitter: 50% dry to baseNode, 50% to delay
+  if (tr !== undefined && trackDelay[tr] && ctx) {
+    const split = ctx.createGain(); split.gain.value = 1.0;
+    split.connect(baseNode);
+    const d = getOrCreateDelay(tr);
+    split.connect(d.delay);
+    return split;
+  }
 
   return baseNode;
 }
@@ -773,6 +826,8 @@ const trackSweep  = new Array(NUM_TRACKS).fill(false); // L button toggle
 const trackChop   = new Array(NUM_TRACKS).fill(false);
 const trackVolume = [0.30, 0.30, 0.30, 0.30, 0.30, 0.30];
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
+const trackDelay = new Array(NUM_TRACKS).fill(false);
+const _delayNodes = {}; // keyed by tr: { delay, feedback, wetGain }
 const trackFxMode = new Array(NUM_TRACKS).fill(0); // 0=CHOKE/SLAP, 1=CRUNCH/ENV
 const trackGainNodes = [];
 const trackEnvFilters = [];
@@ -2648,10 +2703,19 @@ function buildUI() {
     wireShiftButton(btnL, tr, -1);
     ctrlRow.appendChild(btnL);
 
-    // Shift right
-    const btnR = document.createElement('button'); btnR.className = 'shift-btn right'; btnR.textContent = '>';
-    wireShiftButton(btnR, tr, +1);
-    ctrlRow.appendChild(btnR);
+    // Shift right (kept for later use)
+    // const btnR = document.createElement('button'); btnR.className = 'shift-btn right'; btnR.textContent = '>';
+    // wireShiftButton(btnR, tr, +1);
+    // ctrlRow.appendChild(btnR);
+
+    // Delay toggle button
+    const delayBtn = document.createElement('button');
+    delayBtn.className = 'shift-btn right'; delayBtn.textContent = 'D';
+    delayBtn.id = `delaybtn-${tr}`;
+    delayBtn.classList.toggle('on', trackDelay[tr]);
+    delayBtn.addEventListener('click', () => toggleTrackDelay(tr));
+    delayBtn.addEventListener('touchend', e => { e.preventDefault(); toggleTrackDelay(tr); }, { passive: false });
+    ctrlRow.appendChild(delayBtn);
 
     // FX button — simple toggle, crunch on/off
     const fxBtn = document.createElement('button'); fxBtn.className = 'track-ctrl-icon-btn fx-btn'; fxBtn.id = `fxbtn-${tr}`;
@@ -3970,6 +4034,7 @@ function snapshotState() {
     speciesName: _currentSpecies,
     barColor: _currentBarColor,
     beatPlaying: beatPlaying,
+    beatType: _beatType,
     trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr])
   };
 }
@@ -4016,6 +4081,7 @@ function restoreState(snap) {
   if (snap.beatPlaying !== undefined) {
     beatPlaying = snap.beatPlaying;
     _beatPending = false;
+    if (snap.beatType) setBeatType(snap.beatType);
     const bb = document.getElementById('beatBtn');
     if (bb) bb.classList.toggle('active', beatPlaying);
     updateBeatPulse();
