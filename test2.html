@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:00</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:11</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -671,11 +671,11 @@ function _trackNote() {
 // ── Per-track delay effect ─────────────────────────────────────────────────
 function getOrCreateDelay(tr) {
   if (_delayNodes[tr]) return _delayNodes[tr];
-  const delayTime = (60 / bpm) * 0.375; // dotted 8th at current BPM
+  const delayTime = (60 / bpm) / 16; // 64th note at current BPM
   const delay = ctx.createDelay(2.0);
   delay.delayTime.value = delayTime;
   const feedback = ctx.createGain();
-  feedback.gain.value = 0.35;
+  feedback.gain.value = 0.5; // 0.5^16 ≈ 0 — dies out in exactly 1 quarter note
   const wetGain = ctx.createGain();
   wetGain.gain.value = 0.5;
   delay.connect(feedback);
@@ -806,11 +806,15 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
   if (tr !== undefined && trackFxNodes[tr] && on) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].fxSend);
-    // Always crunch path — waveshaper handles distortion via preGain/ws/postGain
   } else if (tr !== undefined && trackFxNodes[tr]) {
     src.connect(instrumentGain); instrumentGain.connect(trackFxNodes[tr].dryGain);
   } else {
     src.connect(instrumentGain); instrumentGain.connect((tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain);
+  }
+  // Connect to delay if enabled
+  if (tr !== undefined && trackDelay[tr] && ctx) {
+    const d = getOrCreateDelay(tr);
+    instrumentGain.connect(d.delay);
   }
   src.start(time);
 }
@@ -913,6 +917,7 @@ function scheduler() {
         _beatPending = false;
       }
       if (snap.beatType) setBeatType(snap.beatType);
+    if (snap.trackDelay) { snap.trackDelay.forEach((d,i) => { trackDelay[i] = d; const b = document.getElementById(`delaybtn-${i}`); if (b) b.classList.toggle('on', d); }); }
       activeSlot = pi;
       // Defer all DOM updates to next frame
       requestAnimationFrame(() => {
@@ -4036,6 +4041,7 @@ function snapshotState() {
     barColor: _currentBarColor,
     beatPlaying: beatPlaying,
     beatType: _beatType,
+    trackDelay: [...trackDelay],
     trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr])
   };
 }
