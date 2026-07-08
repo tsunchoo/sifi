@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 05:06</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 05:11</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -694,7 +694,12 @@ function setGlobalDelayMix(v) {
 let _sharedDelay = null;
 
 function getSharedDelay() {
-  if (_sharedDelay) return _sharedDelay;
+  if (_sharedDelay) {
+    // Reset wetGain in case it was ramped to 0 by a previous toggle-off
+    _sharedDelay.wetGain.gain.cancelScheduledValues(ctx.currentTime);
+    _sharedDelay.wetGain.gain.setValueAtTime(window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5, ctx.currentTime);
+    return _sharedDelay;
+  }
   const subs = window._globalDelaySubdivisions || 8;
   const delayTime = (60 / bpm) / subs * 2;
   const delay = ctx.createDelay(2.0);
