@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:41</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:50</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -457,7 +457,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DELAY MIX</div>
         <input type="range" id="delayMixBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100)">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:6px;">DELAY TIME</div>
-        <input type="range" id="delayTimeBar" min="1" max="32" value="8" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(+this.value)">
+        <input type="range" id="delayTimeBar" min="1" max="32" value="8" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(33 - +this.value)">
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
@@ -676,32 +676,40 @@ function _trackNote() {
 
 // ── Per-track delay effect ─────────────────────────────────────────────────
 function setGlobalDelayTime(subdivisions) {
-  // subdivisions: 1=whole note, 2=half, 4=quarter, 8=8th, 16=16th, 32=32nd
   window._globalDelaySubdivisions = subdivisions;
-  const delayTime = (60 / bpm) / subdivisions;
-  Object.values(_delayNodes).forEach(d => { if (d.delay) d.delay.delayTime.value = delayTime; });
+  const delayTime = (60 / bpm) / subdivisions * 2;
+  if (_sharedDelay) _sharedDelay.delay.delayTime.value = delayTime;
 }
 
 function setGlobalDelayMix(v) {
-  Object.values(_delayNodes).forEach(d => { if (d.wetGain) d.wetGain.gain.value = v; });
+  if (_sharedDelay) _sharedDelay.wetGain.gain.value = v;
   window._globalDelayMix = v;
 }
 
-function getOrCreateDelay(tr) {
-  if (_delayNodes[tr]) return _delayNodes[tr];
+// Single shared delay node for all tracks — minimises node count
+let _sharedDelay = null;
+
+function getSharedDelay() {
+  if (_sharedDelay) return _sharedDelay;
   const subs = window._globalDelaySubdivisions || 8;
-  const delayTime = (60 / bpm) / subs;
+  const delayTime = (60 / bpm) / subs * 2;
   const delay = ctx.createDelay(2.0);
   delay.delayTime.value = delayTime;
   const feedback = ctx.createGain();
-  feedback.gain.value = 0.5; // 0.5^16 ≈ 0 — dies out in exactly 1 quarter note
+  feedback.gain.value = 0.25;
   const wetGain = ctx.createGain();
   wetGain.gain.value = window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5;
   delay.connect(feedback);
   feedback.connect(delay);
   delay.connect(wetGain);
   wetGain.connect(masterGain);
-  _delayNodes[tr] = { delay, feedback, wetGain };
+  _sharedDelay = { delay, feedback, wetGain };
+  return _sharedDelay;
+}
+
+function getOrCreateDelay(tr) {
+  // All tracks share one delay node
+  _delayNodes[tr] = getSharedDelay();
   return _delayNodes[tr];
 }
 
@@ -3740,6 +3748,13 @@ function randAll(mode) {
   _split32CycleCount = 0;
   mode = mode || 'all';
   const level = randAllLevel;
+  // Briefly dip master gain to hide node creation noise
+  if (ctx && masterGain) {
+    masterGain.gain.cancelScheduledValues(ctx.currentTime);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
+    masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
+    masterGain.gain.linearRampToValueAtTime(masterVol, ctx.currentTime + 0.18);
+  }
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
     autoShiftStops[tr]();
@@ -3900,7 +3915,7 @@ function randAll(mode) {
     const _maxForThisTrack = Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft)));
     _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
     window._randNoteMax = _maxForThisTrack;
-    setTimeout(() => { window._randNoteMax = _maxForThisTrack; randomizeTrack(_tr); window._randNoteMax = null; }, _tr * 20); // stagger 20ms per track
+    setTimeout(() => { window._randNoteMax = _maxForThisTrack; randomizeTrack(_tr); window._randNoteMax = null; }, _tr * 30); // stagger 30ms per track
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -3997,7 +4012,8 @@ function randAll(mode) {
     trackDelay[tr] = delayOn;
     const db = document.getElementById(`delaybtn-${tr}`);
     if (db) db.classList.toggle('on', delayOn);
-    if (!delayOn && _delayNodes[tr]) { try { _delayNodes[tr].delay.disconnect(); _delayNodes[tr].feedback.disconnect(); _delayNodes[tr].wetGain.disconnect(); } catch(e) {} delete _delayNodes[tr]; }
+    // Track delay state — shared node stays alive, individual sends controlled in playback routing
+    // (no per-track node to mute — delay on/off handled at note scheduling time)
   }
   markModified();
 }
