@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:32</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">08Jul26 04:38</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -454,6 +454,10 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
     <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;margin-top:4px;">TURBO BOOST</button>
 
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DELAY MIX</div>
+        <input type="range" id="delayMixBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100)">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
       <div style="display:flex;gap:6px;">
         <button id="beatTypeDiscoBtn" onclick="setBeatType('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
@@ -669,6 +673,11 @@ function _trackNote() {
 
 
 // ── Per-track delay effect ─────────────────────────────────────────────────
+function setGlobalDelayMix(v) {
+  Object.values(_delayNodes).forEach(d => { if (d.wetGain) d.wetGain.gain.value = v; });
+  window._globalDelayMix = v;
+}
+
 function getOrCreateDelay(tr) {
   if (_delayNodes[tr]) return _delayNodes[tr];
   const delayTime = (60 / bpm) / 8; // 32nd note at current BPM — total decay = half a beat
@@ -677,7 +686,7 @@ function getOrCreateDelay(tr) {
   const feedback = ctx.createGain();
   feedback.gain.value = 0.5; // 0.5^16 ≈ 0 — dies out in exactly 1 quarter note
   const wetGain = ctx.createGain();
-  wetGain.gain.value = 0.5;
+  wetGain.gain.value = window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5;
   delay.connect(feedback);
   feedback.connect(delay);
   delay.connect(wetGain);
