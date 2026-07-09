@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 04:59</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:08</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -4677,19 +4677,9 @@ async function initAudio() {
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
-
-  // Gain watchdog — corrects masterGain if it drifts below expected level
-  setInterval(() => {
-    if (!masterGain || !ctx || ctx.state !== 'running') return;
-    const current = masterGain.gain.value;
-    if (current < masterVol * 0.95) {
-      masterGain.gain.cancelScheduledValues(ctx.currentTime);
-      masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
-    }
-  }, 2000);
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
-    const makeupGain = ctx.createGain(); makeupGain.gain.value = 1.585; // +4dB fixed output boost
+    const makeupGain = ctx.createGain(); makeupGain.gain.value = 1.0; // unity — no forced boost
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.473; window._beatGain.connect(masterGain);
     // UI Sounds
     const _uiSoundBufs = {};
@@ -4698,9 +4688,9 @@ async function initAudio() {
       fetch(`Sounds/${name}.wav`).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf, decoded => { _uiSoundBufs[name] = decoded; })).catch(()=>{});
     });
 window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = window.masterLimiter;
-    masterLimiter.threshold.value = -1;
-    masterLimiter.knee.value = 0;
-    masterLimiter.ratio.value = 20;
+    masterLimiter.threshold.value = -3;
+    masterLimiter.knee.value = 3;
+    masterLimiter.ratio.value = 12;
     masterLimiter.attack.value = 0.0003;
     masterLimiter.release.value = 0.1;
     // Sidechain duck gain — sits between masterGain and masterLimiter
@@ -5090,7 +5080,7 @@ function toggleTurbo() {
   const btn = document.getElementById('turboBtn');
   if (window.masterLimiter) {
     if (_turboOn) {
-      window.masterLimiter.threshold.value = -20;
+      window.masterLimiter.threshold.value = -6;
       window.masterLimiter.ratio.value = 20;
       window.masterLimiter.knee.value = 0;
       window.masterLimiter.attack.value = 0.001;
