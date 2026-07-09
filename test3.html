@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:21</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:29</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2239,7 +2239,9 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 
   const env2 = ctx.createGain(); env2.gain.value = vel * 0.35;
 
-  osc1.connect(lp); lp.connect(env); env.connect(dest);
+  // Peaking EQ at 3500Hz for presence
+  const peak = ctx.createBiquadFilter(); peak.type = 'peaking'; peak.frequency.value = 3500; peak.Q.value = 1.5; peak.gain.value = 8;
+  osc1.connect(lp); lp.connect(peak); peak.connect(env); env.connect(dest);
   osc2.connect(env2); env2.connect(dest);
 
   osc1.start(time); osc1.stop(time + durSec + 0.12);
@@ -4809,16 +4811,19 @@ if ('serviceWorker' in navigator) {
     if (!sweepNodes || !ctx) return;
     const { bp, gain, noise, duckGain } = sweepNodes;
     sweepNodes = null;
-    if (_sweepDuckLoop) cancelAnimationFrame(_sweepDuckLoop);
+    if (_sweepDuckLoop) cancelAnimationFrame(_sweepDuckLoop); _sweepDuckLoop = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
-    const quarterNote = stepDuration() * 2; // half a beat fade
+    const quarterNote = stepDuration() * 2;
+    // Reset duckGain to 1 immediately so it doesn't stay stuck at a low value
+    duckGain.gain.cancelScheduledValues(t);
+    duckGain.gain.setValueAtTime(1, t);
     bp.frequency.cancelScheduledValues(t);
     bp.frequency.exponentialRampToValueAtTime(200, t + quarterNote);
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value, t);
     gain.gain.linearRampToValueAtTime(0, t + quarterNote);
-    setTimeout(() => { try { noise.stop(); } catch(e) {} }, quarterNote * 1000 + 100);
+    setTimeout(() => { try { noise.stop(); noise.disconnect(); } catch(e) {} }, quarterNote * 1000 + 100);
   }
 
   btn.addEventListener('touchstart', e => { e.preventDefault(); startSweep(); }, { passive: false });
