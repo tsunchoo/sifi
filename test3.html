@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 04:47</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 04:59</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -4677,6 +4677,16 @@ async function initAudio() {
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
+
+  // Gain watchdog — corrects masterGain if it drifts below expected level
+  setInterval(() => {
+    if (!masterGain || !ctx || ctx.state !== 'running') return;
+    const current = masterGain.gain.value;
+    if (current < masterVol * 0.95) {
+      masterGain.gain.cancelScheduledValues(ctx.currentTime);
+      masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
+    }
+  }, 2000);
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
     const makeupGain = ctx.createGain(); makeupGain.gain.value = 1.585; // +4dB fixed output boost
