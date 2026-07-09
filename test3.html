@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 23:46</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 23:55</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1154,7 +1154,7 @@ function scheduler() {
             const dg = window._duckGain.gain;
             dg.cancelScheduledValues(t); dg.setValueAtTime(1, t);
             dg.linearRampToValueAtTime(0.5, t + 0.005);
-            dg.linearRampToValueAtTime(1.0, t + 0.120);
+            dg.linearRampToValueAtTime(1.0, t + 0.060);
           }
         }
         if (doSnare) playSnare(t);
@@ -4987,90 +4987,6 @@ function stopRecallLoop() {
   });
 })();
 
-
-// ── Tape hiss — toggled by tapping either reel ──
-let _hissNode = null, _hissGain = null, _hissOn = false;
-
-function startHiss() {
-  if (!ctx || _hissNode) return;
-  const sr = ctx.sampleRate;
-
-  // ── Hiss: shaped white noise (pink-ish, high shelf) ──
-  const hissBuf = ctx.createBuffer(2, sr * 4, sr);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = hissBuf.getChannelData(ch);
-    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-    for (let i = 0; i < d.length; i++) {
-      const w = Math.random() * 2 - 1;
-      // Paul Kellet pink noise approximation
-      b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
-      b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
-      b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
-      d[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
-      b6 = w * 0.115926;
-    }
-  }
-  _hissNode = ctx.createBufferSource(); _hissNode.buffer = hissBuf; _hissNode.loop = true;
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
-  const peak = ctx.createBiquadFilter(); peak.type = 'peaking';
-  peak.frequency.value = 6000; peak.Q.value = 0.8; peak.gain.value = 6;
-  _hissGain = ctx.createGain(); _hissGain.gain.value = 0.0032;
-  _hissNode.connect(hp); hp.connect(peak); peak.connect(_hissGain);
-
-  // ── Crackle: sparse random impulses ──
-  const crackleLen = sr * 8;
-  const crackBuf = ctx.createBuffer(2, crackleLen, sr);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = crackBuf.getChannelData(ch);
-    for (let i = 0; i < crackleLen; i++) {
-      // Sparse spikes — approx 40 per second
-      d[i] = Math.random() < (40 / sr) ? (Math.random() * 2 - 1) * (Math.random() < 0.3 ? 1 : 0.3) : 0;
-    }
-  }
-  const crackNode = ctx.createBufferSource(); crackNode.buffer = crackBuf; crackNode.loop = true;
-  const crackLP = ctx.createBiquadFilter(); crackLP.type = 'lowpass'; crackLP.frequency.value = 8000;
-  const crackGain = ctx.createGain(); crackGain.gain.value = 0.0107;
-  crackNode.connect(crackLP); crackLP.connect(crackGain);
-
-  // ── Rumble: very low frequency wobble ──
-  const rumble = ctx.createOscillator(); rumble.type = 'sine'; rumble.frequency.value = 30;
-  const rumbleLFO = ctx.createOscillator(); rumbleLFO.type = 'sine'; rumbleLFO.frequency.value = 0.3;
-  const rumbleLFOGain = ctx.createGain(); rumbleLFOGain.gain.value = 5;
-  rumbleLFO.connect(rumbleLFOGain); rumbleLFOGain.connect(rumble.frequency);
-  const rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0.0014;
-  rumble.connect(rumbleGain);
-
-  // Connect noise directly to destination (bypasses master limiter)
-  // Use a separate gain that we modulate based on master output level
-  const hissMix = ctx.createGain(); hissMix.gain.value = 1;
-  _hissGain.connect(hissMix);
-  crackGain.connect(hissMix);
-  rumbleGain.connect(hissMix);
-  hissMix.connect(ctx.destination);
-  _hissNode._hissMix = hissMix;
-
-  // Analyser to follow master output and duck hiss gain
-  const analyser = ctx.createAnalyser(); analyser.fftSize = 256;
-  masterGain.connect(analyser);
-  const rmsBuffer = new Float32Array(analyser.frequencyBinCount);
-  const _hissInterval = setInterval(() => {
-    if (!_hissOn || !_hissMix) { clearInterval(_hissInterval); return; }
-    analyser.getFloatTimeDomainData(rmsBuffer);
-    let rms = 0;
-    for (let i = 0; i < rmsBuffer.length; i++) rms += rmsBuffer[i] * rmsBuffer[i];
-    rms = Math.sqrt(rms / rmsBuffer.length);
-    // Scale hiss: loud signal (rms>0.1) ducks hiss to near zero
-    const hissLevel = Math.max(0, 1 - rms * 8);
-    hissMix.gain.setTargetAtTime(hissLevel, ctx.currentTime, 0.3);
-  }, 80);
-  _hissNode._hissInterval = _hissInterval;
-
-  _hissNode.start(); crackNode.start();
-  rumble.start(); rumbleLFO.start();
-
-  // Store all nodes for cleanup
-  _hissNode._extras = { crackNode, crackGain, rumble, rumbleLFO, rumbleGain };
-}
 
 
 
