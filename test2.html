@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 01:15</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 01:23</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2046,47 +2046,46 @@ function playRide(isAccent, time, tr) {
   const dest = (tr !== undefined && trackGainNodes[tr]) ? trackGainNodes[tr] : masterGain;
   const vel = isAccent ? 0.7 : 0.45;
 
-  // Body: subtle metallic hint — kept very low
-  [[251, 0], [397, -5]].forEach(([freq, det]) => {
-    const osc = ctx.createOscillator(); osc.type = 'sine';
-    osc.frequency.value = freq; osc.detune.value = det;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(vel * 0.08, time);
-    env.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 0.5 : 0.3));
-    osc.connect(env); env.connect(dest);
-    osc.start(time); osc.stop(time + (isAccent ? 0.6 : 0.4));
+  // Bell ting — inharmonic sine at high freq, fast attack, medium decay
+  const bellFreqs = [3800, 5100, 6700]; // inharmonic partials for metallic character
+  bellFreqs.forEach((f, i) => {
+    const b = ctx.createOscillator(); b.type = 'sine';
+    b.frequency.value = f;
+    const bEnv = ctx.createGain();
+    bEnv.gain.setValueAtTime(vel * [0.18, 0.10, 0.06][i], time);
+    bEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 0.8 : 0.45) * [1.0, 0.7, 0.5][i]);
+    b.connect(bEnv); bEnv.connect(dest);
+    b.start(time); b.stop(time + (isAccent ? 0.9 : 0.5));
+    b.onended = () => { try { bEnv.disconnect(); } catch(e) {} };
   });
 
-  // Sizzle: tight, clean shimmer with narrow BP and gentle decay
-  const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.2 : 0.8));
+  // Shimmer — narrow high-passed noise, very light, longer tail
+  const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.0 : 0.6));
   const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
   const nd = nBuf.getChannelData(0);
   for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
-
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
-  bp.frequency.value = 6000; bp.Q.value = 2.5; // narrower, more controlled
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
-  lp.frequency.value = 8000; // softer top end
-
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 10000; bp.Q.value = 1.2;
   const nEnv = ctx.createGain();
-  nEnv.gain.setValueAtTime(vel * 0.10, time);
-  nEnv.gain.exponentialRampToValueAtTime(vel * 0.025, time + 0.06);
-  nEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 1.0 : 0.65));
-
-  noise.connect(bp); bp.connect(lp); lp.connect(nEnv); nEnv.connect(dest);
+  nEnv.gain.setValueAtTime(vel * 0.055, time);
+  nEnv.gain.exponentialRampToValueAtTime(vel * 0.020, time + 0.04);
+  nEnv.gain.exponentialRampToValueAtTime(0.0001, time + (isAccent ? 0.9 : 0.55));
+  noise.connect(hp); hp.connect(bp); bp.connect(nEnv); nEnv.connect(dest);
   noise.start(time);
+  noise.onended = () => { try { hp.disconnect(); bp.disconnect(); nEnv.disconnect(); } catch(e) {} };
 
-  // Soft stick tap — gentler than before
-  const clickLen = Math.ceil(ctx.sampleRate * 0.005);
+  // Stick tap — very brief transient
+  const clickLen = Math.ceil(ctx.sampleRate * 0.004);
   const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
   const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 3);
+  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 2);
   const click = ctx.createBufferSource(); click.buffer = cBuf;
-  const cBP = ctx.createBiquadFilter(); cBP.type = 'bandpass'; cBP.frequency.value = 4000; cBP.Q.value = 3;
-  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.3;
-  click.connect(cBP); cBP.connect(cEnv); cEnv.connect(dest);
+  const cHP = ctx.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = 6000;
+  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.4;
+  click.connect(cHP); cHP.connect(cEnv); cEnv.connect(dest);
   click.start(time);
+  click.onended = () => { try { cHP.disconnect(); cEnv.disconnect(); } catch(e) {} };
 }
 
 // ── SAX: punchy honking saxophone with growl and breath ──
@@ -4754,7 +4753,7 @@ if ('serviceWorker' in navigator) {
     // baseGain holds the "intended" envelope level; duckGain applies sidechain ducking on top
     const baseGain = ctx.createGain();
     baseGain.gain.setValueAtTime(0, t);
-    baseGain.gain.linearRampToValueAtTime(0.480, t + 0.008);
+    baseGain.gain.linearRampToValueAtTime(0.428, t + 0.008);
     const duckGain = ctx.createGain();
     duckGain.gain.value = 1;
 
