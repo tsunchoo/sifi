@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 23:31</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 23:34</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1159,7 +1159,11 @@ function scheduler() {
           }
         }
         if (doSnare) playSnare(t);
-        if (doHat) playSynthHihat(step === 0, t, -1, ctx.destination);
+        if (doHat) {
+          const _to = ctx.createOscillator(); _to.frequency.value = 8000; _to.type = 'square';
+          const _tg = ctx.createGain(); _tg.gain.setValueAtTime(0.3, t); _tg.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          _to.connect(_tg); _tg.connect(ctx.destination); _to.start(t); _to.stop(t + 0.06);
+        }
       }
     }
     nextStepTime += stepDuration();
