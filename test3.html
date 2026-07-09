@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:29</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 23:26</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1158,7 +1158,7 @@ function scheduler() {
           }
         }
         if (doSnare) playSnare(t);
-        if (doHat) playSynthHihat(false, t, -1);
+        if (doHat) playSynthHihat(step === 0, t, -1, window._beatGain || masterGain);
       }
     }
     nextStepTime += stepDuration();
@@ -1367,10 +1367,10 @@ function playSynthSnare(isAccent, time, tr) {
   rattle.start(time + 0.004);
 }
 
-function playSynthHihat(isAccent, time, tr) {
+function playSynthHihat(isAccent, time, tr, destOverride) {
   if (!ctx) return;
-  const dest = getSynthConnectNode(tr);
-  const dur = isAccent ? 0.12 : 0.06, vol = isAccent ? 0.35 : 0.22;
+  const dest = destOverride || getSynthConnectNode(tr);
+  const dur = isAccent ? 0.14 : 0.08, vol = isAccent ? 0.50 : 0.35;
   const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
   const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
   const src = ctx.createBufferSource(), g = ctx.createGain();
