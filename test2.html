@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 01:04</div>
+  <div id="loadingVersion" style="font-size:0.6rem;color:#e74c3c;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 01:09</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -732,7 +732,7 @@ function toggleTrackDelay(tr) {
     if (!anyDelayOn && _sharedDelay) {
       try { _sharedDelay.wetGain.gain.setTargetAtTime(0, ctx.currentTime, 0.1); } catch(e) {}
       setTimeout(() => {
-        try { _sharedDelay.delay.disconnect(); _sharedDelay.feedback.disconnect(); _sharedDelay.wetGain.disconnect(); } catch(e) {}
+        try { _sharedDelay.delay.disconnect(); _sharedDelay.wetGain.disconnect(); } catch(e) {}
         _sharedDelay = null;
         for (let i = 0; i < NUM_TRACKS; i++) delete _delayNodes[i];
       }, 500);
@@ -1297,6 +1297,7 @@ function playSynthKick(isAccent, time, tr) {
   g.gain.setValueAtTime(isAccent ? 0.478 : 0.319, time);
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
+  _cleanupNodes([g], time + 0.47);
 }
 function playSynthSnare_legacy(isAccent, time, tr) {
   if (!ctx) return;
@@ -1312,6 +1313,7 @@ function playSynthSnare_legacy(isAccent, time, tr) {
   src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(dest);
   g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + dur);
   src.start(time);
+  _cleanupNodes([hp, bp, g], time + 0.25);
   // Body: higher pitch, faster decay — less thud, more snap
   const body = ctx.createOscillator(), bg = ctx.createGain();
   body.frequency.setValueAtTime(320, time); body.frequency.exponentialRampToValueAtTime(160, time + 0.04);
@@ -1334,6 +1336,7 @@ function playSynthSnare(isAccent, time, tr) {
   woodG.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
   woodOsc.connect(woodBP); woodBP.connect(woodG); woodG.connect(dest);
   woodOsc.start(time); woodOsc.stop(time + 0.04);
+  _cleanupNodes([woodBP, woodG], time + 0.06);
 
   // Rim crack — short sharp noise burst, high-passed for brightness
   const crackLen = 0.006;
@@ -2306,7 +2309,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   mod.start(time); mod.stop(time + durSec + 0.2);
   reed.start(time); reed.stop(time + durSec + 0.2);
   carrier.start(time); carrier.stop(time + durSec + 0.2);
-  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); } catch(e) {} };
+  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); pitchLfoGain.disconnect(); reedBP.disconnect(); reedEnv.disconnect(); nbp.disconnect(); nGain.disconnect(); } catch(e) {} };
   noise.start(time);
 }
 
@@ -4631,6 +4634,12 @@ function _patchCtxForAutoCleanup(ctx) {
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
     return node;
   };
+}
+
+// Schedule disconnection of multiple nodes after a voice ends
+function _cleanupNodes(nodes, stopTime) {
+  const delay = Math.max(0.1, (stopTime - (ctx?.currentTime || 0)) + 0.15);
+  setTimeout(() => { nodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); }, delay * 1000);
 }
 async function initAudio() {
   if (_initStarted) return; _initStarted = true;
