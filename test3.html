@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:19</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 05:21</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -461,7 +461,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DELAY MIX</div>
         <input type="range" id="delayMixBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100)">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:6px;">DELAY TIME</div>
-        <input type="range" id="delayTimeBar" min="1" max="32" value="4" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(33 - +this.value)">
+        <input type="range" id="delayTimeBar" min="1" max="32" value="3" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(33 - +this.value)">
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
@@ -685,7 +685,7 @@ function _trackNote() {
 // ── Per-track delay effect ─────────────────────────────────────────────────
 function setGlobalDelayTime(subdivisions) {
   window._globalDelaySubdivisions = subdivisions;
-  const delayTime = (60 / bpm) / subdivisions * 2;
+  const delayTime = (60 / bpm) / subdivisions;
   if (_sharedDelay) _sharedDelay.delay.delayTime.value = delayTime;
 }
 
@@ -704,8 +704,8 @@ function getSharedDelay() {
     _sharedDelay.wetGain.gain.setValueAtTime(window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5, ctx.currentTime);
     return _sharedDelay;
   }
-  const subs = window._globalDelaySubdivisions || 4;
-  const delayTime = (60 / bpm) / subs * 2;
+  const subs = window._globalDelaySubdivisions || 3;
+  const delayTime = (60 / bpm) / subs;
   const delay = ctx.createDelay(2.0);
   delay.delayTime.value = delayTime;
   const feedback = ctx.createGain();
