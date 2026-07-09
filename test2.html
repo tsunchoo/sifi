@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 02:51</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 02:30</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -636,17 +636,10 @@ async function loadSamples() {
 
 
 
-// Auto-disconnect source nodes on end, and sweep non-source nodes periodically
+// Auto-disconnect all source nodes when they end — prevents node accumulation
 function _patchCtxForAutoCleanup(ctx) {
   const _origCreateOsc = ctx.createOscillator.bind(ctx);
   const _origCreateBuf = ctx.createBufferSource.bind(ctx);
-  const _origCreateGain = ctx.createGain.bind(ctx);
-  const _origCreateBQ = ctx.createBiquadFilter.bind(ctx);
-  const _origCreateWS = ctx.createWaveShaper.bind(ctx);
-
-  // Track non-source nodes with timestamps for periodic cleanup
-  const _trackedNodes = [];
-
   ctx.createOscillator = function() {
     const node = _origCreateOsc();
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
@@ -657,40 +650,6 @@ function _patchCtxForAutoCleanup(ctx) {
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
     return node;
   };
-  ctx.createGain = function() {
-    const node = _origCreateGain();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-  ctx.createBiquadFilter = function() {
-    const node = _origCreateBQ();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-  ctx.createWaveShaper = function() {
-    const node = _origCreateWS();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-
-  // Sweep in small batches every 2 seconds to avoid blocking main thread
-  let _sweepIdx = 0;
-  setInterval(() => {
-    if (_trackedNodes.length === 0) return;
-    const cutoff = Date.now() - 3000;
-    const batchSize = 50; // process max 50 nodes per tick
-    let processed = 0;
-    while (_sweepIdx < _trackedNodes.length && processed < batchSize) {
-      if (_trackedNodes[_sweepIdx].t < cutoff) {
-        try { _trackedNodes[_sweepIdx].node.disconnect(); } catch(e) {}
-        _trackedNodes.splice(_sweepIdx, 1);
-      } else {
-        _sweepIdx++;
-      }
-      processed++;
-    }
-    if (_sweepIdx >= _trackedNodes.length) _sweepIdx = 0;
-  }, 2000);
 }
 
 // ── Node lifecycle management ─────────────────────────────────────────────
@@ -917,10 +876,6 @@ const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
 function stepDuration() { return 60 / bpm / 4; }
 
 function scheduler() {
-  // Drift guard: if we've fallen more than 0.5s behind, reset to prevent catch-up burst
-  if (nextStepTime < ctx.currentTime - 0.5) {
-    nextStepTime = ctx.currentTime + 0.01;
-  }
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider
@@ -1380,7 +1335,11 @@ function playSynthSnare(isAccent, time, tr) {
   _cleanupNodes([woodBP, woodG], time + 0.06);
 
   // Rim crack — short sharp noise burst, high-passed for brightness
-  const crack = ctx.createBufferSource(); crack.buffer = window._noiseBuffers ? _getNoiseBuffer(0.006) : ctx.createBuffer(1,Math.ceil(ctx.sampleRate*0.006),ctx.sampleRate);
+  const crackLen = 0.006;
+  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
+  const cd = cBuf.getChannelData(0);
+  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.5);
+  const crack = ctx.createBufferSource(); crack.buffer = cBuf;
   const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
   const crackG = ctx.createGain(); crackG.gain.value = vol * 1.8;
   crack.connect(crackHP); crackHP.connect(crackG); crackG.connect(dest);
@@ -1388,7 +1347,10 @@ function playSynthSnare(isAccent, time, tr) {
 
   // Snare rattle — subtle, gives it that live drum feel
   const rattleLen = isAccent ? 0.06 : 0.04;
-  const rattle = ctx.createBufferSource(); rattle.buffer = window._noiseBuffers ? _getNoiseBuffer(0.06) : ctx.createBuffer(1,Math.ceil(ctx.sampleRate*0.06),ctx.sampleRate);
+  const rBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * rattleLen), ctx.sampleRate);
+  const rd = rBuf.getChannelData(0);
+  for (let i = 0; i < rd.length; i++) rd[i] = (Math.random()*2-1) * Math.pow(1 - i/rd.length, 1.8);
+  const rattle = ctx.createBufferSource(); rattle.buffer = rBuf;
   const rattleHP = ctx.createBiquadFilter(); rattleHP.type = 'highpass'; rattleHP.frequency.value = 1200;
   const rattleBP = ctx.createBiquadFilter(); rattleBP.type = 'bandpass'; rattleBP.frequency.value = 5000; rattleBP.Q.value = 0.8;
   const rattleG = ctx.createGain();
@@ -4653,17 +4615,10 @@ function hideSettings() {
 })();
 
 let _initStarted = false;
-// Auto-disconnect source nodes on end, and sweep non-source nodes periodically
+// Auto-disconnect all source nodes when they end — prevents node accumulation
 function _patchCtxForAutoCleanup(ctx) {
   const _origCreateOsc = ctx.createOscillator.bind(ctx);
   const _origCreateBuf = ctx.createBufferSource.bind(ctx);
-  const _origCreateGain = ctx.createGain.bind(ctx);
-  const _origCreateBQ = ctx.createBiquadFilter.bind(ctx);
-  const _origCreateWS = ctx.createWaveShaper.bind(ctx);
-
-  // Track non-source nodes with timestamps for periodic cleanup
-  const _trackedNodes = [];
-
   ctx.createOscillator = function() {
     const node = _origCreateOsc();
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
@@ -4674,40 +4629,6 @@ function _patchCtxForAutoCleanup(ctx) {
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
     return node;
   };
-  ctx.createGain = function() {
-    const node = _origCreateGain();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-  ctx.createBiquadFilter = function() {
-    const node = _origCreateBQ();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-  ctx.createWaveShaper = function() {
-    const node = _origCreateWS();
-    _trackedNodes.push({ node, t: Date.now() });
-    return node;
-  };
-
-  // Sweep in small batches every 2 seconds to avoid blocking main thread
-  let _sweepIdx = 0;
-  setInterval(() => {
-    if (_trackedNodes.length === 0) return;
-    const cutoff = Date.now() - 3000;
-    const batchSize = 50; // process max 50 nodes per tick
-    let processed = 0;
-    while (_sweepIdx < _trackedNodes.length && processed < batchSize) {
-      if (_trackedNodes[_sweepIdx].t < cutoff) {
-        try { _trackedNodes[_sweepIdx].node.disconnect(); } catch(e) {}
-        _trackedNodes.splice(_sweepIdx, 1);
-      } else {
-        _sweepIdx++;
-      }
-      processed++;
-    }
-    if (_sweepIdx >= _trackedNodes.length) _sweepIdx = 0;
-  }, 2000);
 }
 
 // Schedule disconnection of multiple nodes after a voice ends
@@ -4727,19 +4648,6 @@ async function initAudio() {
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
-
-  // Pre-create shared noise buffers to avoid per-note allocation
-  window._noiseBuffers = {};
-  function _getNoiseBuffer(seconds) {
-    const key = Math.round(seconds * 10) / 10;
-    if (window._noiseBuffers[key]) return window._noiseBuffers[key];
-    const len = Math.ceil(ctx.sampleRate * seconds);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    window._noiseBuffers[key] = buf;
-    return buf;
-  }
     attachCtxStateWatch();
     masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
     const makeupGain = ctx.createGain(); makeupGain.gain.value = 1.585; // +4dB fixed output boost
@@ -4837,7 +4745,10 @@ if ('serviceWorker' in navigator) {
     window._sweepStartMs = Date.now();
     const dur = stepDuration() * 16; // full sweep duration
     const t = ctx.currentTime;
-    const noise = ctx.createBufferSource(); noise.buffer = window._noiseBuffers ? _getNoiseBuffer(2.0) : (() => { const b=ctx.createBuffer(1,Math.ceil(ctx.sampleRate*2),ctx.sampleRate); const d=b.getChannelData(0); for(let i=0;i<b.length;i++) d[i]=Math.random()*2-1; return b; })();
+    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * (dur + 1)), ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < buf.length; i++) d[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource(); noise.buffer = buf;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
     bp.frequency.setValueAtTime(200, t);
     bp.frequency.exponentialRampToValueAtTime(4000, t + dur * 0.5); // up to peak
