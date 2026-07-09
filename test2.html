@@ -370,7 +370,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 02:46</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 02:51</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -636,10 +636,17 @@ async function loadSamples() {
 
 
 
-// Auto-disconnect all source nodes when they end — prevents node accumulation
+// Auto-disconnect source nodes on end, and sweep non-source nodes periodically
 function _patchCtxForAutoCleanup(ctx) {
   const _origCreateOsc = ctx.createOscillator.bind(ctx);
   const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  const _origCreateGain = ctx.createGain.bind(ctx);
+  const _origCreateBQ = ctx.createBiquadFilter.bind(ctx);
+  const _origCreateWS = ctx.createWaveShaper.bind(ctx);
+
+  // Track non-source nodes with timestamps for periodic cleanup
+  const _trackedNodes = [];
+
   ctx.createOscillator = function() {
     const node = _origCreateOsc();
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
@@ -650,6 +657,40 @@ function _patchCtxForAutoCleanup(ctx) {
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
     return node;
   };
+  ctx.createGain = function() {
+    const node = _origCreateGain();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+  ctx.createBiquadFilter = function() {
+    const node = _origCreateBQ();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+  ctx.createWaveShaper = function() {
+    const node = _origCreateWS();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+
+  // Sweep in small batches every 2 seconds to avoid blocking main thread
+  let _sweepIdx = 0;
+  setInterval(() => {
+    if (_trackedNodes.length === 0) return;
+    const cutoff = Date.now() - 3000;
+    const batchSize = 50; // process max 50 nodes per tick
+    let processed = 0;
+    while (_sweepIdx < _trackedNodes.length && processed < batchSize) {
+      if (_trackedNodes[_sweepIdx].t < cutoff) {
+        try { _trackedNodes[_sweepIdx].node.disconnect(); } catch(e) {}
+        _trackedNodes.splice(_sweepIdx, 1);
+      } else {
+        _sweepIdx++;
+      }
+      processed++;
+    }
+    if (_sweepIdx >= _trackedNodes.length) _sweepIdx = 0;
+  }, 2000);
 }
 
 // ── Node lifecycle management ─────────────────────────────────────────────
@@ -4612,10 +4653,17 @@ function hideSettings() {
 })();
 
 let _initStarted = false;
-// Auto-disconnect all source nodes when they end — prevents node accumulation
+// Auto-disconnect source nodes on end, and sweep non-source nodes periodically
 function _patchCtxForAutoCleanup(ctx) {
   const _origCreateOsc = ctx.createOscillator.bind(ctx);
   const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  const _origCreateGain = ctx.createGain.bind(ctx);
+  const _origCreateBQ = ctx.createBiquadFilter.bind(ctx);
+  const _origCreateWS = ctx.createWaveShaper.bind(ctx);
+
+  // Track non-source nodes with timestamps for periodic cleanup
+  const _trackedNodes = [];
+
   ctx.createOscillator = function() {
     const node = _origCreateOsc();
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
@@ -4626,6 +4674,40 @@ function _patchCtxForAutoCleanup(ctx) {
     node.onended = () => { try { node.disconnect(); } catch(e) {} };
     return node;
   };
+  ctx.createGain = function() {
+    const node = _origCreateGain();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+  ctx.createBiquadFilter = function() {
+    const node = _origCreateBQ();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+  ctx.createWaveShaper = function() {
+    const node = _origCreateWS();
+    _trackedNodes.push({ node, t: Date.now() });
+    return node;
+  };
+
+  // Sweep in small batches every 2 seconds to avoid blocking main thread
+  let _sweepIdx = 0;
+  setInterval(() => {
+    if (_trackedNodes.length === 0) return;
+    const cutoff = Date.now() - 3000;
+    const batchSize = 50; // process max 50 nodes per tick
+    let processed = 0;
+    while (_sweepIdx < _trackedNodes.length && processed < batchSize) {
+      if (_trackedNodes[_sweepIdx].t < cutoff) {
+        try { _trackedNodes[_sweepIdx].node.disconnect(); } catch(e) {}
+        _trackedNodes.splice(_sweepIdx, 1);
+      } else {
+        _sweepIdx++;
+      }
+      processed++;
+    }
+    if (_sweepIdx >= _trackedNodes.length) _sweepIdx = 0;
+  }, 2000);
 }
 
 // Schedule disconnection of multiple nodes after a voice ends
