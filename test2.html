@@ -374,7 +374,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f1
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 04:15</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 04:32</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -3765,6 +3765,13 @@ function randAll(mode) {
     masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
     masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
     masterGain.gain.linearRampToValueAtTime(masterVol, ctx.currentTime + 0.18);
+    // Safety: force back to masterVol after 300ms regardless
+    setTimeout(() => {
+      if (masterGain && ctx) {
+        masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
+      }
+    }, 300);
   }
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
@@ -3926,7 +3933,13 @@ function randAll(mode) {
     const _maxForThisTrack = Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft)));
     _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
     window._randNoteMax = _maxForThisTrack;
-    setTimeout(() => { window._randNoteMax = _maxForThisTrack; randomizeTrack(_tr); window._randNoteMax = null; }, _tr * 30); // stagger 30ms per track
+    setTimeout(() => {
+      window._randNoteMax = _maxForThisTrack;
+      randomizeTrack(_tr);
+      window._randNoteMax = null;
+      // If track ended up with zero notes, leave it empty (clear grid)
+      if (grid[_tr].every(v => v === 0)) { grid[_tr].fill(0); redrawTrackCells(_tr); }
+    }, _tr * 30); // stagger 30ms per track
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -4662,15 +4675,7 @@ async function initAudio() {
     ['click','play','rewind','rewind2','clickoff'].forEach(name => {
       fetch(`Sounds/${name}.wav`).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf, decoded => { _uiSoundBufs[name] = decoded; })).catch(()=>{});
     });
-    // Soft compressor for overall level consistency
-    const masterComp = ctx.createDynamicsCompressor();
-    masterComp.threshold.value = -18; // starts compressing at -18dB
-    masterComp.knee.value = 8;        // gentle knee
-    masterComp.ratio.value = 4;       // 4:1 — gentle levelling
-    masterComp.attack.value = 0.008;  // 8ms — preserve transients
-    masterComp.release.value = 0.15;  // 150ms release
-
-    window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = window.masterLimiter;
+window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = window.masterLimiter;
     masterLimiter.threshold.value = -1;
     masterLimiter.knee.value = 0;
     masterLimiter.ratio.value = 20;
@@ -4678,7 +4683,7 @@ async function initAudio() {
     masterLimiter.release.value = 0.1;
     // Sidechain duck gain — sits between masterGain and masterLimiter
     window._duckGain = ctx.createGain(); window._duckGain.gain.value = 1;
-    masterGain.connect(makeupGain); makeupGain.connect(masterComp); masterComp.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(ctx.destination);
+    masterGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(ctx.destination);
     for (let i=0; i<NUM_TRACKS; i++) {
       const g = ctx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
       const ef = ctx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
