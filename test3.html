@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:45</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:00</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -4074,7 +4074,7 @@ function randAll(mode) {
   if (level >= 3) {
     const autoCount = level === 3 ? 1 : 2; // hard cap to limit node load
     // Use actual track indices, not pool indices
-    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i]);
+    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i] && i !== skipTrack);
     const selected = eligible.sort(() => Math.random() - 0.5).slice(0, autoCount);
     selected.forEach(tr => {
       const rb = document.getElementById(`randbtn-${tr}`);
@@ -4090,6 +4090,7 @@ function randAll(mode) {
   // setFxActive handles both gain node and vol bar correctly
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
+    if (tr === skipTrack) continue; // empty track — no FX
     if (TONAL_KEYS.has(pool[tr])) {
       const isBass = (pool[tr] === 'sbass' || pool[tr] === 'sbass4');
       const isClap = pool[tr] === 'clap';
@@ -4149,6 +4150,7 @@ function randAll(mode) {
   const _noDelayKeys = new Set(['tamb', 'skick', 'shak', 'sbass', 'sbass3', 'sbass4']);
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue;
+    if (tr === skipTrack) continue; // empty track — no Delay
     if (_noDelayKeys.has(trackInstruments[tr])) {
       trackDelay[tr] = false;
       const db0 = document.getElementById(`delaybtn-${tr}`);
