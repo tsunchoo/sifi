@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:05</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:25</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -543,7 +543,7 @@ const INSTRUMENTS = {
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'ACID PLUCK',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'ANLG BRASS',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
@@ -1037,7 +1037,7 @@ function scheduler() {
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
-          if (key === 'rhodes')  playAcidPluck(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes')  playBrassStab(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -1107,7 +1107,7 @@ function scheduler() {
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
             if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
-            if (key === 'rhodes')  playAcidPluck(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes')  playBrassStab(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -1786,6 +1786,38 @@ function playAcidPluck(freq, durSec, isAccent, time, tr) {
   osc.connect(filt); filt.connect(env); env.connect(dest);
   osc.start(time); osc.stop(time + decT + 0.05);
 }
+// ── Analog Brass: detuned saw stack through a fast-opening resonant filter — disco/funk horn stab ──
+function playBrassStab(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.24 : 0.16;
+  _rhodesGlide[tr] = freq;
+
+  const attackT = 0.02;
+  const decT = Math.min(durSec + 0.15, 0.5);
+
+  const mix = ctx.createGain();
+  const detunes = [-6, 0, 7]; // slight detune stack for thickness
+  detunes.forEach(cents => {
+    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+    osc.frequency.value = freq; osc.detune.value = cents;
+    osc.connect(mix);
+    osc.start(time); osc.stop(time + decT + 0.05);
+  });
+
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass';
+  filt.Q.value = 3;
+  filt.frequency.setValueAtTime(freq * 1.5, time);
+  filt.frequency.linearRampToValueAtTime(Math.min(freq * 10, 4200), time + attackT); // brassy filter "wah" opening
+  filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 2, 500), time + decT);
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + attackT);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
+
+  mix.connect(filt); filt.connect(env); env.connect(dest);
+}
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
 const _noiseGateNodes = {};
@@ -1990,6 +2022,7 @@ function playRhodes2(freq, durSec, isAccent, time, tr) {
     { n:2, amp:0.45, dec:0.70 },
     { n:3, amp:0.20, dec:0.45 },
     { n:4, amp:0.08, dec:0.25 },
+    { n:9, amp:0.05, dec:0.10 }, // a little top-end sparkle on the attack
   ];
   partials.forEach(({ n, amp, dec }) => {
     const osc = ctx.createOscillator(); osc.type = 'sine';
@@ -2885,7 +2918,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
-    else if (key === 'rhodes')  playAcidPluck(freq, dur, isAccent, t, tr);
+    else if (key === 'rhodes')  playBrassStab(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
     else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
@@ -3272,7 +3305,7 @@ async function renderSlotToWav(snap) {
           const B2 = 0.00008;
           const inharmonic2 = n => freq * n * Math.sqrt(1 + B2 * n * n);
           const baseDec2 = Math.min(dur + 1.0, 2.4) * (1 + Math.max(0, (300 - freq) / 300) * 0.6);
-          [{n:1,amp:1.00,dec:1.00},{n:2,amp:0.30,dec:0.60},{n:3,amp:0.10,dec:0.35},{n:4,amp:0.03,dec:0.20}]
+          [{n:1,amp:1.00,dec:1.00},{n:2,amp:0.30,dec:0.60},{n:3,amp:0.10,dec:0.35},{n:4,amp:0.03,dec:0.20},{n:9,amp:0.05,dec:0.10}]
           .forEach(({ n, amp, dec }) => {
             const osc = offline.createOscillator(); osc.type = 'sine';
             osc.frequency.value = inharmonic2(n);
@@ -3944,6 +3977,16 @@ function randAll(mode) {
       redrawTrackCells(tr);
       const tb = document.getElementById(`tbtn-${tr}`);
       if (tb) { tb.textContent = ''; tb.classList.remove('inst-kit', 'inst-perc', 'inst-tonal'); }
+      // Reset every other control on this row to its default/off state too
+      trackDelay[tr] = false;
+      const db = document.getElementById(`delaybtn-${tr}`); if (db) db.classList.toggle('on', false);
+      trackFx[tr] = { x: 0, y: 0 };
+      if (ctx) setFxActive(tr, { x: 0, y: 0 });
+      const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
+      trackRLevel[tr] = 0;
+      if (autoShiftStops[tr]) { autoShiftStops[tr](); delete autoShiftStops[tr]; }
+      const rb = document.getElementById(`randbtn-${tr}`);
+      if (rb) rb.classList.remove('pulsing', 'rand-auto', 'rand-pending');
       poolIdx++;
       continue;
     }
