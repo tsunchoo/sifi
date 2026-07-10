@@ -105,6 +105,7 @@ input[type=range]::-moz-range-track { background: #555; height: 4px; border-radi
 input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: #f17d21; cursor: pointer; border-radius: 0; border: none; }
 .vol-wrap { display: flex; align-items: center; gap: 8px; width: 100%; max-width: 960px; margin-top: 6px; padding: 6px 0; }
 .master-vol-slider { flex: 1; }
+#bpmSettingsSlider.tempo-locked { accent-color: #f17d21; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
 .vol-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--text); font-family: 'DM Sans', sans-serif; flex-shrink: 0; }
 .vol-label { font-size: 0.6rem; letter-spacing: 1px; color: var(--dim); text-transform: uppercase; font-weight: 700; flex-shrink: 0; }
@@ -377,7 +378,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:50</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 12:15</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -452,7 +453,10 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
       </div>
 
       <div style="display:flex;flex-direction:column;gap:5px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TEMPO</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TEMPO</div>
+          <div id="tempoLockIcon" style="font-size:0.65rem;font-weight:700;letter-spacing:1px;color:#f17d21;opacity:0;transition:opacity 0.15s;">🔒 LOCKED</div>
+        </div>
         <input type="range" id="bpmSettingsSlider" min="40" max="200" value="110" class="master-vol-slider" style="width:100%;" oninput="bpm=+this.value; document.getElementById('bpmSlider').value=this.value; document.getElementById('bpmOverlayVal').textContent=this.value+' BPM'; syncSettingsPanel();">
       </div>
 
@@ -3582,6 +3586,8 @@ async function saveAllCombined() {
 
 // ── Live recording via MediaRecorder ──
 let _autoRandPending = false;
+let _pendingRandTimeouts = []; // staggered per-track pattern-gen timeouts from randAll — cancel stale ones if RAND fires again before they land
+let _tempoLocked = false; // double-click/double-tap the settings TEMPO slider to lock it against RAND
 let _autoRandLoopActive = false; // RAND button double-click auto-mode
 let _autoRandBarCount = 0;       // counts real bar-starts toward the next 4-bar regenerate
 
@@ -3855,6 +3861,11 @@ function randAll(mode, opts) {
   _split32CycleCount = 0;
   mode = mode || 'all';
   const level = randAllLevel;
+  // Cancel any still-pending per-track timeouts from a previous RAND call — otherwise
+  // a stale one can land after this call and write notes into a track this call just
+  // designated as empty.
+  _pendingRandTimeouts.forEach(id => clearTimeout(id));
+  _pendingRandTimeouts = [];
   // Briefly dip master gain to hide node creation noise
   if (ctx && masterGain) {
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
@@ -3871,7 +3882,7 @@ function randAll(mode, opts) {
   }
   // Randomise tempo (70-135 BPM) and beat type — skipped for auto-mode cycles
   // so the bar-count stays in sync with what's actually playing.
-  if (!opts.skipTempo) {
+  if (!opts.skipTempo && !_tempoLocked) {
     const _newBpm = Math.floor(Math.random() * (135 - 70 + 1)) + 70;
     bpm = _newBpm;
     const bpmEl = document.getElementById('bpmDisplay'); if (bpmEl) bpmEl.textContent = bpm;
@@ -4053,7 +4064,7 @@ function randAll(mode, opts) {
     const _maxForThisTrack = Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft)));
     _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
     window._randNoteMax = _maxForThisTrack;
-    setTimeout(() => {
+    const _tid = setTimeout(() => {
       window._randNoteMax = _maxForThisTrack;
       window._lastNoteMaxUsed = null;
       randomizeTrack(_tr);
@@ -4079,6 +4090,7 @@ function randAll(mode, opts) {
         }
       }
     }, _tr * 30); // stagger 30ms per track
+    _pendingRandTimeouts.push(_tid);
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
     const vb = document.getElementById(`vbar-${tr}`); if (vb) { const f = vb.querySelector('.track-vol-fill'); if (f) f.style.width = Math.round(trackVolume[tr]*100)+'%'; }
@@ -4730,6 +4742,25 @@ function hideSettings() {
   const el = document.getElementById('settingsOverlay');
   if (el) el.style.display = 'none';
 }
+// Tempo lock: double-click/double-tap the TEMPO slider to lock it against RAND
+// (both a manual RAND press and RAND auto-mode skip tempo while locked).
+(function() {
+  const slider = document.getElementById('bpmSettingsSlider');
+  if (!slider) return;
+  const icon = document.getElementById('tempoLockIcon');
+  const toggleTempoLock = () => {
+    _tempoLocked = !_tempoLocked;
+    slider.classList.toggle('tempo-locked', _tempoLocked);
+    if (icon) icon.style.opacity = _tempoLocked ? '1' : '0';
+  };
+  slider.addEventListener('dblclick', toggleTempoLock);
+  let lastTap = 0;
+  slider.addEventListener('touchend', () => {
+    const now = Date.now();
+    if (now - lastTap < 400) toggleTempoLock();
+    lastTap = now;
+  });
+})();
 // Close on backdrop tap
 (function() {
   const overlay = document.getElementById('settingsOverlay');
