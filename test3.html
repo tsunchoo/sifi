@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:25</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:45</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -472,6 +472,11 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
         <button id="beatTypeDiscoBtn" onclick="setBeatType('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
         <button id="beatTypeHalfBtn" onclick="setBeatType('halftime')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">HALFTIME</button>
         <button id="beatTypeReggaeBtn" onclick="setBeatType('reggae')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px;">
+        <button id="beatTypeBreaksBtn" onclick="setBeatType('breaks')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BREAKS</button>
+        <button id="beatTypeBounceBtn" onclick="setBeatType('bounce')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BOUNCE</button>
+        <button id="beatTypeReggae2Btn" onclick="setBeatType('reggae2')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE 1/2</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
@@ -1149,23 +1154,37 @@ function scheduler() {
         } else if (_beatType === 'reggae') {
           // Kick on 3, snare ghost on 2+4 (hi-hat handled separately below, since it falls on off-beats)
           doKick  = (step === 4 || step === 12);
+        } else if (_beatType === 'breaks') {
+          // Kick on 1+3 (2& handled below), snare on 2 (3& handled below)
+          doKick  = (step === 0 || step === 8);
+          doSnare = (step === 4);
+        } else if (_beatType === 'bounce') {
+          // Kick on 1 (2&+3& handled below), snare on 2+4
+          doKick  = (step === 0);
+          doSnare = (step === 4 || step === 12);
+        } else if (_beatType === 'reggae2') {
+          // Kick on 3, hihats on 1+2+4 (2&+4& hihats handled below)
+          doKick = (step === 8);
+          doHat  = (step === 0 || step === 4 || step === 12);
         }
-        if (doKick) {
-          playKick(t);
-          if (window._duckGain) {
-            const dg = window._duckGain.gain;
-            dg.cancelScheduledValues(t); dg.setValueAtTime(1, t);
-            dg.linearRampToValueAtTime(0.5, t + 0.005);
-            dg.setTargetAtTime(1, t + 0.020, 0.08);
-          }
-        }
+        if (doKick) fireBeatKick(t);
         if (doSnare) playSnare(t);
+        if (doHat) playSynthHihat(false, t, -1);
       }
     }
-    // Reggae hi-hat: off-beat 8ths (steps 2,6,10,14) — outside the downbeat-only gate above,
-    // since that gate never lets these step values through.
-    if (beatPlaying && _beatType === 'reggae' && (step === 2 || step === 6 || step === 10 || step === 14)) {
-      playSynthHihat(false, t, -1);
+    // Off-beat 8th-note hits — outside the downbeat-only gate above, since that
+    // gate never lets steps 2/6/10/14 through.
+    if (beatPlaying) {
+      if (_beatType === 'reggae' && (step === 2 || step === 6 || step === 10 || step === 14)) {
+        playSynthHihat(false, t, -1);
+      } else if (_beatType === 'breaks') {
+        if (step === 6) fireBeatKick(t);   // 2&
+        if (step === 10) playSnare(t);     // 3&
+      } else if (_beatType === 'bounce') {
+        if (step === 6 || step === 10) fireBeatKick(t); // 2&, 3&
+      } else if (_beatType === 'reggae2') {
+        if (step === 6 || step === 14) playSynthHihat(false, t, -1); // 2&, 4&
+      }
     }
     nextStepTime += stepDuration();
   }
@@ -2559,6 +2578,17 @@ function hideCelestialMap() {
 
   if (_cmapAnimFrame) { cancelAnimationFrame(_cmapAnimFrame); _cmapAnimFrame = null; }
 }
+// Fire the beat's kick with the master-duck sidechain pump — shared by every
+// beat-type branch (including off-beat 8th-note kicks like BREAKS/BOUNCE 2&/3&)
+function fireBeatKick(t) {
+  playKick(t);
+  if (window._duckGain) {
+    const dg = window._duckGain.gain;
+    dg.cancelScheduledValues(t); dg.setValueAtTime(1, t);
+    dg.linearRampToValueAtTime(0.5, t + 0.005);
+    dg.setTargetAtTime(1, t + 0.020, 0.08);
+  }
+}
 function playKick(t) {
   // Matches playSynthKick — same character, slightly louder for the beat
   const beatDest = window._beatGain || masterGain;
@@ -3830,8 +3860,8 @@ function randAll(mode) {
   bpm = _newBpm;
   const bpmEl = document.getElementById('bpmDisplay'); if (bpmEl) bpmEl.textContent = bpm;
   const tempoSlider = document.getElementById('tempoBar'); if (tempoSlider) tempoSlider.value = bpm;
-  const _beatTypes = ['disco', 'halftime', 'reggae'];
-  setBeatType(_beatTypes[Math.floor(Math.random() * 3)]);
+  const _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2'];
+  setBeatType(_beatTypes[Math.floor(Math.random() * _beatTypes.length)]);
 
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
@@ -5160,7 +5190,7 @@ function setBeatVol(v) {
 
 function setBeatType(type) {
   _beatType = type;
-  const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn' };
+  const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn', breaks: 'beatTypeBreaksBtn', bounce: 'beatTypeBounceBtn', reggae2: 'beatTypeReggae2Btn' };
   Object.entries(btns).forEach(([t, id]) => {
     const b = document.getElementById(id);
     if (b) b.style.background = t === type ? '#f17d21' : '#555';
