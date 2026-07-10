@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 07:40</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 08:05</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -543,7 +543,7 @@ const INSTRUMENTS = {
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'ACID PLUCK',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
@@ -1037,7 +1037,7 @@ function scheduler() {
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
-          if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes')  playAcidPluck(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -1107,7 +1107,7 @@ function scheduler() {
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
             if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
-            if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes')  playAcidPluck(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -1756,6 +1756,32 @@ function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   shim.connect(shimBP); shimBP.connect(shimEnv); shimEnv.connect(dest);
   shim.start(time);
   shim.onended = () => { try { shimBP.disconnect(); shimEnv.disconnect(); } catch(e) {} };
+}
+// ── Acid Pluck: resonant filtered saw with a fast downward filter/pitch sweep — 303-style squelch ──
+function playAcidPluck(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.30 : 0.20;
+  _rhodesGlide[tr] = freq;
+
+  const decT = Math.min(durSec + 0.35, 0.6);
+
+  const osc = ctx.createOscillator(); osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(freq * 2, time); // slight pitch drop into the pluck
+  osc.frequency.exponentialRampToValueAtTime(freq, time + 0.06);
+
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass';
+  filt.Q.value = 14; // resonant squelch
+  filt.frequency.setValueAtTime(Math.min(freq * 16, 5200), time);
+  filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 1.2, 220), time + decT);
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.004);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
+
+  osc.connect(filt); filt.connect(env); env.connect(dest);
+  osc.start(time); osc.stop(time + decT + 0.05);
 }
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
@@ -2856,7 +2882,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
-    else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
+    else if (key === 'rhodes')  playAcidPluck(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
     else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
