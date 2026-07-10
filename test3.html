@@ -37,7 +37,7 @@ header {
   margin-top: 6px;
   margin-bottom: 5px; padding-bottom: 5px; margin-left: 16px;
 }
-header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; letter-spacing: 4px; margin: 0; }
+header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.4rem; letter-spacing: 4px; margin: 0; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 .tape-reels { display: flex; gap: 78px; align-items: center; margin-right: 38px; margin-left: 30px; }
 .reel-wrap { position: relative; width: 42px; height: 42px; flex-shrink: 0; }
@@ -379,7 +379,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 12:40</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 12:55</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -400,7 +400,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 </div>
 
 <header>
-  <h1>Si•Fi</h1>
+  <h1 id="siFiTitle">Si•Fi</h1>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap">
       <img class="reel" id="reel1" src="tape_spool.png" alt="">
@@ -425,6 +425,28 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 
 
 <!-- Settings window — appears on reel hold -->
+<div id="instructionsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);padding:24px;min-width:min(340px,90vw);max-width:min(420px,90vw);max-height:80vh;overflow-y:auto;display:flex;flex-direction:column;gap:14px;font-family:'DM Sans',sans-serif;">
+    <div style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border-bottom:1px solid #ddd;padding-bottom:12px;">How To</div>
+    <ul style="margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:8px;font-size:0.8rem;color:var(--text);line-height:1.4;">
+      <li><b>RAND</b> create new pattern</li>
+      <li><b>BEAT</b> toggles BEAT on or off and plays</li>
+      <li><b>RECALL</b> will bring back the last pattern</li>
+      <li>Click the Tape Spools for Settings</li>
+      <li>Click and Hold track name for Instruments</li>
+      <li><b>L</b> will lock track contents from randomization</li>
+      <li><b>&lt;</b> will shift the track contents back in time</li>
+      <li><b>D</b> adds Delay</li>
+      <li><b>FX</b> adds crunch</li>
+      <li><b>R</b> randomizes new notes just for that track</li>
+      <li>Double-click <b>R</b> for automatic notes every bar</li>
+      <li>Save patterns in the 6 Slots at the bottom</li>
+      <li>Record (•) is real time and will Save/Share</li>
+    </ul>
+    <div style="font-size:0.65rem;letter-spacing:0.5px;color:var(--dim);text-align:center;padding-top:8px;border-top:1px solid #ddd;">Concept by Simon Garrett built with Claude</div>
+  </div>
+</div>
+
 <div id="settingsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);" id="settingsBg">
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg);padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;">
 
@@ -4782,6 +4804,33 @@ function hideSettings() {
   overlay.addEventListener('mousedown', e => { if (e.target === overlay) hideSettings(); });
   overlay.addEventListener('touchstart', e => { if (e.target === overlay) { e.preventDefault(); hideSettings(); } }, { passive: false });
   overlay.addEventListener('touchend', e => { if (e.target === overlay) e.preventDefault(); }, { passive: false });
+})();
+
+// ── Si-Fi title hold → instructions ──
+function showInstructions() {
+  const el = document.getElementById('instructionsOverlay');
+  if (el) { el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'center'; }
+}
+function hideInstructions() {
+  const el = document.getElementById('instructionsOverlay');
+  if (el) el.style.display = 'none';
+}
+(function() {
+  const title = document.getElementById('siFiTitle');
+  if (!title) return;
+  let holdTimer = null;
+  const startHold = () => { holdTimer = setTimeout(() => { holdTimer = null; showInstructions(); }, 400); };
+  const cancelHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+  title.addEventListener('mousedown', startHold);
+  title.addEventListener('mouseup', cancelHold);
+  title.addEventListener('mouseleave', cancelHold);
+  title.addEventListener('touchstart', e => { e.preventDefault(); startHold(); }, { passive: false });
+  title.addEventListener('touchend', e => { e.preventDefault(); cancelHold(); }, { passive: false });
+  const overlay = document.getElementById('instructionsOverlay');
+  if (overlay) {
+    overlay.addEventListener('mousedown', e => { if (e.target === overlay) hideInstructions(); });
+    overlay.addEventListener('touchstart', e => { if (e.target === overlay) { e.preventDefault(); hideInstructions(); } }, { passive: false });
+  }
 })();
 
 // ── Name bar → star map hold ──
