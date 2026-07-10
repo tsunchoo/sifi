@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:00</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:10</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -462,7 +462,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DELAY MIX</div>
-        <input type="range" id="delayMixBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100)">
+        <input type="range" id="delayMixBar" min="0" max="100" value="30" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100)">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-top:6px;">DELAY TIME</div>
         <input type="range" id="delayTimeBar" min="1" max="32" value="3" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(33 - +this.value)">
       </div>
@@ -549,7 +549,7 @@ const INSTRUMENTS = {
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'ANLG BRASS',       soft: null, accent: null, group: 'tonal' },
-  rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
+  rhodes2:{ name: 'DX PIANO',    soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
@@ -709,7 +709,7 @@ function getSharedDelay() {
   if (_sharedDelay) {
     // Reset wetGain in case it was ramped to 0 by a previous toggle-off
     _sharedDelay.wetGain.gain.cancelScheduledValues(ctx.currentTime);
-    _sharedDelay.wetGain.gain.setValueAtTime(window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5, ctx.currentTime);
+    _sharedDelay.wetGain.gain.setValueAtTime(window._globalDelayMix !== undefined ? window._globalDelayMix : 0.3, ctx.currentTime);
     return _sharedDelay;
   }
   const subs = window._globalDelaySubdivisions || 3;
@@ -719,7 +719,7 @@ function getSharedDelay() {
   const feedback = ctx.createGain();
   feedback.gain.value = 0.25;
   const wetGain = ctx.createGain();
-  wetGain.gain.value = window._globalDelayMix !== undefined ? window._globalDelayMix : 0.5;
+  wetGain.gain.value = window._globalDelayMix !== undefined ? window._globalDelayMix : 0.3;
   delay.connect(feedback);
   feedback.connect(delay);
   delay.connect(wetGain);
@@ -4147,7 +4147,7 @@ function randAll(mode) {
   const kd = document.getElementById('keyDisplay');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks
-  const _noDelayKeys = new Set(['tamb', 'skick', 'shak', 'sbass', 'sbass3', 'sbass4']);
+  const _noDelayKeys = new Set(['tamb', 'skick', 'shak', 'sbass', 'sbass3', 'sbass4', 'guiro', 'clap']);
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue;
     if (tr === skipTrack) continue; // empty track — no Delay
