@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:45</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:55</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -4230,7 +4230,11 @@ function randAll(mode, opts) {
   btn.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); onTap(); }, { passive: false });
   btn.addEventListener('click', onTap);
-  btn.addEventListener('mouseup', () => { if (!ctx) initAudio(); else ctx.resume().catch(()=>{}); setBtnBlueHeld('randBtn'); queueRand(); setTimeout(() => clearBtnBlueHeld('randBtn'), 300); }); // drag-over
+  btn.addEventListener('mouseup', () => {
+    if (!ctx) initAudio(); else ctx.resume().catch(()=>{});
+    if (_autoRandLoopActive) return; // let onTap (via the 'click' event) cancel auto mode instead of also randomizing here
+    setBtnBlueHeld('randBtn'); queueRand(); setTimeout(() => clearBtnBlueHeld('randBtn'), 300);
+  }); // drag-over
 })();
 
 const NUM_SLOTS = 6, slots = new Array(NUM_SLOTS).fill(null);
