@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 08:38</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 09:05</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1476,6 +1476,7 @@ function getRangeRoots(key) {
 }
 
 function randomizeBassTrack(tr, level) {
+  window._lastNoteMaxUsed = null;
   if (level === undefined) level = 0;
   const key = trackInstruments[tr];
 
@@ -1513,7 +1514,9 @@ function randomizeBassTrack(tr, level) {
     [5, 8,  0.40],
     [8, 13, 0.60],
   ];
-  const [minN, maxN, accentRatio] = levelTable[Math.min(level, 2)];
+  const [minN, maxN0, accentRatio] = levelTable[Math.min(level, 2)];
+  const maxN = Math.max(minN, Math.round(maxN0 * tempoNoteFactor()));
+  window._lastNoteMaxUsed = maxN;
   const noteCount = minN + Math.floor(Math.random() * (maxN - minN + 1));
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
@@ -3765,6 +3768,12 @@ function handleRandTap() {
 }
 
 let _split32CycleCount = 0; // resets each RAND cycle, caps flam-promoted splits across the whole pattern
+// Higher tempo → fewer notes. No reduction at/below 70bpm, full -20% at/above 140bpm, linear between.
+function tempoNoteFactor() {
+  const lo = 70, hi = 140;
+  const t = Math.max(0, Math.min(1, (bpm - lo) / (hi - lo)));
+  return 1 - 0.20 * t;
+}
 function randAll(mode) {
   _split32CycleCount = 0;
   mode = mode || 'all';
@@ -3924,7 +3933,7 @@ function randAll(mode) {
 
   // Assign sorted pool sequentially to unlocked tracks
   // Note budget: total notes spread across all tracks — busy tracks leave less for others
-  const _noteBudget = { remaining: [6, 9, 12][Math.min(level, 2)], tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
+  const _noteBudget = { remaining: Math.round([6, 9, 12][Math.min(level, 2)] * tempoNoteFactor()), tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
 
   let poolIdx = 0;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
@@ -3932,9 +3941,9 @@ function randAll(mode) {
     if (tr === skipTrack) {
       grid[tr].fill(0);
       delete trackBassScale[tr];
-      trackMuted[tr] = true;
-      updateTrackMute(tr);
       redrawTrackCells(tr);
+      const tb = document.getElementById(`tbtn-${tr}`);
+      if (tb) { tb.textContent = ''; tb.classList.remove('inst-kit', 'inst-perc', 'inst-tonal'); }
       poolIdx++;
       continue;
     }
@@ -3943,8 +3952,6 @@ function randAll(mode) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
     trackInstruments[tr] = k;
-    trackMuted[tr] = false;
-    updateTrackMute(tr);
     if (k === 'ngate' && typeof initNoiseGate === 'function' && ctx) initNoiseGate(tr);
     const tb = document.getElementById(`tbtn-${tr}`); if (tb) tb.textContent = INSTRUMENTS[k]?.name || k;
     setTrackNameColor(tr, k);
@@ -3958,10 +3965,29 @@ function randAll(mode) {
     window._randNoteMax = _maxForThisTrack;
     setTimeout(() => {
       window._randNoteMax = _maxForThisTrack;
+      window._lastNoteMaxUsed = null;
       randomizeTrack(_tr);
       window._randNoteMax = null;
       // If track ended up with zero notes, leave it empty (clear grid)
       if (grid[_tr].every(v => v === 0)) { grid[_tr].fill(0); redrawTrackCells(_tr); }
+      // Dense track (top 80% of its note cap) — don't let it carry Delay or FX
+      const _effMax = window._lastNoteMaxUsed;
+      if (_effMax && _effMax > 0) {
+        const _actualNotes = grid[_tr].filter(v => v > 0).length;
+        if (_actualNotes >= 0.8 * _effMax) {
+          if (trackDelay[_tr]) {
+            trackDelay[_tr] = false;
+            const db = document.getElementById(`delaybtn-${_tr}`);
+            if (db) db.classList.toggle('on', false);
+          }
+          if (trackFx[_tr] && (trackFx[_tr].x > 0 || trackFx[_tr].y > 0)) {
+            trackFx[_tr] = { x: 0, y: 0 };
+            if (ctx) setFxActive(_tr, { x: 0, y: 0 });
+            const fb = document.getElementById(`fxbtn-${_tr}`);
+            if (fb) fb.classList.toggle('on', false);
+          }
+        }
+      }
     }, _tr * 30); // stagger 30ms per track
     trackVolume[tr] = 0.30;
     if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setValueAtTime(trackVolume[tr], ctx.currentTime);
@@ -4379,6 +4405,7 @@ function placeNotes(tr, noteCount, accentRatio, level) {
 }
 
 function randomizeTrack(tr) {
+  window._lastNoteMaxUsed = null;
   const key = trackInstruments[tr];
   const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : Math.min(trackRLevel[tr], 2);
   const level = cappedLevel;
@@ -4431,12 +4458,14 @@ function randomizeTrack(tr) {
     redrawTrackCells(tr); markModified(); return;
   }
 
-  const [minN, maxN, accentRatio] = [
+  const [minN, maxN0, accentRatio] = [
     [4, 7,  0.20],
     [7, 11, 0.40],
     [11, 16, 0.60],
   ][Math.min(level, 2)];
+  const maxN = Math.max(minN, Math.round(maxN0 * tempoNoteFactor()));
   const _cap = window._randNoteMax || maxN;
+  window._lastNoteMaxUsed = _cap;
   const noteCount = Math.min(_cap, minN + Math.floor(Math.random() * (maxN - minN + 1)));
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
