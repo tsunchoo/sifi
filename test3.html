@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:05</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:28</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -548,7 +548,7 @@ const INSTRUMENTS = {
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'ANLG BRASS',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'DX PIANO',    soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
@@ -1053,7 +1053,7 @@ function scheduler() {
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
-          if (key === 'rhodes')  playBrassStab(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -1123,7 +1123,7 @@ function scheduler() {
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
             if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
-            if (key === 'rhodes')  playBrassStab(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -2959,7 +2959,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
-    else if (key === 'rhodes')  playBrassStab(freq, dur, isAccent, t, tr);
+    else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
     else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
@@ -4013,7 +4013,7 @@ function randAll(mode, opts) {
 
   // Assign sorted pool sequentially to unlocked tracks
   // Note budget: total notes spread across all tracks — busy tracks leave less for others
-  const _noteBudget = { remaining: Math.round([6, 9, 12][Math.min(level, 2)] * tempoNoteFactor()), tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
+  const _noteBudget = { remaining: Math.round([7, 10, 13][Math.min(level, 2)] * tempoNoteFactor()), tracks: NUM_TRACKS - (skipTrack >= 0 ? 1 : 0) };
 
   let poolIdx = 0;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
@@ -4103,7 +4103,7 @@ function randAll(mode, opts) {
     });
   }
 
-  // Randomize FX for tonal instruments (25% chance, higher for synth/punk bass)
+  // Randomize FX for tonal instruments (35% chance, higher for synth/punk bass)
   // setFxActive handles both gain node and vol bar correctly
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
@@ -4113,7 +4113,7 @@ function randAll(mode, opts) {
       const isClap = pool[tr] === 'clap';
       const isSlay = pool[tr] === 'fflute';
       const fxBoost = level >= 4 ? 0.65 : (level === 3 ? 0.45 : 0);
-      const fxOn = isSlay ? false : isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.6 : 0.25) + fxBoost);
+      const fxOn = isSlay ? false : isClap ? true : Math.random() < Math.min(0.9, (isBass ? 0.7 : 0.35) + fxBoost);
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -4179,7 +4179,7 @@ function randAll(mode, opts) {
     let _maxConsec = 0, _consec = 0;
     for (let s = 0; s < NUM_STEPS; s++) { if (_g[s] > 0) { _consec++; _maxConsec = Math.max(_maxConsec, _consec); } else _consec = 0; }
     const _tooManyConsec = _noteCount > 6 && _maxConsec > 3;
-    const delayChance = _tooManyConsec ? 0 : 0.20 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
+    const delayChance = _tooManyConsec ? 0 : 0.30 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
     const delayOn = Math.random() < delayChance;
     trackDelay[tr] = delayOn;
     const db = document.getElementById(`delaybtn-${tr}`);
