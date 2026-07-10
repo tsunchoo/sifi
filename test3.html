@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 10:55</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:05</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1095,8 +1095,8 @@ function scheduler() {
           }
 
         } else if (key === 'ngate') {
-          // Noise gate triggered by its own grid notes
-          triggerNoiseGate(tr, val === 2, t);
+          // No self-trigger — this track's own grid notes stay silent.
+          // NOISE now only sounds when gated by other tracks' hits (see the else branch below).
         } else {
           playBuffer(key, val === 2, t, tr, step);
           // If any other track has ngate, trigger it from this hit
@@ -1110,7 +1110,7 @@ function scheduler() {
         if (is32Split) {
           const t2 = t + stepDuration() * 0.5;
           if (key === 'ngate') {
-            triggerNoiseGate(tr, false, t2);
+            // No self-trigger on the split hit either
           } else if (TONAL_KEYS.has(key)) {
             const scale2 = trackBassScale[tr] || [110];
             const noteIdx2 = gs % scale2.length;
