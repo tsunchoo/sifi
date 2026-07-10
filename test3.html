@@ -380,7 +380,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 14:25</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 14:40</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -583,7 +583,7 @@ const INSTRUMENTS = {
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'DX PIANO',    soft: null, accent: null, group: 'tonal' },
-  sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
+  sflute: { name: 'STINGER',     soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'BOOG',        soft: null, accent: null, group: 'tonal' },
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
@@ -1091,7 +1091,7 @@ function scheduler() {
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
-          if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
+          if (key === 'sflute')  playCarpenterStinger(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
           if (key === 'boog')    playBoog(freq, dur, val === 2, t, tr);
           if (key === 'fflute')  {
@@ -1161,7 +1161,7 @@ function scheduler() {
             if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
             if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
-            if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
+            if (key === 'sflute')  playCarpenterStinger(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
             if (key === 'boog')    playBoog(freq2, dur2, false, t2, tr);
             if (key === 'fflute')  playGlassBell(freq2, dur2, false, t2, tr);
@@ -2460,6 +2460,85 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); pitchLfoGain.disconnect(); reedBP.disconnect(); reedEnv.disconnect(); nbp.disconnect(); nGain.disconnect(); modGain.disconnect(); } catch(e) {} };
   noise.start(time);
 }
+// ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
+function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const vel = isAccent ? 0.32 : 0.21;
+  const tail = 4.5; // long, atmospheric decay
+
+  // Impact 1: sub-bass sweep — the "thud"
+  const sub = ctx.createOscillator(); sub.type = 'sine';
+  sub.frequency.setValueAtTime(150, time);
+  sub.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+  const subEnv = ctx.createGain();
+  subEnv.gain.setValueAtTime(vel * 1.1, time);
+  subEnv.gain.exponentialRampToValueAtTime(vel * 0.3, time + 0.3);
+  subEnv.gain.exponentialRampToValueAtTime(0.0001, time + 1.2);
+  sub.connect(subEnv); subEnv.connect(dest);
+  sub.start(time); sub.stop(time + 1.3);
+  sub.onended = () => { try { subEnv.disconnect(); } catch(e) {} };
+
+  // Impact 2: distorted square punch — the aggression/bite
+  const punch = ctx.createOscillator(); punch.type = 'square';
+  punch.frequency.setValueAtTime(freq * 0.5, time);
+  punch.frequency.exponentialRampToValueAtTime(freq * 0.3, time + 0.08);
+  const punchWS = ctx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = Math.tanh(x * 6); }
+  punchWS.curve = curve; punchWS.oversample = '2x';
+  const punchEnv = ctx.createGain();
+  punchEnv.gain.setValueAtTime(vel * 0.55, time);
+  punchEnv.gain.exponentialRampToValueAtTime(0.0001, time + 0.25);
+  punch.connect(punchWS); punchWS.connect(punchEnv); punchEnv.connect(dest);
+  punch.start(time); punch.stop(time + 0.3);
+  punch.onended = () => { try { punchWS.disconnect(); punchEnv.disconnect(); } catch(e) {} };
+
+  // Impact 3: metallic noise transient
+  const noiseLen = Math.ceil(ctx.sampleRate * 0.15);
+  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+  const nd = nBuf.getChannelData(0);
+  for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseLen, 1.8);
+  const noise = ctx.createBufferSource(); noise.buffer = nBuf;
+  const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = 1800; noiseBP.Q.value = 0.7;
+  const noiseEnv = ctx.createGain(); noiseEnv.gain.value = vel * 0.5;
+  noise.connect(noiseBP); noiseBP.connect(noiseEnv); noiseEnv.connect(dest);
+  noise.start(time);
+  noise.onended = () => { try { noiseBP.disconnect(); noiseEnv.disconnect(); } catch(e) {} };
+
+  // Body/tail: 3 detuned saws (down an octave for weight) through a slow-breathing
+  // resonant lowpass — blooms open after the impact, then closes back down over the tail
+  const bodyEnv = ctx.createGain();
+  bodyEnv.gain.setValueAtTime(0, time);
+  bodyEnv.gain.linearRampToValueAtTime(vel * 0.6, time + 0.05);
+  bodyEnv.gain.setValueAtTime(vel * 0.55, time + Math.max(durSec, 0.6));
+  bodyEnv.gain.exponentialRampToValueAtTime(0.0004, time + tail);
+
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3;
+  lp.frequency.setValueAtTime(freq * 1.2, time);
+  lp.frequency.linearRampToValueAtTime(freq * 5, time + 0.6);
+  lp.frequency.linearRampToValueAtTime(freq * 0.8, time + tail);
+
+  // Slow filter LFO for atmosphere — a subtle pulsing life to the drone
+  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.35;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = freq * 0.5;
+  lfo.connect(lfoGain); lfoGain.connect(lp.frequency);
+  lfo.start(time); lfo.stop(time + tail + 0.2);
+  lfo.onended = () => { try { lfoGain.disconnect(); } catch(e) {} };
+
+  const detunes = [-9, 0, 9];
+  detunes.forEach((det, i) => {
+    const saw = ctx.createOscillator(); saw.type = 'sawtooth';
+    saw.frequency.value = freq * 0.5; // an octave down for weight
+    saw.detune.value = det;
+    saw.connect(lp);
+    saw.start(time); saw.stop(time + tail + 0.2);
+    if (i === detunes.length - 1) {
+      saw.onended = () => { try { lp.disconnect(); bodyEnv.disconnect(); } catch(e) {} };
+    }
+  });
+  lp.connect(bodyEnv); bodyEnv.connect(dest);
+}
 
 // ── Synth Attack: sharp attack with long shimmer tail ──
 // ── TALK BOX: sawtooth through sweeping vowel formants — "ooh-wah" without speech ──
@@ -3045,7 +3124,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
-    else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
+    else if (key === 'sflute')  playCarpenterStinger(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
     else if (key === 'boog')    playBoog(freq, dur, isAccent, t, tr);
     else if (key === 'fflute')  playGlassBell(freq, dur, isAccent, t, tr);
