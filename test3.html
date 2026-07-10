@@ -380,7 +380,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 14:48</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 14:58</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2466,7 +2466,7 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const vel = isAccent ? 0.180 : 0.118; // -5dB from original 0.32/0.21
-  const tail = 4.5; // long, atmospheric decay
+  const tail = 2.25; // half the original length
 
   // Impact 1: sub-bass sweep — the "thud"
   const sub = ctx.createOscillator(); sub.type = 'sine';
@@ -2512,12 +2512,12 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
   const bodyEnv = ctx.createGain();
   bodyEnv.gain.setValueAtTime(0, time);
   bodyEnv.gain.linearRampToValueAtTime(vel * 0.6, time + 0.05);
-  bodyEnv.gain.setValueAtTime(vel * 0.55, time + Math.max(durSec, 0.6));
+  bodyEnv.gain.setValueAtTime(vel * 0.55, time + Math.max(durSec, 0.3));
   bodyEnv.gain.exponentialRampToValueAtTime(0.0004, time + tail);
 
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 3;
   lp.frequency.setValueAtTime(freq * 1.2, time);
-  lp.frequency.linearRampToValueAtTime(freq * 5, time + 0.6);
+  lp.frequency.linearRampToValueAtTime(freq * 5, time + 0.3);
   lp.frequency.linearRampToValueAtTime(freq * 0.8, time + tail);
 
   // Slow filter LFO for atmosphere — a subtle pulsing life to the drone
@@ -2527,6 +2527,19 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
   lfo.start(time); lfo.stop(time + tail + 0.2);
   lfo.onended = () => { try { lfoGain.disconnect(); } catch(e) {} };
 
+  // Stutter gate: chops the drone rhythmically through the decay — starts fast,
+  // gradually slows as the tail fades out, so it reads as "stuttering out" rather
+  // than a static chop.
+  const stutterGate = ctx.createGain(); stutterGate.gain.setValueAtTime(1, time);
+  const stutterStart = time + 0.35; // let the initial swell read clearly first
+  let st = stutterStart, stepDur = 0.07;
+  while (st < time + tail) {
+    stutterGate.gain.setValueAtTime(1, st);
+    stutterGate.gain.setValueAtTime(0.12, st + stepDur * 0.5);
+    st += stepDur;
+    stepDur *= 1.06;
+  }
+
   const detunes = [-9, 0, 9];
   detunes.forEach((det, i) => {
     const saw = ctx.createOscillator(); saw.type = 'sawtooth';
@@ -2535,10 +2548,10 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
     saw.connect(lp);
     saw.start(time); saw.stop(time + tail + 0.2);
     if (i === detunes.length - 1) {
-      saw.onended = () => { try { lp.disconnect(); bodyEnv.disconnect(); } catch(e) {} };
+      saw.onended = () => { try { lp.disconnect(); bodyEnv.disconnect(); stutterGate.disconnect(); } catch(e) {} };
     }
   });
-  lp.connect(bodyEnv); bodyEnv.connect(dest);
+  lp.connect(bodyEnv); bodyEnv.connect(stutterGate); stutterGate.connect(dest);
 }
 
 // ── Synth Attack: sharp attack with long shimmer tail ──
