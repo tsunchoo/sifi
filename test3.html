@@ -1144,9 +1144,8 @@ function scheduler() {
           doKick  = (step === 0 || step === 4);
           doSnare = (step === 8);
         } else if (_beatType === 'reggae') {
-          // Kick on 3, hats on 1+2+4 (steps 0,4,12), snare ghost on 2+4
+          // Kick on 3, snare ghost on 2+4 (hi-hat handled separately below, since it falls on off-beats)
           doKick  = (step === 4 || step === 12);
-          doHat   = (step === 2 || step === 6 || step === 10 || step === 14);
         }
         if (doKick) {
           playKick(t);
@@ -1158,8 +1157,12 @@ function scheduler() {
           }
         }
         if (doSnare) playSnare(t);
-        if (doHat) playSynthHihat(false, t, -1);
       }
+    }
+    // Reggae hi-hat: off-beat 8ths (steps 2,6,10,14) — outside the downbeat-only gate above,
+    // since that gate never lets these step values through.
+    if (beatPlaying && _beatType === 'reggae' && (step === 2 || step === 6 || step === 10 || step === 14)) {
+      playSynthHihat(false, t, -1);
     }
     nextStepTime += stepDuration();
   }
