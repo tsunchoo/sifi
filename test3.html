@@ -11,7 +11,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
   --bg: #f5f0e8; --panel: #ede8df; --border: #b0a898;
-  --text: #1e1e1e; --dim: #999; --soft: #666;
+  --text: #1e1e1e; --dim: #808080; --soft: #666;
   --playhead: #ff2200; --muted-bg: #ff2200;
   --slot-saved: #f17d21; --slot-loaded: #f17d21;
   --vol-fill: #f17d21;
@@ -379,7 +379,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 12:20</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 12:40</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -472,16 +472,19 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
         <input type="range" id="delayTimeBar" min="1" max="32" value="3" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayTime(33 - +this.value)">
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
-      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">BEAT TYPE</div>
+        <div id="beatTypeLockIcon" style="font-size:0.65rem;font-weight:700;letter-spacing:1px;color:#f17d21;opacity:0;transition:opacity 0.15s;">🔒 LOCKED</div>
+      </div>
       <div style="display:flex;gap:6px;">
-        <button id="beatTypeDiscoBtn" onclick="setBeatType('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
-        <button id="beatTypeHalfBtn" onclick="setBeatType('halftime')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">HALFTIME</button>
-        <button id="beatTypeReggaeBtn" onclick="setBeatType('reggae')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE</button>
+        <button id="beatTypeDiscoBtn" onclick="onBeatTypeButtonTap('disco')" style="flex:1;background:#f17d21;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">DISCO</button>
+        <button id="beatTypeHalfBtn" onclick="onBeatTypeButtonTap('halftime')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">HALFTIME</button>
+        <button id="beatTypeReggaeBtn" onclick="onBeatTypeButtonTap('reggae')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:6px;">
-        <button id="beatTypeBreaksBtn" onclick="setBeatType('breaks')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BREAKS</button>
-        <button id="beatTypeBounceBtn" onclick="setBeatType('bounce')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BOUNCE</button>
-        <button id="beatTypeReggae2Btn" onclick="setBeatType('reggae2')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE 1/2</button>
+        <button id="beatTypeBreaksBtn" onclick="onBeatTypeButtonTap('breaks')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BREAKS</button>
+        <button id="beatTypeBounceBtn" onclick="onBeatTypeButtonTap('bounce')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">BOUNCE</button>
+        <button id="beatTypeReggae2Btn" onclick="onBeatTypeButtonTap('reggae2')" style="flex:1;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:10px 0;cursor:pointer;">REGGAE 1/2</button>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
@@ -3589,6 +3592,7 @@ async function saveAllCombined() {
 let _autoRandPending = false;
 let _pendingRandTimeouts = []; // staggered per-track pattern-gen timeouts from randAll — cancel stale ones if RAND fires again before they land
 let _tempoLocked = false; // double-click/double-tap the settings TEMPO slider to lock it against RAND
+let _beatTypeLocked = false; // tap the already-active BEAT TYPE button to lock it against RAND
 let _autoRandLoopActive = false; // RAND button double-click auto-mode
 let _autoRandBarCount = 0;       // counts real bar-starts toward the next 4-bar regenerate
 
@@ -3889,8 +3893,10 @@ function randAll(mode, opts) {
     const bpmEl = document.getElementById('bpmDisplay'); if (bpmEl) bpmEl.textContent = bpm;
     const tempoSlider = document.getElementById('tempoBar'); if (tempoSlider) tempoSlider.value = bpm;
   }
-  const _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2'];
-  setBeatType(_beatTypes[Math.floor(Math.random() * _beatTypes.length)]);
+  if (!_beatTypeLocked) {
+    const _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2'];
+    setBeatType(_beatTypes[Math.floor(Math.random() * _beatTypes.length)]);
+  }
 
   // Stop all auto-rand tracks and reset to R
   Object.keys(autoShiftStops).forEach(tr => {
@@ -4472,12 +4478,19 @@ function placeNotes(tr, noteCount, accentRatio, level) {
     redrawTrackCells(tr); markModified(); return;
   }
 
-  // Guiro: max 2 accents per measure, 40% chance of accent on beat 1
+  // Guiro: accented notes must be at least 4 beats (16 steps) apart, 40% chance of accent on beat 1.
+  // A pattern is only 16 steps (4 beats) long, so this caps out at one accent per pattern.
   if (key === 'guiro') {
     if (Math.random() < 0.4) { grid[tr][0] = 2; } // accent on the 1
-    let accCount = 0;
+    const MIN_ACCENT_GAP = 16; // steps = 4 beats
+    let lastAccentStep = null;
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] === 2) { if (accCount >= 2) grid[tr][s] = 1; else accCount++; }
+      if (grid[tr][s] !== 2) continue;
+      if (lastAccentStep !== null && (s - lastAccentStep) < MIN_ACCENT_GAP) {
+        grid[tr][s] = 1; // too close to a previous accent — demote to a normal hit
+      } else {
+        lastAccentStep = s;
+      }
     }
   }
   const maxConsec = (key === 'skick' || key === 'ssnare' || key === 'clap' || key === 'ride') ? 2 : (level === 2 ? 4 : 99);
@@ -5255,8 +5268,19 @@ function setBeatType(type) {
   const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn', breaks: 'beatTypeBreaksBtn', bounce: 'beatTypeBounceBtn', reggae2: 'beatTypeReggae2Btn' };
   Object.entries(btns).forEach(([t, id]) => {
     const b = document.getElementById(id);
-    if (b) b.style.background = t === type ? '#f17d21' : '#555';
+    if (b) b.style.background = t === type ? (_beatTypeLocked ? '#b0b0b0' : '#f17d21') : '#555';
   });
+}
+// Tapping the already-active BEAT TYPE button toggles the lock (tapping it otherwise does
+// nothing, so it's a natural place to hang the gesture); tapping a different button always
+// switches type normally, locked or not — the lock only stops RAND from changing it.
+function onBeatTypeButtonTap(type) {
+  if (type === _beatType) {
+    _beatTypeLocked = !_beatTypeLocked;
+  }
+  setBeatType(type);
+  const icon = document.getElementById('beatTypeLockIcon');
+  if (icon) icon.style.opacity = _beatTypeLocked ? '1' : '0';
 }
 
 // ── Turbo Boost: hard brickwall limiting ──
