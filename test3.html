@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 06:15</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 07:40</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1711,43 +1711,35 @@ function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   const vel = isAccent ? 0.34 : 0.22;
   _rhodesGlide[tr] = freq;
 
-  // Karplus-Strong plucked string: noise burst excites a feedback delay loop,
-  // a lowpass filter in the loop rolls off harmonics each pass to mimic string decay.
-  const period = 1 / freq;
-  const decayTime = Math.min(durSec + 2.4, 3.2); // long, spacey sustain
-  const burstLen = Math.min(period, 0.015);
-  const burstBuf = ctx.createBuffer(1, Math.max(2, Math.ceil(ctx.sampleRate * burstLen)), ctx.sampleRate);
-  const bd = burstBuf.getChannelData(0);
-  for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 0.5);
-  const burst = ctx.createBufferSource(); burst.buffer = burstBuf;
-  const burstGain = ctx.createGain(); burstGain.gain.value = vel;
+  // Karplus-Strong plucked string, computed directly into a sample buffer —
+  // NOT a live audio-graph feedback loop (those need >=1 render quantum of
+  // delay to stay stable; higher koto notes would violate that and blow up).
+  // The classic 2-point moving-average recursion is unconditionally stable
+  // (output can only ever decay, never grow), so this is safe at any pitch.
+  const sr = ctx.sampleRate;
+  const decayTime = Math.min(durSec + 1.8, 2.4); // long, spacey sustain
+  const numSamples = Math.max(2, Math.round(sr * decayTime));
+  const period = Math.max(2, Math.round(sr / freq));
+  const buf = ctx.createBuffer(1, numSamples, sr);
+  const data = buf.getChannelData(0);
 
-  const delay = ctx.createDelay(1); delay.delayTime.value = Math.max(period, 1 / 20000);
-  const loopFilter = ctx.createBiquadFilter(); loopFilter.type = 'lowpass';
-  loopFilter.frequency.value = Math.min(freq * 5.5, 5500);
-  loopFilter.Q.value = 0.4;
-  const feedbackGain = ctx.createGain();
-  feedbackGain.gain.value = Math.pow(0.001, period / decayTime);
+  const ring = new Float32Array(period);
+  for (let i = 0; i < period; i++) ring[i] = (Math.random() * 2 - 1) * (1 - i / period);
+  let idx = 0;
+  const damp = 0.994; // per-sample extra damping to shape overall decay length
+  for (let n = 0; n < numSamples; n++) {
+    const cur = ring[idx];
+    const next = ring[(idx + 1) % period];
+    data[n] = cur;
+    ring[idx] = (cur + next) * 0.5 * damp;
+    idx = (idx + 1) % period;
+  }
 
-  burst.connect(burstGain); burstGain.connect(delay);
-  delay.connect(loopFilter); loopFilter.connect(feedbackGain); feedbackGain.connect(delay);
-  const outGain = ctx.createGain(); outGain.gain.value = 1;
-  loopFilter.connect(outGain); outGain.connect(dest);
-
-  // Slow "space wobble" — subtle vibrato on the loop filter cutoff
-  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.2;
-  const lfoGain = ctx.createGain(); lfoGain.gain.value = freq * 0.12;
-  lfo.connect(lfoGain); lfoGain.connect(loopFilter.frequency);
-
-  const stopTime = time + decayTime + 0.15;
-  burst.start(time);
-  lfo.start(time); lfo.stop(stopTime);
-  scheduleDisconnect(delay, stopTime);
-  scheduleDisconnect(loopFilter, stopTime);
-  scheduleDisconnect(feedbackGain, stopTime);
-  scheduleDisconnect(burstGain, stopTime);
-  scheduleDisconnect(outGain, stopTime);
-  scheduleDisconnect(lfoGain, stopTime);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const env = ctx.createGain(); env.gain.value = vel;
+  // Gentle vibrato via a second detuned copy is skipped — keep it simple/safe.
+  src.connect(env); env.connect(dest);
+  src.start(time);
 
   // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
   const shimLen = 0.5;
@@ -3272,36 +3264,28 @@ async function renderSlotToWav(snap) {
           clk.connect(clkLP); clkLP.connect(clkEnv); clkEnv.connect(offDest); clk.start(t);
 
         } else if (key === 'rhodes') {
-          // Matches live playSpaceKoto voice — Karplus-Strong plucked string + shimmer
+          // Matches live playSpaceKoto voice — Karplus-Strong precomputed into a buffer
           const rVel = isAccent ? 0.34 : 0.22;
-          const period = 1 / freq;
-          const decayTime = Math.min(dur + 2.4, 3.2);
-          const burstLen = Math.min(period, 0.015);
-          const burstBuf = offline.createBuffer(1, Math.max(2, Math.ceil(sampleRate * burstLen)), sampleRate);
-          const bd = burstBuf.getChannelData(0);
-          for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 0.5);
-          const burst = offline.createBufferSource(); burst.buffer = burstBuf;
-          const burstGain = offline.createGain(); burstGain.gain.value = rVel;
-
-          const delay = offline.createDelay(1); delay.delayTime.value = Math.max(period, 1 / 20000);
-          const loopFilter = offline.createBiquadFilter(); loopFilter.type = 'lowpass';
-          loopFilter.frequency.value = Math.min(freq * 5.5, 5500);
-          loopFilter.Q.value = 0.4;
-          const feedbackGain = offline.createGain();
-          feedbackGain.gain.value = Math.pow(0.001, period / decayTime);
-
-          burst.connect(burstGain); burstGain.connect(delay);
-          delay.connect(loopFilter); loopFilter.connect(feedbackGain); feedbackGain.connect(delay);
-          const outGain = offline.createGain(); outGain.gain.value = 1;
-          loopFilter.connect(outGain); outGain.connect(offDest);
-
-          const lfo = offline.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.2;
-          const lfoGain = offline.createGain(); lfoGain.gain.value = freq * 0.12;
-          lfo.connect(lfoGain); lfoGain.connect(loopFilter.frequency);
-
-          const stopTime = t + decayTime + 0.15;
-          burst.start(t);
-          lfo.start(t); lfo.stop(stopTime);
+          const decayTime = Math.min(dur + 1.8, 2.4);
+          const numSamples = Math.max(2, Math.round(sampleRate * decayTime));
+          const period = Math.max(2, Math.round(sampleRate / freq));
+          const buf = offline.createBuffer(1, numSamples, sampleRate);
+          const data = buf.getChannelData(0);
+          const ring = new Float32Array(period);
+          for (let i = 0; i < period; i++) ring[i] = (Math.random() * 2 - 1) * (1 - i / period);
+          let idx = 0;
+          const damp = 0.994;
+          for (let n = 0; n < numSamples; n++) {
+            const cur = ring[idx];
+            const next = ring[(idx + 1) % period];
+            data[n] = cur;
+            ring[idx] = (cur + next) * 0.5 * damp;
+            idx = (idx + 1) % period;
+          }
+          const src = offline.createBufferSource(); src.buffer = buf;
+          const env = offline.createGain(); env.gain.value = rVel;
+          src.connect(env); env.connect(offDest);
+          src.start(t);
 
           // Shimmer
           const shimLen = 0.5;
