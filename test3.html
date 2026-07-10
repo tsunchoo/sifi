@@ -543,7 +543,7 @@ const INSTRUMENTS = {
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'MUTED STR',   soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'THMB PIANO',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'RHODES',      soft: null, accent: null, group: 'tonal' },
   sflute: { name: 'SYN FLUTE',   soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
@@ -1037,7 +1037,7 @@ function scheduler() {
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
           if (key === 'sparkle') playSparkle(freq, dur, val === 2, t, tr);
-          if (key === 'rhodes')  playRhodes(freq, dur, val === 2, t, tr);
+          if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
           if (key === 'sflute')  playSynthFlute(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -1107,7 +1107,7 @@ function scheduler() {
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
             if (key === 'sparkle') playSparkle(freq2, dur2, false, t2, tr);
-            if (key === 'rhodes')  playRhodes(freq2, dur2, false, t2, tr);
+            if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'sflute')  playSynthFlute(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -1705,91 +1705,65 @@ const _sparkleGlideState = {};
 
 // ── Piano: additive partials with inharmonicity + hammer transient ──
 const _rhodesGlide = {};
-function playRhodes(freq, durSec, isAccent, time, tr) {
+function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.191 : 0.130;
+  const vel = isAccent ? 0.34 : 0.22;
   _rhodesGlide[tr] = freq;
 
-  // Old sample piano: thin, slightly detuned, short decay, nasal quality
-  // Slight bit-reduced character via heavy inharmonicity
-  const B = 0.0008; // more inharmonic = more "old sample" character
-  const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
+  // Karplus-Strong plucked string: noise burst excites a feedback delay loop,
+  // a lowpass filter in the loop rolls off harmonics each pass to mimic string decay.
+  const period = 1 / freq;
+  const decayTime = Math.min(durSec + 2.4, 3.2); // long, spacey sustain
+  const burstLen = Math.min(period, 0.015);
+  const burstBuf = ctx.createBuffer(1, Math.max(2, Math.ceil(ctx.sampleRate * burstLen)), ctx.sampleRate);
+  const bd = burstBuf.getChannelData(0);
+  for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 0.5);
+  const burst = ctx.createBufferSource(); burst.buffer = burstBuf;
+  const burstGain = ctx.createGain(); burstGain.gain.value = vel;
 
-  // Short decays — old samples were looped short
-  const baseDec = Math.min(durSec + 0.2, 0.9) * (1 + Math.max(0, (300 - freq) / 300) * 0.4);
+  const delay = ctx.createDelay(1); delay.delayTime.value = Math.max(period, 1 / 20000);
+  const loopFilter = ctx.createBiquadFilter(); loopFilter.type = 'lowpass';
+  loopFilter.frequency.value = Math.min(freq * 5.5, 5500);
+  loopFilter.Q.value = 0.4;
+  const feedbackGain = ctx.createGain();
+  feedbackGain.gain.value = Math.pow(0.001, period / decayTime);
 
-  // Fewer partials, emphasise nasal 2nd/3rd harmonics like a bandlimited sample
-  const partials = [
-    { n: 1, amp: 0.70, dec: 1.00 },
-    { n: 2, amp: 0.80, dec: 0.75 }, // strong 2nd — nasal
-    { n: 3, amp: 0.40, dec: 0.50 },
-    { n: 4, amp: 0.15, dec: 0.30 },
-  ];
+  burst.connect(burstGain); burstGain.connect(delay);
+  delay.connect(loopFilter); loopFilter.connect(feedbackGain); feedbackGain.connect(delay);
+  const outGain = ctx.createGain(); outGain.gain.value = 1;
+  loopFilter.connect(outGain); outGain.connect(dest);
 
-  partials.forEach(({ n, amp, dec }) => {
-    const osc = ctx.createOscillator(); osc.type = 'sine';
-    osc.frequency.value = inharmonic(n);
-    const env = ctx.createGain();
-    const pk = vel * amp;
-    const decT = baseDec * dec;
-    env.gain.setValueAtTime(0, time);
-    env.gain.linearRampToValueAtTime(pk, time + 0.001);
-    env.gain.exponentialRampToValueAtTime(pk * 0.3, time + 0.008); // fast drop = thin
-    env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
-    osc.connect(env); env.connect(dest);
-    osc.start(time); osc.stop(time + decT + 0.05);
-  });
+  // Slow "space wobble" — subtle vibrato on the loop filter cutoff
+  const lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.2;
+  const lfoGain = ctx.createGain(); lfoGain.gain.value = freq * 0.12;
+  lfo.connect(lfoGain); lfoGain.connect(loopFilter.frequency);
 
-  // Crunchy click — harder transient
-  const thumpLen = 0.012;
-  const thumpBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * thumpLen), ctx.sampleRate);
-  const td = thumpBuf.getChannelData(0);
-  for (let i = 0; i < td.length; i++) td[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / td.length, 2);
-  const thump = ctx.createBufferSource(); thump.buffer = thumpBuf;
-  const thumpLP = ctx.createBiquadFilter(); thumpLP.type = 'bandpass'; thumpLP.frequency.value = 2500; thumpLP.Q.value = 1.5;
-  // Lo-fi waveshaper
-  const ws = ctx.createWaveShaper();
-  const wsCurve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; wsCurve[i] = Math.tanh(x * 3); }
-  ws.curve = wsCurve;
-  const thumpEnv = ctx.createGain(); thumpEnv.gain.value = vel * 1.0;
-  thump.connect(thumpLP); thumpLP.connect(ws); ws.connect(thumpEnv); thumpEnv.connect(dest);
-  thump.start(time);
+  const stopTime = time + decayTime + 0.15;
+  burst.start(time);
+  lfo.start(time); lfo.stop(stopTime);
+  scheduleDisconnect(delay, stopTime);
+  scheduleDisconnect(loopFilter, stopTime);
+  scheduleDisconnect(feedbackGain, stopTime);
+  scheduleDisconnect(burstGain, stopTime);
+  scheduleDisconnect(outGain, stopTime);
+  scheduleDisconnect(lfoGain, stopTime);
 
-  // String resonance body — short convolution-like noise burst
-  const bodyLen = 0.04;
-  const bodyBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bodyLen), ctx.sampleRate);
-  const bd = bodyBuf.getChannelData(0);
-  for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 1.2);
-  const body = ctx.createBufferSource(); body.buffer = bodyBuf;
-  const bodyBP = ctx.createBiquadFilter(); bodyBP.type = 'bandpass';
-  bodyBP.frequency.value = freq * 2; bodyBP.Q.value = 3;
-  const bodyEnv = ctx.createGain(); bodyEnv.gain.value = vel * 0.22;
-  body.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(dest);
-  body.start(time);
-
-  // Ghost note: half a beat later, half volume, slight drive
-  const ghostTime = time + stepDuration() * 0.5;
-  const ghostVel = vel * 0.45;
-  partials.slice(0, 2).forEach(({ n, amp, dec }) => {
-    const gosc = ctx.createOscillator(); gosc.type = 'sine';
-    gosc.frequency.value = inharmonic(n);
-    const genv = ctx.createGain();
-    const gpk = ghostVel * amp;
-    const gdecT = baseDec * dec * 0.7;
-    genv.gain.setValueAtTime(0, ghostTime);
-    genv.gain.linearRampToValueAtTime(gpk, ghostTime + 0.001);
-    genv.gain.exponentialRampToValueAtTime(gpk * 0.3, ghostTime + 0.008);
-    genv.gain.exponentialRampToValueAtTime(0.0001, ghostTime + gdecT);
-    // Mild drive via waveshaper
-    const gws = ctx.createWaveShaper();
-    const gwsCurve = new Float32Array(128);
-    for (let i = 0; i < 128; i++) { const x = (i / 64) - 1; gwsCurve[i] = Math.tanh(x * 2); }
-    gws.curve = gwsCurve;
-    gosc.connect(genv); genv.connect(gws); gws.connect(dest);
-    gosc.start(ghostTime); gosc.stop(ghostTime + gdecT + 0.05);
-  });
+  // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
+  const shimLen = 0.5;
+  const shimBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * shimLen), ctx.sampleRate);
+  const sd = shimBuf.getChannelData(0);
+  for (let i = 0; i < sd.length; i++) sd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / sd.length, 1.5);
+  const shim = ctx.createBufferSource(); shim.buffer = shimBuf;
+  const shimBP = ctx.createBiquadFilter(); shimBP.type = 'bandpass';
+  shimBP.frequency.value = Math.min(freq * 8, 9000); shimBP.Q.value = 6;
+  const shimEnv = ctx.createGain();
+  shimEnv.gain.setValueAtTime(0, time);
+  shimEnv.gain.linearRampToValueAtTime(vel * 0.16, time + 0.01);
+  shimEnv.gain.exponentialRampToValueAtTime(0.0001, time + shimLen);
+  shim.connect(shimBP); shimBP.connect(shimEnv); shimEnv.connect(dest);
+  shim.start(time);
+  shim.onended = () => { try { shimBP.disconnect(); shimEnv.disconnect(); } catch(e) {} };
 }
 // ── Pluck Bass: resonant attack, fast decay ──
 // ── Noise Gate: continuous white noise gated by hits from a random other track ──
@@ -2890,7 +2864,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
     else if (key === 'sparkle') playSparkle(freq, dur, isAccent, t, tr);
-    else if (key === 'rhodes')  playRhodes(freq, dur, isAccent, t, tr);
+    else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
     else if (key === 'sflute')  playSynthFlute(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
@@ -3050,6 +3024,7 @@ function clearAll() {
     delete trackBassScale[tr]; redrawTrackCells(tr);
   }
 }
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 async function renderSlotToWav(snap) {
   const slotBpm = snap.bpm || bpm;
   const sampleRate = ctx.sampleRate;
@@ -3297,50 +3272,51 @@ async function renderSlotToWav(snap) {
           clk.connect(clkLP); clkLP.connect(clkEnv); clkEnv.connect(offDest); clk.start(t);
 
         } else if (key === 'rhodes') {
-          // Exact match to live playRhodes voice
-          const rVel = isAccent ? 0.38 : 0.26;
-          const B = 0.00015;
-          const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
-          const baseDec = Math.min(dur + 0.6, 1.8) * (1 + Math.max(0, (300 - freq) / 300) * 0.8);
-          const rPartials = [
-            { n:1, amp:1.00, dec:1.00 }, { n:2, amp:0.50, dec:0.65 },
-            { n:3, amp:0.25, dec:0.42 }, { n:4, amp:0.12, dec:0.28 },
-            { n:5, amp:0.05, dec:0.18 }, { n:6, amp:0.02, dec:0.12 },
-          ];
-          rPartials.forEach(({ n, amp, dec }) => {
-            const osc = offline.createOscillator(); osc.type = 'sine';
-            osc.frequency.value = inharmonic(n);
-            const env = offline.createGain();
-            const pk = rVel * amp; const decT = baseDec * dec;
-            env.gain.setValueAtTime(0, t);
-            env.gain.linearRampToValueAtTime(pk, t + 0.002);
-            env.gain.exponentialRampToValueAtTime(pk * 0.55, t + 0.015);
-            env.gain.exponentialRampToValueAtTime(0.0001, t + decT);
-            osc.connect(env); env.connect(offDest); osc.start(t); osc.stop(t + decT + 0.05);
-          });
-          // Hammer transient
-          const thumpLen = 0.025;
-          const thumpBuf = offline.createBuffer(1, Math.ceil(sampleRate * thumpLen), sampleRate);
-          const td = thumpBuf.getChannelData(0);
-          for (let i = 0; i < td.length; i++) td[i] = (Math.random()*2-1) * Math.pow(1-i/td.length, 2);
-          const thump = offline.createBufferSource(); thump.buffer = thumpBuf;
-          const thumpLP = offline.createBiquadFilter(); thumpLP.type = 'lowpass';
-          thumpLP.frequency.setValueAtTime(4000, t);
-          thumpLP.frequency.exponentialRampToValueAtTime(300, t + thumpLen);
-          const thumpEnv = offline.createGain(); thumpEnv.gain.value = rVel * 0.4;
-          thump.connect(thumpLP); thumpLP.connect(thumpEnv); thumpEnv.connect(offDest);
-          thump.start(t);
-          // Body resonance
-          const bodyLen = 0.04;
-          const bodyBuf = offline.createBuffer(1, Math.ceil(sampleRate * bodyLen), sampleRate);
-          const bd = bodyBuf.getChannelData(0);
-          for (let i = 0; i < bd.length; i++) bd[i] = (Math.random()*2-1) * Math.pow(1-i/bd.length, 1.2);
-          const body = offline.createBufferSource(); body.buffer = bodyBuf;
-          const bodyBP = offline.createBiquadFilter(); bodyBP.type = 'bandpass';
-          bodyBP.frequency.value = freq * 2; bodyBP.Q.value = 3;
-          const bodyEnv = offline.createGain(); bodyEnv.gain.value = rVel * 0.12;
-          body.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(offDest);
-          body.start(t);
+          // Matches live playSpaceKoto voice — Karplus-Strong plucked string + shimmer
+          const rVel = isAccent ? 0.34 : 0.22;
+          const period = 1 / freq;
+          const decayTime = Math.min(dur + 2.4, 3.2);
+          const burstLen = Math.min(period, 0.015);
+          const burstBuf = offline.createBuffer(1, Math.max(2, Math.ceil(sampleRate * burstLen)), sampleRate);
+          const bd = burstBuf.getChannelData(0);
+          for (let i = 0; i < bd.length; i++) bd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bd.length, 0.5);
+          const burst = offline.createBufferSource(); burst.buffer = burstBuf;
+          const burstGain = offline.createGain(); burstGain.gain.value = rVel;
+
+          const delay = offline.createDelay(1); delay.delayTime.value = Math.max(period, 1 / 20000);
+          const loopFilter = offline.createBiquadFilter(); loopFilter.type = 'lowpass';
+          loopFilter.frequency.value = Math.min(freq * 5.5, 5500);
+          loopFilter.Q.value = 0.4;
+          const feedbackGain = offline.createGain();
+          feedbackGain.gain.value = Math.pow(0.001, period / decayTime);
+
+          burst.connect(burstGain); burstGain.connect(delay);
+          delay.connect(loopFilter); loopFilter.connect(feedbackGain); feedbackGain.connect(delay);
+          const outGain = offline.createGain(); outGain.gain.value = 1;
+          loopFilter.connect(outGain); outGain.connect(offDest);
+
+          const lfo = offline.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.2;
+          const lfoGain = offline.createGain(); lfoGain.gain.value = freq * 0.12;
+          lfo.connect(lfoGain); lfoGain.connect(loopFilter.frequency);
+
+          const stopTime = t + decayTime + 0.15;
+          burst.start(t);
+          lfo.start(t); lfo.stop(stopTime);
+
+          // Shimmer
+          const shimLen = 0.5;
+          const shimBuf = offline.createBuffer(1, Math.ceil(sampleRate * shimLen), sampleRate);
+          const sd = shimBuf.getChannelData(0);
+          for (let i = 0; i < sd.length; i++) sd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / sd.length, 1.5);
+          const shim = offline.createBufferSource(); shim.buffer = shimBuf;
+          const shimBP = offline.createBiquadFilter(); shimBP.type = 'bandpass';
+          shimBP.frequency.value = Math.min(freq * 8, 9000); shimBP.Q.value = 6;
+          const shimEnv = offline.createGain();
+          shimEnv.gain.setValueAtTime(0, t);
+          shimEnv.gain.linearRampToValueAtTime(rVel * 0.16, t + 0.01);
+          shimEnv.gain.exponentialRampToValueAtTime(0.0001, t + shimLen);
+          shim.connect(shimBP); shimBP.connect(shimEnv); shimEnv.connect(offDest);
+          shim.start(t);
         }
         continue;
       }
@@ -3396,7 +3372,9 @@ async function renderSlotToWav(snap) {
   const rendered = await offline.startRendering();
   return audioBufferToWav(rendered, slotBpm);
 }
+*/
 
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 function concatAudioBuffers(buffers, sampleRate) {
   const numCh = 2;
   const totalLen = buffers.reduce((s, b) => s + b.length, 0);
@@ -3411,6 +3389,7 @@ function concatAudioBuffers(buffers, sampleRate) {
   }
   return { numberOfChannels: numCh, sampleRate, length: totalLen, getChannelData: ch => channels[ch] };
 }
+*/
 
 
 function flashBtnOrange(id) {
@@ -3441,12 +3420,14 @@ function flashBtn(id) {
 // REC button uses onclick="onRecClick()" — no hold functionality
 
 // Collect filled slots (or current state if none saved)
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 function getExportSnaps() {
   const snaps = [];
   for (let i = 0; i < NUM_SLOTS; i++) { if (slots[i] !== null) snaps.push({ snap: slots[i], label: `slot${i+1}` }); }
   if (snaps.length === 0) snaps.push({ snap: snapshotState(), label: 'current' });
   return snaps;
 }
+*/
 
 async function shareOrDownload(files) {
   const shareData = { files, title: 'Si•Fi loops' };
@@ -3464,6 +3445,7 @@ async function shareOrDownload(files) {
   }
 }
 
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 async function saveAllSeparate() {
   if (!ctx) { alert('Load audio first'); return; }
   const btn = document.getElementById('saveBtn');
@@ -3483,7 +3465,9 @@ async function saveAllSeparate() {
   }
   btn.textContent = 'SAVE'; btn.disabled = false;
 }
+*/
 
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 async function saveAllCombined() {
   if (!ctx) { alert('Load audio first'); return; }
   const btn = document.getElementById('saveBtn');
@@ -3507,6 +3491,7 @@ async function saveAllCombined() {
   }
   btn.textContent = 'SAVE'; btn.disabled = false;
 }
+*/
 
 // ── Live recording via MediaRecorder ──
 let _autoRandPending = false;
@@ -3629,6 +3614,7 @@ function toggleRecord() {
 
 
 
+/* [Unused — not wired to any button; renderSlotToWav offline-WAV export chain kept for reference]
 function audioBufferToWav(buffer, tempoHint) {
   const numCh = buffer.numberOfChannels, sr = buffer.sampleRate, len = buffer.length;
   const pcmBytes = len * numCh * 2;
@@ -3689,6 +3675,7 @@ function audioBufferToWav(buffer, tempoHint) {
   }
   return ab;
 }
+*/
 
 function fullClear() {
   flashBtnBlue('clearBtn');
