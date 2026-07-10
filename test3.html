@@ -4045,8 +4045,15 @@ function randAll(mode) {
   const kd = document.getElementById('keyDisplay');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks
+  const _noDelayKeys = new Set(['tamb', 'skick', 'shak', 'sbass', 'sbass3', 'sbass4']);
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue;
+    if (_noDelayKeys.has(trackInstruments[tr])) {
+      trackDelay[tr] = false;
+      const db0 = document.getElementById(`delaybtn-${tr}`);
+      if (db0) db0.classList.toggle('on', false);
+      continue;
+    }
     // Don't add delay if track has >6 notes with >3 consecutive hits
     const _g = grid[tr]; const _noteCount = _g.filter(v => v > 0).length;
     let _maxConsec = 0, _consec = 0;
