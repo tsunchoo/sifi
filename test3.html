@@ -380,7 +380,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 13:40</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 14:15</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -648,6 +648,7 @@ function playUiSound(name) {
   const g = ctx.createGain(); g.gain.value = name === 'rewind' ? 0.625 : 0.7;
   src.connect(g); g.connect(masterGain);
   src.start();
+  src.onended = () => { try { g.disconnect(); } catch(e) {} };
 }
 function resumeCtx() { if (ctx && ctx.state !== 'running') ctx.resume(); }
 document.addEventListener('touchstart', resumeCtx, false);
@@ -851,6 +852,8 @@ function getSynthConnectNode(tr) {
     split.connect(baseNode);
     const d = getOrCreateDelay(tr);
     split.connect(d.delay);
+    // This runs on every single note — clean it up generously later rather than never.
+    setTimeout(() => { try { split.disconnect(); } catch(e) {} }, 6000);
     return split;
   }
 
@@ -898,8 +901,8 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
     instrumentGain.connect(d.delay);
   }
   src.start(time);
+  src.onended = () => { try { src.disconnect(); instrumentGain.disconnect(); } catch(e) {} };
 }
-
 
 const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
 
@@ -1422,6 +1425,7 @@ function playSynthSnare(isAccent, time, tr) {
   const crackG = ctx.createGain(); crackG.gain.value = vol * 1.8;
   crack.connect(crackHP); crackHP.connect(crackG); crackG.connect(dest);
   crack.start(time);
+  crack.onended = () => { try { crackHP.disconnect(); crackG.disconnect(); } catch(e) {} };
 
   // Snare rattle — subtle, gives it that live drum feel
   const rattleLen = isAccent ? 0.06 : 0.04;
@@ -1436,6 +1440,7 @@ function playSynthSnare(isAccent, time, tr) {
   rattleG.gain.exponentialRampToValueAtTime(0.001, time + rattleLen);
   rattle.connect(rattleHP); rattleHP.connect(rattleBP); rattleBP.connect(rattleG); rattleG.connect(dest);
   rattle.start(time + 0.004);
+  rattle.onended = () => { try { rattleHP.disconnect(); rattleBP.disconnect(); rattleG.disconnect(); } catch(e) {} };
 }
 
 function playSynthHihat(isAccent, time, tr) {
@@ -1449,6 +1454,7 @@ function playSynthHihat(isAccent, time, tr) {
   src.buffer = buf; src.connect(hp); hp.connect(g); g.connect(dest);
   g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + dur);
   src.start(time);
+  src.onended = () => { try { src.disconnect(); hp.disconnect(); g.disconnect(); } catch(e) {} };
 }
 
 // ── Synth Bass with legato glide (ported from SMPLJAK) ──
@@ -1488,6 +1494,8 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
   filt.connect(ampEnv); ampEnv.connect(dest);
   saw.start(time); saw.stop(time + durSec + 0.05);
   sub.start(time); sub.stop(time + durSec + 0.05);
+  saw.onended = () => { try { sawG.disconnect(); filt.disconnect(); ampEnv.disconnect(); } catch(e) {} };
+  sub.onended = () => { try { subG.disconnect(); } catch(e) {} };
 }
 
 // Pentatonic minor intervals (semitones from root): 0,3,5,7,10
@@ -1683,6 +1691,7 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
 
     grainLfo.start(time); grainLfo.stop(time + durSec + tail);
     osc.start(time); osc.stop(time + durSec + tail);
+    osc.onended = () => { try { grainLfoGain.disconnect(); grainGain.disconnect(); } catch(e) {} };
   });
 
   // High shimmer partial — distant, glassy, slightly delayed entry
@@ -1694,6 +1703,7 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   shimEnv.gain.exponentialRampToValueAtTime(0.0005, time + durSec + tail);
   shimmer.connect(shimEnv); shimEnv.connect(dest);
   shimmer.start(time); shimmer.stop(time + durSec + tail);
+  shimmer.onended = () => { try { shimEnv.disconnect(); masterEnv.disconnect(); lp.disconnect(); rev.disconnect(); revG.disconnect(); dryG.disconnect(); } catch(e) {} };
 }
 
 // ── Strings: natural bowed string feel with strong attack and warm body ──
@@ -1720,6 +1730,7 @@ function playSynthLeg(freq, durSec, isAccent, time, tr) {
     const vg = ctx.createGain(); vg.gain.value = 1 / detunes.length;
     osc.connect(vg); vg.connect(masterEnv);
     osc.start(time); osc.stop(time + durSec + tail);
+    osc.onended = () => { try { vg.disconnect(); } catch(e) {} };
   });
 
   // Upper octave layer — adds air and space, very quiet
@@ -1730,6 +1741,7 @@ function playSynthLeg(freq, durSec, isAccent, time, tr) {
     const vg = ctx.createGain(); vg.gain.value = 0.08;
     osc.connect(vg); vg.connect(masterEnv);
     osc.start(time); osc.stop(time + durSec + tail);
+    osc.onended = () => { try { vg.disconnect(); } catch(e) {} };
   });
 
   // Sparkle: three very quiet high-ratio sines with long gentle decay — not chirpy, just shimmer
@@ -1742,6 +1754,7 @@ function playSynthLeg(freq, durSec, isAccent, time, tr) {
     spEnv.gain.exponentialRampToValueAtTime(0.0001, time + durSec * 0.7 + i * 0.3);
     sp.connect(spEnv); spEnv.connect(masterEnv);
     sp.start(time); sp.stop(time + durSec + 0.5);
+    sp.onended = () => { try { spEnv.disconnect(); } catch(e) {} };
   });
 
   // Slowly evolving lowpass — opens gradually then breathes back down
@@ -1765,6 +1778,11 @@ function playSynthLeg(freq, durSec, isAccent, time, tr) {
 
   masterEnv.connect(lp); lp.connect(hp);
   hp.connect(dryG); hp.connect(rev); rev.connect(revG);
+
+  // Shared chain cleanup, timed to the longest-running layer (detune/octave voices, durSec+tail)
+  setTimeout(() => {
+    try { masterEnv.disconnect(); lp.disconnect(); hp.disconnect(); rev.disconnect(); dryG.disconnect(); revG.disconnect(); } catch(e) {}
+  }, (durSec + tail + 0.2) * 1000);
 }
 
 const _sparkleGlideState = {};
@@ -1849,6 +1867,7 @@ function playAcidPluck(freq, durSec, isAccent, time, tr) {
 
   osc.connect(filt); filt.connect(env); env.connect(dest);
   osc.start(time); osc.stop(time + decT + 0.05);
+  osc.onended = () => { try { filt.disconnect(); env.disconnect(); } catch(e) {} };
 }
 // ── Analog Brass: detuned saw stack through a fast-opening resonant filter — disco/funk horn stab ──
 function playBrassStab(freq, durSec, isAccent, time, tr) {
@@ -1862,11 +1881,14 @@ function playBrassStab(freq, durSec, isAccent, time, tr) {
 
   const mix = ctx.createGain();
   const detunes = [-6, 0, 7]; // slight detune stack for thickness
-  detunes.forEach(cents => {
+  detunes.forEach((cents, i) => {
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
     osc.frequency.value = freq; osc.detune.value = cents;
     osc.connect(mix);
     osc.start(time); osc.stop(time + decT + 0.05);
+    if (i === detunes.length - 1) {
+      osc.onended = () => { try { mix.disconnect(); filt.disconnect(); env.disconnect(); } catch(e) {} };
+    }
   });
 
   const filt = ctx.createBiquadFilter(); filt.type = 'lowpass';
@@ -1958,6 +1980,7 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   saw1.connect(mix); saw2.connect(mix); sub.connect(mix);
   mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(dest);
   [saw1, saw2, sub].forEach(o => { o.start(time); o.stop(time + durSec + 0.02); });
+  saw1.onended = () => { try { mix.disconnect(); filt.disconnect(); ampEnv.disconnect(); } catch(e) {} };
 }
 
 function playSparkle(freq, durSec, isAccent, time, tr) {
@@ -1994,6 +2017,7 @@ function playSparkle(freq, durSec, isAccent, time, tr) {
 
   src.connect(lp); lp.connect(notch); notch.connect(env); env.connect(dest);
   src.start(time); src.stop(time + decay + 0.02);
+  src.onended = () => { try { lp.disconnect(); notch.disconnect(); env.disconnect(); } catch(e) {} };
 }
 
 // ── Punk Bass: aggressive pick attack, midrange growl, fast decay ──
@@ -2031,6 +2055,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
   osc1.connect(mix); osc2.connect(mix);
   mix.connect(bp); bp.connect(ws); ws.connect(ampEnv); ampEnv.connect(dest);
   [osc1, osc2].forEach(o => { o.start(time); o.stop(time + Math.min(durSec, 0.5)); });
+  osc1.onended = () => { try { mix.disconnect(); bp.disconnect(); ws.disconnect(); ampEnv.disconnect(); } catch(e) {} };
 }
 
 // ── Stab: short sharp synth chord stab, fast tail ──
@@ -2067,6 +2092,10 @@ function playStab(freq, durSec, isAccent, time, tr) {
 
     osc.connect(env); env.connect(lp);
     osc.start(t); osc.stop(t + 0.55);
+    osc.onended = () => {
+      try { env.disconnect(); } catch(e) {}
+      if (i === strumDelays.length - 1) { try { lp.disconnect(); } catch(e) {} }
+    };
   });
 }
 
@@ -2099,6 +2128,7 @@ function playRhodes2(freq, durSec, isAccent, time, tr) {
     env.gain.exponentialRampToValueAtTime(0.0001, time + decT);
     osc.connect(env); env.connect(dest);
     osc.start(time); osc.stop(time + decT + 0.05);
+    osc.onended = () => { try { env.disconnect(); } catch(e) {} };
   });
 
   // Softer tine noise — felt not hammer
@@ -2111,6 +2141,7 @@ function playRhodes2(freq, durSec, isAccent, time, tr) {
   const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.2;
   click.connect(clickLP); clickLP.connect(clickEnv); clickEnv.connect(dest);
   click.start(time);
+  click.onended = () => { try { clickLP.disconnect(); clickEnv.disconnect(); } catch(e) {} };
 }
 
 // ── Metronome: warm woodblock click ──
@@ -2128,6 +2159,7 @@ function playMetronome(t, isAccent) {
   oscEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
   osc.connect(oscEnv); oscEnv.connect(masterGain);
   osc.start(t); osc.stop(t + 0.05);
+  osc.onended = () => { try { oscEnv.disconnect(); } catch(e) {} };
 
   // Noise body — the "wood"
   const bufLen = Math.ceil(ctx.sampleRate * 0.03);
@@ -2140,6 +2172,7 @@ function playMetronome(t, isAccent) {
   const noiseEnv = ctx.createGain(); noiseEnv.gain.value = vol * 0.5;
   noise.connect(bp); bp.connect(noiseEnv); noiseEnv.connect(masterGain);
   noise.start(t);
+  noise.onended = () => { try { bp.disconnect(); noiseEnv.disconnect(); } catch(e) {} };
 }
 
 
@@ -2258,6 +2291,9 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
   osc1.start(time); osc1.stop(time + durSec + 0.1);
   osc2.start(time); osc2.stop(time + durSec + 0.1);
   noise.start(time);
+  osc1.onended = () => { try { bp.disconnect(); bp2.disconnect(); env.disconnect(); lfoGain.disconnect(); } catch(e) {} };
+  osc2.onended = () => { try { subEnv.disconnect(); } catch(e) {} };
+  noise.onended = () => { try { nhp.disconnect(); nEnv.disconnect(); } catch(e) {} };
 }
 
 // ── BLUNT: sci-fi patch with long tail ──
@@ -2276,7 +2312,7 @@ function playBlunt(freq, durSec, isAccent, time, tr) {
   }
   const crusher = ctx.createWaveShaper(); crusher.curve = crushCurve; crusher.oversample = 'none';
 
-  [-14, 14].forEach(det => {
+  [-14, 14].forEach((det, i) => {
     const osc = ctx.createOscillator(); osc.type = 'sawtooth';
     osc.frequency.value = freq; osc.detune.value = det;
     const env = ctx.createGain();
@@ -2286,6 +2322,10 @@ function playBlunt(freq, durSec, isAccent, time, tr) {
     env.gain.exponentialRampToValueAtTime(0.001, time + tail);
     osc.connect(crusher); crusher.connect(env); env.connect(dest);
     osc.start(time); osc.stop(time + tail + 0.1);
+    osc.onended = () => {
+      try { env.disconnect(); } catch(e) {}
+      if (i === 1) { try { crusher.disconnect(); } catch(e) {} }
+    };
   });
   const sub = ctx.createOscillator(); sub.type = 'sine';
   sub.frequency.value = freq * 0.5;
@@ -2294,6 +2334,7 @@ function playBlunt(freq, durSec, isAccent, time, tr) {
   subEnv.gain.exponentialRampToValueAtTime(0.001, time + tail * 0.6);
   sub.connect(subEnv); subEnv.connect(dest);
   sub.start(time); sub.stop(time + tail * 0.7);
+  sub.onended = () => { try { subEnv.disconnect(); } catch(e) {} };
   const shimmer = ctx.createOscillator(); shimmer.type = 'sine';
   shimmer.frequency.value = freq * 3.01;
   const shimEnv = ctx.createGain();
@@ -2301,6 +2342,7 @@ function playBlunt(freq, durSec, isAccent, time, tr) {
   shimEnv.gain.exponentialRampToValueAtTime(0.001, time + tail * 0.7); // more sparkle
   shimmer.connect(shimEnv); shimEnv.connect(dest);
   shimmer.start(time); shimmer.stop(time + tail * 0.6);
+  shimmer.onended = () => { try { shimEnv.disconnect(); } catch(e) {} };
 }
 
 // ── BOOG: fluid legato synth lead with strong portamento ──
@@ -2346,6 +2388,8 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 
   osc1.start(time); osc1.stop(time + durSec + 0.12);
   osc2.start(time); osc2.stop(time + durSec + 0.12);
+  osc1.onended = () => { try { lp.disconnect(); peak.disconnect(); env.disconnect(); } catch(e) {} };
+  osc2.onended = () => { try { env2.disconnect(); } catch(e) {} };
 }
 
 // ── Synth Flute: 80s FM-style breathy flute ──
@@ -2413,7 +2457,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   mod.start(time); mod.stop(time + durSec + 0.2);
   reed.start(time); reed.stop(time + durSec + 0.2);
   carrier.start(time); carrier.stop(time + durSec + 0.2);
-  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); pitchLfoGain.disconnect(); reedBP.disconnect(); reedEnv.disconnect(); nbp.disconnect(); nGain.disconnect(); } catch(e) {} };
+  carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); pitchLfoGain.disconnect(); reedBP.disconnect(); reedEnv.disconnect(); nbp.disconnect(); nGain.disconnect(); modGain.disconnect(); } catch(e) {} };
   noise.start(time);
 }
 
@@ -2458,6 +2502,9 @@ function playSynthAttack(freq, durSec, isAccent, time, tr) {
 
   osc.start(time); osc.stop(time + durSec + tail + 0.1);
   osc2.start(time); osc2.stop(time + durSec + tail + 0.1);
+  osc.onended = () => {
+    try { f1.disconnect(); f2.disconnect(); f1Gain.disconnect(); f2Gain.disconnect(); env.disconnect(); mix.disconnect(); } catch(e) {}
+  };
 }
 
 
@@ -2644,6 +2691,7 @@ function playKick(t) {
   g.gain.setValueAtTime(0.504, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
   osc.start(t); osc.stop(t + 0.46);
+  osc.onended = () => { try { g.disconnect(); } catch(e) {} };
 }
 function playSnare(t) {
   const dur = 0.22;
@@ -2662,10 +2710,12 @@ function playSnare(t) {
   bodyGain.gain.setValueAtTime(0.350, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
   const snDest = window._beatGain || masterGain;
   body.connect(bodyGain); bodyGain.connect(snDest); body.start(t); body.stop(t + 0.1);
+  body.onended = () => { try { bodyGain.disconnect(); } catch(e) {} };
   src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(snDest);
   g.gain.setValueAtTime(0.550, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   src.start(t);
+  src.onended = () => { try { hp.disconnect(); bp.disconnect(); g.disconnect(); } catch(e) {} };
 }
 function setBeatVol(v) {
   if (window._beatGain && ctx) window._beatGain.gain.setTargetAtTime(v, ctx.currentTime, 0.01);
