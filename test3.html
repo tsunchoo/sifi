@@ -377,7 +377,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:28</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 11:50</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1335,7 +1335,7 @@ function playSynthKick(isAccent, time, tr) {
   osc.connect(g); g.connect(dest);
   osc.frequency.setValueAtTime(isAccent ? 180 : 140, time);
   osc.frequency.exponentialRampToValueAtTime(35, time + 0.35);
-  g.gain.setValueAtTime(isAccent ? 0.478 : 0.319, time);
+  g.gain.setValueAtTime(isAccent ? 0.338 : 0.226, time); // -3dB from original 0.478/0.319
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
   _cleanupNodes([g], time + 0.47);
@@ -4507,6 +4507,15 @@ function randomizeTrack(tr) {
 
   if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt') {
     randomizeBassTrack(tr, level); return;
+  }
+
+  // HIHAT: 1-in-6 chance of every 16th note, quarter notes always accented
+  if (key === 'shihat' && Math.random() < (1 / 6)) {
+    for (let s = 0; s < NUM_STEPS; s++) {
+      const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+      grid[tr][gs] = (s % 4 === 0) ? 2 : 1;
+    }
+    redrawTrackCells(tr); markModified(); return;
   }
 
   // Straight pattern logic
