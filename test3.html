@@ -379,7 +379,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 13:20</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 13:30</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -1805,6 +1805,7 @@ function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   // Gentle vibrato via a second detuned copy is skipped — keep it simple/safe.
   src.connect(env); env.connect(dest);
   src.start(time);
+  src.onended = () => { try { src.disconnect(); env.disconnect(); } catch(e) {} };
 
   // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
   const shimLen = 0.5;
