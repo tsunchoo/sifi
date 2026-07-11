@@ -380,7 +380,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 15:10</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 15:15</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -2393,25 +2393,16 @@ function playBoog(freq, durSec, isAccent, time, tr) {
 }
 
 // ── Synth Flute: 80s FM-style breathy flute ──
-const _sfluteGlide = {};
 function playSynthFlute(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const vel = isAccent ? 0.056 : 0.036;
 
-  // Strong portamento — real breath instruments slide between notes, not jump
-  const prevFreq = _sfluteGlide[tr] || freq;
-  _sfluteGlide[tr] = freq;
-  const glide = Math.min(durSec * 0.5, 0.22);
-
   // FM + reed layer: carrier sine + square wave reed + heavy noise texture
   const modFreq = freq * 2.01;
-  const prevModFreq = prevFreq * 2.01;
   const modDepth = freq * 2.8; // more FM depth = reedier
 
-  const mod = ctx.createOscillator(); mod.type = 'sine';
-  mod.frequency.setValueAtTime(Math.max(prevModFreq, 1), time);
-  mod.frequency.exponentialRampToValueAtTime(Math.max(modFreq, 1), time + glide);
+  const mod = ctx.createOscillator(); mod.type = 'sine'; mod.frequency.value = modFreq;
   const modGain = ctx.createGain();
   modGain.gain.setValueAtTime(0, time);
   modGain.gain.linearRampToValueAtTime(modDepth, time + 0.03);
@@ -2420,14 +2411,12 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   mod.connect(modGain);
 
   const carrier = ctx.createOscillator(); carrier.type = 'sine';
-  carrier.frequency.setValueAtTime(Math.max(prevFreq, 1), time);
-  carrier.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + glide);
+  carrier.frequency.value = freq;
   modGain.connect(carrier.frequency);
 
   // Reed layer: square wave through resonant bandpass for woody/reedy texture
   const reed = ctx.createOscillator(); reed.type = 'square';
-  reed.frequency.setValueAtTime(Math.max(prevFreq, 1), time);
-  reed.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + glide);
+  reed.frequency.value = freq;
   const reedBP = ctx.createBiquadFilter(); reedBP.type = 'bandpass';
   reedBP.frequency.value = freq * 2.5; reedBP.Q.value = 4;
   const reedEnv = ctx.createGain();
@@ -2437,12 +2426,10 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   reedEnv.gain.linearRampToValueAtTime(0, time + durSec + 0.1);
   reed.connect(reedBP); reedBP.connect(reedEnv); reedEnv.connect(dest);
 
-  // Pitch wobble LFO — builds in after the note starts, like a real player's vibrato
+  // Pitch wobble LFO
   const pitchLfo = ctx.createOscillator(); pitchLfo.type = 'sine';
   pitchLfo.frequency.value = 5.5 + Math.random() * 1.5;
-  const pitchLfoGain = ctx.createGain();
-  pitchLfoGain.gain.setValueAtTime(0, time);
-  pitchLfoGain.gain.linearRampToValueAtTime(freq * 0.012, time + 0.18);
+  const pitchLfoGain = ctx.createGain(); pitchLfoGain.gain.value = freq * 0.012;
   pitchLfo.connect(pitchLfoGain); pitchLfoGain.connect(carrier.frequency);
 
   // Breath noise — more present for texture
@@ -2461,7 +2448,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel * 0.8, time + 0.07); // slightly softer attack — more breath, less snap
+  env.gain.linearRampToValueAtTime(vel * 0.8, time + 0.04);
   env.gain.setValueAtTime(vel * 0.75, time + durSec * 0.5);
   env.gain.linearRampToValueAtTime(0, time + durSec + 0.12);
 
