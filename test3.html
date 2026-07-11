@@ -380,7 +380,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <button id="loadingOverlay" onclick="this.classList.add('hidden'); if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 15:15</div>
+  <div id="loadingVersion" style="font-size:1.0rem;color:#111;font-weight:700;letter-spacing:1px;font-family:'DM Sans',sans-serif;margin-top:8px;">09Jul26 15:35</div>
 </button>
 
 <!-- Sound picker: flat list for one track at a time -->
@@ -561,7 +561,7 @@ body.seq-playing .track-name-btn.has-notes.inst-tonal { animation: pulse-tonal 0
 <script>
 const INSTRUMENTS = {
   skick:  { name: 'KICK',        soft: null, accent: null, group: 'kit' },
-  ssnare: { name: 'SIDESTICK',       soft: null, accent: null, group: 'kit' },
+  ssnare: { name: 'SNARE',       soft: null, accent: null, group: 'kit' },
   shihat: { name: 'HIHAT',       soft: null, accent: null, group: 'kit' },
   ride:   { name: 'RIDE',        soft: 'Sounds/Ride50.wav',  accent: 'Sounds/Ride100.wav',  group: 'kit'  },
   tamb:   { name: 'TAMB',        soft: 'Sounds/Tamb50.wav',   accent: 'Sounds/Tamb100.wav',   group: 'perc' },
@@ -862,7 +862,7 @@ function getSynthConnectNode(tr) {
 
 function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (key === 'skick')  { playSynthKick(isAccent, time, tr); return; }
-  if (key === 'ssnare') { playSynthSnare(isAccent, time, tr); return; }
+  if (key === 'ssnare') { playSynthSnare_reinstated(isAccent, time, tr); return; }
   if (key === 'shihat') { playSynthHihat(isAccent, time, tr); return; }
   if (key === 'sbass')   { return; } // handled in scheduler with legato duration
   if (key === 'ngate')   { return; } // handled in scheduler
@@ -1376,7 +1376,7 @@ function playSynthKick(isAccent, time, tr) {
   osc.start(time); osc.stop(time + 0.46);
   _cleanupNodes([g], time + 0.47);
 }
-function playSynthSnare_legacy(isAccent, time, tr) {
+function playSynthSnare_reinstated(isAccent, time, tr) {
   if (!ctx) return;
   const dest = getSynthConnectNode(tr);
   const dur = isAccent ? 0.22 : 0.15, vol = isAccent ? 0.325 : 0.210;
@@ -1396,6 +1396,7 @@ function playSynthSnare_legacy(isAccent, time, tr) {
   body.frequency.setValueAtTime(320, time); body.frequency.exponentialRampToValueAtTime(160, time + 0.04);
   bg.gain.setValueAtTime(vol * 0.35, time); bg.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
   body.connect(bg); bg.connect(dest); body.start(time); body.stop(time + 0.06);
+  body.onended = () => { try { bg.disconnect(); } catch(e) {} };
 }
 function playSynthSnare(isAccent, time, tr) {
   // Natural sidestick: wood-body thud + high rimshot crack + subtle snare rattle
@@ -4361,12 +4362,20 @@ function randAll(mode, opts) {
       if (db0) db0.classList.toggle('on', false);
       continue;
     }
-    // Don't add delay if track has >6 notes with >3 consecutive hits
-    const _g = grid[tr]; const _noteCount = _g.filter(v => v > 0).length;
+    // Don't add delay if the track has more than 3 contiguous notes, or any
+    // gap between notes is less than 4 steps
+    const _g = grid[tr];
     let _maxConsec = 0, _consec = 0;
     for (let s = 0; s < NUM_STEPS; s++) { if (_g[s] > 0) { _consec++; _maxConsec = Math.max(_maxConsec, _consec); } else _consec = 0; }
-    const _tooManyConsec = _noteCount > 6 && _maxConsec > 3;
-    const delayChance = _tooManyConsec ? 0 : 0.30 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
+    const _onsets = [];
+    for (let s = 0; s < NUM_STEPS; s++) { if (_g[s] > 0 && _g[(s - 1 + NUM_STEPS) % NUM_STEPS] === 0) _onsets.push(s); }
+    let _minGap = Infinity;
+    if (_onsets.length > 1) {
+      for (let i = 1; i < _onsets.length; i++) _minGap = Math.min(_minGap, _onsets[i] - _onsets[i - 1]);
+      _minGap = Math.min(_minGap, _onsets[0] + NUM_STEPS - _onsets[_onsets.length - 1]); // wrap around the loop
+    }
+    const _tooDense = _maxConsec > 3 || (_onsets.length > 1 && _minGap < 4);
+    const delayChance = _tooDense ? 0 : 0.30 + (level >= 3 ? 0.15 : 0) + (level >= 4 ? 0.15 : 0);
     const delayOn = Math.random() < delayChance;
     trackDelay[tr] = delayOn;
     const db = document.getElementById(`delaybtn-${tr}`);
