@@ -2,99 +2,66 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Jog Shuttle</title>
 <style>
   :root{
     --bg:#0d0d0f;
-    --panel:#17171a;
     --line:#2a2a2e;
     --amber:#ff9d2f;
     --amber-dim:#4a3319;
     --text:#e8e6e1;
     --dim:#6b6b70;
   }
-  *{box-sizing:border-box;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{
     height:100%;
     margin:0;
     background:var(--bg);
     color:var(--text);
     font-family:'Courier New',monospace;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    overflow:hidden;
     user-select:none;
+    touch-action:none;
   }
   .rig{
-    width:520px;
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:36px 40px 44px;
-  }
-  .readout{
+    height:100%;
     display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    margin-bottom:28px;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:28px;
+    padding:24px 0;
   }
   .bpm{
-    font-size:56px;
+    font-size:min(22vw,140px);
     font-weight:bold;
     letter-spacing:1px;
     color:var(--amber);
-    text-shadow:0 0 12px rgba(255,157,47,0.35);
+    text-shadow:0 0 18px rgba(255,157,47,0.35);
     font-variant-numeric:tabular-nums;
+    line-height:1;
   }
-  .bpm span{font-size:20px;color:var(--dim);margin-left:8px;}
-  .transport{
+  .tracks{
+    width:100%;
     display:flex;
-    gap:10px;
-  }
-  button{
-    background:#1f1f23;
-    border:1px solid var(--line);
-    color:var(--text);
-    font-family:inherit;
-    font-size:13px;
-    padding:10px 18px;
-    border-radius:4px;
-    cursor:pointer;
-    letter-spacing:1px;
-  }
-  button:hover{border-color:var(--amber);}
-  button.on{
-    background:var(--amber-dim);
-    border-color:var(--amber);
-    color:var(--amber);
-  }
-
-  .shuttle-wrap{
-    margin-top:12px;
-  }
-  .ticks{
-    display:flex;
-    justify-content:space-between;
-    font-size:10px;
-    color:var(--dim);
-    padding:0 6px;
-    margin-bottom:6px;
-    letter-spacing:1px;
+    flex-direction:column;
+    gap:22px;
   }
   .track{
     position:relative;
-    height:64px;
+    width:100%;
+    height:78px;
     background:
       repeating-linear-gradient(90deg,
         var(--line) 0 1px,
-        transparent 1px calc(100%/16));
+        transparent 1px calc(100%/24));
     background-color:#0a0a0b;
-    border:1px solid var(--line);
-    border-radius:4px;
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
     overflow:hidden;
-    cursor:grab;
+    touch-action:none;
   }
-  .track:active{cursor:grabbing;}
   .center-mark{
     position:absolute;
     left:50%;
@@ -106,9 +73,9 @@
   }
   .handle{
     position:absolute;
-    top:6px;
-    bottom:6px;
-    width:34px;
+    top:8px;
+    bottom:8px;
+    width:46px;
     left:50%;
     transform:translateX(-50%);
     background:#2c2c31;
@@ -117,77 +84,105 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:3px;
+    gap:4px;
     pointer-events:none;
-    transition:background 0.1s;
   }
-  .handle .grip{width:2px;height:60%;background:var(--dim);}
+  .handle .grip{width:2px;height:55%;background:var(--dim);}
   .handle.active{border-color:var(--amber);background:#332a1e;}
   .handle.active .grip{background:var(--amber);}
-  .direction-label{
+  .handle.springback{transition:transform 0.18s ease-out;}
+
+  .playbtn{
+    width:52px;
+    height:52px;
+    border-radius:50%;
+    background:#1f1f23;
+    border:1px solid var(--line);
     display:flex;
-    justify-content:space-between;
-    font-size:10px;
-    color:var(--dim);
-    margin-top:6px;
-    letter-spacing:2px;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
   }
-  .hint{
-    margin-top:24px;
-    font-size:11px;
-    color:var(--dim);
-    line-height:1.6;
-  }
+  .playbtn.on{border-color:var(--amber);background:var(--amber-dim);}
+  .playbtn svg{width:18px;height:18px;fill:var(--text);}
+  .playbtn.on svg{fill:var(--amber);}
 </style>
 </head>
 <body>
 
 <div class="rig">
-  <div class="readout">
-    <div class="bpm" id="bpmDisplay">120<span>BPM</span></div>
-    <div class="transport">
-      <button id="playBtn">PLAY</button>
-    </div>
-  </div>
+  <div class="bpm" id="bpmDisplay">120</div>
 
-  <div class="shuttle-wrap">
-    <div class="track" id="track">
+  <div class="tracks">
+    <div class="track" id="nudgeTrack">
       <div class="center-mark"></div>
-      <div class="handle" id="handle"><div class="grip"></div><div class="grip"></div><div class="grip"></div></div>
+      <div class="handle" id="nudgeHandle"><div class="grip"></div><div class="grip"></div><div class="grip"></div></div>
     </div>
-    <div class="direction-label">
-      <span>&larr; DRAG LEFT = FASTER</span>
-      <span>DRAG RIGHT = SLOWER &rarr;</span>
+    <div class="track" id="restTrack">
+      <div class="center-mark"></div>
+      <div class="handle" id="restHandle"><div class="grip"></div><div class="grip"></div><div class="grip"></div></div>
     </div>
   </div>
 
-  <div class="hint">Click-drag the shuttle. Every ~28px crossed snaps tempo &plusmn;5 BPM. Release springs back to center; tempo holds at its new value.</div>
+  <div class="playbtn" id="playBtn">
+    <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </div>
 </div>
 
 <script>
 (() => {
-  const STEP_PX = 28;      // px per 5bpm increment
+  const NUDGE_MAX_BPM = 5;
+  const NUDGE_MAX_TRAVEL = 90;
+  const NUDGE_DEAD_PX = 6;
+
+  const STEP_PX = 30;
   const STEP_BPM = 5;
+  const DEAD_ZONE_PX = STEP_PX;
+
   const MIN_BPM = 60;
   const MAX_BPM = 200;
 
-  let bpm = 120;
+  let restingBpm = 120;
+  let nudgeBpm = 0;
+  let effectiveBpm = 120;
+
   let playing = false;
   let ctx = null;
   let masterGain = null;
   let nextNoteTime = 0;
   let beatIndex = 0;
   let schedulerId = null;
-  const LOOKAHEAD = 15;      // ms
-  const SCHEDULE_AHEAD = 0.06; // s
+  const LOOKAHEAD = 15;
+  const SCHEDULE_AHEAD = 0.06;
 
   const bpmDisplay = document.getElementById('bpmDisplay');
   const playBtn = document.getElementById('playBtn');
-  const track = document.getElementById('track');
-  const handle = document.getElementById('handle');
+  const playIcon = document.getElementById('playIcon');
+  const nudgeTrack = document.getElementById('nudgeTrack');
+  const nudgeHandle = document.getElementById('nudgeHandle');
+  const restTrack = document.getElementById('restTrack');
+  const restHandle = document.getElementById('restHandle');
 
   function updateDisplay(){
-    bpmDisplay.innerHTML = bpm + '<span>BPM</span>';
+    bpmDisplay.textContent = Math.round(effectiveBpm);
+  }
+
+  function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+  function recalcEffective(){
+    const newEffective = clamp(restingBpm + nudgeBpm, MIN_BPM, MAX_BPM);
+    if(newEffective !== effectiveBpm){
+      const oldInterval = 60 / effectiveBpm;
+      effectiveBpm = newEffective;
+      updateDisplay();
+      if(playing && ctx){
+        const remaining = nextNoteTime - ctx.currentTime;
+        if(remaining > 0){
+          const newInterval = 60 / effectiveBpm;
+          nextNoteTime = ctx.currentTime + remaining * (newInterval / oldInterval);
+        }
+      }
+    }
   }
 
   function initAudio(){
@@ -244,13 +239,12 @@
   }
 
   function scheduleNote(index, time){
-    // 4/4, kick on 1 & 3, snare on 2 & 4
     if(index % 2 === 0) playKick(time);
     else playSnare(time);
   }
 
   function nextNoteInterval(){
-    return 60 / bpm / 1; // seconds per quarter note (beat)
+    return 60 / effectiveBpm;
   }
 
   function scheduler(){
@@ -270,14 +264,14 @@
     scheduler();
     playing = true;
     playBtn.classList.add('on');
-    playBtn.textContent = 'STOP';
+    playIcon.innerHTML = '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>';
   }
 
   function stopPlayback(){
     playing = false;
     clearTimeout(schedulerId);
     playBtn.classList.remove('on');
-    playBtn.textContent = 'PLAY';
+    playIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
   }
 
   playBtn.addEventListener('click', () => {
@@ -285,68 +279,90 @@
     else startPlayback();
   });
 
-  // Jog shuttle drag logic
-  let dragging = false;
-  let startX = 0;
-  let lastStepCrossed = 0;
-  const maxTravel = 90; // px handle can visually move before clamping
+  (function(){
+    let dragging = false;
+    let startX = 0;
 
-  function setBpm(newBpm){
-    newBpm = Math.max(MIN_BPM, Math.min(MAX_BPM, newBpm));
-    if(newBpm !== bpm){
-      const oldInterval = nextNoteInterval();
-      bpm = newBpm;
-      updateDisplay();
-      // re-time the already-scheduled next note so the tempo change is audible immediately
-      // instead of waiting for the following scheduler pass
-      if(playing && ctx){
-        const remaining = nextNoteTime - ctx.currentTime;
-        if(remaining > 0){
-          const newInterval = nextNoteInterval();
-          nextNoteTime = ctx.currentTime + remaining * (newInterval / oldInterval);
-        }
+    function onDown(e){
+      dragging = true;
+      startX = e.clientX;
+      nudgeHandle.classList.add('active');
+      nudgeHandle.classList.remove('springback');
+      nudgeTrack.setPointerCapture(e.pointerId);
+    }
+    function onMove(e){
+      if(!dragging) return;
+      let dx = e.clientX - startX;
+      const visualX = clamp(dx, -NUDGE_MAX_TRAVEL, NUDGE_MAX_TRAVEL);
+      nudgeHandle.style.transform = `translateX(calc(-50% + ${visualX}px))`;
+
+      let magnitude = Math.abs(dx) < NUDGE_DEAD_PX ? 0 : Math.abs(dx) - NUDGE_DEAD_PX;
+      let ratio = clamp(magnitude / (NUDGE_MAX_TRAVEL - NUDGE_DEAD_PX), 0, 1);
+      nudgeBpm = Math.sign(dx) * ratio * NUDGE_MAX_BPM;
+      recalcEffective();
+    }
+    function onUp(e){
+      if(!dragging) return;
+      dragging = false;
+      nudgeHandle.classList.remove('active');
+      nudgeHandle.classList.add('springback');
+      nudgeHandle.style.transform = 'translateX(-50%)';
+      nudgeBpm = 0;
+      recalcEffective();
+      try{ nudgeTrack.releasePointerCapture(e.pointerId); }catch(err){}
+    }
+    nudgeTrack.addEventListener('pointerdown', onDown);
+    nudgeTrack.addEventListener('pointermove', onMove);
+    nudgeTrack.addEventListener('pointerup', onUp);
+    nudgeTrack.addEventListener('pointercancel', onUp);
+  })();
+
+  (function(){
+    let dragging = false;
+    let startX = 0;
+    let lastStepCrossed = 0;
+
+    function stepsFromDx(dx){
+      if(Math.abs(dx) < DEAD_ZONE_PX) return 0;
+      const adjusted = dx - Math.sign(dx) * DEAD_ZONE_PX;
+      return Math.trunc(adjusted / STEP_PX) + Math.sign(dx);
+    }
+
+    function onDown(e){
+      dragging = true;
+      startX = e.clientX;
+      lastStepCrossed = 0;
+      restHandle.classList.add('active');
+      restHandle.classList.remove('springback');
+      restTrack.setPointerCapture(e.pointerId);
+    }
+    function onMove(e){
+      if(!dragging) return;
+      let dx = e.clientX - startX;
+      const visualX = clamp(dx, -90, 90);
+      restHandle.style.transform = `translateX(calc(-50% + ${visualX}px))`;
+
+      const stepsCrossed = stepsFromDx(dx);
+      if(stepsCrossed !== lastStepCrossed){
+        const diff = stepsCrossed - lastStepCrossed;
+        restingBpm = clamp(restingBpm + diff * STEP_BPM, MIN_BPM, MAX_BPM);
+        recalcEffective();
+        lastStepCrossed = stepsCrossed;
       }
     }
-  }
-
-  function onPointerDown(e){
-    dragging = true;
-    startX = e.clientX;
-    lastStepCrossed = 0;
-    handle.classList.add('active');
-    track.setPointerCapture(e.pointerId);
-  }
-
-  function onPointerMove(e){
-    if(!dragging) return;
-    let dx = e.clientX - startX;
-
-    // visual handle movement, clamped
-    const visualX = Math.max(-maxTravel, Math.min(maxTravel, dx));
-    handle.style.transform = `translateX(calc(-50% + ${visualX}px))`;
-
-    // step logic: negative dx (left) = faster, positive dx (right) = slower
-    const stepsCrossed = Math.trunc(dx / STEP_PX);
-    if(stepsCrossed !== lastStepCrossed){
-      const diff = stepsCrossed - lastStepCrossed;
-      // dragging left => dx negative => stepsCrossed decreases => diff negative => should INCREASE bpm
-      setBpm(bpm - diff * STEP_BPM);
-      lastStepCrossed = stepsCrossed;
+    function onUp(e){
+      if(!dragging) return;
+      dragging = false;
+      restHandle.classList.remove('active');
+      restHandle.classList.add('springback');
+      restHandle.style.transform = 'translateX(-50%)';
+      try{ restTrack.releasePointerCapture(e.pointerId); }catch(err){}
     }
-  }
-
-  function onPointerUp(e){
-    if(!dragging) return;
-    dragging = false;
-    handle.classList.remove('active');
-    handle.style.transform = 'translateX(-50%)';
-    try{ track.releasePointerCapture(e.pointerId); }catch(err){}
-  }
-
-  track.addEventListener('pointerdown', onPointerDown);
-  track.addEventListener('pointermove', onPointerMove);
-  track.addEventListener('pointerup', onPointerUp);
-  track.addEventListener('pointercancel', onPointerUp);
+    restTrack.addEventListener('pointerdown', onDown);
+    restTrack.addEventListener('pointermove', onMove);
+    restTrack.addEventListener('pointerup', onUp);
+    restTrack.addEventListener('pointercancel', onUp);
+  })();
 
   updateDisplay();
 })();
