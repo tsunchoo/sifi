@@ -157,7 +157,7 @@
 
 <script>
 (() => {
-  const NUDGE_MAX_BPM = 5;
+  const NUDGE_MAX_BPM = 10;
   const NUDGE_MAX_TRAVEL = 90;
   const NUDGE_DEAD_PX = 6;
 
@@ -266,34 +266,51 @@
     osc.stop(time + 0.1);
   }
 
+  function makeDistortionCurve(amount){
+    const n = 256;
+    const curve = new Float32Array(n);
+    for(let i = 0; i < n; i++){
+      const x = (i * 2) / n - 1;
+      curve[i] = Math.tanh(x * amount) / Math.tanh(amount);
+    }
+    return curve;
+  }
+
   function playFlourish(time){
-    // bright, unmistakable stab marking the downbeat of the 4-count phrase
+    // crunchy, warm stab marking the downbeat of the 4-count phrase
     const osc1 = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
+    const shaper = ctx.createWaveShaper();
     const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = 1800;
-    filter.Q.value = 4;
 
-    osc1.type = 'square';
-    osc2.type = 'square';
-    osc1.frequency.setValueAtTime(1400, time);
-    osc1.frequency.exponentialRampToValueAtTime(700, time + 0.08);
-    osc2.frequency.setValueAtTime(1410, time);
-    osc2.frequency.exponentialRampToValueAtTime(710, time + 0.08);
+    shaper.curve = makeDistortionCurve(9);
+    shaper.oversample = '4x';
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2600, time);
+    filter.frequency.exponentialRampToValueAtTime(500, time + 0.16);
+    filter.Q.value = 1.2;
+
+    osc1.type = 'sawtooth';
+    osc2.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(900, time);
+    osc1.frequency.exponentialRampToValueAtTime(280, time + 0.1);
+    osc2.frequency.setValueAtTime(906, time);
+    osc2.frequency.exponentialRampToValueAtTime(283, time + 0.1);
 
     gain.gain.setValueAtTime(0.0001, time);
-    gain.gain.exponentialRampToValueAtTime(0.5, time + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+    gain.gain.exponentialRampToValueAtTime(0.55, time + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.22);
 
-    osc1.connect(filter);
-    osc2.connect(filter);
+    osc1.connect(shaper);
+    osc2.connect(shaper);
+    shaper.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
 
-    osc1.start(time); osc1.stop(time + 0.2);
-    osc2.start(time); osc2.stop(time + 0.2);
+    osc1.start(time); osc1.stop(time + 0.24);
+    osc2.start(time); osc2.stop(time + 0.24);
   }
 
   function scheduleNote(index, time){
