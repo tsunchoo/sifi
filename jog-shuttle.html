@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Jog Shuttle</title>
+<style>
+  :root{
+    --bg:#0d0d0f;
+    --panel:#17171a;
+    --line:#2a2a2e;
+    --amber:#ff9d2f;
+    --amber-dim:#4a3319;
+    --text:#e8e6e1;
+    --dim:#6b6b70;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Courier New',monospace;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    user-select:none;
+  }
+  .rig{
+    width:520px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:36px 40px 44px;
+  }
+  .readout{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:28px;
+  }
+  .bpm{
+    font-size:56px;
+    font-weight:bold;
+    letter-spacing:1px;
+    color:var(--amber);
+    text-shadow:0 0 12px rgba(255,157,47,0.35);
+    font-variant-numeric:tabular-nums;
+  }
+  .bpm span{font-size:20px;color:var(--dim);margin-left:8px;}
+  .transport{
+    display:flex;
+    gap:10px;
+  }
+  button{
+    background:#1f1f23;
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:inherit;
+    font-size:13px;
+    padding:10px 18px;
+    border-radius:4px;
+    cursor:pointer;
+    letter-spacing:1px;
+  }
+  button:hover{border-color:var(--amber);}
+  button.on{
+    background:var(--amber-dim);
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+
+  .shuttle-wrap{
+    margin-top:12px;
+  }
+  .ticks{
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    color:var(--dim);
+    padding:0 6px;
+    margin-bottom:6px;
+    letter-spacing:1px;
+  }
+  .track{
+    position:relative;
+    height:64px;
+    background:
+      repeating-linear-gradient(90deg,
+        var(--line) 0 1px,
+        transparent 1px calc(100%/16));
+    background-color:#0a0a0b;
+    border:1px solid var(--line);
+    border-radius:4px;
+    overflow:hidden;
+    cursor:grab;
+  }
+  .track:active{cursor:grabbing;}
+  .center-mark{
+    position:absolute;
+    left:50%;
+    top:0;
+    bottom:0;
+    width:1px;
+    background:var(--dim);
+    transform:translateX(-50%);
+  }
+  .handle{
+    position:absolute;
+    top:6px;
+    bottom:6px;
+    width:34px;
+    left:50%;
+    transform:translateX(-50%);
+    background:#2c2c31;
+    border:1px solid #454549;
+    border-radius:3px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    pointer-events:none;
+    transition:background 0.1s;
+  }
+  .handle .grip{width:2px;height:60%;background:var(--dim);}
+  .handle.active{border-color:var(--amber);background:#332a1e;}
+  .handle.active .grip{background:var(--amber);}
+  .direction-label{
+    display:flex;
+    justify-content:space-between;
+    font-size:10px;
+    color:var(--dim);
+    margin-top:6px;
+    letter-spacing:2px;
+  }
+  .hint{
+    margin-top:24px;
+    font-size:11px;
+    color:var(--dim);
+    line-height:1.6;
+  }
+</style>
+</head>
+<body>
+
+<div class="rig">
+  <div class="readout">
+    <div class="bpm" id="bpmDisplay">120<span>BPM</span></div>
+    <div class="transport">
+      <button id="playBtn">PLAY</button>
+    </div>
+  </div>
+
+  <div class="shuttle-wrap">
+    <div class="track" id="track">
+      <div class="center-mark"></div>
+      <div class="handle" id="handle"><div class="grip"></div><div class="grip"></div><div class="grip"></div></div>
+    </div>
+    <div class="direction-label">
+      <span>&larr; DRAG LEFT = FASTER</span>
+      <span>DRAG RIGHT = SLOWER &rarr;</span>
+    </div>
+  </div>
+
+  <div class="hint">Click-drag the shuttle. Every ~28px crossed snaps tempo &plusmn;5 BPM. Release springs back to center; tempo holds at its new value.</div>
+</div>
+
+<script>
+(() => {
+  const STEP_PX = 28;      // px per 5bpm increment
+  const STEP_BPM = 5;
+  const MIN_BPM = 60;
+  const MAX_BPM = 200;
+
+  let bpm = 120;
+  let playing = false;
+  let ctx = null;
+  let masterGain = null;
+  let nextNoteTime = 0;
+  let beatIndex = 0;
+  let schedulerId = null;
+  const LOOKAHEAD = 15;      // ms
+  const SCHEDULE_AHEAD = 0.06; // s
+
+  const bpmDisplay = document.getElementById('bpmDisplay');
+  const playBtn = document.getElementById('playBtn');
+  const track = document.getElementById('track');
+  const handle = document.getElementById('handle');
+
+  function updateDisplay(){
+    bpmDisplay.innerHTML = bpm + '<span>BPM</span>';
+  }
+
+  function initAudio(){
+    if(ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 0.9;
+    masterGain.connect(ctx.destination);
+  }
+
+  function playKick(time){
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(150, time);
+    osc.frequency.exponentialRampToValueAtTime(45, time + 0.09);
+    gain.gain.setValueAtTime(1, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.25);
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(time);
+    osc.stop(time + 0.3);
+  }
+
+  function playSnare(time){
+    const bufferSize = ctx.sampleRate * 0.2;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = Math.random()*2-1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 1000;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.9, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    noise.start(time);
+    noise.stop(time + 0.15);
+
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = 180;
+    oscGain.gain.setValueAtTime(0.5, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.connect(oscGain);
+    oscGain.connect(masterGain);
+    osc.start(time);
+    osc.stop(time + 0.1);
+  }
+
+  function scheduleNote(index, time){
+    // 4/4, kick on 1 & 3, snare on 2 & 4
+    if(index % 2 === 0) playKick(time);
+    else playSnare(time);
+  }
+
+  function nextNoteInterval(){
+    return 60 / bpm / 1; // seconds per quarter note (beat)
+  }
+
+  function scheduler(){
+    while(nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD){
+      scheduleNote(beatIndex, nextNoteTime);
+      nextNoteTime += nextNoteInterval();
+      beatIndex = (beatIndex + 1) % 4;
+    }
+    schedulerId = setTimeout(scheduler, LOOKAHEAD);
+  }
+
+  function startPlayback(){
+    initAudio();
+    if(ctx.state === 'suspended') ctx.resume();
+    beatIndex = 0;
+    nextNoteTime = ctx.currentTime + 0.05;
+    scheduler();
+    playing = true;
+    playBtn.classList.add('on');
+    playBtn.textContent = 'STOP';
+  }
+
+  function stopPlayback(){
+    playing = false;
+    clearTimeout(schedulerId);
+    playBtn.classList.remove('on');
+    playBtn.textContent = 'PLAY';
+  }
+
+  playBtn.addEventListener('click', () => {
+    if(playing) stopPlayback();
+    else startPlayback();
+  });
+
+  // Jog shuttle drag logic
+  let dragging = false;
+  let startX = 0;
+  let lastStepCrossed = 0;
+  const maxTravel = 90; // px handle can visually move before clamping
+
+  function setBpm(newBpm){
+    newBpm = Math.max(MIN_BPM, Math.min(MAX_BPM, newBpm));
+    if(newBpm !== bpm){
+      const oldInterval = nextNoteInterval();
+      bpm = newBpm;
+      updateDisplay();
+      // re-time the already-scheduled next note so the tempo change is audible immediately
+      // instead of waiting for the following scheduler pass
+      if(playing && ctx){
+        const remaining = nextNoteTime - ctx.currentTime;
+        if(remaining > 0){
+          const newInterval = nextNoteInterval();
+          nextNoteTime = ctx.currentTime + remaining * (newInterval / oldInterval);
+        }
+      }
+    }
+  }
+
+  function onPointerDown(e){
+    dragging = true;
+    startX = e.clientX;
+    lastStepCrossed = 0;
+    handle.classList.add('active');
+    track.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e){
+    if(!dragging) return;
+    let dx = e.clientX - startX;
+
+    // visual handle movement, clamped
+    const visualX = Math.max(-maxTravel, Math.min(maxTravel, dx));
+    handle.style.transform = `translateX(calc(-50% + ${visualX}px))`;
+
+    // step logic: negative dx (left) = faster, positive dx (right) = slower
+    const stepsCrossed = Math.trunc(dx / STEP_PX);
+    if(stepsCrossed !== lastStepCrossed){
+      const diff = stepsCrossed - lastStepCrossed;
+      // dragging left => dx negative => stepsCrossed decreases => diff negative => should INCREASE bpm
+      setBpm(bpm - diff * STEP_BPM);
+      lastStepCrossed = stepsCrossed;
+    }
+  }
+
+  function onPointerUp(e){
+    if(!dragging) return;
+    dragging = false;
+    handle.classList.remove('active');
+    handle.style.transform = 'translateX(-50%)';
+    try{ track.releasePointerCapture(e.pointerId); }catch(err){}
+  }
+
+  track.addEventListener('pointerdown', onPointerDown);
+  track.addEventListener('pointermove', onPointerMove);
+  track.addEventListener('pointerup', onPointerUp);
+  track.addEventListener('pointercancel', onPointerUp);
+
+  updateDisplay();
+})();
+</script>
+
+</body>
+</html>
