@@ -136,8 +136,10 @@
   const NUDGE_DEAD_PX = 6;
 
   const STEP_PX = 30;
-  const STEP_BPM = 5;
+  const STEP_BPM = 1;
   const DEAD_ZONE_PX = STEP_PX;
+  const HOLD_DELAY_MS = 400;
+  const HOLD_REPEAT_MS = 400;
 
   const MIN_BPM = 60;
   const MAX_BPM = 200;
@@ -321,6 +323,9 @@
     let dragging = false;
     let startX = 0;
     let lastStepCrossed = 0;
+    let currentDir = 0;
+    let holdTimeout = null;
+    let holdInterval = null;
 
     function stepsFromDx(dx){
       if(Math.abs(dx) < DEAD_ZONE_PX) return 0;
@@ -328,10 +333,27 @@
       return Math.trunc(adjusted / STEP_PX) + Math.sign(dx);
     }
 
+    function clearHold(){
+      if(holdTimeout){ clearTimeout(holdTimeout); holdTimeout = null; }
+      if(holdInterval){ clearInterval(holdInterval); holdInterval = null; }
+    }
+
+    function armHold(dir){
+      clearHold();
+      if(dir === 0) return;
+      holdTimeout = setTimeout(() => {
+        holdInterval = setInterval(() => {
+          restingBpm = clamp(restingBpm + dir * STEP_BPM, MIN_BPM, MAX_BPM);
+          recalcEffective();
+        }, HOLD_REPEAT_MS);
+      }, HOLD_DELAY_MS);
+    }
+
     function onDown(e){
       dragging = true;
       startX = e.clientX;
       lastStepCrossed = 0;
+      currentDir = 0;
       restHandle.classList.add('active');
       restHandle.classList.remove('springback');
       restTrack.setPointerCapture(e.pointerId);
@@ -349,10 +371,15 @@
         recalcEffective();
         lastStepCrossed = stepsCrossed;
       }
+      // any movement resets the hold-to-repeat timer for the current direction
+      const dir = Math.abs(dx) < DEAD_ZONE_PX ? 0 : Math.sign(dx);
+      currentDir = dir;
+      armHold(dir);
     }
     function onUp(e){
       if(!dragging) return;
       dragging = false;
+      clearHold();
       restHandle.classList.remove('active');
       restHandle.classList.add('springback');
       restHandle.style.transform = 'translateX(-50%)';
