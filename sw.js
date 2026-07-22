@@ -1,41 +1,36 @@
-const CACHE = 'percoset-v1';
-const ASSETS = [
-  '/',
-  '/index.html',
-  '/Sounds/Tamb50.wav',
-  '/Sounds/Tamb100.wav',
-  '/Sounds/Shak50.wav',
-  '/Sounds/Shak100.wav',
-  '/Sounds/Clap50.wav',
-  '/Sounds/Clap100.wav',
-  '/Sounds/CongHi50.wav',
-  '/Sounds/CongHi100.wav',
-  '/Sounds/CongLo50.wav',
-  '/Sounds/CongLo100.wav',
-  '/Sounds/BongHi50.wav',
-  '/Sounds/BongHi100.wav',
-  '/Sounds/BongLo50.wav',
-  '/Sounds/BongLo100.wav',
-  '/Sounds/Cowb50.wav',
-  '/Sounds/Cowb100.wav',
-];
+// Minimal service worker — the whole app is one self-contained HTML file
+// (samples embedded as base64), so all this needs to do is cache that one
+// file and serve it back when there's no network, so double-click reset
+// (which does a real page reload) keeps working offline instead of hitting
+// the browser's "no internet" error page.
+const CACHE_NAME = 'sifi-cache-v1';
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.add(self.registration.scope))
   );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    caches.keys().then(names =>
+      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
     ).then(() => self.clients.claim())
   );
 });
 
+// Network-first, falling back to cache when offline — keeps the app fresh
+// when there's a connection, but never leaves it stranded without one.
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request).then(networkResponse => {
+      if (networkResponse && networkResponse.status === 200) {
+        const clone = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+      }
+      return networkResponse;
+    }).catch(() => caches.match(e.request).then(cached => cached || caches.match(self.registration.scope)))
   );
 });
