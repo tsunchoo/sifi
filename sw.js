@@ -1,8 +1,8 @@
 // Minimal service worker — the whole app is one self-contained HTML file
 // (samples embedded as base64), so all this needs to do is cache that one
-// file and serve it back when there's no network, so double-click reset
-// (which does a real page reload) keeps working offline instead of hitting
-// the browser's "no internet" error page.
+// file and serve it back instantly, so double-click reset (which does a
+// real page reload) is fast and local every time — offline or not — rather
+// than re-fetching from GitHub Pages on every single reload.
 const CACHE_NAME = 'sifi-cache-v1';
 
 self.addEventListener('install', e => {
@@ -20,17 +20,22 @@ self.addEventListener('activate', e => {
   );
 });
 
-// Network-first, falling back to cache when offline — keeps the app fresh
-// when there's a connection, but never leaves it stranded without one.
+// Cache-first, updating the cache in the background — reload/reset is
+// instant and local every time. If a network fetch happens to complete
+// (e.g. you deploy a new build), the cache quietly picks it up for the
+// *next* reload, rather than making the current one wait on it.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request).then(networkResponse => {
-      if (networkResponse && networkResponse.status === 200) {
-        const clone = networkResponse.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-      }
-      return networkResponse;
-    }).catch(() => caches.match(e.request).then(cached => cached || caches.match(self.registration.scope)))
+    caches.match(e.request).then(cached => {
+      const networkUpdate = fetch(e.request).then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return networkResponse;
+      }).catch(() => null);
+      return cached || networkUpdate || caches.match(self.registration.scope);
+    })
   );
 });
