@@ -3,7 +3,7 @@
 // file and serve it back instantly, so double-click reset (which does a
 // real page reload) is fast and local every time — offline or not — rather
 // than re-fetching from GitHub Pages on every single reload.
-const CACHE_NAME = 'sifi-cache-24jul26-0255'; // bump this string on every deploy — that's what actually busts the old cache
+const CACHE_NAME = 'sifi-cache-24jul26-0310'; // bump this string on every deploy — that's what actually busts the old cache
 
 self.addEventListener('install', e => {
   e.waitUntil(
