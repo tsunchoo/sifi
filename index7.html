@@ -1108,7 +1108,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <div class="beat-type-item" data-beat="cumbia">CUMBIA</div>
       <div class="beat-type-item" data-beat="afrobeat">AFROBEAT</div>
       <div class="beat-type-item" data-beat="boogie">SHUFFLE</div>
-      <div class="beat-type-item" data-beat="blap">BLAP</div>
+      <div class="beat-type-item" data-beat="bossa">BOSSA</div>
       <div class="beat-type-item" data-beat="jazz">JAZZ</div>
     </div>
   </div>
@@ -3583,10 +3583,14 @@ function fireStepAudio(step, t) {
           // Kick on 1 (2&+3& handled below), snare on 2+4
           doKick  = (bstep === 0);
           doSnare = (bstep === 4 || bstep === 12);
-        } else if (_beatType === 'blap') {
-          // BLAP — identical to BOUNCE, but with the DMX-style snare
-          doKick  = (bstep === 0);
-          doSnare = (bstep === 4 || bstep === 12);
+        } else if (_beatType === 'bossa') {
+          // BOSSA — kick lands on every downbeat here; the quieter
+          // anticipation kick immediately before each downbeat (steps
+          // 3/7/11/15) and the hihat foot close (steps 2/6/10/14) are both
+          // off the quarter-note grid, handled in the off-beat dispatch
+          // below. Side stick is a real, editable track now (see
+          // _applyBossaTracksToCurrentPattern), not a BEAT-menu synth hit.
+          doKick = (bstep === 0 || bstep === 4 || bstep === 8 || bstep === 12);
         } else if (_beatType === 'reggae2') {
           // ONE DROP — kick+sidestick on beats 2 & 4; hihat is upbeat-only (handled below)
           doKick = (bstep === 4 || bstep === 12);
@@ -3667,8 +3671,11 @@ function fireStepAudio(step, t) {
       } else if (_beatType === 'breaks') {
         if (bstep === 6) fireBeatKick(t);   // 2&
         if (bstep === 10) playSnare(t);     // 3&
-      } else if (_beatType === 'bounce' || _beatType === 'blap') {
+      } else if (_beatType === 'bounce') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // 2&, 3&
+      } else if (_beatType === 'bossa') {
+        if (bstep === 3 || bstep === 7 || bstep === 11 || bstep === 15) fireBeatKick(t, 0.8); // anticipation kick immediately before each downbeat — slightly quieter than the downbeat hits
+        if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1); // hihat foot close on every "&"
       } else if (_beatType === 'reggae2') {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1); // upbeat skank — same as ROCKERS
       } else if (_beatType === 'drive') {
@@ -11082,7 +11089,7 @@ function randAll(mode, opts) {
     const tempoSlider = document.getElementById('tempoBar'); if (tempoSlider) tempoSlider.value = bpm;
   }
   if (!_beatTypeLocked) {
-    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'blap', 'jazz'];
+    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
     // really only right at a tempo RAND itself would have picked for
     // them — with TEMPO LOCK on, RAND can't also adjust tempo to suit
@@ -11488,6 +11495,23 @@ function randAll(mode, opts) {
     }
   }
 
+  // BOSSA beat type — SIDE STICK becomes a real track (fixed clave-style
+  // pattern written directly below), same reasoning and same replace-a-
+  // slot approach as JAZZ's ride/comping pass above. Kick and hihat foot
+  // close stay BEAT-menu-only synthesis — they're never tracks here.
+  if (_beatType === 'bossa') {
+    const bassKeysLocal5 = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
+    const _alreadyLocked = trackInstruments.some((k, tr) => k === 'sidestick' && trackSweep[tr]);
+    if (!_alreadyLocked && !pool.includes('sidestick')) {
+      let replaceIdx = -1;
+      for (let i = pool.length - 1; i >= 0; i--) {
+        if (!bassKeysLocal5.has(pool[i]) && pool[i] !== 'skick' && pool[i] !== 'shihat') { replaceIdx = i; break; }
+      }
+      if (replaceIdx === -1) replaceIdx = pool.length - 1;
+      pool[replaceIdx] = 'sidestick';
+    }
+  }
+
   // Sort pool into fixed visual order: top=hihat, perc, tonal, bass, kick=bottom
   const kickKeys = new Set(['skick']);
   const bassKeys2 = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge']);
@@ -11682,6 +11706,13 @@ function randAll(mode, opts) {
         grid[_tr].fill(0);
         grid[_tr][7] = 2;
         grid[_tr][14] = 2; grid[_tr][15] = 2;
+        redrawTrackCells(_tr); markModified();
+      } else if (_beatType === 'bossa' && trackInstruments[_tr] === 'sidestick') {
+        // Fixed 5-hit Brazilian clave pattern (0, 3, 6, 10, 13) — the
+        // same shape used by _applyBossaTracksToCurrentPattern, not left
+        // to normal randomization.
+        grid[_tr].fill(0);
+        grid[_tr][0] = 2; grid[_tr][3] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2;
         redrawTrackCells(_tr); markModified();
       } else {
         randomizeTrack(_tr);
@@ -16319,6 +16350,7 @@ function setBeatType(type) {
   const _wasJazz = _beatType === 'jazz';
   const _wasDisco = _beatType === 'disco';
   const _wasMozambique = _beatType === 'mozambique';
+  const _wasBossa = _beatType === 'bossa';
   _beatType = type;
   // Regular vs DMX-style snare — a fresh 50/50 pick every time a new beat
   // type gets selected, replacing what used to be one fixed choice per
@@ -16354,6 +16386,9 @@ function setBeatType(type) {
   // MOZAMBIQUE gets its RIDE + SIDESTICK + tom tracks the same way, the
   // moment it's actually picked, not just on the next RAND.
   if (type === 'mozambique' && !_wasMozambique) _applyMozambiqueTracksToCurrentPattern();
+  // BOSSA gets its SIDE STICK track the same way, the moment it's
+  // actually picked, not just on the next RAND.
+  if (type === 'bossa' && !_wasBossa) _applyBossaTracksToCurrentPattern();
 }
 // Forces RIDE and SIDESTICK onto 2 of the current pattern's tracks,
 // overwriting whichever percussion tracks it can use — skips locked (L)
@@ -16509,6 +16544,37 @@ function _applyMozambiqueTracksToCurrentPattern() {
   _applyOneMoz(rideTr, 'ride');
   _applyOneMoz(sidestickTr, 'sidestick');
   _applyOneMoz(tomsTr, 'toms');
+  markModified();
+}
+// Same idea again, for BOSSA's single SIDE STICK track — a fixed 5-hit
+// Brazilian clave pattern (0, 3, 6, 10, 13), applied to 1 of the current
+// pattern's tracks the moment BOSSA is actually picked, not just on the
+// next RAND. Kick (every downbeat, plus a quieter anticipation kick right
+// before each one) and hihat foot close (every "&") stay BEAT-menu-only
+// synthesis — see the bossa branches in the main scheduler dispatch.
+function _applyBossaTracksToCurrentPattern() {
+  const _existingSidestickTr = trackInstruments.findIndex(k => k === 'sidestick');
+  const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'ride', 'toms', 'ssnare']);
+  const _unlocked = [];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
+  if (_unlocked.length < 1) return; // nothing safe to overwrite
+  let targetTr = (_existingSidestickTr !== -1 && !trackSweep[_existingSidestickTr]) ? _existingSidestickTr : -1;
+  if (targetTr === -1) {
+    const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
+    targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
+  }
+  trackInstruments[targetTr] = 'sidestick';
+  const tb = document.getElementById(`tbtn-${targetTr}`); if (tb) tb.textContent = INSTRUMENTS['sidestick']?.name || 'SIDE STICK';
+  setTrackNameColor(targetTr, 'sidestick');
+  _setTrackReverb(targetTr, false);
+  const db = document.getElementById(`delaybtn-${targetTr}`); if (db) db.classList.toggle('on', false);
+  trackFx[targetTr] = { x: 0, y: 0 };
+  trackPump[targetTr] = false;
+  if (ctx) setFxActive(targetTr, trackFx[targetTr]);
+  const fb = document.getElementById(`fxbtn-${targetTr}`); if (fb) { fb.classList.remove('on'); fb.classList.remove('blast-on'); }
+  grid[targetTr].fill(0);
+  grid[targetTr][0] = 2; grid[targetTr][3] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2;
+  redrawTrackCells(targetTr);
   markModified();
 }
 // Tapping the already-active BEAT TYPE button toggles the lock (tapping it otherwise does
