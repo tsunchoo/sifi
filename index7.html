@@ -1140,9 +1140,12 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
     </label>
 
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
-      <input type="color" id="topColorPicker" value="#555555" oninput="applyColorsFromTopRow(this.value)" style="width:36px;height:28px;padding:0;border:none;cursor:pointer;background:none;">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
+        <div id="topColorSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;background:#555555;"></div>
+      </div>
+      <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -1721,7 +1724,9 @@ function _invertHex(hex) {
 function _applyTopColor(hex) {
   document.documentElement.style.setProperty('--neutral-top', hex);
   document.documentElement.style.setProperty('--neutral-top-text', _contrastText(hex));
-  const el = document.getElementById('topColorPicker'); if (el) el.value = hex;
+  const slider = document.getElementById('topColorHueSlider');
+  if (slider) { const [h] = _hexToHsl(hex); slider.value = Math.round(h); }
+  const sw = document.getElementById('topColorSwatch'); if (sw) sw.style.background = hex;
   _deriveInstrumentColorsFromTop(hex);
 }
 // Instrument lane colors (KIT/PERC/TONAL/BASS/PAD) — previously five
@@ -2005,17 +2010,17 @@ function randomizeAppColors() {
   if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
   if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
 }
-// Live TOP ROW color picker (COLOR MENU) — same "one shared hue + fixed
+// Live TOP ROW color control (COLOR MENU) — same "one shared hue + fixed
 // offsets" system randomizeAppColors() uses just above (bar → +60° top →
 // +60° highlight → +60° highlight2 → +60° highlight3 → +60° bg), just
-// re-anchored at whatever hue TOP ROW gets dragged to instead of a random
-// bar hue. Fires on every 'input' event while the picker is being
-// dragged (see the oninput on #topColorPicker), so the whole palette
-// recalculates live, not just on release. Every OTHER role's saturation/
-// lightness stays fixed (roughly the midpoint of randomizeAppColors()'s
-// own random range for that role) rather than re-rolling on every drag
-// tick — TOP ROW itself is always exactly the picked color, not a
-// re-derived hue/sat/light approximation of it.
+// re-anchored at whatever hue TOP ROW is set to instead of a random bar
+// hue. Fires on every 'input' event while the slider is being dragged
+// (see setTopRowColorFromHue/#topColorHueSlider below), so the whole
+// palette recalculates live, not just on release. Every OTHER role's
+// saturation/lightness stays fixed (roughly the midpoint of
+// randomizeAppColors()'s own random range for that role) rather than
+// re-rolling on every drag tick — TOP ROW itself is always exactly the
+// given color, not a re-derived hue/sat/light approximation of it.
 function applyColorsFromTopRow(hex) {
   const [topH, topS, topL] = _hexToHsl(hex);
   _applyTopColor(hex);
@@ -2032,6 +2037,20 @@ function applyColorsFromTopRow(hex) {
   if (window._eqMeterColorMode === 'auto') _autoPickEqMeterColor();
   if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
   if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
+}
+// #topColorHueSlider is a plain <input type="range"> rather than a native
+// <input type="color"> — the native color picker turned out to force a
+// full page reload in at least some mobile/PWA contexts (presenting a
+// native input sheet can suspend or reload a standalone home-screen
+// WebView on iOS in particular). A plain hue slider never invokes any
+// native picker UI at all, and matches every other control in this app
+// besides. Saturation/lightness are fixed (0.65/0.41 — a vivid, readable
+// TOP ROW color across the whole hue range) since the slider only exposes
+// hue; #topColorSwatch gives a visual preview of the exact resulting
+// color next to it.
+function setTopRowColorFromHue(hue) {
+  const hex = _hslToHex(+hue, 0.65, 0.41);
+  applyColorsFromTopRow(hex);
 }
 (function() {
   const randomizeBtn = document.getElementById('randomizeColorsBtn');
