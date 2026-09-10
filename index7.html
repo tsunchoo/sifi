@@ -2455,8 +2455,26 @@ function updateAmalgamStrikeModeUI() {
   });
 }
 
+const _AMALGAM_STRIKE_DUCK_FACTOR = 0.55; // ~-5.2dB dip beneath whatever masterVol currently is — "a few dB" of headroom for the strike to punch through
+const _AMALGAM_STRIKE_DUCK_ATTACK = 0.015;  // fast — the duck should land right with the strike, not lag it
+const _AMALGAM_STRIKE_DUCK_RELEASE = 0.28;  // slower recovery — gives the strike's ring some room before the dry mix comes back up
+
+// Sidechain-style dip on the dry instrument mix (masterGain only — not the
+// strike's own output stage, and not the ambient reverb tail, both of
+// which sum in downstream of this) so the strike actually punches through
+// instead of just sitting under whatever's already playing.
+function _duckMainForStrike() {
+  if (!ctx || !masterGain) return;
+  const now = ctx.currentTime;
+  masterGain.gain.cancelScheduledValues(now);
+  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
+  masterGain.gain.linearRampToValueAtTime(masterVol * _AMALGAM_STRIKE_DUCK_FACTOR, now + _AMALGAM_STRIKE_DUCK_ATTACK);
+  masterGain.gain.linearRampToValueAtTime(masterVol, now + _AMALGAM_STRIKE_DUCK_RELEASE);
+}
+
 function fireAmalgamStrike() {
-  if (!ctx || !window._reverbSendBus) return; // audio engine not up yet (e.g. logo tapped before first PLAY) — nothing to excite
+  if (!ctx || !window._amalgamStrikeBus) return; // audio engine not up yet (e.g. logo tapped before first PLAY) — nothing to excite
+  _duckMainForStrike();
   const mode = window._amalgamStrikeMode || 'blazer';
   if (mode === 'lazer') _strikeLazer();
   else if (mode === 'gazer') _strikeGazer();
@@ -2473,7 +2491,7 @@ function _strikeLazer() {
   d[0] = 1; d[1] = -0.6; d[2] = 0.3;
   const src = ctx.createBufferSource(); src.buffer = buf;
   const g = ctx.createGain(); g.gain.value = 0.9;
-  src.connect(g); g.connect(window._reverbSendBus);
+  src.connect(g); g.connect(window._amalgamStrikeBus);
   src.start();
 }
 
@@ -2494,7 +2512,7 @@ function _strikeBlazer() {
   const bp1 = ctx.createBiquadFilter(); bp1.type = 'bandpass'; bp1.frequency.value = 340; bp1.Q.value = 8;
   const bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 780; bp2.Q.value = 10;
   const g = ctx.createGain(); g.gain.value = 0.8;
-  src.connect(bp1); bp1.connect(bp2); bp2.connect(g); g.connect(window._reverbSendBus);
+  src.connect(bp1); bp1.connect(bp2); bp2.connect(g); g.connect(window._amalgamStrikeBus);
   src.start();
 }
 
@@ -2537,7 +2555,7 @@ function _strikeGazer() {
   const buf = bank[Math.floor(Math.random() * bank.length)];
   const src = ctx.createBufferSource(); src.buffer = buf;
   const g = ctx.createGain(); g.gain.value = 1.0;
-  src.connect(g); g.connect(window._reverbSendBus);
+  src.connect(g); g.connect(window._amalgamStrikeBus);
   src.start();
 }
 
@@ -15445,6 +15463,20 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
     window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
     masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
+    // AMALGAM STRIKE gets its own dedicated convolver + output stage —
+    // same lightweight IR-synthesis trick as the shared reverb bus above,
+    // but completely decoupled from it. The shared bus is deliberately
+    // mixed down at REVERB_MIX_MAX (a subtle ambience wash sitting under
+    // the instruments, not something meant to carry a sound on its own),
+    // so routing the strike into it made it nearly inaudible regardless
+    // of exciter. This one gets its own healthy, always-audible level,
+    // independent of wherever the user's REVERB MIX slider happens to be.
+    window._amalgamStrikeBus = ctx.createGain(); window._amalgamStrikeBus.gain.value = 1;
+    window._amalgamStrikeConv = ctx.createConvolver();
+    window._amalgamStrikeConv.normalize = false;
+    window._amalgamStrikeConv.buffer = _buildReverbIRBuffer(ctx, 0.4); // fixed medium/pipe-length room — independent of the SIZE slider
+    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 3;
+    window._amalgamStrikeBus.connect(window._amalgamStrikeConv); window._amalgamStrikeConv.connect(window._amalgamStrikeOutGain); window._amalgamStrikeOutGain.connect(window._normalTrackFadeGain);
     // AMALGAM STRIKE / GAZER — passive analyser tap on masterGain (not
     // connected onward anywhere, so it can't affect the audio graph),
     // read synchronously from randAll()'s truncation point to bank real
@@ -15519,6 +15551,7 @@ async function hardResetAudioEngine() {
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
     window._reverbSendBus = null; window._reverbOutGain = null;
     window._amalgamCaptureAnalyser = null; window._amalgamCaptureBank = [];
+    window._amalgamStrikeBus = null; window._amalgamStrikeConv = null; window._amalgamStrikeOutGain = null;
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     currentStep = -1; nextStepTime = 0;
 
