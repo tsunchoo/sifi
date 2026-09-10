@@ -2486,25 +2486,29 @@ function setGlobalDelayMix(v) {
 // convolver is just a synthesized noise-decay buffer (see
 // _buildReverbIRBuffer) — cheap and fine as ambient room wash, but
 // exciting it with anything only ever produces more noise, never an
-// actual pitch. That's exactly why every mode came out toneless: LAZER
-// and BLAZER were short noise transients hitting that same noisy IR, and
-// GAZER's real captured audio went through it too, burying whatever tone
-// it had under more noise on top.
+// actual pitch. That's exactly why every mode came out toneless.
 //
-// Fixed with an actual resonator now (_buildPipeResonator below): a small
-// bank of feedback comb filters (delay line + damped feedback loop),
-// tuned to a fundamental and a few inharmonic overtones — the way a real
-// length of pipe actually rings when struck. Each mode differs only in
-// what excites the resonator and how it's tuned:
-//   LAZER  — a bare, instant click excites a short, high, bright ring —
-//            thin and metallic, a "zap" rather than a boom.
-//   BLAZER — a short (~8ms) noise transient excites a longer, lower ring —
-//            the transient itself is brief enough now that the actual
-//            tone (not the noise exciting it) is what's audible.
+// Second pass replaced that with a physically-modeled resonator (feedback
+// comb filters) — no more noise, but across several rounds of tuning it
+// still came out harsh and unmusical, and briefly outright howled
+// (a feedback loop excited for too long is exactly a real audio-feedback
+// squeal). Getting a feedback loop to sound good by guesswork, without
+// being able to actually listen to it, turned out to not be a reliable
+// way to build this.
+//
+// Now just a handful of sine oscillators with fixed musical intervals and
+// plain exponential-decay envelopes (_buildTonalPing below) — the same
+// basic technique already used successfully elsewhere in this file (see
+// _getAmalgamBaseBuffer / _playDronePhantomNote). No feedback loop, so it
+// physically cannot howl; no noise anywhere, so there's no hiss; and the
+// pitches are picked outright (octaves, fifths, a harmonic series) rather
+// than emerging from a filter, so it's actually predictable to tune.
+//   LAZER  — a bright, quick "ping" — short decay, higher pitch.
+//   BLAZER — a warmer, longer "thump" — a plain harmonic series over a
+//            lower fundamental.
 //   GAZER  — a real snapshot grabbed off the mix at a genuine mid-play
 //            truncation (see _captureAmalgamSnapshot, called from
-//            randAll()) excites the same kind of ring, so it's got both
-//            the real captured texture AND an actual pitch on top —
+//            randAll()), with a quiet tonal ping layered underneath it —
 //            falls back to BLAZER until one's been captured this session.
 window._amalgamStrikeMode = 'blazer';
 try { window._amalgamStrikeMode = localStorage.getItem('_amalgamStrikeMode') || 'blazer'; } catch(e) {}
@@ -2546,95 +2550,49 @@ function fireAmalgamStrike() {
   else _strikeBlazer();
 }
 
-// A small bank of feedback comb filters (delay line + damped feedback
-// loop), tuned to baseFreq and a couple of overtone ratios — this is what
-// actually produces the pitched "ring"; whatever excites it (see
-// _excitePipe) just kicks it into motion. feedback.gain is solved so the
-// loop decays to about -60dB after decaySec from a single brief impulse —
-// but GAZER's excitation isn't a brief impulse, it's a real captured
-// buffer roughly 93ms long, continuously re-exciting the loop the whole
-// time. A feedback value that decays a single click nicely can still
-// build up into a genuine, sustained "howl of feedback" when it keeps
-// getting re-fed for that long, the same way a mic pointed at its own
-// speaker does — so on top of the decay-time math, feedback.gain is also
-// hard-capped well below 1 no matter what that math would otherwise
-// solve for.
-function _buildPipeResonator(baseFreq, decaySec, partials) {
-  const input = ctx.createGain(); input.gain.value = 1;
+// A clean, simple decaying tone — a handful of sine oscillators at fixed
+// musical intervals above baseFreq, each with its own quick-attack,
+// exponential-decay envelope. This replaces an earlier feedback-comb-
+// filter "resonator" design that, across several rounds of tuning, kept
+// coming out harsh, loud, and unmusical no matter how it was adjusted —
+// a feedback loop is inherently risky to get right without being able to
+// actually listen to it. This has no feedback loop anywhere (so it
+// physically cannot howl or run away) and no noise anywhere (so there's
+// no hiss) — just plain oscillators and envelopes, the same basic
+// technique already used successfully elsewhere in this file for other
+// instruments (see _getAmalgamBaseBuffer / _playDronePhantomNote).
+// partials is an array of [ratio, amplitude] pairs — ratio is a multiple
+// of baseFreq, chosen as plain musical intervals (octaves, fifths, a
+// harmonic series) rather than arbitrary numbers, so the result is a
+// clean chord/overtone stack instead of something dissonant.
+function _buildTonalPing(baseFreq, decaySec, partials) {
   const out = ctx.createGain(); out.gain.value = 1;
-  const nodes = [input, out];
-  partials.forEach((ratio, i) => {
-    const freq = Math.min(2000, Math.max(20, baseFreq * ratio));
-    const delayTime = 1 / freq;
-    const delay = ctx.createDelay(1); delay.delayTime.value = delayTime;
-    const feedback = ctx.createGain();
-    feedback.gain.value = Math.min(0.9, Math.pow(0.001, delayTime / decaySec));
-    const damping = ctx.createBiquadFilter(); damping.type = 'lowpass'; damping.frequency.value = freq * 1.6; // tighter than before — kills the loop's own overtones fast, so it reads as a dull knock rather than a ringing whistle
-    const tap = ctx.createGain(); tap.gain.value = 1 / Math.pow(i + 1, 1.2); // higher partials quieter still
-    input.connect(delay);
-    delay.connect(damping); damping.connect(feedback); feedback.connect(delay); // the actual feedback loop
-    damping.connect(tap); tap.connect(out);
-    nodes.push(delay, feedback, damping, tap);
+  const now = ctx.currentTime;
+  partials.forEach(([ratio, amp]) => {
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = baseFreq * ratio;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(amp, now + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0005, now + decaySec);
+    osc.connect(env); env.connect(out);
+    osc.start(now); osc.stop(now + decaySec + 0.05);
+    osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
   });
-  // Nothing here is a scheduled source, so the loop never emits 'ended' on
-  // its own — disconnect everything once the ring has actually died out.
-  setTimeout(() => { nodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); }, (decaySec + 0.3) * 1000);
-  return { input, out };
-}
-
-// Wires an excitation signal (already a gain node, already .start()ed)
-// into a fresh pipe resonator and sends the resonator's ring straight to
-// the strike's own output stage — no separate ambience/room send anymore.
-// That send used to go into the shared reverb bus's convolver, whose
-// "impulse response" is just synthesized random noise (see
-// _buildReverbIRBuffer) — the actual source of the leftover hiss/white-
-// noise character even after LAZER/BLAZER's own exciters got fixed;
-// removed outright rather than turned down, since there's no way to route
-// through it without adding noise. Optionally passes a bit of the raw
-// excitation itself straight through (dryMix) so real captured texture —
-// GAZER's whole point — doesn't get entirely replaced by the resonator's
-// tone.
-function _excitePipe(excitationGain, baseFreq, decaySec, partials, dryMix) {
-  const res = _buildPipeResonator(baseFreq, decaySec, partials);
-  excitationGain.connect(res.input);
-  res.out.connect(window._amalgamStrikeOutGain);
-  if (dryMix) {
-    const dry = ctx.createGain(); dry.gain.value = dryMix;
-    excitationGain.connect(dry); dry.connect(window._amalgamStrikeOutGain);
-  }
+  return out;
 }
 
 function _strikeLazer() {
-  // Bright, instant click — the resonator's short, high-tuned ring is
-  // what gives it a thin, metallic "zap" rather than a dull thud. Only 2
-  // partials now (was 4, up to a 8.9x overtone) and a much shorter decay —
-  // more partials ringing longer is exactly what was reading as a
-  // sustained howl rather than a quick zap.
-  const buf = ctx.createBuffer(1, 3, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  d[0] = 1; d[1] = -0.6; d[2] = 0.3;
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const g = ctx.createGain(); g.gain.value = 1.2;
-  src.connect(g);
-  src.start();
-  _excitePipe(g, 660, 0.15, [1, 2], 0.15);
+  // Bright, quick "ping" — octave + fifth above 880Hz, short decay.
+  const ping = _buildTonalPing(880, 0.25, [[1, 0.5], [1.5, 0.3], [2, 0.2]]);
+  ping.connect(window._amalgamStrikeOutGain);
 }
 
 function _strikeBlazer() {
-  // Deterministic 5-sample click — same idea as LAZER's exciter, just
-  // tuned toward a longer, lower ring. A short sharp transient is
-  // broadband on its own; it never actually needed literal random noise
-  // to excite the resonator across a range of frequencies — that noise
-  // was only ever adding audible hiss, not tone. Same partial/decay
-  // reduction as LAZER above, for the same reason.
-  const buf = ctx.createBuffer(1, 5, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  d[0] = 1; d[1] = -0.7; d[2] = 0.45; d[3] = -0.25; d[4] = 0.1;
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const g = ctx.createGain(); g.gain.value = 1.0;
-  src.connect(g);
-  src.start();
-  _excitePipe(g, 210, 0.35, [1, 2], 0.05);
+  // Warmer, longer "thump" — a plain harmonic series (1st/2nd/3rd
+  // partials, same relationship as a real struck string or pipe) over a
+  // lower fundamental, decaying over about half a second.
+  const ping = _buildTonalPing(220, 0.6, [[1, 0.45], [2, 0.25], [3, 0.12]]);
+  ping.connect(window._amalgamStrikeOutGain);
 }
 
 window._amalgamCaptureBank = []; // ring buffer of real truncation-moment snapshots, newest last
@@ -2675,22 +2633,14 @@ function _strikeGazer() {
   if (!bank || !bank.length) { _strikeBlazer(); return; } // nothing real captured yet this session
   const buf = bank[Math.floor(Math.random() * bank.length)];
   const src = ctx.createBufferSource(); src.buffer = buf;
-  const g = ctx.createGain(); g.gain.value = 1.0;
-  src.connect(g);
+  const dry = ctx.createGain(); dry.gain.value = 0.6;
+  src.connect(dry); dry.connect(window._amalgamStrikeOutGain);
   src.start();
-  // The real captured moment excites the same kind of resonator as the
-  // other two modes — gives it an actual pitched ring instead of just
-  // whatever raw, often bass-heavy content happened to be in the mix at
-  // that instant. dryMix is higher here than the other two modes on
-  // purpose — some of that real captured texture coming through
-  // underneath the ring is the whole point of this mode. This mode's
-  // excitation is the real captured buffer (~93ms), not a brief click
-  // like the other two — that sustained excitation into a resonant loop
-  // is exactly the "mic pointed at its own speaker" recipe for an
-  // audible howl, so this gets an even shorter decay and fewer/lower
-  // partials than LAZER/BLAZER, on top of the hard feedback-gain cap in
-  // _buildPipeResonator.
-  _excitePipe(g, 175, 0.35, [1, 2], 0.35);
+  // A quiet, simple tonal "ping" underneath the real captured texture —
+  // gives it an actual musical pitch without replacing the real thing,
+  // and without the earlier feedback-loop resonator's risk of howling.
+  const ping = _buildTonalPing(196, 0.5, [[1, 0.3], [2, 0.15]]);
+  ping.connect(window._amalgamStrikeOutGain);
 }
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
@@ -15633,12 +15583,13 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     // REVERB_MIX_MAX (a subtle ambience wash sitting under the
     // instruments) and whose convolver is just synthesized noise anyway
     // (see _buildReverbIRBuffer) — no good for carrying an actual sound.
-    // The strike's own tone comes entirely from the resonators built in
-    // _buildPipeResonator; this is just their final volume knob. Kept
-    // very conservative (was 3, then 0.9 — both still came out dangerously
-    // loud) since a bad value here goes straight into headphones/speakers
-    // at full force with no other safety net.
-    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.08; // was 0.15 — further safety margin on top of the feedback-gain cap and shorter decays in _buildPipeResonator (see the "howl of feedback" fix there)
+    // The strike's own tone comes entirely from the plain oscillator
+    // "pings" built in _buildTonalPing; this is just their final volume
+    // knob. Kept conservative (was 3, then 0.9, then 0.15) since a bad
+    // value here goes straight into headphones/speakers at full force
+    // with no other safety net — worth raising a bit now that the source
+    // is a couple of sine tones rather than a resonant feedback loop.
+    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.12;
     window._amalgamStrikeOutGain.connect(window._normalTrackFadeGain);
     // AMALGAM STRIKE / GAZER — passive analyser tap on masterGain (not
     // connected onward anywhere, so it can't affect the audio graph),
