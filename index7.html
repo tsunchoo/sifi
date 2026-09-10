@@ -1918,16 +1918,17 @@ _resetAppColorsToDefault();
 // as before, this only changes which one the app starts on.
 setLogoNoteJump(true);
 // SATURATION CEILING (COLOR MENU) — must be initialized before the first
-// randomizeAppColors() call just below, not after. It used to sit right
-// next to that function's own definition, much later in the file — which
-// meant the very first pattern's colors always saw an uncapped ceiling
-// (window._colorSaturationCeiling was still undefined at that point),
-// while every real + press afterward saw whatever value had actually been
-// restored from localStorage. If that stored value was ever left low from
-// an earlier session, this ordering bug is exactly why only the first
-// pattern looked normal and every one after it came out desaturated.
+// randomizeAppColors() call just below, not after (an ordering bug this
+// used to have — see git history/prior conversation if that comment ever
+// comes back). No longer persisted to localStorage at all — it did
+// persist briefly, but a value dragged low during testing and then
+// forgotten about (especially once the slider moved into the MORE
+// section, out of sight) meant every future session loaded already
+// desaturated with no visible explanation. Session-only now: always
+// starts at 100% (no restriction) on a fresh load, and only changes for
+// as long as the current session's slider gets dragged.
 window._colorSaturationCeiling = 1;
-try { const _sc = localStorage.getItem('_colorSaturationCeiling'); if (_sc !== null) window._colorSaturationCeiling = (+_sc) / 100; } catch(e) {}
+try { localStorage.removeItem('_colorSaturationCeiling'); } catch(e) {} // clear out whatever got stuck there before this stopped persisting
 // Colors otherwise stay at the CSS :root defaults (plain gray/green/etc.)
 // until the first RAND/WILD press, since that's the only place
 // randomizeAppColors() was ever called from — settings sliders and
@@ -2049,7 +2050,6 @@ function randomizeAppColors() {
 // there for why the ordering matters.
 function setColorSaturationCeiling(v) {
   window._colorSaturationCeiling = v / 100;
-  try { localStorage.setItem('_colorSaturationCeiling', v); } catch(e) {}
   const out = document.getElementById('satCeilingVal'); if (out) out.textContent = v + '%';
   _reapplySaturationCeilingLive();
 }
