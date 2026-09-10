@@ -1148,6 +1148,14 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
 
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
+        <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+      </div>
+      <input type="range" id="satCeilingSlider" min="0" max="100" value="100" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
+
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
       <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
@@ -1934,6 +1942,11 @@ function _jumpLogoColor() {
   el.style.color = _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)];
 }
 function randomizeAppColors() {
+  // SATURATION CEILING (COLOR MENU) — caps how vivid any of these random
+  // picks below are allowed to land, without changing their hue/lightness
+  // ranges at all. 1 (100%, the slider's default/max) means no change
+  // from the ranges as written below.
+  const _satCap = (window._colorSaturationCeiling != null) ? window._colorSaturationCeiling : 1;
   // Lightness ranges are constrained per-role only for TOP ROW / TRACK
   // BUTTONS, since those two use a fixed label-text color elsewhere too
   // (e.g. has-notes states) that isn't repainted here — keeping them in a
@@ -1952,7 +1965,7 @@ function randomizeAppColors() {
   // everyone else, keeping its own saturation/lightness recipe (100%/50%)
   // unchanged.
   const barHue = Math.random() * 360;
-  const barSat = 0.5 + Math.random() * 0.3;
+  const barSat = Math.min(_satCap, 0.5 + Math.random() * 0.3);
   const barLight = 0.55 + Math.random() * 0.2;
   applyBarColor(_hslToHex(barHue, barSat, barLight));
   const STEP = 60; // 360° / 6 points on the wheel — the bar itself is the 6th, anchor point; these five step around from it
@@ -1961,7 +1974,7 @@ function randomizeAppColors() {
   // the contrast headroom every auto-contrast pick against it (button
   // text, the volume ruler, etc.) depends on; range width kept the same,
   // just shifted lighter.
-  const _topH = (barHue + STEP) % 360, _topS = 0.5 + Math.random() * 0.3, _topL = 0.32 + Math.random() * 0.18;
+  const _topH = (barHue + STEP) % 360, _topS = Math.min(_satCap, 0.5 + Math.random() * 0.3), _topL = 0.32 + Math.random() * 0.18;
   _applyTopColor(_hslToHex(_topH, _topS, _topL));
   // TRACK BUTTONS is still no independent roll — TOP ROW's own hue/saturation
   // with lightness pushed up, same relationship as the two default greys
@@ -1972,7 +1985,7 @@ function randomizeAppColors() {
   _applyTrackColor(_hslToHex(_topH, _topS, Math.min(0.95, _topL + 0.26)));
   // HIGHLIGHT: bar + 2 steps.
   const highlightHue = (barHue + STEP * 2) % 360;
-  const highlightSat = 0.6 + Math.random() * 0.35;
+  const highlightSat = Math.min(_satCap, 0.6 + Math.random() * 0.35);
   const highlightLight = 0.35 + Math.random() * 0.4;
   _applyHighlightColor(_hslToHex(highlightHue, highlightSat, highlightLight));
   // HIGHLIGHT 2: bar + 3 steps — same saturation/lightness recipe as
@@ -1983,10 +1996,10 @@ function randomizeAppColors() {
   // it always had, just deriving its hue from the bar now instead of
   // being its own independent random anchor.
   const highlight3Hue = (barHue + STEP * 4) % 360;
-  _applyHighlight3Color(_hslToHex(highlight3Hue, 1, 0.5));
+  _applyHighlight3Color(_hslToHex(highlight3Hue, Math.min(_satCap, 1), 0.5));
   // BACKGROUND: bar + 5 steps.
   const bgHue = (barHue + STEP * 5) % 360;
-  _applyBgColor(_hslToHex(bgHue, 0.15 + Math.random() * 0.25, 0.82 + Math.random() * 0.13));
+  _applyBgColor(_hslToHex(bgHue, Math.min(_satCap, 0.15 + Math.random() * 0.25), 0.82 + Math.random() * 0.13));
   // Re-pick each auto-contrast highlight now that TOP ROW and all 3
   // highlights have fresh values — a manual pick (1/2/3/top) stays
   // exactly where the user left it and isn't touched here. Order matters
@@ -2000,6 +2013,19 @@ function randomizeAppColors() {
   if (window._eqMeterColorMode === 'auto') _autoPickEqMeterColor();
   if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
   if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
+}
+// SATURATION CEILING (COLOR MENU) — caps how vivid randomizeAppColors()'s
+// picks above are allowed to land (see _satCap inside it). Only takes
+// effect the next time colors actually randomize — the main + button
+// (via WILD, see randAll()) or the RANDOMIZE COLORS button itself —
+// dragging this slider doesn't retroactively change whatever's on screen
+// right now. 100 (the default/max) means no restriction at all.
+window._colorSaturationCeiling = 1;
+try { const _sc = localStorage.getItem('_colorSaturationCeiling'); if (_sc !== null) window._colorSaturationCeiling = (+_sc) / 100; } catch(e) {}
+function setColorSaturationCeiling(v) {
+  window._colorSaturationCeiling = v / 100;
+  try { localStorage.setItem('_colorSaturationCeiling', v); } catch(e) {}
+  const out = document.getElementById('satCeilingVal'); if (out) out.textContent = v + '%';
 }
 // Live TOP ROW color control (COLOR MENU) — same "one shared hue + fixed
 // offsets" system randomizeAppColors() uses just above (bar → +60° top →
@@ -14461,6 +14487,11 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
 function showDevMenu() {
   const el = document.getElementById('devMenuOverlay');
   if (el) el.style.display = 'flex';
+  const _scSlider = document.getElementById('satCeilingSlider');
+  const _scVal = document.getElementById('satCeilingVal');
+  const _scPct = Math.round((window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 1) * 100);
+  if (_scSlider) _scSlider.value = _scPct;
+  if (_scVal) _scVal.textContent = _scPct + '%';
   // RANDOMIZE COLORS now lives in this menu — reuses the same ghost-click
   // guard _settingsOpenedAt was built for (a click meant to open the menu
   // landing on a button underneath it right as the panel appears). This
