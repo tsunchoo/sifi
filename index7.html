@@ -1147,6 +1147,14 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       </div>
       <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL SLIDER CONTRAST (temp)</div>
+        <div id="volSliderTuneVal" style="font-size:0.6rem;font-family:monospace;color:#333;">—</div>
+      </div>
+      <input type="range" id="volSliderTuneSlider" min="0" max="100" value="0" oninput="tuneVolSliderContrast(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
       <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
@@ -1323,15 +1331,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
-
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">AMALGAM STRIKE (LOGO TAP)</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button id="strikeMode_lazer" class="rec-mode-btn" onclick="setAmalgamStrikeMode('lazer')">LAZER</button>
-          <button id="strikeMode_blazer" class="rec-mode-btn" onclick="setAmalgamStrikeMode('blazer')">BLAZER</button>
-          <button id="strikeMode_gazer" class="rec-mode-btn" onclick="setAmalgamStrikeMode('gazer')">GAZER</button>
-        </div>
-      </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
@@ -1546,7 +1545,6 @@ function setSwingVal(v) {
 
 function syncSettingsPanel() {
   updateRecordModeUI();
-  updateAmalgamStrikeModeUI();
   const bv = document.getElementById('bpmVal');
   if (bv) bv.textContent = bpm + ' BPM';
   const tt = document.getElementById('topTempoBpmNum');
@@ -2472,203 +2470,6 @@ function setGlobalDelayMix(v) {
   if (window._reverbOutGain) window._reverbOutGain.gain.value = v * REVERB_MIX_MAX;
   window._globalDelayMix = v;
 }
-
-// ── AMALGAM STRIKE ──────────────────────────────────────────────────────
-// A deliberate, on-demand version of the "pipe wack" sound that used to
-// happen by accident whenever a pattern swapped mid-playback — that was
-// never actually a chord of the instruments themselves; it was the brief
-// masterGain dip in randAll() (below, "hide node creation noise") abruptly
-// truncating whatever was currently ringing, with that truncation
-// transient landing in the shared reverb bus and ringing out like a
-// struck resonant pipe.
-//
-// First pass of this routed everything into the shared reverb bus, whose
-// convolver is just a synthesized noise-decay buffer (see
-// _buildReverbIRBuffer) — cheap and fine as ambient room wash, but
-// exciting it with anything only ever produces more noise, never an
-// actual pitch. That's exactly why every mode came out toneless.
-//
-// Second pass replaced that with a physically-modeled resonator (feedback
-// comb filters) — no more noise, but across several rounds of tuning it
-// still came out harsh and unmusical, and briefly outright howled
-// (a feedback loop excited for too long is exactly a real audio-feedback
-// squeal). Getting a feedback loop to sound good by guesswork, without
-// being able to actually listen to it, turned out to not be a reliable
-// way to build this.
-//
-// Now just a handful of sine oscillators with fixed musical intervals and
-// plain exponential-decay envelopes (_buildTonalPing below) — the same
-// basic technique already used successfully elsewhere in this file (see
-// _getAmalgamBaseBuffer / _playDronePhantomNote). No feedback loop, so it
-// physically cannot howl; no noise anywhere, so there's no hiss; and the
-// pitches are picked outright (octaves, fifths, a harmonic series) rather
-// than emerging from a filter, so it's actually predictable to tune.
-//   LAZER  — a bright, quick "ping" — short decay, higher pitch.
-//   BLAZER — a warmer, longer "thump" — a plain harmonic series over a
-//            lower fundamental.
-//   GAZER  — a real snapshot grabbed off the mix at a genuine mid-play
-//            truncation (see _captureAmalgamSnapshot, called from
-//            randAll()), with a quiet tonal ping layered underneath it —
-//            falls back to BLAZER until one's been captured this session.
-window._amalgamStrikeMode = 'blazer';
-try { window._amalgamStrikeMode = localStorage.getItem('_amalgamStrikeMode') || 'blazer'; } catch(e) {}
-function setAmalgamStrikeMode(mode) {
-  window._amalgamStrikeMode = mode;
-  try { localStorage.setItem('_amalgamStrikeMode', mode); } catch(e) {}
-  updateAmalgamStrikeModeUI();
-}
-function updateAmalgamStrikeModeUI() {
-  ['lazer', 'blazer', 'gazer'].forEach(m => {
-    const el = document.getElementById('strikeMode_' + m);
-    if (el) el.classList.toggle('on', window._amalgamStrikeMode === m);
-  });
-}
-
-const _AMALGAM_STRIKE_DUCK_FACTOR = 0.55; // ~-5.2dB dip beneath whatever masterVol currently is — "a few dB" of headroom for the strike to punch through
-const _AMALGAM_STRIKE_DUCK_ATTACK = 0.015;  // fast — the duck should land right with the strike, not lag it
-const _AMALGAM_STRIKE_DUCK_RELEASE = 0.28;  // slower recovery — gives the strike's ring some room before the dry mix comes back up
-
-// Sidechain-style dip on the dry instrument mix (masterGain only — not the
-// strike's own output stage, and not the ambient reverb tail, both of
-// which sum in downstream of this) so the strike actually punches through
-// instead of just sitting under whatever's already playing.
-function _duckMainForStrike() {
-  if (!ctx || !masterGain) return;
-  const now = ctx.currentTime;
-  masterGain.gain.cancelScheduledValues(now);
-  masterGain.gain.setValueAtTime(masterGain.gain.value, now);
-  masterGain.gain.linearRampToValueAtTime(masterVol * _AMALGAM_STRIKE_DUCK_FACTOR, now + _AMALGAM_STRIKE_DUCK_ATTACK);
-  masterGain.gain.linearRampToValueAtTime(masterVol, now + _AMALGAM_STRIKE_DUCK_RELEASE);
-}
-
-function fireAmalgamStrike() {
-  if (!ctx || !window._amalgamStrikeOutGain) return; // audio engine not up yet (e.g. logo tapped before first PLAY) — nothing to excite
-  _duckMainForStrike();
-  const mode = window._amalgamStrikeMode || 'blazer';
-  if (mode === 'lazer') _strikeLazer();
-  else if (mode === 'gazer') _strikeGazer();
-  else _strikeBlazer();
-}
-
-// A clean, simple decaying tone — a handful of sine oscillators at fixed
-// musical intervals above baseFreq, each with its own quick-attack,
-// exponential-decay envelope. This replaces an earlier feedback-comb-
-// filter "resonator" design that, across several rounds of tuning, kept
-// coming out harsh, loud, and unmusical no matter how it was adjusted —
-// a feedback loop is inherently risky to get right without being able to
-// actually listen to it. This has no feedback loop anywhere (so it
-// physically cannot howl or run away) and no noise anywhere (so there's
-// no hiss) — just plain oscillators and envelopes, the same basic
-// technique already used successfully elsewhere in this file for other
-// instruments (see _getAmalgamBaseBuffer / _playDronePhantomNote).
-// freqs is an array of actual frequencies (not ratios of one root) — see
-// _amalgamStrikeChord below for where those come from — each with its own
-// entry in amps. All notes start at the exact same instant — an earlier
-// version staggered onsets by 12ms per note to make the chord read as
-// distinct notes rather than one blended tone, but that adds up to 24ms
-// of pure delay before the last note of the chord is even triggered,
-// which is a bad trade for something meant to feel like an instant
-// strike. The chord still needs to read as more than one note some other
-// way (frequency spacing, amplitude balance) — just not by delaying it.
-function _buildTonalPing(freqs, decaySec, amps) {
-  const out = ctx.createGain(); out.gain.value = 1;
-  const now = ctx.currentTime;
-  freqs.forEach((freq, i) => {
-    const amp = amps[i] !== undefined ? amps[i] : 0.3;
-    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0, now);
-    env.gain.linearRampToValueAtTime(amp, now + 0.003);
-    env.gain.exponentialRampToValueAtTime(0.0005, now + decaySec);
-    osc.connect(env); env.connect(out);
-    osc.start(now); osc.stop(now + decaySec + 0.05);
-    osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
-  });
-  return out;
-}
-
-// Builds a simple 3-note chord (root + 2 scale degrees, roughly a triad)
-// from whatever key/scale the song is actually in right now
-// (globalScaleRoot / PENTA_MINOR, the same shared state every tonal track
-// already draws from) — so the strike's pitch actually varies from
-// pattern to pattern and ties to the song, instead of always being the
-// exact same fixed note every single time. Falls back to a plain A minor
-// pentatonic triad if no scale root has been picked yet (e.g. before the
-// very first RAND). octaveShift moves the whole chord up/down by whole
-// octaves (LAZER sits an octave up, GAZER an octave down, BLAZER in the
-// middle) so the three modes are also clearly distinct registers, not
-// just different decay times on the same notes.
-function _amalgamStrikeChord(octaveShift) {
-  const root = globalScaleRoot || 220;
-  const scale = (PENTA_MINOR && PENTA_MINOR.length) ? PENTA_MINOR : SCALES['penta-min'];
-  const degrees = [scale[0], scale[Math.min(2, scale.length - 1)], scale[Math.min(4, scale.length - 1)]];
-  const octMult = Math.pow(2, octaveShift || 0);
-  return degrees.map(semi => root * Math.pow(2, semi / 12) * octMult);
-}
-
-function _strikeLazer() {
-  // Bright, quick chord — one octave up from the song's current key,
-  // short decay.
-  const ping = _buildTonalPing(_amalgamStrikeChord(1), 0.25, [0.45, 0.32, 0.24]);
-  ping.connect(window._amalgamStrikeOutGain);
-}
-
-function _strikeBlazer() {
-  // Warmer, longer chord — the song's main register, decaying over about
-  // half a second.
-  const ping = _buildTonalPing(_amalgamStrikeChord(0), 0.6, [0.4, 0.3, 0.22]);
-  ping.connect(window._amalgamStrikeOutGain);
-}
-
-window._amalgamCaptureBank = []; // ring buffer of real truncation-moment snapshots, newest last
-window._amalgamCaptureAnalyser = null; // passive tap on masterGain, created in initAudio
-const _AMALGAM_CAPTURE_BANK_MAX = 8;
-const _AMALGAM_CAPTURE_RMS_FLOOR = 0.01; // skip banking near-silent truncations (e.g. swap landed on a quiet moment)
-
-// Called from randAll(), right where it dips masterGain for a swap — reads
-// the analyser's rolling window synchronously, before that scheduled dip
-// has actually reached the output, so this captures the real, currently-
-// playing mix in the instant just before it gets cut, not the silence
-// after.
-function _captureAmalgamSnapshot() {
-  const an = window._amalgamCaptureAnalyser;
-  if (!ctx || !an) return;
-  const data = new Float32Array(an.fftSize);
-  an.getFloatTimeDomainData(data);
-  let sumSq = 0;
-  for (let i = 0; i < data.length; i++) sumSq += data[i] * data[i];
-  const rms = Math.sqrt(sumSq / data.length);
-  if (rms < _AMALGAM_CAPTURE_RMS_FLOOR) return;
-  const buf = ctx.createBuffer(1, data.length, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  const fadeSamples = Math.min(200, Math.floor(data.length * 0.05));
-  const tailStart = data.length - fadeSamples;
-  for (let i = 0; i < data.length; i++) {
-    let v = data[i];
-    if (i < fadeSamples) v *= i / fadeSamples; // fade in — the window's leading edge is an arbitrary cut, not a real onset
-    if (i >= tailStart) v *= (data.length - i) / fadeSamples; // fade out — same reason at the tail
-    d[i] = v;
-  }
-  window._amalgamCaptureBank.push(buf);
-  if (window._amalgamCaptureBank.length > _AMALGAM_CAPTURE_BANK_MAX) window._amalgamCaptureBank.shift();
-}
-
-function _strikeGazer() {
-  const bank = window._amalgamCaptureBank;
-  if (!bank || !bank.length) { _strikeBlazer(); return; } // nothing real captured yet this session
-  const buf = bank[Math.floor(Math.random() * bank.length)];
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const dry = ctx.createGain(); dry.gain.value = 0.6;
-  src.connect(dry); dry.connect(window._amalgamStrikeOutGain);
-  src.start();
-  // A quiet chord underneath the real captured texture, an octave down —
-  // gives it an actual musical pitch tied to the song's key without
-  // replacing the real thing, and without the earlier feedback-loop
-  // resonator's risk of howling.
-  const ping = _buildTonalPing(_amalgamStrikeChord(-1), 0.5, [0.28, 0.2, 0.14]);
-  ping.connect(window._amalgamStrikeOutGain);
-}
-
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
 // crunchy, low-resolution retro/chiptune sound: amplitude quantized to a
@@ -9528,6 +9329,37 @@ function _autoPickVolSliderColor() {
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const songColor = cs.getPropertyValue('--bar-color').trim() || _currentBarColor || '#aa64a6';
   document.documentElement.style.setProperty('--vol-slider-color', _ensureContrast(songColor, bg));
+  window._volSliderTuneBase = null; // resting color just changed — the tuner slider below should re-capture fresh from this, not blend from a stale base
+}
+// TEMPORARY exploration tool (COLOR MENU → "VOL SLIDER CONTRAST") — the
+// per-track volume fill's color was reported as looking washed-out even
+// though _ensureContrast above is doing its job (contrast against the
+// background is fine). The reason: _ensureContrast only ever nudges
+// LIGHTNESS toward white/black to clear the contrast threshold — it
+// never touches saturation, and it can easily land on something quite
+// light (hence pale/washed-out) to clear that threshold, especially
+// against a light --neutral-top. This slider interpolates the CURRENT
+// color's own lightness/saturation (captured once, on first touch, so it
+// doesn't keep resetting to whatever the live value is on every drag)
+// toward a bold, fully-saturated, mid-lightness version of the same hue —
+// 0 is exactly today's look, 100 is the other extreme. Once a good spot
+// is found, hardcode that lightness/saturation blend fraction (or the
+// resulting hex directly) into _autoPickVolSliderColor above, and this
+// slider and its section in the COLOR MENU can come out.
+window._volSliderTuneBase = null;
+function tuneVolSliderContrast(t) {
+  t = t / 100;
+  if (!window._volSliderTuneBase) {
+    const cs = getComputedStyle(document.documentElement);
+    const current = cs.getPropertyValue('--vol-slider-color').trim() || '#f8ff00';
+    window._volSliderTuneBase = _hexToHsl(current);
+  }
+  const [h, s0, l0] = window._volSliderTuneBase;
+  const s = s0 + (1 - s0) * t;       // toward fully saturated
+  const l = l0 + (0.5 - l0) * t;     // toward a bold mid-lightness tone
+  const hex = _hslToHex(h, s, l);
+  document.documentElement.style.setProperty('--vol-slider-color', hex);
+  const out = document.getElementById('volSliderTuneVal'); if (out) out.textContent = hex;
 }
 // Volume slider ruler (.track-vol-scale) — picks whichever of black/white
 // has the better WORST-CASE contrast against both the volume bar's own
@@ -11178,7 +11010,6 @@ function randAll(mode, opts) {
   _pendingRandTimeouts = [];
   // Briefly dip master gain to hide node creation noise
   if (ctx && masterGain) {
-    _captureAmalgamSnapshot(); // grab whatever's really sounding right now, before this dip truncates it — see AMALGAM STRIKE / GAZER above
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
     masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
@@ -14897,7 +14728,6 @@ function setTonalPercBalance(v) {
   title.addEventListener('click', () => {
     const next = _LOGO_COLOR_MODE_CYCLE[(_LOGO_COLOR_MODE_CYCLE.indexOf(window._logoColorMode) + 1) % _LOGO_COLOR_MODE_CYCLE.length];
     setLogoColorMode(next);
-    fireAmalgamStrike(); // AMALGAM STRIKE — LAZER/BLAZER/GAZER, mode picked in Settings
   });
 })();
 
@@ -15605,26 +15435,6 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
     window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
     masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
-    // AMALGAM STRIKE gets its own dedicated output stage — decoupled from
-    // the shared reverb bus above, which is deliberately mixed down at
-    // REVERB_MIX_MAX (a subtle ambience wash sitting under the
-    // instruments) and whose convolver is just synthesized noise anyway
-    // (see _buildReverbIRBuffer) — no good for carrying an actual sound.
-    // The strike's own tone comes entirely from the plain oscillator
-    // "pings" built in _buildTonalPing; this is just their final volume
-    // knob. Kept conservative (was 3, then 0.9, then 0.15) since a bad
-    // value here goes straight into headphones/speakers at full force
-    // with no other safety net — worth raising a bit now that the source
-    // is a couple of sine tones rather than a resonant feedback loop.
-    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.12;
-    window._amalgamStrikeOutGain.connect(window._normalTrackFadeGain);
-    // AMALGAM STRIKE / GAZER — passive analyser tap on masterGain (not
-    // connected onward anywhere, so it can't affect the audio graph),
-    // read synchronously from randAll()'s truncation point to bank real
-    // "pipe wack" moments as they actually happen.
-    window._amalgamCaptureAnalyser = ctx.createAnalyser();
-    window._amalgamCaptureAnalyser.fftSize = 4096;
-    masterGain.connect(window._amalgamCaptureAnalyser);
     for (let i=0; i<NUM_TRACKS; i++) {
       const g = ctx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
       const ef = ctx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
@@ -15691,8 +15501,6 @@ async function hardResetAudioEngine() {
     window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
     window._reverbSendBus = null; window._reverbOutGain = null;
-    window._amalgamCaptureAnalyser = null; window._amalgamCaptureBank = [];
-    window._amalgamStrikeOutGain = null;
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     currentStep = -1; nextStepTime = 0;
 
