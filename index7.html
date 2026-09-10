@@ -1160,9 +1160,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
-          <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+          <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
         </div>
-        <input type="range" id="satCeilingSlider" min="0" max="100" value="100" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="satCeilingSlider" min="0" max="100" value="50" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
 
@@ -1927,7 +1927,7 @@ setLogoNoteJump(true);
 // desaturated with no visible explanation. Session-only now: always
 // starts at 100% (no restriction) on a fresh load, and only changes for
 // as long as the current session's slider gets dragged.
-window._colorSaturationCeiling = 1;
+window._colorSaturationCeiling = 0.5; // hardcoded default per direct request (was 1/100%, uncapped)
 try { localStorage.removeItem('_colorSaturationCeiling'); } catch(e) {} // clear out whatever got stuck there before this stopped persisting
 // Colors otherwise stay at the CSS :root defaults (plain gray/green/etc.)
 // until the first RAND/WILD press, since that's the only place
@@ -1958,7 +1958,7 @@ function randomizeAppColors() {
   // picks below are allowed to land, without changing their hue/lightness
   // ranges at all. 1 (100%, the slider's default/max) means no change
   // from the ranges as written below.
-  const _satCap = (window._colorSaturationCeiling != null) ? window._colorSaturationCeiling : 1;
+  const _satCap = (window._colorSaturationCeiling != null) ? window._colorSaturationCeiling : 0.5;
   // Lightness ranges are constrained per-role only for TOP ROW / TRACK
   // BUTTONS, since those two use a fixed label-text color elsewhere too
   // (e.g. has-notes states) that isn't repainted here — keeping them in a
@@ -14598,7 +14598,7 @@ function showDevMenu() {
   if (el) el.style.display = 'flex';
   const _scSlider = document.getElementById('satCeilingSlider');
   const _scVal = document.getElementById('satCeilingVal');
-  const _scPct = Math.round((window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 1) * 100);
+  const _scPct = Math.round((window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 0.5) * 100);
   if (_scSlider) _scSlider.value = _scPct;
   if (_scVal) _scVal.textContent = _scPct + '%';
   // RANDOMIZE COLORS now lives in this menu — reuses the same ghost-click
