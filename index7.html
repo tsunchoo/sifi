@@ -2561,37 +2561,59 @@ function fireAmalgamStrike() {
 // no hiss) — just plain oscillators and envelopes, the same basic
 // technique already used successfully elsewhere in this file for other
 // instruments (see _getAmalgamBaseBuffer / _playDronePhantomNote).
-// partials is an array of [ratio, amplitude] pairs — ratio is a multiple
-// of baseFreq, chosen as plain musical intervals (octaves, fifths, a
-// harmonic series) rather than arbitrary numbers, so the result is a
-// clean chord/overtone stack instead of something dissonant.
-function _buildTonalPing(baseFreq, decaySec, partials) {
+// freqs is an array of actual frequencies (not ratios of one root) — see
+// _amalgamStrikeChord below for where those come from — each with its own
+// entry in amps. Onsets are staggered slightly (12ms apart) so the chord
+// reads as several distinct notes arriving together rather than blending
+// into what sounds like a single tone.
+function _buildTonalPing(freqs, decaySec, amps) {
   const out = ctx.createGain(); out.gain.value = 1;
   const now = ctx.currentTime;
-  partials.forEach(([ratio, amp]) => {
-    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = baseFreq * ratio;
+  freqs.forEach((freq, i) => {
+    const amp = amps[i] !== undefined ? amps[i] : 0.3;
+    const onset = now + i * 0.012;
+    const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0, now);
-    env.gain.linearRampToValueAtTime(amp, now + 0.004);
+    env.gain.setValueAtTime(0, onset);
+    env.gain.linearRampToValueAtTime(amp, onset + 0.004);
     env.gain.exponentialRampToValueAtTime(0.0005, now + decaySec);
     osc.connect(env); env.connect(out);
-    osc.start(now); osc.stop(now + decaySec + 0.05);
+    osc.start(onset); osc.stop(now + decaySec + 0.05);
     osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
   });
   return out;
 }
 
+// Builds a simple 3-note chord (root + 2 scale degrees, roughly a triad)
+// from whatever key/scale the song is actually in right now
+// (globalScaleRoot / PENTA_MINOR, the same shared state every tonal track
+// already draws from) — so the strike's pitch actually varies from
+// pattern to pattern and ties to the song, instead of always being the
+// exact same fixed note every single time. Falls back to a plain A minor
+// pentatonic triad if no scale root has been picked yet (e.g. before the
+// very first RAND). octaveShift moves the whole chord up/down by whole
+// octaves (LAZER sits an octave up, GAZER an octave down, BLAZER in the
+// middle) so the three modes are also clearly distinct registers, not
+// just different decay times on the same notes.
+function _amalgamStrikeChord(octaveShift) {
+  const root = globalScaleRoot || 220;
+  const scale = (PENTA_MINOR && PENTA_MINOR.length) ? PENTA_MINOR : SCALES['penta-min'];
+  const degrees = [scale[0], scale[Math.min(2, scale.length - 1)], scale[Math.min(4, scale.length - 1)]];
+  const octMult = Math.pow(2, octaveShift || 0);
+  return degrees.map(semi => root * Math.pow(2, semi / 12) * octMult);
+}
+
 function _strikeLazer() {
-  // Bright, quick "ping" — octave + fifth above 880Hz, short decay.
-  const ping = _buildTonalPing(880, 0.25, [[1, 0.5], [1.5, 0.3], [2, 0.2]]);
+  // Bright, quick chord — one octave up from the song's current key,
+  // short decay.
+  const ping = _buildTonalPing(_amalgamStrikeChord(1), 0.25, [0.45, 0.32, 0.24]);
   ping.connect(window._amalgamStrikeOutGain);
 }
 
 function _strikeBlazer() {
-  // Warmer, longer "thump" — a plain harmonic series (1st/2nd/3rd
-  // partials, same relationship as a real struck string or pipe) over a
-  // lower fundamental, decaying over about half a second.
-  const ping = _buildTonalPing(220, 0.6, [[1, 0.45], [2, 0.25], [3, 0.12]]);
+  // Warmer, longer chord — the song's main register, decaying over about
+  // half a second.
+  const ping = _buildTonalPing(_amalgamStrikeChord(0), 0.6, [0.4, 0.3, 0.22]);
   ping.connect(window._amalgamStrikeOutGain);
 }
 
@@ -2636,12 +2658,14 @@ function _strikeGazer() {
   const dry = ctx.createGain(); dry.gain.value = 0.6;
   src.connect(dry); dry.connect(window._amalgamStrikeOutGain);
   src.start();
-  // A quiet, simple tonal "ping" underneath the real captured texture —
-  // gives it an actual musical pitch without replacing the real thing,
-  // and without the earlier feedback-loop resonator's risk of howling.
-  const ping = _buildTonalPing(196, 0.5, [[1, 0.3], [2, 0.15]]);
+  // A quiet chord underneath the real captured texture, an octave down —
+  // gives it an actual musical pitch tied to the song's key without
+  // replacing the real thing, and without the earlier feedback-loop
+  // resonator's risk of howling.
+  const ping = _buildTonalPing(_amalgamStrikeChord(-1), 0.5, [0.28, 0.2, 0.14]);
   ping.connect(window._amalgamStrikeOutGain);
 }
+
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
 // crunchy, low-resolution retro/chiptune sound: amplitude quantized to a
