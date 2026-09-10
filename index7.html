@@ -1148,13 +1148,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
 
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL SLIDER CONTRAST (temp)</div>
-        <div id="volSliderTuneVal" style="font-size:0.6rem;font-family:monospace;color:#333;">—</div>
-      </div>
-      <input type="range" id="volSliderTuneSlider" min="0" max="100" value="0" oninput="tuneVolSliderContrast(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
       <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
@@ -9324,42 +9317,25 @@ function setVolSliderColor(n) {
 // hue (--bar-color) instead of picking whichever highlight contrasts
 // best — so the slider's color visibly follows the song name rather
 // than the general highlight palette.
+//
+// _ensureContrast only ever nudges LIGHTNESS toward white/black to clear
+// the contrast threshold — it never touches saturation, and can easily
+// land on something quite light (hence pale/washed-out) to clear that
+// threshold, especially against a light --neutral-top. Found via a
+// temporary exploration slider (since removed) that blending 30% of the
+// way from that result toward a bold, fully-saturated, mid-lightness
+// version of the same hue was the right amount of "less washed-out"
+// without losing the hue's actual identity.
 function _autoPickVolSliderColor() {
   const cs = getComputedStyle(document.documentElement);
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const songColor = cs.getPropertyValue('--bar-color').trim() || _currentBarColor || '#aa64a6';
-  document.documentElement.style.setProperty('--vol-slider-color', _ensureContrast(songColor, bg));
-  window._volSliderTuneBase = null; // resting color just changed — the tuner slider below should re-capture fresh from this, not blend from a stale base
-}
-// TEMPORARY exploration tool (COLOR MENU → "VOL SLIDER CONTRAST") — the
-// per-track volume fill's color was reported as looking washed-out even
-// though _ensureContrast above is doing its job (contrast against the
-// background is fine). The reason: _ensureContrast only ever nudges
-// LIGHTNESS toward white/black to clear the contrast threshold — it
-// never touches saturation, and it can easily land on something quite
-// light (hence pale/washed-out) to clear that threshold, especially
-// against a light --neutral-top. This slider interpolates the CURRENT
-// color's own lightness/saturation (captured once, on first touch, so it
-// doesn't keep resetting to whatever the live value is on every drag)
-// toward a bold, fully-saturated, mid-lightness version of the same hue —
-// 0 is exactly today's look, 100 is the other extreme. Once a good spot
-// is found, hardcode that lightness/saturation blend fraction (or the
-// resulting hex directly) into _autoPickVolSliderColor above, and this
-// slider and its section in the COLOR MENU can come out.
-window._volSliderTuneBase = null;
-function tuneVolSliderContrast(t) {
-  t = t / 100;
-  if (!window._volSliderTuneBase) {
-    const cs = getComputedStyle(document.documentElement);
-    const current = cs.getPropertyValue('--vol-slider-color').trim() || '#f8ff00';
-    window._volSliderTuneBase = _hexToHsl(current);
-  }
-  const [h, s0, l0] = window._volSliderTuneBase;
-  const s = s0 + (1 - s0) * t;       // toward fully saturated
-  const l = l0 + (0.5 - l0) * t;     // toward a bold mid-lightness tone
-  const hex = _hslToHex(h, s, l);
-  document.documentElement.style.setProperty('--vol-slider-color', hex);
-  const out = document.getElementById('volSliderTuneVal'); if (out) out.textContent = hex;
+  const contrasted = _ensureContrast(songColor, bg);
+  const [h, s0, l0] = _hexToHsl(contrasted);
+  const BLEND = 0.3;
+  const s = s0 + (1 - s0) * BLEND;
+  const l = l0 + (0.5 - l0) * BLEND;
+  document.documentElement.style.setProperty('--vol-slider-color', _hslToHex(h, s, l));
 }
 // Volume slider ruler (.track-vol-scale) — picks whichever of black/white
 // has the better WORST-CASE contrast against both the volume bar's own
