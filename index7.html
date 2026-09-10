@@ -1140,6 +1140,10 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
     </label>
 
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
+      <input type="color" id="topColorPicker" value="#555555" oninput="applyColorsFromTopRow(this.value)" style="width:36px;height:28px;padding:0;border:none;cursor:pointer;background:none;">
+    </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
       <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
@@ -1994,6 +1998,34 @@ function randomizeAppColors() {
   // above, so TRACK BUTTON ON's own background check (--track-ctrl-btn-color,
   // which usually just resolves through to --neutral-top) sees the fresh
   // value rather than a stale one.
+  if (window._topRowHighlightMode === 'auto') _autoPickTopRowHighlight();
+  if (window._volSliderColorMode === 'auto') _autoPickVolSliderColor();
+  if (window._trackBtnOnColorMode === 'auto') _autoPickTrackBtnOnColor();
+  if (window._eqMeterColorMode === 'auto') _autoPickEqMeterColor();
+  if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
+  if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
+}
+// Live TOP ROW color picker (COLOR MENU) — same "one shared hue + fixed
+// offsets" system randomizeAppColors() uses just above (bar → +60° top →
+// +60° highlight → +60° highlight2 → +60° highlight3 → +60° bg), just
+// re-anchored at whatever hue TOP ROW gets dragged to instead of a random
+// bar hue. Fires on every 'input' event while the picker is being
+// dragged (see the oninput on #topColorPicker), so the whole palette
+// recalculates live, not just on release. Every OTHER role's saturation/
+// lightness stays fixed (roughly the midpoint of randomizeAppColors()'s
+// own random range for that role) rather than re-rolling on every drag
+// tick — TOP ROW itself is always exactly the picked color, not a
+// re-derived hue/sat/light approximation of it.
+function applyColorsFromTopRow(hex) {
+  const [topH, topS, topL] = _hexToHsl(hex);
+  _applyTopColor(hex);
+  _applyTrackColor(_hslToHex(topH, topS, Math.min(0.95, topL + 0.26)));
+  const STEP = 60;
+  applyBarColor(_hslToHex(topH - STEP, 0.65, 0.65));
+  _applyHighlightColor(_hslToHex(topH + STEP, 0.775, 0.55));
+  _applyHighlight2Color(_hslToHex(topH + STEP * 2, 0.775, 0.55));
+  _applyHighlight3Color(_hslToHex(topH + STEP * 3, 1, 0.5));
+  _applyBgColor(_hslToHex(topH + STEP * 4, 0.275, 0.885));
   if (window._topRowHighlightMode === 'auto') _autoPickTopRowHighlight();
   if (window._volSliderColorMode === 'auto') _autoPickVolSliderColor();
   if (window._trackBtnOnColorMode === 'auto') _autoPickTrackBtnOnColor();
@@ -15575,7 +15607,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._amalgamStrikeConv = ctx.createConvolver();
     window._amalgamStrikeConv.normalize = false;
     window._amalgamStrikeConv.buffer = _buildReverbIRBuffer(ctx, 0.4); // fixed medium/pipe-length room — independent of the SIZE slider
-    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 3;
+    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.9; // was 3 — that was clipping hard into the limiter (described as "melted speakers"/dial-up-modem digital nasty); this is roughly -10dB down from that
     window._amalgamStrikeBus.connect(window._amalgamStrikeConv); window._amalgamStrikeConv.connect(window._amalgamStrikeOutGain); window._amalgamStrikeOutGain.connect(window._normalTrackFadeGain);
     // AMALGAM STRIKE / GAZER — passive analyser tap on masterGain (not
     // connected onward anywhere, so it can't affect the audio graph),
