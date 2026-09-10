@@ -1140,22 +1140,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
     </label>
 
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
-        <div id="topColorSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;background:#555555;"></div>
-      </div>
-      <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
-        <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-      </div>
-      <input type="range" id="satCeilingSlider" min="0" max="100" value="100" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
       <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
@@ -1165,6 +1149,21 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <!-- BG = SONG NAME COLOR checkbox removed from the UI per direct
            request — setBgFollowsBarColor and its applyBarColor() hook are
            kept intact elsewhere for this reason. -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
+          <div id="topColorSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;background:#555555;"></div>
+        </div>
+        <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
+          <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="satCeilingSlider" min="0" max="100" value="100" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
     </div>
 
     <div id="devMorePanel2" style="display:none;flex-direction:column;gap:10px;">
@@ -1918,6 +1917,17 @@ _resetAppColorsToDefault();
 // direct request — the logo tap still toggles between the two exactly
 // as before, this only changes which one the app starts on.
 setLogoNoteJump(true);
+// SATURATION CEILING (COLOR MENU) — must be initialized before the first
+// randomizeAppColors() call just below, not after. It used to sit right
+// next to that function's own definition, much later in the file — which
+// meant the very first pattern's colors always saw an uncapped ceiling
+// (window._colorSaturationCeiling was still undefined at that point),
+// while every real + press afterward saw whatever value had actually been
+// restored from localStorage. If that stored value was ever left low from
+// an earlier session, this ordering bug is exactly why only the first
+// pattern looked normal and every one after it came out desaturated.
+window._colorSaturationCeiling = 1;
+try { const _sc = localStorage.getItem('_colorSaturationCeiling'); if (_sc !== null) window._colorSaturationCeiling = (+_sc) / 100; } catch(e) {}
 // Colors otherwise stay at the CSS :root defaults (plain gray/green/etc.)
 // until the first RAND/WILD press, since that's the only place
 // randomizeAppColors() was ever called from — settings sliders and
@@ -2033,9 +2043,10 @@ function randomizeAppColors() {
 // Recomputing from that original stash rather than the currently-applied
 // (already-capped) color is what makes dragging the slider back up
 // actually restore vividness instead of compounding clamp-on-clamp down
-// to nothing. 100 (the default/max) means no restriction at all.
-window._colorSaturationCeiling = 1;
-try { const _sc = localStorage.getItem('_colorSaturationCeiling'); if (_sc !== null) window._colorSaturationCeiling = (+_sc) / 100; } catch(e) {}
+// to nothing. 100 (the default/max) means no restriction at all. Actual
+// initialization (default + localStorage restore) now happens up above,
+// before the very first randomizeAppColors() call — see the comment
+// there for why the ordering matters.
 function setColorSaturationCeiling(v) {
   window._colorSaturationCeiling = v / 100;
   try { localStorage.setItem('_colorSaturationCeiling', v); } catch(e) {}
