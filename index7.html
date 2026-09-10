@@ -2547,25 +2547,30 @@ function fireAmalgamStrike() {
 }
 
 // A small bank of feedback comb filters (delay line + damped feedback
-// loop), tuned to baseFreq and a handful of (deliberately inharmonic)
-// overtone ratios — this is what actually produces the pitched "ring";
-// whatever excites it (see _excitePipe) just kicks it into motion. Each
-// comb filter also resonates at integer multiples of its own tuning, so
-// even a handful of these stack into a dense, clangorous, tube-like
-// spectrum rather than a single clean pitch. feedback.gain is solved so
-// the loop decays to about -60dB after decaySec, regardless of frequency.
+// loop), tuned to baseFreq and a couple of overtone ratios — this is what
+// actually produces the pitched "ring"; whatever excites it (see
+// _excitePipe) just kicks it into motion. feedback.gain is solved so the
+// loop decays to about -60dB after decaySec from a single brief impulse —
+// but GAZER's excitation isn't a brief impulse, it's a real captured
+// buffer roughly 93ms long, continuously re-exciting the loop the whole
+// time. A feedback value that decays a single click nicely can still
+// build up into a genuine, sustained "howl of feedback" when it keeps
+// getting re-fed for that long, the same way a mic pointed at its own
+// speaker does — so on top of the decay-time math, feedback.gain is also
+// hard-capped well below 1 no matter what that math would otherwise
+// solve for.
 function _buildPipeResonator(baseFreq, decaySec, partials) {
   const input = ctx.createGain(); input.gain.value = 1;
   const out = ctx.createGain(); out.gain.value = 1;
   const nodes = [input, out];
   partials.forEach((ratio, i) => {
-    const freq = Math.max(20, baseFreq * ratio);
+    const freq = Math.min(2000, Math.max(20, baseFreq * ratio));
     const delayTime = 1 / freq;
     const delay = ctx.createDelay(1); delay.delayTime.value = delayTime;
     const feedback = ctx.createGain();
-    feedback.gain.value = Math.pow(0.001, delayTime / decaySec);
-    const damping = ctx.createBiquadFilter(); damping.type = 'lowpass'; damping.frequency.value = freq * 3.2; // loses a little brightness each pass, like a real resonant tube
-    const tap = ctx.createGain(); tap.gain.value = 1 / Math.pow(i + 1, 0.8); // higher partials a bit quieter
+    feedback.gain.value = Math.min(0.9, Math.pow(0.001, delayTime / decaySec));
+    const damping = ctx.createBiquadFilter(); damping.type = 'lowpass'; damping.frequency.value = freq * 1.6; // tighter than before — kills the loop's own overtones fast, so it reads as a dull knock rather than a ringing whistle
+    const tap = ctx.createGain(); tap.gain.value = 1 / Math.pow(i + 1, 1.2); // higher partials quieter still
     input.connect(delay);
     delay.connect(damping); damping.connect(feedback); feedback.connect(delay); // the actual feedback loop
     damping.connect(tap); tap.connect(out);
@@ -2601,7 +2606,10 @@ function _excitePipe(excitationGain, baseFreq, decaySec, partials, dryMix) {
 
 function _strikeLazer() {
   // Bright, instant click — the resonator's short, high-tuned ring is
-  // what gives it a thin, metallic "zap" rather than a dull thud.
+  // what gives it a thin, metallic "zap" rather than a dull thud. Only 2
+  // partials now (was 4, up to a 8.9x overtone) and a much shorter decay —
+  // more partials ringing longer is exactly what was reading as a
+  // sustained howl rather than a quick zap.
   const buf = ctx.createBuffer(1, 3, ctx.sampleRate);
   const d = buf.getChannelData(0);
   d[0] = 1; d[1] = -0.6; d[2] = 0.3;
@@ -2609,7 +2617,7 @@ function _strikeLazer() {
   const g = ctx.createGain(); g.gain.value = 1.2;
   src.connect(g);
   src.start();
-  _excitePipe(g, 660, 0.35, [1, 2.76, 5.4, 8.9], 0.15);
+  _excitePipe(g, 660, 0.15, [1, 2], 0.15);
 }
 
 function _strikeBlazer() {
@@ -2617,7 +2625,8 @@ function _strikeBlazer() {
   // tuned toward a longer, lower ring. A short sharp transient is
   // broadband on its own; it never actually needed literal random noise
   // to excite the resonator across a range of frequencies — that noise
-  // was only ever adding audible hiss, not tone.
+  // was only ever adding audible hiss, not tone. Same partial/decay
+  // reduction as LAZER above, for the same reason.
   const buf = ctx.createBuffer(1, 5, ctx.sampleRate);
   const d = buf.getChannelData(0);
   d[0] = 1; d[1] = -0.7; d[2] = 0.45; d[3] = -0.25; d[4] = 0.1;
@@ -2625,7 +2634,7 @@ function _strikeBlazer() {
   const g = ctx.createGain(); g.gain.value = 1.0;
   src.connect(g);
   src.start();
-  _excitePipe(g, 210, 1.1, [1, 2.4, 3.8, 5.3], 0.05);
+  _excitePipe(g, 210, 0.35, [1, 2], 0.05);
 }
 
 window._amalgamCaptureBank = []; // ring buffer of real truncation-moment snapshots, newest last
@@ -2674,8 +2683,14 @@ function _strikeGazer() {
   // whatever raw, often bass-heavy content happened to be in the mix at
   // that instant. dryMix is higher here than the other two modes on
   // purpose — some of that real captured texture coming through
-  // underneath the ring is the whole point of this mode.
-  _excitePipe(g, 175, 1.4, [1, 2.4, 3.8, 5.3], 0.35);
+  // underneath the ring is the whole point of this mode. This mode's
+  // excitation is the real captured buffer (~93ms), not a brief click
+  // like the other two — that sustained excitation into a resonant loop
+  // is exactly the "mic pointed at its own speaker" recipe for an
+  // audible howl, so this gets an even shorter decay and fewer/lower
+  // partials than LAZER/BLAZER, on top of the hard feedback-gain cap in
+  // _buildPipeResonator.
+  _excitePipe(g, 175, 0.35, [1, 2], 0.35);
 }
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
@@ -15623,7 +15638,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     // very conservative (was 3, then 0.9 — both still came out dangerously
     // loud) since a bad value here goes straight into headphones/speakers
     // at full force with no other safety net.
-    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.15;
+    window._amalgamStrikeOutGain = ctx.createGain(); window._amalgamStrikeOutGain.gain.value = 0.08; // was 0.15 — further safety margin on top of the feedback-gain cap and shorter decays in _buildPipeResonator (see the "howl of feedback" fix there)
     window._amalgamStrikeOutGain.connect(window._normalTrackFadeGain);
     // AMALGAM STRIKE / GAZER — passive analyser tap on masterGain (not
     // connected onward anywhere, so it can't affect the audio graph),
