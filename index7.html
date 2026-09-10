@@ -2563,22 +2563,25 @@ function fireAmalgamStrike() {
 // instruments (see _getAmalgamBaseBuffer / _playDronePhantomNote).
 // freqs is an array of actual frequencies (not ratios of one root) — see
 // _amalgamStrikeChord below for where those come from — each with its own
-// entry in amps. Onsets are staggered slightly (12ms apart) so the chord
-// reads as several distinct notes arriving together rather than blending
-// into what sounds like a single tone.
+// entry in amps. All notes start at the exact same instant — an earlier
+// version staggered onsets by 12ms per note to make the chord read as
+// distinct notes rather than one blended tone, but that adds up to 24ms
+// of pure delay before the last note of the chord is even triggered,
+// which is a bad trade for something meant to feel like an instant
+// strike. The chord still needs to read as more than one note some other
+// way (frequency spacing, amplitude balance) — just not by delaying it.
 function _buildTonalPing(freqs, decaySec, amps) {
   const out = ctx.createGain(); out.gain.value = 1;
   const now = ctx.currentTime;
   freqs.forEach((freq, i) => {
     const amp = amps[i] !== undefined ? amps[i] : 0.3;
-    const onset = now + i * 0.012;
     const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0, onset);
-    env.gain.linearRampToValueAtTime(amp, onset + 0.004);
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(amp, now + 0.003);
     env.gain.exponentialRampToValueAtTime(0.0005, now + decaySec);
     osc.connect(env); env.connect(out);
-    osc.start(onset); osc.stop(now + decaySec + 0.05);
+    osc.start(now); osc.stop(now + decaySec + 0.05);
     osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
   });
   return out;
