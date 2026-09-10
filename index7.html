@@ -2429,18 +2429,32 @@ function setGlobalDelayMix(v) {
 // masterGain dip in randAll() (below, "hide node creation noise") abruptly
 // truncating whatever was currently ringing, with that truncation
 // transient landing in the shared reverb bus and ringing out like a
-// struck resonant pipe. Firing it here on purpose means excite the same
-// reverb bus with a purpose-built transient instead of hoping a real
-// truncation lines up.
+// struck resonant pipe.
 //
-// Three interchangeable exciters, selectable in Settings:
-//   LAZER  — a bare, always-identical broadband click. Cheapest, thinnest.
-//   BLAZER — a short resonant-filtered noise burst tuned toward the
-//            hollow/tubular character of the original, not just a click.
-//   GAZER  — plays back an actual snapshot grabbed off the real mix at a
-//            genuine mid-play truncation (see _captureAmalgamSnapshot,
-//            called from randAll()) — the real thing, when one's been
-//            captured yet this session; falls back to BLAZER until then.
+// First pass of this routed everything into the shared reverb bus, whose
+// convolver is just a synthesized noise-decay buffer (see
+// _buildReverbIRBuffer) — cheap and fine as ambient room wash, but
+// exciting it with anything only ever produces more noise, never an
+// actual pitch. That's exactly why every mode came out toneless: LAZER
+// and BLAZER were short noise transients hitting that same noisy IR, and
+// GAZER's real captured audio went through it too, burying whatever tone
+// it had under more noise on top.
+//
+// Fixed with an actual resonator now (_buildPipeResonator below): a small
+// bank of feedback comb filters (delay line + damped feedback loop),
+// tuned to a fundamental and a few inharmonic overtones — the way a real
+// length of pipe actually rings when struck. Each mode differs only in
+// what excites the resonator and how it's tuned:
+//   LAZER  — a bare, instant click excites a short, high, bright ring —
+//            thin and metallic, a "zap" rather than a boom.
+//   BLAZER — a short (~8ms) noise transient excites a longer, lower ring —
+//            the transient itself is brief enough now that the actual
+//            tone (not the noise exciting it) is what's audible.
+//   GAZER  — a real snapshot grabbed off the mix at a genuine mid-play
+//            truncation (see _captureAmalgamSnapshot, called from
+//            randAll()) excites the same kind of ring, so it's got both
+//            the real captured texture AND an actual pitch on top —
+//            falls back to BLAZER until one's been captured this session.
 window._amalgamStrikeMode = 'blazer';
 try { window._amalgamStrikeMode = localStorage.getItem('_amalgamStrikeMode') || 'blazer'; } catch(e) {}
 function setAmalgamStrikeMode(mode) {
@@ -2481,39 +2495,87 @@ function fireAmalgamStrike() {
   else _strikeBlazer();
 }
 
+// A small bank of feedback comb filters (delay line + damped feedback
+// loop), tuned to baseFreq and a handful of (deliberately inharmonic)
+// overtone ratios — this is what actually produces the pitched "ring";
+// whatever excites it (see _excitePipe) just kicks it into motion. Each
+// comb filter also resonates at integer multiples of its own tuning, so
+// even a handful of these stack into a dense, clangorous, tube-like
+// spectrum rather than a single clean pitch. feedback.gain is solved so
+// the loop decays to about -60dB after decaySec, regardless of frequency.
+function _buildPipeResonator(baseFreq, decaySec, partials) {
+  const input = ctx.createGain(); input.gain.value = 1;
+  const out = ctx.createGain(); out.gain.value = 1;
+  const nodes = [input, out];
+  partials.forEach((ratio, i) => {
+    const freq = Math.max(20, baseFreq * ratio);
+    const delayTime = 1 / freq;
+    const delay = ctx.createDelay(1); delay.delayTime.value = delayTime;
+    const feedback = ctx.createGain();
+    feedback.gain.value = Math.pow(0.001, delayTime / decaySec);
+    const damping = ctx.createBiquadFilter(); damping.type = 'lowpass'; damping.frequency.value = freq * 3.2; // loses a little brightness each pass, like a real resonant tube
+    const tap = ctx.createGain(); tap.gain.value = 1 / Math.pow(i + 1, 0.8); // higher partials a bit quieter
+    input.connect(delay);
+    delay.connect(damping); damping.connect(feedback); feedback.connect(delay); // the actual feedback loop
+    damping.connect(tap); tap.connect(out);
+    nodes.push(delay, feedback, damping, tap);
+  });
+  // Nothing here is a scheduled source, so the loop never emits 'ended' on
+  // its own — disconnect everything once the ring has actually died out.
+  setTimeout(() => { nodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); }, (decaySec + 0.3) * 1000);
+  return { input, out };
+}
+
+// Wires an excitation signal (already a gain node, already .start()ed)
+// into a fresh pipe resonator, sends the resonator's ring to the strike's
+// main (loud, dry) output stage, a touch of it into the shared ambience
+// bus for a little room glue, and optionally a bit of the raw excitation
+// itself straight through (dryMix) so real captured texture — GAZER's
+// whole point — doesn't get entirely replaced by the resonator's tone.
+function _excitePipe(excitationGain, baseFreq, decaySec, partials, dryMix) {
+  const res = _buildPipeResonator(baseFreq, decaySec, partials);
+  excitationGain.connect(res.input);
+  res.out.connect(window._amalgamStrikeOutGain);
+  const roomSend = ctx.createGain(); roomSend.gain.value = 0.12;
+  res.out.connect(roomSend); roomSend.connect(window._amalgamStrikeBus);
+  if (dryMix) {
+    const dry = ctx.createGain(); dry.gain.value = dryMix;
+    excitationGain.connect(dry); dry.connect(window._amalgamStrikeOutGain);
+  }
+}
+
 function _strikeLazer() {
-  // A couple of alternating-polarity samples right at the front rather
-  // than a true single-sample impulse — a lone sample is often filtered
-  // down to near-nothing before it ever reaches the reverb; this still
-  // reads as a sharp, thin, digital "tick" exciting the convolver.
+  // Bright, instant click — the resonator's short, high-tuned ring is
+  // what gives it a thin, metallic "zap" rather than a dull thud.
   const buf = ctx.createBuffer(1, 3, ctx.sampleRate);
   const d = buf.getChannelData(0);
   d[0] = 1; d[1] = -0.6; d[2] = 0.3;
   const src = ctx.createBufferSource(); src.buffer = buf;
-  const g = ctx.createGain(); g.gain.value = 0.9;
-  src.connect(g); g.connect(window._amalgamStrikeBus);
+  const g = ctx.createGain(); g.gain.value = 1.2;
+  src.connect(g);
   src.start();
+  _excitePipe(g, 660, 0.35, [1, 2.76, 5.4, 8.9], 0.15);
 }
 
 function _strikeBlazer() {
-  const dur = 0.09;
+  // ~8ms noise transient — short enough that it's just kicking the
+  // resonator into ringing, not sustaining long enough to bury the tone
+  // underneath it (a 90ms burst was the actual problem before: by the
+  // time the tone would've come through, the noise itself hadn't stopped
+  // yet).
+  const dur = 0.008;
   const sr = ctx.sampleRate;
   const buf = ctx.createBuffer(1, Math.ceil(sr * dur), sr);
   const d = buf.getChannelData(0);
   for (let i = 0; i < d.length; i++) {
     const t = i / sr;
-    const env = t < 0.002 ? (t / 0.002) : Math.exp(-(t - 0.002) * 90); // near-instant attack, fast exponential decay
-    d[i] = (Math.random() * 2 - 1) * env;
+    d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t / dur, 1.5);
   }
   const src = ctx.createBufferSource(); src.buffer = buf;
-  // Two resonant bandpass stages tuned toward a hollow, tubular character
-  // rather than a flat click — this is most of what makes it read as a
-  // struck pipe instead of just noise hitting reverb.
-  const bp1 = ctx.createBiquadFilter(); bp1.type = 'bandpass'; bp1.frequency.value = 340; bp1.Q.value = 8;
-  const bp2 = ctx.createBiquadFilter(); bp2.type = 'bandpass'; bp2.frequency.value = 780; bp2.Q.value = 10;
-  const g = ctx.createGain(); g.gain.value = 0.8;
-  src.connect(bp1); bp1.connect(bp2); bp2.connect(g); g.connect(window._amalgamStrikeBus);
+  const g = ctx.createGain(); g.gain.value = 1.4;
+  src.connect(g);
   src.start();
+  _excitePipe(g, 210, 1.1, [1, 2.4, 3.8, 5.3], 0.05);
 }
 
 window._amalgamCaptureBank = []; // ring buffer of real truncation-moment snapshots, newest last
@@ -2555,8 +2617,15 @@ function _strikeGazer() {
   const buf = bank[Math.floor(Math.random() * bank.length)];
   const src = ctx.createBufferSource(); src.buffer = buf;
   const g = ctx.createGain(); g.gain.value = 1.0;
-  src.connect(g); g.connect(window._amalgamStrikeBus);
+  src.connect(g);
   src.start();
+  // The real captured moment excites the same kind of resonator as the
+  // other two modes — gives it an actual pitched ring instead of just
+  // whatever raw, often bass-heavy content happened to be in the mix at
+  // that instant. dryMix is higher here than the other two modes on
+  // purpose — some of that real captured texture coming through
+  // underneath the ring is the whole point of this mode.
+  _excitePipe(g, 175, 1.4, [1, 2.4, 3.8, 5.3], 0.35);
 }
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
@@ -2961,7 +3030,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.25 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ride' && _beatType === 'mozambique') ? 0.3178 : (key === 'ride') ? 0.225 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick') ? 0.1991 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.9977 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.7063 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); CONGA/BONGO +1dB more (was 0.5959); SIDESTICK -1.5dB more (was 0.2366, -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); HANDCLAP +1dB more (was 0.2228, +2dB before that, was 0.177); TOM HI/MID/LOW +3dB from the 0.5 default (0.5 * 10^(3/20)); RIDE +3dB specifically in MOZAMBIQUE (was 0.225, same as every other beat type still) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI +3dB more, specifically in MOZAMBIQUE only (was 0.7063, same as every other beat type and same as TOM MID/LOW still) — even accented and already at the shared tom boost, its own sample reads quieter than RIDE/SIDESTICK there
+  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.25 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ride' && _beatType === 'mozambique') ? 0.3178 : (key === 'ride') ? 0.225 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3156 : (key === 'sidestick') ? 0.1991 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.9977 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.7063 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); CONGA/BONGO +1dB more (was 0.5959); SIDESTICK -1.5dB more (was 0.2366, -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA (was 0.1991, same as every other beat type still) — carrying the whole clave pattern on its own track there, it needs to sit up front rather than at the same level it plays a supporting role at everywhere else; HANDCLAP +1dB more (was 0.2228, +2dB before that, was 0.177); TOM HI/MID/LOW +3dB from the 0.5 default (0.5 * 10^(3/20)); RIDE +3dB specifically in MOZAMBIQUE (was 0.225, same as every other beat type still) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI +3dB more, specifically in MOZAMBIQUE only (was 0.7063, same as every other beat type and same as TOM MID/LOW still) — even accented and already at the shared tom boost, its own sample reads quieter than RIDE/SIDESTICK there
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
