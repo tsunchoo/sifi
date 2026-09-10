@@ -1467,6 +1467,7 @@ const INSTRUMENTS = {
   bongLo: { name: 'BONGO LO',    soft: 'Sounds/BongLo50.wav', accent: 'Sounds/BongLo100.wav', group: 'perc' },
 
   ngate:  { name: 'NOISE',       soft: null, accent: null, group: 'perc'  },
+  brush:  { name: 'BRUSH SWEEP', soft: null, accent: null, group: 'perc'  },
   guiro:  { name: 'GUIRO',       soft: 'Sounds/Guiro.wav', accent: 'Sounds/Guiro_Scratch.wav', group: 'perc'  },
   // cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
   jcmgtr: { name: 'JINX',         soft: null, accent: null, group: 'tonal' },
@@ -1965,7 +1966,8 @@ function randomizeAppColors() {
   // everyone else, keeping its own saturation/lightness recipe (100%/50%)
   // unchanged.
   const barHue = Math.random() * 360;
-  const barSat = Math.min(_satCap, 0.5 + Math.random() * 0.3);
+  const _barSatRaw = 0.5 + Math.random() * 0.3;
+  const barSat = Math.min(_satCap, _barSatRaw);
   const barLight = 0.55 + Math.random() * 0.2;
   applyBarColor(_hslToHex(barHue, barSat, barLight));
   const STEP = 60; // 360° / 6 points on the wheel — the bar itself is the 6th, anchor point; these five step around from it
@@ -1974,7 +1976,7 @@ function randomizeAppColors() {
   // the contrast headroom every auto-contrast pick against it (button
   // text, the volume ruler, etc.) depends on; range width kept the same,
   // just shifted lighter.
-  const _topH = (barHue + STEP) % 360, _topS = Math.min(_satCap, 0.5 + Math.random() * 0.3), _topL = 0.32 + Math.random() * 0.18;
+  const _topH = (barHue + STEP) % 360, _topSatRaw = 0.5 + Math.random() * 0.3, _topS = Math.min(_satCap, _topSatRaw), _topL = 0.32 + Math.random() * 0.18;
   _applyTopColor(_hslToHex(_topH, _topS, _topL));
   // TRACK BUTTONS is still no independent roll — TOP ROW's own hue/saturation
   // with lightness pushed up, same relationship as the two default greys
@@ -1985,7 +1987,8 @@ function randomizeAppColors() {
   _applyTrackColor(_hslToHex(_topH, _topS, Math.min(0.95, _topL + 0.26)));
   // HIGHLIGHT: bar + 2 steps.
   const highlightHue = (barHue + STEP * 2) % 360;
-  const highlightSat = Math.min(_satCap, 0.6 + Math.random() * 0.35);
+  const _highlightSatRaw = 0.6 + Math.random() * 0.35;
+  const highlightSat = Math.min(_satCap, _highlightSatRaw);
   const highlightLight = 0.35 + Math.random() * 0.4;
   _applyHighlightColor(_hslToHex(highlightHue, highlightSat, highlightLight));
   // HIGHLIGHT 2: bar + 3 steps — same saturation/lightness recipe as
@@ -1999,7 +2002,14 @@ function randomizeAppColors() {
   _applyHighlight3Color(_hslToHex(highlight3Hue, Math.min(_satCap, 1), 0.5));
   // BACKGROUND: bar + 5 steps.
   const bgHue = (barHue + STEP * 5) % 360;
-  _applyBgColor(_hslToHex(bgHue, Math.min(_satCap, 0.15 + Math.random() * 0.25), 0.82 + Math.random() * 0.13));
+  const _bgSatRaw = 0.15 + Math.random() * 0.25;
+  _applyBgColor(_hslToHex(bgHue, Math.min(_satCap, _bgSatRaw), 0.82 + Math.random() * 0.13));
+  // Raw (pre-cap) saturations, kept so the SATURATION CEILING slider can
+  // recompute live as it's dragged (see setColorSaturationCeiling below)
+  // without needing a fresh randomize to see the effect — dragging the
+  // ceiling up and down re-blends from these original values each time,
+  // rather than compounding a clamp-of-a-clamp.
+  window._colorBaseSat = { bar: _barSatRaw, top: _topSatRaw, highlight: _highlightSatRaw, highlight3: 1, bg: _bgSatRaw };
   // Re-pick each auto-contrast highlight now that TOP ROW and all 3
   // highlights have fresh values — a manual pick (1/2/3/top) stays
   // exactly where the user left it and isn't touched here. Order matters
@@ -2014,18 +2024,55 @@ function randomizeAppColors() {
   if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
   if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
 }
-// SATURATION CEILING (COLOR MENU) — caps how vivid randomizeAppColors()'s
-// picks above are allowed to land (see _satCap inside it). Only takes
-// effect the next time colors actually randomize — the main + button
-// (via WILD, see randAll()) or the RANDOMIZE COLORS button itself —
-// dragging this slider doesn't retroactively change whatever's on screen
-// right now. 100 (the default/max) means no restriction at all.
+// SATURATION CEILING (COLOR MENU) — caps how vivid any randomizeAppColors()
+// pick is allowed to land. Also reapplies live as the slider is dragged —
+// see _reapplySaturationCeilingLive below — recomputed each time from the
+// ORIGINAL (pre-cap) saturations randomizeAppColors() stashed in
+// window._colorBaseSat, combined with whatever hue/lightness is currently
+// showing for each role (neither of which the ceiling ever touches).
+// Recomputing from that original stash rather than the currently-applied
+// (already-capped) color is what makes dragging the slider back up
+// actually restore vividness instead of compounding clamp-on-clamp down
+// to nothing. 100 (the default/max) means no restriction at all.
 window._colorSaturationCeiling = 1;
 try { const _sc = localStorage.getItem('_colorSaturationCeiling'); if (_sc !== null) window._colorSaturationCeiling = (+_sc) / 100; } catch(e) {}
 function setColorSaturationCeiling(v) {
   window._colorSaturationCeiling = v / 100;
   try { localStorage.setItem('_colorSaturationCeiling', v); } catch(e) {}
   const out = document.getElementById('satCeilingVal'); if (out) out.textContent = v + '%';
+  _reapplySaturationCeilingLive();
+}
+function _reapplySaturationCeilingLive() {
+  const base = window._colorBaseSat;
+  if (!base) return; // nothing's been randomized yet this session — nothing to re-blend
+  const cap = window._colorSaturationCeiling;
+  const cs = getComputedStyle(document.documentElement);
+  const recolor = (currentHex, baseSatKey, applyFn) => {
+    if (!currentHex || currentHex[0] !== '#') return;
+    const [h, , l] = _hexToHsl(currentHex);
+    applyFn(_hslToHex(h, Math.min(cap, base[baseSatKey]), l));
+  };
+  recolor(_currentBarColor, 'bar', applyBarColor);
+  const topHex = cs.getPropertyValue('--neutral-top').trim();
+  recolor(topHex, 'top', _applyTopColor);
+  recolor(cs.getPropertyValue('--playhead-color').trim(), 'highlight', _applyHighlightColor);
+  recolor(cs.getPropertyValue('--highlight2-color').trim(), 'highlight', _applyHighlight2Color);
+  recolor(cs.getPropertyValue('--highlight3-color').trim(), 'highlight3', _applyHighlight3Color);
+  recolor(cs.getPropertyValue('--bg').trim(), 'bg', _applyBgColor);
+  // TRACK BUTTONS follows TOP ROW's own hue/saturation directly, same
+  // relationship randomizeAppColors() uses (lightness = top row's own
+  // lightness + 0.26) — re-derive it the same way rather than trying to
+  // read the relationship back out of whatever's currently applied.
+  if (topHex && topHex[0] === '#') {
+    const [th, , tl] = _hexToHsl(topHex);
+    _applyTrackColor(_hslToHex(th, Math.min(cap, base.top), Math.min(0.95, tl + 0.26)));
+  }
+  if (window._topRowHighlightMode === 'auto') _autoPickTopRowHighlight();
+  if (window._volSliderColorMode === 'auto') _autoPickVolSliderColor();
+  if (window._trackBtnOnColorMode === 'auto') _autoPickTrackBtnOnColor();
+  if (window._eqMeterColorMode === 'auto') _autoPickEqMeterColor();
+  if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
+  if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
 }
 // Live TOP ROW color control (COLOR MENU) — same "one shared hue + fixed
 // offsets" system randomizeAppColors() uses just above (bar → +60° top →
@@ -2848,6 +2895,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (key === 'toms') key = (stepIdx === 7) ? 'tomHi' : 'tomLo'; // MOZAMBIQUE's combined toms track — step 7 is the hi hit, steps 14/15 are the lo hits (see _applyMozambiqueTracksToCurrentPattern); remapped to a real sample key before anything else below touches it, so gain/buffer lookups work exactly like the old separate tracks did
   if (key === 'skick')  { triggerFxEnvelope(tr, time); playSynthKick(isAccent, time, tr); return; }
   if (key === 'shihat') { triggerFxEnvelope(tr, time); playSynthHihat(isAccent, time, tr); return; }
+  if (key === 'brush')  { triggerFxEnvelope(tr, time); playBrushSweep(isAccent, time, tr); return; }
   if (key === 'amlgm')  {
     triggerFxEnvelope(tr, time);
     let dur = stepDuration();
@@ -3906,6 +3954,56 @@ function playSynthHihat(isAccent, time, tr) {
   g.gain.setValueAtTime(vol, time); g.gain.exponentialRampToValueAtTime(0.001, time + dur);
   src.start(time);
   src.onended = () => { try { src.disconnect(); hp.disconnect(); g.disconnect(); } catch(e) {} };
+}
+
+// ── Brush Sweep — a synthesized stand-in for a wire brush swept across a
+// snare head. Built from three things a plain filtered noise burst
+// doesn't have on its own:
+//   1. A SWELLING envelope, not a percussive decay — eases in as the
+//      brush makes contact, holds through the stroke, eases back out as
+//      it lifts. This shape, more than the filtering below, is what
+//      actually reads as a sweeping motion rather than a single hit.
+//   2. A filter that MOVES during the note (brightens then dulls again)
+//      standing in for the brush covering different parts of the head
+//      over the course of the stroke, instead of a static tone color.
+//   3. A slow, shallow tremolo ("flutter") standing in for the slightly
+//      uneven, bristly contact of real wire bristles — smooth filtered
+//      noise alone reads as synthetic/airy in a way real brushes don't.
+function playBrushSweep(isAccent, time, tr) {
+  if (!ctx) return;
+  const dest = getSynthConnectNode(tr);
+  const dur = isAccent ? 0.32 : 0.22; // accented sweeps are a bit wider/longer, not just louder
+  const peakVol = isAccent ? 0.34 : 0.22;
+  const sr = ctx.sampleRate;
+  const buf = ctx.createBuffer(1, Math.ceil(sr * dur), sr);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf;
+
+  // Highpass strips the boomy low end a raw noise burst would otherwise
+  // carry; lowpass keeps it airy/bristly (brush wires) rather than
+  // bright/metallic like the hihat's noise above.
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1200;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(3200, time);
+  lp.frequency.linearRampToValueAtTime(6500, time + dur * 0.55); // brightens through the middle of the stroke
+  lp.frequency.linearRampToValueAtTime(2600, time + dur);        // and dulls again as the brush lifts off
+
+  const flutter = ctx.createOscillator(); flutter.type = 'sine'; flutter.frequency.value = isAccent ? 26 : 19;
+  const flutterDepth = ctx.createGain(); flutterDepth.gain.value = 0.18;
+  const flutterGain = ctx.createGain(); flutterGain.gain.value = 0.82; // resting level the tremolo swings around
+  flutter.connect(flutterDepth); flutterDepth.connect(flutterGain.gain);
+  flutter.start(time); flutter.stop(time + dur + 0.05);
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(peakVol, time + dur * 0.22); // eases in — contact, not a hit
+  env.gain.setValueAtTime(peakVol, time + dur * 0.5);           // holds through the stroke
+  env.gain.exponentialRampToValueAtTime(0.0008, time + dur);    // eases out — lifting off
+
+  src.connect(hp); hp.connect(lp); lp.connect(flutterGain); flutterGain.connect(env); env.connect(dest);
+  src.start(time);
+  src.onended = () => { try { src.disconnect(); hp.disconnect(); lp.disconnect(); flutterGain.disconnect(); env.disconnect(); flutter.disconnect(); } catch(e) {} };
 }
 
 // ── Synth Bass with legato glide (ported from SMPLJAK) ──
