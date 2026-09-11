@@ -11104,23 +11104,12 @@ function _randomizeReverbSettings() {
 function randAll(mode, opts) {
   opts = opts || {};
   _clearAllSolo(); // a new pattern replaces every track — solo state from the old one isn't meaningful anymore
-  // WILD mode — colors randomize right along with the pattern every time
-  // a whole new one gets generated via this function (the top-row + button,
-  // both a single press and its held auto-mode loop). Skipped exactly once
-  // for the very first call — the initial startup pattern — so the
-  // default palette is what's actually visible when the app first loads,
-  // even with WILD on by default; the first real + press or auto-rand
-  // cycle after that is where WILD actually starts taking effect.
-  if (window._wildColorsEnabled) {
-    if (window._wildColorsSkipNext) window._wildColorsSkipNext = false;
-    else randomizeAppColors();
-  }
   // RANDOMIZE REVERB (Settings toggle) — same "goes along with every new
-  // pattern" reasoning as WILD colors just above: fires on every full
-  // pattern regen when the toggle is on. Also available as its own
-  // standalone icon (top row, next to the color-randomize rainbow icon)
-  // that fires this alone, without touching the pattern — see
-  // _randomizeReverbSettings() below.
+  // pattern" reasoning as WILD colors below: fires on every full pattern
+  // regen when the toggle is on. Also available as its own standalone icon
+  // (top row, next to the color-randomize rainbow icon) that fires this
+  // alone, without touching the pattern — see _randomizeReverbSettings()
+  // below.
   if (window._randomizeReverbEnabled) {
     _randomizeReverbSettings();
   }
@@ -11135,6 +11124,32 @@ function randAll(mode, opts) {
   // designated as empty.
   _pendingRandTimeouts.forEach(id => clearTimeout(id));
   _pendingRandTimeouts = [];
+  // WILD mode — deferred now rather than fired as the very first thing in
+  // this function. Color repainting is a burst of style.setProperty/
+  // getComputedStyle calls across half a dozen CSS custom properties,
+  // and getComputedStyle reads can force a synchronous style
+  // recalculation — real main-thread work, competing for the same thread
+  // right at the exact moment this function is also kicking off the new
+  // pattern's per-track generation (itself already staggered below, up to
+  // (NUM_TRACKS-1)*30ms out) and scheduling the masterGain dip that hides
+  // the audio-graph rebuild. Pushing colors out ~220ms — past both the
+  // dip's own 180ms recovery and the last track's staggered finalization
+  // — means color work never has a chance to contend with the
+  // time-critical part of a pattern swap. It also reads as more
+  // purposeful this way: the new pattern is already playing cleanly
+  // before the palette confirms it, rather than both landing in the same
+  // instant. Pushed into _pendingRandTimeouts like every other staggered
+  // piece of this function, so a rapid second + press correctly cancels a
+  // still-pending color change from the previous one instead of letting
+  // it land late.
+  if (window._wildColorsEnabled) {
+    if (window._wildColorsSkipNext) {
+      window._wildColorsSkipNext = false;
+    } else {
+      const _colorTid = setTimeout(() => { randomizeAppColors(); }, 220);
+      _pendingRandTimeouts.push(_colorTid);
+    }
+  }
   // Briefly dip master gain to hide node creation noise
   if (ctx && masterGain) {
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
