@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BUILD TIMESTAMP: 2026-09-12 00:17:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -992,6 +993,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 00:17:44 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1134,6 +1136,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 00:17:44 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3655,7 +3658,7 @@ function fireStepAudio(step, t) {
           playSynthHihat(false, t, -1);
           playSynthHihat(false, t + 2 * _third, -1);
           if (_beatIdx % 2 === 0) fireBeatKick(t);
-          else playDmxSnareLow(t);
+          else playSnare(t);
         }
         if (doKick) {
           const _halftimeSecondKick = (_beatType === 'halftime' && bstep === 4) ? 0.75 : undefined; // HALFTIME's 2nd kick (1+2 feel) at 75% velocity, first kick untouched
@@ -3664,7 +3667,7 @@ function fireStepAudio(step, t) {
           if (_beatType === 'reggae2') fireBeatSidestick(t); // ONE DROP — ties to its kicks on beats 2 & 4
         }
         if (_beatType === 'reggae' && (bstep === 4 || bstep === 12)) fireBeatSidestick(t); // ROCKERS — sidestick specifically on 2 & 4
-        if (doSnare) playDmxSnareLow(t); // every beat type's snare — one consistent lower-pitched/mid-EQ sound, no more per-pattern regular/bright alternation
+        if (doSnare) playSnare(t); // every beat type's snare — one consistent, plain snare, no DMX bitcrush/crack character at all, in either the bright or low-tuned variant
         if (doHat) playSynthHihat(false, t, -1);
       }
     }
@@ -3675,7 +3678,7 @@ function fireStepAudio(step, t) {
         playSynthHihat(false, t, -1);
       } else if (_beatType === 'breaks') {
         if (bstep === 6) fireBeatKick(t);   // 2&
-        if (bstep === 10) playDmxSnareLow(t);     // 3&
+        if (bstep === 10) playSnare(t);     // 3&
       } else if (_beatType === 'bounce') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // 2&, 3&
       } else if (_beatType === 'bossa') {
@@ -3685,26 +3688,26 @@ function fireStepAudio(step, t) {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1); // upbeat skank — same as ROCKERS
       } else if (_beatType === 'drive') {
         if (bstep === 3 || bstep === 11) fireBeatKick(t); // a-of-1, a-of-3
-        if (bstep === 7) playDmxSnareLow(t);                    // a-of-2
+        if (bstep === 7) playSnare(t);                    // a-of-2
       } else if (_beatType === 'rock') {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) fireBeatKick(t); // 1&, 2&, 3&, 4&
       } else if (_beatType === 'rollin') {
         if (bstep === 3 || bstep === 7 || bstep === 10 || bstep === 15) fireBeatKick(t); // a-of-1, a-of-2, &-of-3, a-of-4
       } else if (_beatType === 'doubledown') {
         if (bstep === 3 || bstep === 11) fireBeatKick(t); // 16th immediately before each snare
-        if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playDmxSnareLow(t); // restored original off-beat snare — double-time feel
+        if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSnare(t); // restored original off-beat snare — double-time feel
       } else if (_beatType === 'samba') {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
         if (bstep === 3 || bstep === 6 || bstep === 9 || bstep === 11 || bstep === 14) { if (_sambaSnareVariant === 'sidestick') playBeatSidestickSample(t); else playBeatSnareSample(t); }
       } else if (_beatType === 'swagger') {
         if (bstep === 15 || bstep === 7) fireBeatKick(t); // single kick leading into each snare — was paired with an "anticipating" kick a few steps later, which doubled up right at the start of the bar
-        if (bstep === 4 || bstep === 12) playDmxSnareLow(t);     // snare lands exactly on 2 & 4
+        if (bstep === 4 || bstep === 12) playSnare(t);     // snare lands exactly on 2 & 4
       } else if (_beatType === 'cumbia') {
         if (bstep === 2 || bstep === 3 || bstep === 6 || bstep === 7 || bstep === 10 || bstep === 11 || bstep === 14 || bstep === 15) playSynthHihat(false, t, -1);
       } else if (_beatType === 'afrobeat') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // syncopated hits, off the straight downbeats
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1); // remaining steady 8ths
-        if (bstep === 3 || bstep === 11) playDmxSnareLow(t); // pushed accent, ahead of where a backbeat would land
+        if (bstep === 3 || bstep === 11) playSnare(t); // pushed accent, ahead of where a backbeat would land
       } else if (_beatType === 'mozambique') {
         // Same off-beat 8th-note hi-hat pattern REGGAE already uses (2, 6,
         // 10, 14) — this rhythm's hi-hat happens to land in exactly the
@@ -7315,7 +7318,7 @@ function playBeatSidestick(t) {
   duckPumpTracks(t);
   if (!_renderTapBeat) return;
   const buf = buffers['sidestick'] && buffers['sidestick']['accent'];
-  if (!buf) { playDmxSnareLow(t); return; } // sample not loaded yet — fall back rather than silently drop the hit
+  if (!buf) { playSnare(t); return; } // sample not loaded yet — fall back rather than silently drop the hit
   const src = ctx.createBufferSource();
   src.buffer = buf;
   const g = ctx.createGain();
@@ -14892,12 +14895,20 @@ function setTonalPercBalance(v) {
     // already sitting here unused; this is what actually fires it. PLAY/
     // BEAT never need to remove the class themselves since the scheduler
     // re-adds it fresh every single beat while playing — this is a genuine
-    // one-off click with nothing else to naturally clear it, so it's
-    // removed here once the (non-infinite) pulse animation has finished,
-    // letting whichever playing-state animation (wobble/color-cycle) was
-    // running underneath it resume normally instead of staying stuck.
+    // one-off click with nothing else to naturally clear it. Removing it
+    // on a fixed setTimeout was cutting the animation off slightly early
+    // on some runs (a timer firing a few ms ahead of the real animation
+    // completion is exactly what reads as "snaps back" instead of easing
+    // out) — animationend fires at the actual, precise end of the 0.44s
+    // ease-out curve, every time, so the full swell-and-settle always
+    // plays out before handing back to whichever playing-state animation
+    // (wobble/color-cycle) was running underneath it.
     title.classList.remove('btn-beat-pulse'); void title.offsetWidth; title.classList.add('btn-beat-pulse');
-    setTimeout(() => title.classList.remove('btn-beat-pulse'), 460);
+    title.addEventListener('animationend', function _onLogoPulseEnd(e) {
+      if (e.animationName !== 'top-row-pulse') return; // ignore wobble/color-cycle's own animationend events
+      title.classList.remove('btn-beat-pulse');
+      title.removeEventListener('animationend', _onLogoPulseEnd);
+    });
   });
 })();
 
