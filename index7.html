@@ -414,6 +414,13 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
   touch-action: manipulation;
 }
 .beat-type-item.current, .beat-type-item.drag-hover { background: #111; color: #adff00; }
+/* SHUFFLE/JAZZ are an actual tempo change (see the triplet swing offset
+   they apply), so while tempo is locked the menu can't cross between them
+   and every other beat type in either direction — see _isSwingBeatType /
+   commitBeatMenuSelection's guard. Dimmed + inert here rather than removed,
+   so it's clear the option exists but is unavailable right now. */
+.beat-type-item.tempo-lock-blocked { opacity: 0.35; pointer-events: none; }
+.beat-type-item.tempo-lock-blocked.drag-hover { background: #555; color: #fff; }
 #beatBtn.menu-open { background: var(--top-row-pressed-bg) !important; }
 #beatBtn.menu-open:active { opacity: 1; } /* same reasoning as the other two black-on-hold fixes above */
 #turboBtn.boost-on { animation: boost-red 0.5s infinite alternate; }
@@ -999,7 +1006,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 20:54:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 21:24:19 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1142,7 +1149,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 20:54:38 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 21:24:19 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -7581,11 +7588,20 @@ setInterval(() => {
 // BEAT button: quick tap still toggles beat instantly (same responsiveness
 // as save slots). Holding — or dragging down — opens a menu of beat types
 // plus the tempo lock, which you drag over and release on rather than tap.
+// SHUFFLE (boogie) and JAZZ both apply the same triplet/swing step-timing
+// offset (see the shared `_beatType === 'boogie' || _beatType === 'jazz'`
+// checks in the scheduler) — they're the two beat types that amount to an
+// actual tempo change rather than just a different accent pattern at the
+// current tempo, which is why tempo lock treats crossing into or out of
+// them as off-limits, same direction-agnostic reasoning either way.
+function _isSwingBeatType(type) { return type === 'boogie' || type === 'jazz'; }
 function refreshBeatMenuHighlight() {
   const menu = document.getElementById('beatTypeMenu');
   if (!menu) return;
+  const currentIsSwing = _isSwingBeatType(_beatType);
   menu.querySelectorAll('.beat-type-item[data-beat]').forEach(it => {
     it.classList.toggle('current', it.dataset.beat === _beatType);
+    it.classList.toggle('tempo-lock-blocked', _tempoLocked && _isSwingBeatType(it.dataset.beat) !== currentIsSwing);
   });
 }
 let _beatMenuOpen = false;
@@ -7657,6 +7673,14 @@ function commitBeatMenuSelection(item) {
   } else if (item.id === 'beatCtrlRand') {
     onBeatCtrlRandTap();
   } else if (item.dataset.beat) {
+    // Tempo lock blocks crossing between SHUFFLE/JAZZ and every other beat
+    // type in either direction — picking either of them changes the actual
+    // tempo (triplet swing offset), which a tempo lock is specifically
+    // there to prevent, same as it already does for RAND's own beat-type
+    // pool (see _tempoLocked && _beatType !== 'boogie' elsewhere). The
+    // .tempo-lock-blocked class above keeps this in sync visually, but the
+    // check is repeated here since a drag can still land on a blocked item.
+    if (_tempoLocked && _isSwingBeatType(item.dataset.beat) !== _isSwingBeatType(_beatType)) return;
     setBeatType(item.dataset.beat);
     refreshBeatMenuHighlight();
   }
