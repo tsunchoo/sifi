@@ -124,9 +124,9 @@ body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
   25% { transform: translateX(-0.5px); }
   75% { transform: translateX(0.5px); }
 }
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle 4s linear infinite, logo-wobble 1.4s ease-in-out infinite; }
-body.seq-playing.logo-note-jump-mode #siFiTitle { animation: logo-wobble 1.4s ease-in-out infinite; }
-body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble 1.4s ease-in-out infinite; color: var(--bg); }
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle var(--logo-anim-dur, 4s) linear infinite, logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
+body.seq-playing.logo-note-jump-mode #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
+body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; color: var(--bg); }
 /* Logo tap's own scale-pulse (see #siFiTitle.press-pulse further down —
    the same snappy press-pulse RAND/+ and PLAY get on every tap, NOT
    PLAY's other, slower per-beat top-row-pulse) needs to actually win over
@@ -135,10 +135,15 @@ body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble 1.4s ease
    strictly higher than the bare playing-state rules regardless of which
    color mode is active. Without this, .press-pulse's animation was
    getting silently overridden by whichever of the 3 rules above matched,
-   any time the sequencer was actually playing. */
+   any time the sequencer was actually playing. Duration is a plain 0.5s
+   here (not var(--logo-anim-dur)) so the tap pulse always matches RAND/+'s
+   press-pulse exactly, regardless of tempo or play state — the tempo sync
+   above now goes through the --logo-anim-dur custom property instead of
+   the raw animation-duration inline style specifically so it can never
+   leak into this pulse's timing the way it used to. */
 body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle.press-pulse,
 body.seq-playing.logo-note-jump-mode #siFiTitle.press-pulse,
-body.seq-playing.logo-color-static #siFiTitle.press-pulse { animation: press-pulse 0.167s ease-out; }
+body.seq-playing.logo-color-static #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; }
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -943,7 +948,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 @keyframes slot-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 #playBtn.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; }
 #beatBtn.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; }
-#siFiTitle.press-pulse { animation: press-pulse 0.167s ease-out; display: inline-block; } /* logo tap — same snappy click-pulse RAND/+ and PLAY get on every tap (press-pulse), not PLAY's slower per-beat top-row-pulse; display:inline-block so transform:scale actually has an effect on a heading element; 3x quicker than the shared press-pulse used elsewhere */
+#siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; display: inline-block; } /* logo tap — same snappy click-pulse RAND/+ and PLAY get on every tap (press-pulse), not PLAY's slower per-beat top-row-pulse; display:inline-block so transform:scale actually has an effect on a heading element; same 0.5s as RAND/+ in every state, playing or stopped */
 .slot-btn:active { opacity: 0.7; }
 
 #loadingOverlay {
@@ -3818,7 +3823,7 @@ function togglePlay() {
     }
     document.body.classList.add('seq-playing');
     const _logoEl = document.getElementById('siFiTitle');
-    if (_logoEl) _logoEl.style.animationDuration = ((60 / bpm) * 4) + 's'; // one full measure (4 beats) per trip through all four colors
+    if (_logoEl) _logoEl.style.setProperty('--logo-anim-dur', ((60 / bpm) * 4) + 's'); // one full measure (4 beats) per trip through all four colors — custom property, not the raw animation-duration, so it can't leak into the logo's tap press-pulse (see CSS)
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch (e) {} }
     scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
     startRecallLoop();
@@ -13736,7 +13741,7 @@ function _tempoSetResting(newBpm) {
   // position proportionally rather than restarting it, so this doesn't
   // cause a visible jump.
   const _logoElTempo = document.getElementById('siFiTitle');
-  if (_logoElTempo && playing) _logoElTempo.style.animationDuration = ((60 / bpm) * 4) + 's';
+  if (_logoElTempo && playing) _logoElTempo.style.setProperty('--logo-anim-dur', ((60 / bpm) * 4) + 's'); // custom property, not raw animation-duration — see CSS comment on the logo's press-pulse rule
 }
 function showTempoScreen() {
   const el = document.getElementById('tempoScreenOverlay');
