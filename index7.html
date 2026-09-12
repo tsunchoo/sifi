@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-12 00:17:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-12 00:51:34 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -127,17 +127,18 @@ body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
 body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle 4s linear infinite, logo-wobble 1.4s ease-in-out infinite; }
 body.seq-playing.logo-note-jump-mode #siFiTitle { animation: logo-wobble 1.4s ease-in-out infinite; }
 body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble 1.4s ease-in-out infinite; color: var(--bg); }
-/* Logo tap's own scale-pulse (see #siFiTitle.btn-beat-pulse further down)
-   needs to actually win over the three playing-state animations just
-   above while a tap's pulse is running — same class list plus
-   .btn-beat-pulse, so specificity comes out strictly higher than the
-   bare playing-state rules regardless of which color mode is active.
-   Without this, .btn-beat-pulse's animation was getting silently
-   overridden by whichever of the 3 rules above matched, any time the
-   sequencer was actually playing. */
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle.btn-beat-pulse,
-body.seq-playing.logo-note-jump-mode #siFiTitle.btn-beat-pulse,
-body.seq-playing.logo-color-static #siFiTitle.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; }
+/* Logo tap's own scale-pulse (see #siFiTitle.press-pulse further down —
+   the same snappy press-pulse RAND/+ and PLAY get on every tap, NOT
+   PLAY's other, slower per-beat top-row-pulse) needs to actually win over
+   the three playing-state animations just above while a tap's pulse is
+   running — same class list plus .press-pulse, so specificity comes out
+   strictly higher than the bare playing-state rules regardless of which
+   color mode is active. Without this, .press-pulse's animation was
+   getting silently overridden by whichever of the 3 rules above matched,
+   any time the sequencer was actually playing. */
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle.press-pulse,
+body.seq-playing.logo-note-jump-mode #siFiTitle.press-pulse,
+body.seq-playing.logo-color-static #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; }
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -942,7 +943,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 @keyframes slot-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
 #playBtn.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; }
 #beatBtn.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; }
-#siFiTitle.btn-beat-pulse { animation: top-row-pulse 0.44s ease-out; display: inline-block; } /* logo tap — same pulse as PLAY/BEAT, triggered by the click itself rather than the beat clock; display:inline-block so transform:scale actually has an effect on a heading element */
+#siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; display: inline-block; } /* logo tap — same snappy click-pulse RAND/+ and PLAY get on every tap (press-pulse), not PLAY's slower per-beat top-row-pulse; display:inline-block so transform:scale actually has an effect on a heading element */
 .slot-btn:active { opacity: 0.7; }
 
 #loadingOverlay {
@@ -993,7 +994,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 00:17:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 00:51:34 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1136,7 +1137,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 00:17:44 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 00:51:34 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1278,9 +1279,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RANDOM BALANCE</div>
-          <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">3 / 3</div>
+          <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
         </div>
-        <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="3" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="width:100%;">
         <div style="display:flex;justify-content:space-between;font-size:0.55rem;font-weight:700;color:var(--dim);letter-spacing:0.5px;">
           <span>DRUMS</span>
           <span>MUSIC</span>
@@ -1289,7 +1290,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">INTENSITY</div>
-        <input type="range" id="intensitySlider" min="0" max="100" step="25" value="50" oninput="setIntensity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="width:100%;">
         <div style="display:flex;justify-content:space-between;font-size:0.55rem;font-weight:700;color:var(--dim);letter-spacing:0.5px;">
           <span>MELLOW</span>
           <span>MENTAL</span>
@@ -11061,7 +11062,7 @@ let _split32CycleCount = 0; // resets each RAND cycle, caps flam-promoted splits
 // range, per direct request. All the downstream math below is untouched
 // and still scales the same way; only the number of values the slider
 // can actually land on changed.
-let _intensitySliderVal = 50;
+let _intensitySliderVal = 25; // one notch toward MELLOW from the previous default (MEDIUM/50)
 const _intensityLevelNames = { 0: 'MELLOW', 25: 'LOW', 50: 'MEDIUM', 75: 'HIGH', 100: 'MENTAL' };
 function setIntensity(v) {
   _intensitySliderVal = +v;
@@ -11293,7 +11294,7 @@ function randAll(mode, opts) {
   } else {
     // Tonal/perc split — set via the TONAL/PERC BALANCE slider in
     // settings, defaulting to 3/3. Left = 6 perc, right = 6 tonal.
-    const tonalTarget = window._tonalPercBalance !== undefined ? window._tonalPercBalance : 3;
+    const tonalTarget = window._tonalPercBalance !== undefined ? window._tonalPercBalance : 2;
     // Count how many of each are already locked in
     const lockedTonal = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr])).length;
     const lockedPerc = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && !TONAL_KEYS.has(trackInstruments[tr])).length;
@@ -14870,7 +14871,7 @@ window._devRandOffsetEnabled = false;
 function setDevRandOffset(on) {
   window._devRandOffsetEnabled = !!on;
 }
-window._tonalPercBalance = 3; // 0-6 — how many of the 6 tracks RAND aims for tonal, the rest going to percussion
+window._tonalPercBalance = 2; // 0-6 — how many of the 6 tracks RAND aims for tonal, the rest going to percussion
 function setTonalPercBalance(v) {
   window._tonalPercBalance = +v;
   const readout = document.getElementById('tonalPercBalanceReadout');
@@ -14889,24 +14890,25 @@ function setTonalPercBalance(v) {
   title.addEventListener('click', () => {
     const next = _LOGO_COLOR_MODE_CYCLE[(_LOGO_COLOR_MODE_CYCLE.indexOf(window._logoColorMode) + 1) % _LOGO_COLOR_MODE_CYCLE.length];
     setLogoColorMode(next);
-    // Same scale-pulse PLAY/BEAT get every beat (top-row-pulse via
-    // .btn-beat-pulse), but triggered by this tap itself rather than the
-    // beat clock — the CSS rule for this (#siFiTitle.btn-beat-pulse) was
-    // already sitting here unused; this is what actually fires it. PLAY/
-    // BEAT never need to remove the class themselves since the scheduler
-    // re-adds it fresh every single beat while playing — this is a genuine
-    // one-off click with nothing else to naturally clear it. Removing it
-    // on a fixed setTimeout was cutting the animation off slightly early
-    // on some runs (a timer firing a few ms ahead of the real animation
-    // completion is exactly what reads as "snaps back" instead of easing
-    // out) — animationend fires at the actual, precise end of the 0.44s
-    // ease-out curve, every time, so the full swell-and-settle always
-    // plays out before handing back to whichever playing-state animation
-    // (wobble/color-cycle) was running underneath it.
-    title.classList.remove('btn-beat-pulse'); void title.offsetWidth; title.classList.add('btn-beat-pulse');
+    // The exact same click-pulse RAND/+ and PLAY use on every tap —
+    // _pressPulse (press-pulse: scale down to 0.85 then back, 0.5s
+    // ease-out), called here exactly like every other button that uses
+    // it — NOT PLAY's other, separate, slower per-beat pulse
+    // (top-row-pulse, scale UP to 1.09, driven by the beat clock rather
+    // than a click), which is what this used mistakenly at first and
+    // read as "much slower than the + button" since it visually is a
+    // different, slower animation entirely, not that.
+    // _pressPulse doesn't clean up after itself since normal buttons
+    // have no competing animation for it to fight with — the logo alone
+    // has an infinite wobble/color-cycle animation running underneath
+    // while playing, which needs the class removed again once this
+    // one-shot pulse actually finishes, or wobble/color-cycle never
+    // resumes. animationend fires at the true end of the 0.5s curve,
+    // every time.
+    _pressPulse('siFiTitle');
     title.addEventListener('animationend', function _onLogoPulseEnd(e) {
-      if (e.animationName !== 'top-row-pulse') return; // ignore wobble/color-cycle's own animationend events
-      title.classList.remove('btn-beat-pulse');
+      if (e.animationName !== 'press-pulse') return; // ignore wobble/color-cycle's own animationend events
+      title.classList.remove('press-pulse');
       title.removeEventListener('animationend', _onLogoPulseEnd);
     });
   });
