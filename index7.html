@@ -93,11 +93,12 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.59007rem; line-heig
    state color cycle (CSS animation) and note-jump mode (inline JS color)
    both still correctly take over once playing starts, regardless of this. */
 #siFiTitle { color: #fff; }
-/* 8-BIT MODE indicator — double-click/double-tap the logo toggles the
-   master-bus bitcrusher (see setEightBitMode()); this just marks the logo
-   itself so the state is visible at a glance. Chunky letter-spacing and a
-   hard-edged shadow instead of anything blurred/soft, to read as "blocky"
-   rather than just "different color". */
+/* 8-BIT MODE indicator — a tap on the logo turns this off if it's
+   currently on (see the click handler further down; turning it ON stays
+   SETTINGS-only); this just marks the logo itself so the state is visible
+   at a glance. Chunky letter-spacing and a hard-edged shadow instead of
+   anything blurred/soft, to read as "blocky" rather than just "different
+   color". */
 body.eight-bit-mode #siFiTitle { letter-spacing: 1px; text-shadow: 2px 2px 0 #00ff41, -1px -1px 0 #00ff41; }
 body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
 /* Logo cycles through the app's accent colors while playing — one full
@@ -335,9 +336,10 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    logo-color-cycle above) — applied to the "+" glyph specifically while
    the button is actively held in AUTO mode (.pulsing, added by the
    press-and-hold handler below), per direct request. Reuses the exact
-   same keyframes for a consistent look; not tempo-synced the way the
-   logo's own cycle is, just a fixed, simple 4s loop. */
-#randBtn.pulsing .glyph { animation: logo-color-cycle 4s linear infinite; }
+   same keyframes for a consistent look. Speed is settable in SETTINGS —
+   SPIRIT PULSE, 1x (this same 4s default) up to 10x faster (0.4s) — see
+   setSpiritPulse(). */
+#randBtn.pulsing .glyph { animation: logo-color-cycle var(--spirit-pulse-dur, 4s) linear infinite; }
 #playBtn.playing { background: var(--top-row-pressed-bg); }
 #playBtn { position: relative; }
 #saveBtn { position: relative; }
@@ -1027,7 +1029,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 20:40:50 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 21:04:06 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1175,7 +1177,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 20:40:50 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 21:04:06 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1364,6 +1366,13 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="range" id="autoRandPeriodSlider" min="0" max="3" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="flex:1;">
           <span id="autoRandPeriodReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SPIRIT PULSE</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" id="spiritPulseSlider" min="0" max="100" value="0" oninput="setSpiritPulse(this.value)" class="master-vol-slider" style="flex:1;">
+          <span id="spiritPulseReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">1X</span>
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
@@ -3039,7 +3048,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 1.1221 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); CONGA/BONGO +1dB more (was 0.5959); TIMBALE +0.5dB more still (was 1.0593, +0.5dB before that (1.0), +0.5dB before that (0.9444), +0.5dB before that (0.8916), +1dB before that, +1.5dB above CONGA/BONGO's own level before that) — no longer sharing CONGA/BONGO's exact level; SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.75 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); CONGA/BONGO +1dB more (was 0.5959); TIMBALE pulled back down to 0.75 (was 1.1221, -3.5dB) — a long series of incremental +0.5/+1dB boosts across many requests had pushed it above unity gain (1.0) and well past the per-track soft-clip's own 0.6 saturation threshold, which was causing every hit to audibly clip/distort. 0.75 keeps it clearly more prominent than CONGA/BONGO's own 0.6686 (the level it started from before any of those boosts) while sitting well clear of that ceiling; SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -5438,7 +5447,8 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
-  const vel = isAccent ? (fxOn ? 0.3216 : 0.4048) : (fxOn ? 0.2234 : 0.2812); // +1dB
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7943 : 1; // -2dB when BLAST specifically (not just FX) is on this track, per direct request
+  const vel = (isAccent ? (fxOn ? 0.3216 : 0.4048) : (fxOn ? 0.2234 : 0.2812)) * blastAtten; // +1dB
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
   // added on top. The old version capped the WHOLE envelope at ~0.2s
@@ -14873,6 +14883,19 @@ function setAutoRandPeriod(idx) {
   const readout = document.getElementById('autoRandPeriodReadout');
   if (readout) readout.textContent = _autoRandPeriod + ' BARS';
 }
+// SPIRIT PULSE — speed of the "+" glyph's color-cycle while held in AUTO
+// mode (see #randBtn.pulsing .glyph above). Slider 0-100 maps linearly to
+// a 1x-10x speed multiplier; 1x is the original fixed 4s duration this
+// always ran at before it was made adjustable.
+const SPIRIT_PULSE_BASE_DUR = 4; // seconds, at 1x (slider = 0)
+function setSpiritPulse(v) {
+  v = +v;
+  const mult = 1 + (v / 100) * 9; // 1x at v=0, 10x at v=100
+  const dur = SPIRIT_PULSE_BASE_DUR / mult;
+  document.documentElement.style.setProperty('--spirit-pulse-dur', dur + 's');
+  const readout = document.getElementById('spiritPulseReadout');
+  if (readout) readout.textContent = (Math.round(mult * 10) / 10) + 'X';
+}
 // AUTO-SWEEP — when on, SWEEP automatically engages for the whole bar
 // immediately before RAND's auto-mode generates its next pattern (i.e.
 // exactly _autoRandPeriod - 1 bars into the current cycle), then releases
@@ -15076,11 +15099,20 @@ function setTonalPercBalance(v) {
   // Used to open the instructions/performance-lock panel on press-and-hold
   // over an on-screen lock icon — replaced with a plain tap cycling
   // through the logo's 3 color modes directly, per direct request:
-  // jump -> smooth -> static -> back to jump. 8-BIT MODE used to ride
-  // this same tap too — decoupled now, moved to its own toggle in
-  // SETTINGS.
+  // jump -> smooth -> static -> back to jump. 8-BIT MODE turning ON is
+  // SETTINGS-only, but this tap turns it back OFF if it's currently on
+  // (see below) — per direct request, one-directional only.
   const _LOGO_COLOR_MODE_CYCLE = ['jump', 'smooth', 'static'];
   title.addEventListener('click', () => {
+    // 8-BIT MODE — a tap turns it OFF if it's currently on, alongside the
+    // color-mode cycle below. Deliberately one-directional: turning it ON
+    // stays exclusively a SETTINGS action, per direct request — this tap
+    // never enables it, only ever clears it.
+    if (window._eightBitEnabled) {
+      setEightBitMode(false);
+      const toggle = document.getElementById('eightBitToggle');
+      if (toggle) toggle.checked = false;
+    }
     const next = _LOGO_COLOR_MODE_CYCLE[(_LOGO_COLOR_MODE_CYCLE.indexOf(window._logoColorMode) + 1) % _LOGO_COLOR_MODE_CYCLE.length];
     setLogoColorMode(next);
     // The exact same click-pulse RAND/+ and PLAY use on every tap —
