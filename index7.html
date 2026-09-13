@@ -93,12 +93,13 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 1.59007rem; line-heig
    state color cycle (CSS animation) and note-jump mode (inline JS color)
    both still correctly take over once playing starts, regardless of this. */
 #siFiTitle { color: #fff; }
-/* 8-BIT MODE indicator — a tap on the logo turns this off if it's
-   currently on (see the click handler further down; turning it ON stays
-   SETTINGS-only); this just marks the logo itself so the state is visible
-   at a glance. Chunky letter-spacing and a hard-edged shadow instead of
-   anything blurred/soft, to read as "blocky" rather than just "different
-   color". */
+/* 8-BIT MIX indicator — this class is on whenever the mix is above 0 at
+   all (see setEightBitMix()), not just at 100%, so the logo marks the
+   crushed sound's presence in the blend rather than only a full switch.
+   A tap on the logo resets the mix back to 0 if it's currently above that
+   (see the click handler further down; raising it stays SETTINGS-only).
+   Chunky letter-spacing and a hard-edged shadow instead of anything
+   blurred/soft, to read as "blocky" rather than just "different color". */
 body.eight-bit-mode #siFiTitle { letter-spacing: 1px; text-shadow: 2px 2px 0 #00ff41, -1px -1px 0 #00ff41; }
 body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
 /* Logo cycles through the app's accent colors while playing — one full
@@ -1029,7 +1030,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 21:37:09 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 21:55:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1177,7 +1178,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 21:37:09 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 21:55:50 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1344,6 +1345,14 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
 
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="flex:1;">
+          <span id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">0%</span>
+        </div>
+      </div>
+
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TAPES</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
@@ -1382,9 +1391,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="devRandOffset" onchange="setDevRandOffset(this.checked)" style="width:14px;height:14px;cursor:pointer;">RAND OFFSET
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="eightBitToggle" onchange="setEightBitMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">8-BIT
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloIncludesBeatToggle" checked onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO + BEAT
@@ -2625,16 +2631,19 @@ function setGlobalDelayMix(v) {
 // handful of steps (bit-depth reduction) plus a sample-and-hold downsampler
 // (zero-order-hold, the classic aliased "stair-stepped" lo-fi character —
 // much cheaper than a real resampler and closer to how old 8-bit hardware
-// actually sounded). Built once and cached; toggling just re-routes
-// _postLimiterGain through it (or bypasses it) rather than rebuilding it.
+// actually sounded). Built once and cached; the mix crossfader below
+// re-balances between it and the clean signal rather than hard-switching.
 // A ScriptProcessorNode (not AudioWorklet) keeps this self-contained in a
 // single inline script with no separate module file to load.
-window._eightBitEnabled = false;
+window._eightBitEnabled = false; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"
+window._eightBitMix = 0; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position
 window._randomizeReverbEnabled = false; // RANDOMIZE REVERB toggle in Settings — off by default; see the block near the top of randAll()
 function setRandomizeReverb(on) {
   window._randomizeReverbEnabled = !!on;
 }
 window._eightBitNode = null;
+window._eightBitDryGain = null; // clean-signal leg of the crossfade
+window._eightBitWetGain = null; // crushed-signal leg of the crossfade
 function _buildEightBitNode(audioCtx) {
   const bits = 8, downsample = 6; // 8-bit depth; ~44.1kHz/6 ≈ 7.35kHz effective rate — squarely in chiptune/8-bit-console territory
   const halfLevels = Math.pow(2, bits - 1);
@@ -2658,35 +2667,54 @@ function _buildEightBitNode(audioCtx) {
   };
   return node;
 }
-// Re-routes the very end of the master chain (_postLimiterGain ->
-// destination) through the crusher, or bypasses it — safe to call before
-// ctx even exists (just records the flag; the live init block below reads
-// it when it first builds the chain) or any time after.
-function setEightBitMode(on) {
-  window._eightBitEnabled = !!on;
-  document.body.classList.toggle('eight-bit-mode', window._eightBitEnabled);
-  if (!ctx || !window._postLimiterGain) return; // graph not built yet — the init block picks up the flag when it runs
-  try { window._postLimiterGain.disconnect(); } catch(e) {}
-  if (window._eightBitEnabled) {
-    if (!window._eightBitNode) window._eightBitNode = _buildEightBitNode(ctx);
-    window._postLimiterGain.connect(window._eightBitNode);
-    window._eightBitNode.connect(ctx.destination);
-  } else {
-    window._postLimiterGain.connect(ctx.destination);
-  }
+// Splits the very end of the master chain (_postLimiterGain -> destination)
+// into two permanent parallel legs — clean and crushed — each with its own
+// gain, so the mix crossfader can blend between them instead of hard-
+// switching. Builds the split once; safe to call before ctx even exists
+// (records the flag/mix; the live init block picks it up when it first
+// builds the chain) or any time after.
+function _ensureEightBitSplit(audioCtx) {
+  if (window._eightBitDryGain) return; // already built
+  window._eightBitNode = _buildEightBitNode(audioCtx);
+  window._eightBitDryGain = audioCtx.createGain();
+  window._eightBitWetGain = audioCtx.createGain();
+  window._postLimiterGain.connect(window._eightBitDryGain);
+  window._eightBitDryGain.connect(audioCtx.destination);
+  window._postLimiterGain.connect(window._eightBitNode);
+  window._eightBitNode.connect(window._eightBitWetGain);
+  window._eightBitWetGain.connect(audioCtx.destination);
+  _applyEightBitMixGains();
 }
-// Same routing decision, used by the live-graph init block so a flag set
-// before ctx existed (logo tapped before the first sound) is honored the
-// moment the chain is actually built, instead of only applying on the next
-// explicit toggle.
+// Equal-power crossfade — sounds more even across the sweep than a plain
+// linear fade, which would dip in the middle.
+function _applyEightBitMixGains() {
+  if (!window._eightBitDryGain || !window._eightBitWetGain) return;
+  const mix = window._eightBitMix;
+  window._eightBitDryGain.gain.value = Math.cos(mix * Math.PI / 2);
+  window._eightBitWetGain.gain.value = Math.sin(mix * Math.PI / 2);
+}
+// 8-BIT MIX slider in SETTINGS — v is 0-100. 0 = fully clean, 100 = fully
+// crushed, anything between actually blends the two rather than switching.
+function setEightBitMix(v) {
+  window._eightBitMix = Math.max(0, Math.min(1, (+v) / 100));
+  window._eightBitEnabled = window._eightBitMix > 0; // derived — the body class / logo tap-to-clear below both key off this
+  document.body.classList.toggle('eight-bit-mode', window._eightBitEnabled);
+  const slider = document.getElementById('eightBitMixSlider'); if (slider) slider.value = Math.round(window._eightBitMix * 100);
+  const readout = document.getElementById('eightBitMixReadout'); if (readout) readout.textContent = Math.round(window._eightBitMix * 100) + '%';
+  if (!ctx || !window._postLimiterGain) return; // graph not built yet — _ensureEightBitSplit picks up the flag when it runs
+  _ensureEightBitSplit(ctx);
+  _applyEightBitMixGains();
+}
+// Thin on/off wrapper kept for anything still calling the old boolean API
+// (e.g. the logo tap turning this back off) — maps straight to the mix
+// slider's own two extremes.
+function setEightBitMode(on) { setEightBitMix(on ? 100 : 0); }
+// Same routing decision, used by the live-graph init block so a flag/mix
+// set before ctx existed (logo tapped, or the slider touched, before the
+// first sound) is honored the moment the chain is actually built, instead
+// of only applying on the next explicit change.
 function _connectEightBitOutput(audioCtx) {
-  if (window._eightBitEnabled) {
-    if (!window._eightBitNode) window._eightBitNode = _buildEightBitNode(audioCtx);
-    window._postLimiterGain.connect(window._eightBitNode);
-    window._eightBitNode.connect(audioCtx.destination);
-  } else {
-    window._postLimiterGain.connect(audioCtx.destination);
-  }
+  _ensureEightBitSplit(audioCtx);
 }
 
 // Per-track reverb send toggle — reuses the same trackDelay[]/delaybtn-
@@ -5443,7 +5471,7 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
-  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7943 : 1; // -2dB when BLAST specifically (not just FX) is on this track, per direct request
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.6309 : 1; // -2dB more still (was 0.7943, -2dB before that) — BLAST specifically (not just FX) on this track
   const vel = (isAccent ? (fxOn ? 0.3216 : 0.4048) : (fxOn ? 0.2234 : 0.2812)) * blastAtten; // +1dB
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
@@ -15095,14 +15123,12 @@ function setTonalPercBalance(v) {
   // (see below) — per direct request, one-directional only.
   const _LOGO_COLOR_MODE_CYCLE = ['jump', 'smooth', 'static'];
   title.addEventListener('click', () => {
-    // 8-BIT MODE — a tap turns it OFF if it's currently on, alongside the
-    // color-mode cycle below. Deliberately one-directional: turning it ON
-    // stays exclusively a SETTINGS action, per direct request — this tap
-    // never enables it, only ever clears it.
+    // 8-BIT MIX — a tap resets it back to 0 (fully clean) if it's
+    // currently above 0, alongside the color-mode cycle below.
+    // Deliberately one-directional: raising the mix stays exclusively a
+    // SETTINGS action, per direct request — this tap only ever clears it.
     if (window._eightBitEnabled) {
-      setEightBitMode(false);
-      const toggle = document.getElementById('eightBitToggle');
-      if (toggle) toggle.checked = false;
+      setEightBitMode(false); // internally calls setEightBitMix(0), which also resets the slider/readout in Settings
     }
     const next = _LOGO_COLOR_MODE_CYCLE[(_LOGO_COLOR_MODE_CYCLE.indexOf(window._logoColorMode) + 1) % _LOGO_COLOR_MODE_CYCLE.length];
     setLogoColorMode(next);
@@ -15900,6 +15926,7 @@ async function hardResetAudioEngine() {
     window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
     window._reverbSendBus = null; window._reverbOutGain = null;
+    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time, not skip on the guard thinking these still exist
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     currentStep = -1; nextStepTime = 0;
 
