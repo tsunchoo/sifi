@@ -1015,7 +1015,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 01:56:48 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 03:26:18 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1163,7 +1163,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 01:56:48 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 03:26:18 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3844,7 +3844,7 @@ function togglePlay() {
       if (TONAL_KEYS.has(trackInstruments[tr]) && grid[tr].some(v => v > 0) && !trackBassScale[tr]) {
         const root = transposeRootToRange(globalScaleRoot || BASS_ROOTS[0], getRangeRoots(trackInstruments[tr]));
         if (MIDEAST_KEYS.has(trackInstruments[tr]) && !trackScaleMode[tr]) trackScaleMode[tr] = pickOrShareMideastScale(tr);
-        trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr)); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
+        trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
         if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
       }
     }
@@ -4245,11 +4245,19 @@ const trackLockedRoot = {}; // tr -> root frequency, captured the moment L locks
 let globalScaleRoot = null;
 const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','stab','chug','bashp','denial','jcmgtr','sprkls','clar','sstring','sleg','sparkle','rhodes','rhodes2','sflute','spiano','satk','boog','fflute','blunt','damask','yamask','dulc','opening','drone','dronePlus','magic','amlgm','underpass']);
 
-function buildScaleFromRoot(root, scaleOverride) {
+function buildScaleFromRoot(root, scaleOverride, tr) {
   const scaleArr = scaleOverride || PENTA_MINOR;
   const scale = [];
   for (let oct = 0; oct < 2; oct++)
     scaleArr.forEach(s => scale.push(root * Math.pow(2, (s + oct * 12) / 12)));
+  // TALK BOX gets a few extra notes tacked onto the top — it shares
+  // BASS_ROOTS with the actual bass instruments, so without this its
+  // scale tops out at the same 2-octave ceiling they use, which reads as
+  // too capped for a lead-ish "talking" voice. Just the first few scale
+  // degrees of a 3rd octave, not a whole extra octave.
+  if (tr !== undefined && trackInstruments[tr] === 'satk') {
+    scaleArr.slice(0, 3).forEach(s => scale.push(root * Math.pow(2, (s + 24) / 12)));
+  }
   return scale;
 }
 function transposeRootToRange(root, roots) {
@@ -4344,7 +4352,7 @@ function randomizeBassTrack(tr, level) {
     for (let t = 0; t < NUM_TRACKS; t++) {
       if (t !== tr && TONAL_KEYS.has(trackInstruments[t]) && trackBassScale[t]) {
         const r2 = transposeRootToRange(root, getRangeRoots(trackInstruments[t]));
-        trackBassScale[t] = buildScaleFromRoot(r2, scaleModeFor(t));
+        trackBassScale[t] = buildScaleFromRoot(r2, scaleModeFor(t), t);
       }
     }
   }
@@ -4384,7 +4392,7 @@ function randomizeBassTrack(tr, level) {
   } else {
     delete trackScaleMode[tr];
   }
-  trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr)); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
+  trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
   if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
 
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
@@ -6999,16 +7007,19 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
 
   // Breath noise — louder and more present throughout than DAMASK's, which
   // is the main thing that reads as "flute/pan-pipe" rather than "reed."
+  // Nudged up a little (both level and center frequency) for a bit more
+  // airiness — still well short of the original "too breathy" level this
+  // was halved down from, just not quite as dry as that halving left it.
   const noiseLen = decay + 0.1;
   const noiseBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * noiseLen), ctx.sampleRate);
   const nd = noiseBuf.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
-  const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = freq * 1.8; noiseBP.Q.value = 0.5;
+  const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = freq * 2.1; noiseBP.Q.value = 0.45;
   const noiseEnv = ctx.createGain();
   noiseEnv.gain.setValueAtTime(0, time);
-  noiseEnv.gain.linearRampToValueAtTime(vel * 0.0475, time + attack * 1.2); // halved — was too breathy
-  noiseEnv.gain.setValueAtTime(vel * 0.0375, time + Math.max(attack, decay - release)); // halved
+  noiseEnv.gain.linearRampToValueAtTime(vel * 0.06, time + attack * 1.2);
+  noiseEnv.gain.setValueAtTime(vel * 0.048, time + Math.max(attack, decay - release));
   noiseEnv.gain.linearRampToValueAtTime(0.0001, time + decay);
   noise.connect(noiseBP); noiseBP.connect(noiseEnv); noiseEnv.connect(dest);
   noise.start(time); noise.stop(time + decay + 0.1);
@@ -15143,7 +15154,7 @@ function fullReset() {
     delete trackPitchOverride[tr];
     if (TONAL_KEYS.has(defaultInstruments[tr])) {
       const roots = getRangeRoots(defaultInstruments[tr]);
-      trackBassScale[tr] = buildScaleFromRoot(roots[Math.floor(Math.random() * roots.length)]);
+      trackBassScale[tr] = buildScaleFromRoot(roots[Math.floor(Math.random() * roots.length)], undefined, tr);
     }
   }
 
@@ -16239,7 +16250,7 @@ function stopRecallLoop() {
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (TONAL_KEYS.has(trackInstruments[tr])) {
         const root = transposeRootToRange(globalScaleRoot, getRangeRoots(trackInstruments[tr]));
-        trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr)); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
+        trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
         if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
       }
     }
