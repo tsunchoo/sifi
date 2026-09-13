@@ -503,7 +503,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
 /* ── Per-track inline control row ── */
 .track-ctrl-row {
   display: flex; align-items: stretch; gap: clamp(2px, 1vw, 5px);
-  height: calc(clamp(28px, 8vw, 32px) - 2px);
+  height: clamp(28px, 8vw, 32px);
   touch-action: none; /* a touch landing in the gap between buttons (missing one slightly) used to fall through to the page's own pan-y scroll — on iOS that overscroll could trigger a pull-to-refresh reload, silently losing the current pattern. Blocking it at the whole-row level, not just per-button, closes that gap. */
 }
 /* Track name button and SOLO button — first/last in this row — reach the
@@ -518,7 +518,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
   font-size: calc(clamp(0.64rem, 2.3vw, 0.86rem) * var(--track-name-font-scale, 1)); font-weight: 700; letter-spacing: 0; text-transform: uppercase;
   cursor: pointer; background: var(--neutral-track, #b0b0b0); color: var(--neutral-track-text, var(--text));
   border: none; padding: 0 4px; white-space: nowrap; overflow: hidden;
-  font-family: 'DM Sans', sans-serif; flex-shrink: 0; width: calc((clamp(78px, 22vw, 106px) * var(--track-btn-scale, 1) * 1.1) - 2px); height: calc((clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)) - 2px);
+  font-family: 'DM Sans', sans-serif; flex-shrink: 0; width: calc(clamp(78px, 22vw, 106px) * var(--track-btn-scale, 1) * 1.1); height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1));
   display: flex; align-items: center;
   touch-action: none; -webkit-tap-highlight-color: transparent;
   transition: background 0.06s, color 0.06s;
@@ -535,7 +535,7 @@ body.track-pulse-a .track-name-btn.playing { filter: brightness(1.35) saturate(1
 body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-color, var(--highlight3-color, #adff00)) !important; }
 .track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.5s infinite alternate; }
 .track-ctrl-icon-btn {
-  width: calc((32px * var(--track-btn-scale, 1)) - 2px); flex-shrink: 0;
+  width: calc(32px * var(--track-btn-scale, 1)); flex-shrink: 0;
   background: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)); border: none; color: var(--track-btn-text-color, #fff);
   font-family: 'DM Sans', sans-serif; font-size: calc(1rem * var(--track-btn-font-scale, 1)); font-weight: 700;
   letter-spacing: 0; text-transform: uppercase; cursor: pointer;
@@ -560,7 +560,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
    #333 (darker) locked. Specificity here (three classes) beats the
    shared .track-ctrl-icon-btn.sweep-on rule further down (two classes)
    regardless of source order. */
-.track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { width: calc((32px * var(--track-btn-scale, 1)) - 2px); background: #999; color: #fff; }
+.track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { width: calc(32px * var(--track-btn-scale, 1)); background: #999; color: #fff; }
 .track-ctrl-icon-btn.lock-btn.sweep-on:not(#beatCtrlL) { background: #333; color: #fff; }
 .fx-btn.on { background: var(--track-btn-on-color, #f17d21); color: var(--track-btn-on-text, #fff); }
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
@@ -642,12 +642,17 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
    */
 .shift-btn:not(.right) { font-size: calc(1rem + 0.5em); }
 .shift-btn .glyph { display: inline-block; transform: translateY(-1.25px); }
+/* The re-introduced track-offset "<" button's own glyph — moved up 2px
+   within the button, per direct request. Separate from .glyph above
+   (which sits at -1.25px) so this doesn't disturb that button's existing
+   offset. */
+.shift-btn .track-offset-glyph { display: inline-block; transform: translateY(-2px); }
 /* Track-row shift buttons ("<"/N/">") scale 5% smaller along with the
    rest of the per-track buttons — more specific than the generic
    .shift-btn rules above so it wins for these without touching the BEAT
    menu's own shift-btn instances, which aren't inside .track-ctrl-row. */
-.track-ctrl-row .shift-btn { width: calc((32px * var(--track-btn-scale, 1)) - 2px); height: calc((clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)) - 2px); font-size: calc(1rem * var(--track-btn-font-scale, 1)); }
-.track-ctrl-row .track-ctrl-icon-btn { height: calc((clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)) - 2px); } /* the only height rule .track-ctrl-icon-btn itself ever had turned out to be scoped to .beat-ctrl-row, not the track row — this one never existed at all until now, which is why FX/lock/+ were still rendering full-size */
+.track-ctrl-row .shift-btn { width: calc(32px * var(--track-btn-scale, 1)); height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)); font-size: calc(1rem * var(--track-btn-font-scale, 1)); }
+.track-ctrl-row .track-ctrl-icon-btn { height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)); } /* the only height rule .track-ctrl-icon-btn itself ever had turned out to be scoped to .beat-ctrl-row, not the track row — this one never existed at all until now, which is why FX/lock/+ were still rendering full-size */
 .track-ctrl-row .shift-btn:not(.right) { font-size: calc((1rem + 0.5em) * var(--track-btn-font-scale, 1)); }
 .track-vol-bar {
   flex: 1; position: relative; overflow: hidden;
@@ -858,7 +863,7 @@ body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-ba
 .step-lane-cells {
   display: grid; grid-template-columns: repeat(16, 1fr);
   overflow: visible;
-  padding-top: 3px; /* was 5px — 2px removed along with the other track-row height cuts; the cells themselves size from aspect-ratio/available width, not a fixed height, so this padding is the only literal height this div has to give up */
+  padding-top: 5px;
 }
 .step-cell {
   aspect-ratio: 1;
@@ -1015,7 +1020,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 05:02:31 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 05:08:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1163,7 +1168,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 05:02:31 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 05:08:39 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -8203,7 +8208,7 @@ function buildUI() {
     // already fully intact the whole time (tap shifts once, hold
     // auto-shifts one step every 4 bars), just nothing was calling them.
     // Only "<" wanted — no "right shift" button.
-    const btnL = document.createElement('button'); btnL.className = 'shift-btn'; btnL.textContent = '<';
+    const btnL = document.createElement('button'); btnL.className = 'shift-btn'; btnL.innerHTML = '<span class="track-offset-glyph">&lt;</span>';
     wireShiftButton(btnL, tr, -1);
     ctrlRow.appendChild(btnL);
 
