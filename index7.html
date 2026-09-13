@@ -1020,7 +1020,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 18:42:47 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 19:04:31 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1168,7 +1168,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 18:42:47 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 19:04:31 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -11714,6 +11714,7 @@ function randAll(mode, opts) {
   // pattern written directly below), same reasoning and same replace-a-
   // slot approach as JAZZ's ride/comping pass above. Kick and hihat foot
   // close stay BEAT-menu-only synthesis — they're never tracks here.
+  let _bossaWantsSidestick = false; // resolved to an actual track index AFTER pool sorting below — see _emptyTrackIndices
   if (_beatType === 'bossa') {
     const bassKeysLocal5 = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
     const _alreadyLocked = trackInstruments.some((k, tr) => k === 'sidestick' && trackSweep[tr]);
@@ -11725,6 +11726,7 @@ function randAll(mode, opts) {
       if (replaceIdx === -1) replaceIdx = pool.length - 1;
       pool[replaceIdx] = 'sidestick';
     }
+    _bossaWantsSidestick = true;
   }
 
   // Sort pool into fixed visual order: top=hihat, perc, tonal, bass, kick=bottom
@@ -11759,6 +11761,22 @@ function randAll(mode, opts) {
     });
   }
 
+  // BOSSA's sidestick — resolved to its actual final track index now that
+  // pool sorting (and the tonal/perc-balance safety net) are both done, so
+  // _emptyTrackIndices below can keep hands off whichever track it lands
+  // on. Without this, sidestick could get assigned to a track that's then
+  // separately, independently picked to be left silent — the instrument
+  // shows as SIDE STICK but the grid is wiped, so bossa plays with no
+  // sidestick at all even though everything upstream worked correctly.
+  let _bossaSidestickTr = -1;
+  if (_bossaWantsSidestick) {
+    const _unlockedInOrder = [];
+    for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlockedInOrder.push(tr);
+    const _sidestickPoolIdx = pool.indexOf('sidestick');
+    if (_sidestickPoolIdx !== -1) _bossaSidestickTr = _unlockedInOrder[_sidestickPoolIdx];
+    else _bossaSidestickTr = trackInstruments.findIndex((k, tr) => k === 'sidestick' && trackSweep[tr]); // already-locked case
+  }
+
   // At the top intensity tier (level 4 of 0-4, i.e. the top 90%+ of the
   // range), it's fine — good, even — to leave one track completely silent
   // rather than cramming an instrument into every single slot. Combined
@@ -11777,7 +11795,7 @@ function randAll(mode, opts) {
       : (level === 4 ? 1 : 0) + _poolShortfall;
     if (_emptyNeeded > 0) {
       const _emptyCandidates = [];
-      for (let tr = 1; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _emptyCandidates.push(tr);
+      for (let tr = 1; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && tr !== _bossaSidestickTr) _emptyCandidates.push(tr); // BOSSA's sidestick track must never be silenced — see above
       for (let i = 0; i < _emptyNeeded && _emptyCandidates.length > 0; i++) {
         const idx = Math.floor(Math.random() * _emptyCandidates.length);
         _emptyTrackIndices.add(_emptyCandidates[idx]);
@@ -11863,8 +11881,19 @@ function randAll(mode, opts) {
     trackRLevel[tr] = Math.min(level, 2);
     const _tr = tr; const _lv = Math.min(level, 2);
     const _tracksLeft = NUM_TRACKS - tr;
+    // Beat types that come with a fixed, hardcoded pattern on certain
+    // instruments (written directly further below, never through
+    // placeNotes/randomizeTrack's own note-count logic) shouldn't eat
+    // into the shared note budget meant for genuinely randomized tracks —
+    // they never draw from window._randNoteMax in the first place.
+    const _hasFixedBeatPattern = (
+      (_beatType === 'disco' && k === 'shihat') ||
+      (_beatType === 'jazz' && (k === 'ride' || k === 'sidestick' || k === 'ssnare')) ||
+      (_beatType === 'mozambique' && (k === 'ride' || k === 'sidestick' || k === 'toms')) ||
+      (_beatType === 'bossa' && k === 'sidestick')
+    );
     const _maxForThisTrack = Math.min(NUM_STEPS, Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft))));
-    _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
+    if (!_hasFixedBeatPattern) _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
     window._randNoteMax = _maxForThisTrack;
     const _tid = setTimeout(() => {
       window._randNoteMax = _maxForThisTrack;
@@ -16817,6 +16846,7 @@ function _applyBossaTracksToCurrentPattern() {
     targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
   }
   trackInstruments[targetTr] = 'sidestick';
+  if (autoShiftStops[targetTr]) autoShiftStops[targetTr](); // sidestick's clave pattern is fixed, like JAZZ's RIDE — must never be left in auto-random mode from whatever instrument the track held before, or it'd get overwritten every bar
   const tb = document.getElementById(`tbtn-${targetTr}`); if (tb) tb.textContent = INSTRUMENTS['sidestick']?.name || 'SIDE STICK';
   setTrackNameColor(targetTr, 'sidestick');
   _setTrackReverb(targetTr, false);
