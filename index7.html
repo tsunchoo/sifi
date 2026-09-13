@@ -267,6 +267,20 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
   width: 100%; max-width: 960px; display: flex; align-items: stretch;
   gap: 4px; margin-bottom: 4px;
   touch-action: none;
+  position: relative;
+}
+/* Backing fill behind the whole row, at the button's own idle color,
+   reaching the true screen edges the same way the + and RECORD buttons
+   themselves do. Without this, pressing either of those two edge buttons
+   (.btn:active scales down to 0.88) shrinks them in from the true edge,
+   revealing a sliver of the page's own lighter background underneath —
+   this sits behind them at the matching color so that edge never shows. */
+.transport::before {
+  content: '';
+  position: absolute; top: 0; bottom: 0;
+  left: calc(-50vw + 50%); right: calc(-50vw + 50%);
+  background: var(--neutral-top, #555);
+  z-index: -1;
 }
 /* The + button and the record button — first/last in this row — reach
    the true screen edge the same viewport-breakout way as the header
@@ -1020,7 +1034,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 19:09:32 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 19:30:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1168,7 +1182,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 19:09:32 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 19:30:39 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -11928,7 +11942,7 @@ function randAll(mode, opts) {
       } else if (_beatType === 'jazz' && (trackInstruments[_tr] === 'sidestick' || trackInstruments[_tr] === 'ssnare')) {
         grid[_tr].fill(0);
         const _offBeatSteps = [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15]; // never on the downbeats — comping stays out of the way of the main beat
-        const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round((2 + Math.floor(Math.random() * 4)) * intensityMult()))); // scaled by INTENSITY — was flat 2-5
+        const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round(5 * intensityMult()))); // raised from 2-5 to a flat 5 (top end left as it was), still scaled by INTENSITY
         const _shuffledOff = [..._offBeatSteps].sort(() => Math.random() - 0.5);
         _shuffledOff.slice(0, _ghostCount).forEach(s => { grid[_tr][s] = Math.random() < 0.2 ? 2 : 1; }); // mostly quiet ghost notes, occasional accent
         redrawTrackCells(_tr); markModified();
@@ -13100,110 +13114,39 @@ function randomizeTrack(tr) {
     randomizeBassTrack(tr, level); return;
   }
 
-  // HIHAT / SHAKER / RIDE / TAMB / NOISE: uniform regular-beat rule — pick
-  // a straight subdivision (quarters, 8ths, or 16ths) at each instrument's
-  // own rate, quarter-note positions always accented regardless of which
-  // subdivision. TAMB was missing from this entirely before — it fell
-  // through to whatever generic handling came after instead of getting
-  // this treatment at all. NOISE only ever had the probabilistic
-  // organic/regular fallback further below, never this 3-tap cycle —
-  // added here for full parity with hi-hat's own programming, per direct
-  // request.
-  //
-  // On top of that: when triggered by a genuine manual tap on this
-  // track's own N button (not the main RAND button), every 3rd tap forces
-  // a regular quarter/8th-note pattern, and the tap immediately after that
-  // forces a 16th-note pattern accented specifically on beats 2 & 4 — a
-  // deliberate two-step cycle layered on top of the normal probabilistic
-  // behavior, which still applies on every other tap.
-  // Upbeat hitting all four &s of the bar (steps 2/6/10/14) — a specific,
-  // recognizable "skank" pattern — comes up about 1 in 4 times a HIHAT/
-  // RIDE/NOISE track gets (re)randomized via + (per-track, the top-row
-  // button, or its held auto mode), ahead of the general regular/organic
-  // split below. Was HIHAT-only — extended to RIDE/NOISE for full parity
-  // with hi-hat's own programming, per direct request.
-  if ((key === 'shihat' || key === 'ride' || key === 'ngate') && Math.random() < 0.25) {
-    for (let s = 0; s < NUM_STEPS; s++) {
-      const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-      grid[tr][gs] = (s === 2 || s === 6 || s === 10 || s === 14) ? 2 : 0; // accented (2), not just a plain hit
-    }
-    // 50% chance this specific pattern also gets FX on top.
-    if (Math.random() < 0.5) {
-      trackFx[tr] = { x: 0.5, y: 0.5 };
-      if (ctx) setFxActive(tr, trackFx[tr]);
-      const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.add('on');
-    }
-    redrawTrackCells(tr); markModified(); return;
-  }
-  const _uniformKeys = new Set(['shihat', 'shak', 'ride', 'tamb', 'ngate']);
-  if (_uniformKeys.has(key)) {
+  // HIHAT / RIDE / SHAKER / TAMBOURINE / NOISE: identical behavior across
+  // all five now, driven by a plain 3-press cycle per track (based on the
+  // manual N-button tap count) — 2 out of 3 presses land on a regular
+  // pattern (randomly chosen from a handful of pattern shapes: quarters,
+  // 8ths, 16ths accented on 2 & 4, or the upbeat "skank" hitting all four
+  // &s), the remaining 1 in 3 is a genuinely random/organic pattern via
+  // placeNotes. Replaces the previous three-layer skank-chance/uniform-
+  // cycle/probabilistic-regular system, which produced regular-leaning
+  // results far more often than intended (and, for reasons never fully
+  // pinned down, apparently never produced a random one at all for NOISE)
+  // and was hard to reason about besides.
+  const _regularCycleKeys = new Set(['shihat', 'ride', 'shak', 'tamb', 'ngate']);
+  if (_regularCycleKeys.has(key)) {
     const _clickCount = window._nButtonClickCount && window._nButtonClickCount[tr];
-    const _cyclePos = _clickCount ? ((_clickCount - 1) % 3) : -1; // 0,1,2 repeating — -1 if not a manual N-button tap at all
+    const _cyclePos = _clickCount ? ((_clickCount - 1) % 3) : Math.floor(Math.random() * 3); // no manual-tap history at all (e.g. this call came from RAND) — just roll one of the 3 slots fresh
     if (_cyclePos === 2) {
-      // Every 3rd manual tap — force a regular quarter or 8th-note pattern
-      const subdivStep = Math.random() < 0.5 ? 4 : 2;
-      for (let s = 0; s < NUM_STEPS; s++) {
-        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % subdivStep === 0) ? (s % 4 === 0 ? 2 : 1) : 0;
-      }
-      redrawTrackCells(tr); markModified(); return;
-    }
-    if (_cyclePos === 0 && _clickCount > 1) {
-      // The tap right after one of the above — force a 16th-note pattern,
-      // accented specifically on beats 2 & 4
-      for (let s = 0; s < NUM_STEPS; s++) {
-        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s === 4 || s === 12) ? 2 : 1;
-      }
-      redrawTrackCells(tr); markModified(); return;
-    }
-  }
-  // NOISE / HIHAT / SHAKER / RIDE / TAMB: 65% organic (genuinely random
-  // placement), 50% a regular straight subdivision (quarters, 8ths, or
-  // 16ths, quarter-note positions always accented). Whenever a regular
-  // pattern gets picked, the very next time this same track gets
-  // randomized it's forced regular again too (a genuine pair, not just a
-  // fresh 50/50 roll that happens to land there twice) — after that pair
-  // completes, it's back to a normal fresh roll. TAMB and NOISE weren't
-  // part of this shared rule before (TAMB fell through to unrelated
-  // generic handling, NOISE had its own separate, differently-weighted
-  // logic) — now all five instruments share exactly the same behavior.
-  const _regularPatternKeys = new Set(['shihat', 'shak', 'ride', 'tamb', 'ngate']);
-  if (_regularPatternKeys.has(key)) {
-    if (!window._lastWasRegularPattern) window._lastWasRegularPattern = {};
-    const forceRegularAgain = !!window._lastWasRegularPattern[tr];
-    const goRegular = forceRegularAgain || Math.random() < 0.35; // 65% organic / 35% regular (was 50/50)
-    // Only arm the "force next one too" flag on a fresh regular choice —
-    // the forced repeat itself always clears it, so this is a pair, not
-    // an indefinite streak.
-    window._lastWasRegularPattern[tr] = goRegular && !forceRegularAgain;
-    if (goRegular) {
-      // Which subdivision gets picked is now driven by INTENSITY instead
-      // of a flat 1/3 each — this is the one path where notes were
-      // getting placed as a fixed straight subdivision instead of going
-      // through noteCount/placeNotes at all, so it was completely
-      // ignoring the slider before. Below 35%, solid 16ths are ruled out
-      // entirely — only quarters/8ths, sliding from mostly quarters at 0
-      // to mostly 8ths at 35. From 35 up to 100, 16ths phase in, growing
-      // to the majority share at MENTAL.
-      let subdivStep;
-      if (_intensitySliderVal < 35) {
-        const t = _intensitySliderVal / 35; // 0 → 1 across the low range
-        const quarterShare = 0.7 - t * 0.3; // 0.7 → 0.4
-        subdivStep = Math.random() < quarterShare ? 4 : 2;
-      } else {
-        const u = (_intensitySliderVal - 35) / 65; // 0 → 1 across the high range
-        const quarterShare = 0.4 - u * 0.4; // 0.4 → 0
-        const eighthShare = 1.0 - u * 0.6; // 1.0 → 0.4 (cumulative — this is the 16th cutoff)
-        const roll = Math.random();
-        subdivStep = roll < quarterShare ? 4 : (roll < eighthShare ? 2 : 1);
-      }
-      for (let s = 0; s < NUM_STEPS; s++) {
-        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % subdivStep === 0) ? (s % 4 === 0 ? 2 : 1) : 0;
-      }
+      // 1 in 3 — completely random/organic placement
+      placeNotes(tr, Math.min(NUM_STEPS, Math.round((6 + Math.floor(Math.random() * 7)) * intensityMult())), 0.3, level);
     } else {
-      placeNotes(tr, Math.min(NUM_STEPS, Math.round((6 + Math.floor(Math.random() * 7)) * intensityMult())), 0.3, level); // genuinely organic — same generous note range NOISE used to use on its own, now also scaled by INTENSITY
+      // 2 in 3 — a regular pattern, randomly chosen from a few shapes
+      const _regularType = Math.floor(Math.random() * 4); // 0=quarters, 1=8ths, 2=16ths (accented 2&4), 3=skank (upbeat &s)
+      if (_regularType === 3) {
+        for (let s = 0; s < NUM_STEPS; s++) {
+          const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+          grid[tr][gs] = (s === 2 || s === 6 || s === 10 || s === 14) ? 2 : 0;
+        }
+      } else {
+        const subdivStep = _regularType === 0 ? 4 : _regularType === 1 ? 2 : 1;
+        for (let s = 0; s < NUM_STEPS; s++) {
+          const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+          grid[tr][gs] = (s % subdivStep === 0) ? (s % 4 === 0 ? 2 : 1) : 0;
+        }
+      }
     }
     redrawTrackCells(tr); markModified(); return;
   }
@@ -14277,7 +14220,8 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   // with no attenuation at all. -14dB (its original level) plus another
   // -4dB now, applied on top of whatever vel comes out of either path.
   const droneAtten = 0.1334; // -17.5dB total now (+0.5dB from -18dB)
-  const vel = (_amalgamVolOverride !== null ? _amalgamVolOverride : 0.18) * (isAccent ? 1.3 : 1) * droneAtten;
+  const dronePlusBoost = (trackInstruments[tr] === 'dronePlus') ? 1.2589 : 1; // STRINGS+ +2dB — STRINGS itself (plain 'drone') unaffected, both still share this same function
+  const vel = (_amalgamVolOverride !== null ? _amalgamVolOverride : 0.18) * (isAccent ? 1.3 : 1) * droneAtten * dronePlusBoost;
   const sustain = Math.max(durSec || 0.35, 0.35);
   const bodyTail = 0.45; // a little more sustain — compensates for the airier/thinner EQ below
   const glideDur = (glideFromFreq && glideFromFreq !== freq) ? Math.min(sustain * 0.4, 0.35) : 0; // STRINGS+ portamento — a portion of the note, capped so short notes don't glide forever; 0 (no glide) for plain STRINGS, which never passes glideFromFreq at all
@@ -16769,7 +16713,7 @@ function _applyJazzTracksToCurrentPattern() {
     } else {
       grid[tr].fill(0);
       const _offBeatSteps = [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15];
-      const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round((2 + Math.floor(Math.random() * 4)) * intensityMult()))); // scaled by INTENSITY — was flat 2-5
+      const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round(5 * intensityMult()))); // raised from 2-5 to a flat 5 (top end left as it was), still scaled by INTENSITY
       const _shuffledOff = [..._offBeatSteps].sort(() => Math.random() - 0.5);
       _shuffledOff.slice(0, _ghostCount).forEach(s => { grid[tr][s] = Math.random() < 0.2 ? 2 : 1; });
     }
