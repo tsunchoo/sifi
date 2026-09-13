@@ -1034,7 +1034,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 19:30:39 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 19:33:27 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1182,7 +1182,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 19:30:39 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 19:33:27 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -11224,7 +11224,13 @@ function _randomizeReverbSettings() {
   setReverbIntensity(_newReverbSize);
   const rib = document.getElementById('reverbIntensityBar'); if (rib) rib.value = Math.round(_newReverbSize * 100);
   const riv = document.getElementById('reverbIntensityVal'); if (riv) riv.textContent = Math.round(_newReverbSize * 100);
-  const _newReverbMix = Math.random();
+  // Overall REVERB MIX fixed at 50%, not randomized — it used to roll
+  // 0-100% same as everything else here, which meant some presses landed
+  // near 0% and read as "nothing happened," since the mix is what
+  // actually controls how audible reverb is at all (SIZE/ON BEAT below
+  // only shape its character once it's already audible). Fixed at a
+  // level that's always clearly there, per direct request.
+  const _newReverbMix = 0.5;
   setGlobalDelayMix(_newReverbMix);
   const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = Math.round(_newReverbMix * 100);
   const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = Math.round(_newReverbMix * 100);
