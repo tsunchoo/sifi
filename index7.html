@@ -1020,7 +1020,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 07:07:35 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 18:21:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1168,7 +1168,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 07:07:35 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 18:21:50 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1308,6 +1308,11 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
     <div style="display:flex;flex-direction:column;gap:24px;">
 
       <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MAIN VOL</div>
+        <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS V MUSIC</div>
           <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
@@ -1326,11 +1331,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div id="swingReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">25ms</div>
         </div>
         <input type="range" id="swingBar" min="0" max="100" value="62" class="master-vol-slider" style="width:100%;">
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">VOL</div>
-        <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
@@ -1571,11 +1571,12 @@ document.addEventListener('touchmove', e => {
   if (e.target.closest('#devMenuOverlay')) return;
   e.preventDefault();
 }, { passive: false });
-let masterVol = 0.8; // actual master output volume
+let masterVol = 0.8; // actual master output volume — this stays the raw 0-1 slider fraction everywhere (snapshots, UI sync); the +4dB boost below is applied only where this actually reaches masterGain's AudioParam, never to this variable itself, so save/restore round-trips correctly instead of double-applying the boost
+const MASTER_OUTPUT_BOOST = Math.pow(10, 4 / 20); // +4dB on top of whatever the MAIN VOL slider is set to, per direct request
 
 function setMasterVol(v) {
   masterVol = Math.max(0, Math.min(1, v));
-  if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol, ctx.currentTime, 0.01);
+  if (masterGain && ctx) masterGain.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST, ctx.currentTime, 0.01);
   const slider = document.getElementById('masterVolBar');
   if (slider) slider.value = Math.round(masterVol * 100);
 }
@@ -3961,7 +3962,8 @@ function playSynthKick(isAccent, time, tr) {
   osc.connect(g); g.connect(dest);
   osc.frequency.setValueAtTime(isAccent ? 180 : 140, time);
   osc.frequency.exponentialRampToValueAtTime(35, time + 0.35);
-  g.gain.setValueAtTime(isAccent ? 0.338 : 0.226, time); // -3dB from original 0.478/0.319
+  const _kickBossaMult = (_beatType === 'bossa') ? 0.8 : 1; // BOSSA NOVA kicks sit a little softer — 80% of every other beat type's level, per direct request
+  g.gain.setValueAtTime((isAccent ? 0.338 : 0.226) * _kickBossaMult, time); // -3dB from original 0.478/0.319
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
   _cleanupNodes([g], time + 0.47);
@@ -10663,7 +10665,7 @@ function _restoreLiveGraph(snap) {
 // passed explicitly.
 function _buildBounceGraph(targetCtx) {
   ctx = targetCtx;
-  masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol;
+  masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 2.5061;
   window._makeupGain = makeupGain;
   window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.4043; // -0.5dB more (was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
@@ -15752,7 +15754,7 @@ async function initAudio() {
     }
     msg.textContent = 'RESUMED, BUILDING GRAPH...';
     attachCtxStateWatch();
-    masterGain = ctx.createGain(); masterGain.gain.value = masterVol;
+    masterGain = ctx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost — this is the initial value, before any slider touch would otherwise apply it
     // _initEqMeter(); // EQ meter disabled for now — the bottom bars never hit 0dB and it wasn't worth troubleshooting further right now. Function kept intact below in case this gets revisited.
     try { _getAmalgamBaseBuffer(); } catch(e) {} // pre-warm the amalgam echo's cached buffer up front
     try { _getDroneAirNoiseBuffer(); } catch(e) {} // same for STRINGS's air-noise buffer
