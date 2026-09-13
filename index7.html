@@ -1020,7 +1020,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 20:01:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 20:24:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1168,7 +1168,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 20:01:25 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 20:24:53 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1352,6 +1352,16 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <span id="devOffsetStepReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
         </div>
       </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO RANDOM PERIOD</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" id="autoRandPeriodSlider" min="0" max="3" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="flex:1;">
+          <span id="autoRandPeriodReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="autoSweepToggle" onchange="setAutoSweep(this.checked)" style="width:14px;height:14px;cursor:pointer;">AUTO-SWEEP
+      </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="swapSpoolsToggle" onchange="setSwapSpools(this.checked)" style="width:14px;height:14px;cursor:pointer;">SWAP TAPE SPOOLS
       </label>
@@ -2818,8 +2828,10 @@ function getPumpChain(tr, dest) {
     const comp = ctx.createDynamicsCompressor(); // sustain boost — slow release keeps the tail up
     const crunch = ctx.createWaveShaper(); crunch.oversample = '2x';
     const crunchMakeup = ctx.createGain();
+    const pbassDryBlend = ctx.createGain(); pbassDryBlend.gain.value = 0; // PUNK BASS only — see below
     pumpGain.connect(comp); comp.connect(crunch); crunch.connect(crunchMakeup);
-    trackPumpNodes[tr] = { pumpGain, comp, crunch, crunchMakeup, dest: null };
+    pumpGain.connect(pbassDryBlend); // parallel tap straight off pumpGain, before the compressor/distortion touch it at all
+    trackPumpNodes[tr] = { pumpGain, comp, crunch, crunchMakeup, pbassDryBlend, dest: null };
   }
   const nodes = trackPumpNodes[tr];
   // CYBER PAD / SOLAR PAD ride the crunch and compressor continuously
@@ -2834,6 +2846,14 @@ function getPumpChain(tr, dest) {
   nodes.comp.attack.value = 0.003;
   nodes.comp.release.value = isPad ? 0.15 : 0.35;
   nodes.crunch.curve = makeDistCurve(isPad ? 0.12 : 0.35);
+  // PUNK BASS loses a lot of its bottom end under BLAST — the compressor
+  // (8:1) and distortion curve together emphasize the new harmonics they
+  // add, which makes the actual fundamental feel thin even though it's
+  // still physically present. Blending some of the clean, pre-compressor/
+  // pre-distortion signal back in (tapped straight off pumpGain above)
+  // restores that low-end punch alongside the crunch character, rather
+  // than trying to EQ it back in after the fact.
+  nodes.pbassDryBlend.gain.value = (trackInstruments[tr] === 'pbass') ? 0.35 : 0;
   // -1dB always taken here, universally, regardless of instrument — this
   // is the one place every BLAST-enabled track's signal passes through
   // right before it reaches the fader (dest), so it's the correct place
@@ -2844,7 +2864,9 @@ function getPumpChain(tr, dest) {
   nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb; // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
+    try { nodes.pbassDryBlend.disconnect(); } catch(e) {}
     nodes.crunchMakeup.connect(dest);
+    nodes.pbassDryBlend.connect(dest);
     nodes.dest = dest;
   }
   return nodes.pumpGain;
@@ -3237,19 +3259,29 @@ function scheduler() {
           randomizeBeatType();
         }
       }
-      // RAND button auto-mode (press and hold): regenerate every exactly 4 bars,
-      // counted off real bar-starts rather than wall-clock time so it can't drift.
-      // The left tape spool re-triggers step 0 every time it's released (to
-      // refire the current pattern from the top) — that's a manual replay,
-      // not a bar actually elapsing, so it must not count toward the 4-bar
-      // auto-regenerate threshold.
+      // RAND button auto-mode (press and hold): regenerate every
+      // _autoRandPeriod bars (settable in SETTINGS — AUTO RANDOM PERIOD,
+      // was a flat 4), counted off real bar-starts rather than wall-clock
+      // time so it can't drift. The left tape spool re-triggers step 0
+      // every time it's released (to refire the current pattern from the
+      // top) — that's a manual replay, not a bar actually elapsing, so it
+      // must not count toward the auto-regenerate threshold.
       if (_autoRandLoopActive) {
         if (window._spoolBarCreditSkip) {
           window._spoolBarCreditSkip = false; // consumed — this bar-start doesn't count
         } else {
           _autoRandBarCount++;
-          if (_autoRandBarCount >= 4) {
+          // AUTO-SWEEP — one bar out from the change, engage SWEEP for
+          // this whole last bar (released right below, the moment the new
+          // pattern actually lands). Guarded so it only ever fires once
+          // per cycle even if this bar-start branch is somehow reached
+          // again before the count moves on.
+          if (window._autoSweepEnabled && _autoRandBarCount === _autoRandPeriod - 1 && !window._spoolBraking) {
+            _leftSpoolEngage();
+          }
+          if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
+            _leftSpoolRelease(); // always attempt this — it's a no-op if nothing's actually engaged, but guards against AUTO-SWEEP having been switched off mid-cycle after already engaging
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
@@ -11707,12 +11739,18 @@ function randAll(mode, opts) {
     // gets — any other percussion instrument that landed in the pool from
     // the normal random perc/tonal split gets swapped for a tonal
     // instrument instead, so RAND never quietly adds a 5th/6th perc track
-    // alongside the fixed kit.
-    for (let i = 0; i < pool.length; i++) {
-      if (_mozambiqueTrackKeys.includes(pool[i])) continue;
-      if (!percKeysAll.includes(pool[i])) continue; // already tonal — leave it
-      const _replacement = tonalKeysAll[Math.floor(Math.random() * tonalKeysAll.length)];
-      if (_replacement) pool[i] = _replacement;
+    // alongside the fixed kit. Skipped entirely when TONAL/PERC BALANCE is
+    // pinned at all-percussion (0) — that absolute setting has to win over
+    // MOZAMBIQUE's own stylistic preference for tonal color, otherwise a
+    // tonal instrument (e.g. UNDERPASS) could still sneak into a pattern
+    // explicitly set to zero tonal instruments.
+    if (window._tonalPercBalance !== 0) {
+      for (let i = 0; i < pool.length; i++) {
+        if (_mozambiqueTrackKeys.includes(pool[i])) continue;
+        if (!percKeysAll.includes(pool[i])) continue; // already tonal — leave it
+        const _replacement = tonalKeysAll[Math.floor(Math.random() * tonalKeysAll.length)];
+        if (_replacement) pool[i] = _replacement;
+      }
     }
   }
 
@@ -12192,7 +12230,7 @@ function randAll(mode, opts) {
   const _magicPresentThisRand = trackInstruments.some(k => k === 'magic');
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
-    if (TONAL_KEYS.has(trackInstruments[tr]) || trackInstruments[tr] === 'ride' || _congaBongoKeysSet.has(trackInstruments[tr])) {
+    if (TONAL_KEYS.has(trackInstruments[tr]) || trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'sidestick' || _congaBongoKeysSet.has(trackInstruments[tr])) {
       const isBass = (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass4');
       const isClap = trackInstruments[tr] === 'clap';
       const isSlay = trackInstruments[tr] === 'fflute';
@@ -12202,11 +12240,12 @@ function randAll(mode, opts) {
       const isRytmGtr = trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp';
       const isChug = trackInstruments[tr] === 'chug';
       const isRide = trackInstruments[tr] === 'ride';
+      const isSidestick = trackInstruments[tr] === 'sidestick';
       const isJinx = trackInstruments[tr] === 'jcmgtr';
       const isSludge = trackInstruments[tr] === 'sludge';
       const isCongaBongo = _congaBongoKeysSet.has(trackInstruments[tr]);
       const fxBoost = level >= 4 ? 0.845 : (level === 3 ? 0.585 : 0); // +30% over previous 0.65/0.45
-      const fxOn = _magicPresentThisRand ? false : isCongaBongo ? _congaBongoFxRoll : isJinx ? _jinxComboRoll[tr] : isSludge ? Math.random() < 0.5 : isRide ? Math.random() < 0.5 : isSlay ? Math.random() < 0.08 : isChug ? Math.random() < 0.95 : isClap ? Math.random() < 0.95 : isDamask ? Math.random() < 0.75 : isOpening ? Math.random() < 0.1 : isHopkins ? Math.random() < 0.5 : isRytmGtr ? Math.random() < 0.4 : Math.random() < Math.min(1, ((isBass ? 0.805 : 0.4025) + fxBoost) * autoBoost * 1.25); // base +15%, then +25% more; DAMASK often gets FX — a plaintive lead wants the reverb-ish send; OPENING rarely does; CHUG/CLAP almost always on but no longer absolute, so "every track" and "no tracks" both stay reachable; RIDE ~50%; SLUDGE BASS fixed 50% (from there BLAST's own existing chance can escalate it further); JINX linked to its own reverb roll above; CONGA/BONGO shared 50/50 roll for the whole pair; MAGIC anywhere in the pattern forces every track off
+      const fxOn = _magicPresentThisRand ? false : isCongaBongo ? _congaBongoFxRoll : isJinx ? _jinxComboRoll[tr] : isSludge ? Math.random() < 0.5 : isSidestick ? Math.random() < 0.7 : isRide ? Math.random() < 0.5 : isSlay ? Math.random() < 0.08 : isChug ? Math.random() < 0.95 : isClap ? Math.random() < 0.95 : isDamask ? Math.random() < 0.75 : isOpening ? Math.random() < 0.1 : isHopkins ? Math.random() < 0.5 : isRytmGtr ? Math.random() < 0.4 : Math.random() < Math.min(1, ((isBass ? 0.805 : 0.4025) + fxBoost) * autoBoost * 1.25); // base +15%, then +25% more; DAMASK often gets FX — a plaintive lead wants the reverb-ish send; OPENING rarely does; CHUG/CLAP almost always on but no longer absolute, so "every track" and "no tracks" both stay reachable; RIDE ~50%; SIDESTICK fixed 70%, per direct request — wasn't part of this dispatcher at all before (SIDESTICK is neither tonal, RIDE, nor CONGA/BONGO, so it fell through this whole thing untouched, never getting FX from RAND); SLUDGE BASS fixed 50% (from there BLAST's own existing chance can escalate it further); JINX linked to its own reverb roll above; CONGA/BONGO shared 50/50 roll for the whole pair; MAGIC anywhere in the pattern forces every track off
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -12423,6 +12462,7 @@ function stopAllAutoRand() {
   if (_autoRandLoopActive) {
     _autoRandLoopActive = false;
     _autoRandBarCount = 0;
+    _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
     const mainRandBtn = document.getElementById('randBtn');
     if (mainRandBtn) { mainRandBtn.classList.remove('pulsing', 'rand-color-pulse'); mainRandBtn.innerHTML = '<span class="glyph">+</span>'; }
   }
@@ -12447,6 +12487,7 @@ function stopAllAutoRand() {
     if (_autoRandLoopActive) {
       _autoRandLoopActive = false;
       _autoRandBarCount = 0;
+      _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
       btn.classList.remove('pulsing', 'rand-color-pulse');
       btn.innerHTML = '<span class="glyph">+</span>';
     }
@@ -12830,6 +12871,7 @@ function slotPress(i) {
   if (_autoRandLoopActive) {
     _autoRandLoopActive = false;
     _autoRandBarCount = 0;
+    _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
     const _mainRandBtnSlot = document.getElementById('randBtn');
     if (_mainRandBtnSlot) { _mainRandBtnSlot.classList.remove('pulsing', 'rand-color-pulse'); _mainRandBtnSlot.innerHTML = '<span class="glyph">+</span>'; }
   }
@@ -14813,6 +14855,25 @@ function setDevOffsetStepSize(idx) {
   const readout = document.getElementById('devOffsetStepReadout');
   if (readout) readout.textContent = _DEV_OFFSET_STEP_LABELS[idx] ?? '16TH';
 }
+// How many bars the RAND button's press-and-hold auto-mode plays before
+// generating a new pattern — was a flat, uneditable 4 bars; now settable
+// from Settings, 4/8/16/32.
+let _autoRandPeriod = 4;
+const _AUTO_RAND_PERIOD_VALUES = [4, 8, 16, 32];
+function setAutoRandPeriod(idx) {
+  idx = +idx;
+  _autoRandPeriod = _AUTO_RAND_PERIOD_VALUES[idx] ?? 4;
+  const readout = document.getElementById('autoRandPeriodReadout');
+  if (readout) readout.textContent = _autoRandPeriod + ' BARS';
+}
+// AUTO-SWEEP — when on, SWEEP automatically engages for the whole bar
+// immediately before RAND's auto-mode generates its next pattern (i.e.
+// exactly _autoRandPeriod - 1 bars into the current cycle), then releases
+// right as the new pattern actually lands. Same _leftSpoolEngage/
+// _leftSpoolRelease a real press-and-hold on the left spool triggers —
+// this just fires them on a timer instead of a finger.
+window._autoSweepEnabled = false;
+function setAutoSweep(on) { window._autoSweepEnabled = on; }
 // Swaps which physical spool (left/right) carries which behavior — the
 // right spool's own gesture handling (single tap: amalgam swell, double
 // tap: reset beat offset) and the left spool's role as SWEEP's own
@@ -15160,7 +15221,7 @@ function fullReset() {
 
   // Stop every per-track auto-rand loop and the RAND auto-mode loop
   Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch(e) {} });
-  _autoRandLoopActive = false; _autoRandPending = false;
+  _autoRandLoopActive = false; _autoRandPending = false; _leftSpoolRelease();
   document.querySelectorAll('.rand-btn').forEach(rb => {
     rb.classList.remove('rand-auto', 'rand-pending', 'pulsing'); _setRandBtnLabel(rb, false);
   });
@@ -15791,7 +15852,7 @@ async function hardResetAudioEngine() {
     if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
     if (beatPlaying || _beatPending) { try { toggleBeat(); } catch(e) {} }
     Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch(e) {} });
-    _autoRandLoopActive = false; _autoRandPending = false;
+    _autoRandLoopActive = false; _autoRandPending = false; _leftSpoolRelease();
     const _mainRandBtn2 = document.getElementById('randBtn');
     if (_mainRandBtn2) { _mainRandBtn2.classList.remove('pulsing'); _mainRandBtn2.innerHTML = '<span class="glyph">+</span>'; }
     document.getElementById('clearBtn')?.classList.remove('active'); // sweep button visual, in case it was stuck lit
@@ -15862,8 +15923,8 @@ async function hardResetAudioEngine() {
   // back toward while dragged over the left spool) and the full-hold
   // ceiling (where it climbs to normally, and resumes climbing toward
   // when dragged back off the spool onto SWEEP itself).
-  const SWEEP_ATTACK_LEVEL = 0.1015; // -2.5dB more (was 0.1354, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.9555; // -2dB more (was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.064; // -4dB more (was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.6029; // -4dB more (was 0.9555, -2dB before that, was 1.2029)
   // How long this run should last, decided once at press time (see
   // beginPress) and read by both startSweep's own duck-intensity ramp and
   // startSweepTakeover's gain/auto-release timing, so the two stay in sync
