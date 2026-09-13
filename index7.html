@@ -193,7 +193,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   display: block;
   overflow: hidden;
 }
-.tape-reels { display: flex; gap: 0px; align-items: center; align-self: flex-start; margin-top: calc(1.59007rem + 24px); margin-bottom: 0; transform: scale(0.98); }
+.tape-reels { display: flex; gap: 0px; align-items: center; align-self: flex-start; margin-top: 0; margin-bottom: 0; transform: scale(0.98); } /* top-aligned with the logo now — used to sit calc(1.59007rem + 24px) lower (the logo's own line-height plus a fixed gap), leaving visible dead space above the spools; everything else in the header (e.g. #topTempoReadout below) keeps that same offset, unchanged, since it's not part of the logo/spool gap being closed here */
 .tape-window { width: 54.26px; height: 33.07px; flex-shrink: 0; background: #000; border: 2px solid #000; box-sizing: border-box; overflow: hidden; position: relative; margin-left: 12px; margin-right: 11px; }
 /* Tape reel graphic's white/light areas are recolored to match the app's
    current --bg via direct pixel remapping (see recolorTapeWindowImg() in
@@ -374,16 +374,25 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
 }
 .record-menu.visible { display: flex; }
 .reverb-menu {
-  display: none; flex-direction: column; gap: 14px;
-  position: fixed; z-index: 501; width: 220px;
-  background: #f5f0e8; border-radius: 6px; padding: 16px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  display: none; position: fixed; inset: 0; z-index: 501;
+  background: rgba(0,0,0,0.5);
 }
-.reverb-menu.visible { display: flex; }
-.reverb-menu-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: #111; }
+.reverb-menu.visible { display: block; }
+/* Centered the same way SETTINGS and the COLOR MENU both are (absolute +
+   translate, inside a full-screen dimmed overlay) instead of the old
+   anchor-to-button positioning — and sized/styled to match SETTINGS
+   exactly (padding, min-width, font sizes) rather than its own smaller,
+   button-anchored-popup dimensions. */
+.reverb-menu-inner {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #f5f0e8; padding: 24px; min-width: min(340px, 90vw);
+  display: flex; flex-direction: column; gap: 16px;
+  font-family: 'DM Sans', sans-serif; max-height: 85vh; overflow-y: auto;
+}
+.reverb-menu-title { font-size: 0.85rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); text-align: center; }
 .reverb-menu label.reverb-menu-row { display: flex; flex-direction: column; gap: 8px; }
 .reverb-menu label.reverb-menu-row .reverb-menu-row-head { font-size: 0.6rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); display: flex; justify-content: space-between; }
-.reverb-menu label.reverb-menu-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #111; cursor: pointer; }
+.reverb-menu label.reverb-menu-toggle { display: flex; align-items: center; gap: 8px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #111; cursor: pointer; }
 .reverb-menu label.reverb-menu-toggle input { width: 14px; height: 14px; cursor: pointer; }
 .beat-type-menu {
   display: none; position: fixed; inset: 0; z-index: 500;
@@ -1006,7 +1015,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-12 21:24:19 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 00:01:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1090,22 +1099,24 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 </div>
 
 <div id="reverbMenu" class="reverb-menu">
-  <div class="reverb-menu-title">REVERB</div>
-  <label class="reverb-menu-row">
-    <span class="reverb-menu-row-head"><span>REVERB MIX (OVERALL)</span><span id="reverbMixVal" style="color:#adff00;">30</span></span>
-    <input type="range" id="delayMixBar" min="0" max="100" value="30" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
-  </label>
-  <label class="reverb-menu-row">
-    <span class="reverb-menu-row-head"><span>REVERB SIZE</span><span id="reverbIntensityVal" style="color:#adff00;">51</span></span>
-    <input type="range" id="reverbIntensityBar" min="0" max="100" value="51" class="master-vol-slider" style="width:100%;" oninput="setReverbIntensity(this.value/100); document.getElementById('reverbIntensityVal').textContent=this.value">
-  </label>
-  <label class="reverb-menu-row">
-    <span class="reverb-menu-row-head"><span>REVERB ON BEAT</span><span id="beatReverbMixVal" style="color:#adff00;">24</span></span>
-    <input type="range" id="beatReverbMixBar" min="0" max="100" value="24" class="master-vol-slider" style="width:100%;" oninput="setBeatReverbMix(this.value/100); document.getElementById('beatReverbMixVal').textContent=this.value">
-  </label>
-  <label class="reverb-menu-toggle">
-    <input type="checkbox" id="randomizeReverbToggle" onchange="setRandomizeReverb(this.checked)">RANDOMIZE REVERB WITH +
-  </label>
+  <div class="reverb-menu-inner">
+    <div class="reverb-menu-title">REVERB</div>
+    <label class="reverb-menu-row">
+      <span class="reverb-menu-row-head"><span>REVERB MIX (OVERALL)</span><span id="reverbMixVal" style="color:#adff00;">30</span></span>
+      <input type="range" id="delayMixBar" min="0" max="100" value="30" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
+    </label>
+    <label class="reverb-menu-row">
+      <span class="reverb-menu-row-head"><span>REVERB SIZE</span><span id="reverbIntensityVal" style="color:#adff00;">51</span></span>
+      <input type="range" id="reverbIntensityBar" min="0" max="100" value="51" class="master-vol-slider" style="width:100%;" oninput="setReverbIntensity(this.value/100); document.getElementById('reverbIntensityVal').textContent=this.value">
+    </label>
+    <label class="reverb-menu-row">
+      <span class="reverb-menu-row-head"><span>REVERB ON BEAT</span><span id="beatReverbMixVal" style="color:#adff00;">24</span></span>
+      <input type="range" id="beatReverbMixBar" min="0" max="100" value="24" class="master-vol-slider" style="width:100%;" oninput="setBeatReverbMix(this.value/100); document.getElementById('beatReverbMixVal').textContent=this.value">
+    </label>
+    <label class="reverb-menu-toggle">
+      <input type="checkbox" id="randomizeReverbToggle" onchange="setRandomizeReverb(this.checked)">RANDOMIZE REVERB WITH +
+    </label>
+  </div>
 </div>
 
 <div id="beatTypeMenu" class="beat-type-menu">
@@ -1149,7 +1160,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-12 21:24:19 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 00:01:10 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -2733,8 +2744,14 @@ function triggerFxEnvelope(tr, time) {
   if (!ctx || !trackFxNodes[tr]) return;
   const fx = trackFx[tr];
   if (!fx || !(fx.x > 0 || fx.y > 0)) return;
-  // Basses get the old treatment (crunch only) — no attack/tail shaping.
-  if (['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sstring', 'sleg', 'fflute', 'blunt', 'opening'].includes(trackInstruments[tr])) return;
+  // Basses and sustained pad-style voices get the old treatment (crunch
+  // only) — no attack/tail shaping. TEXTURE belongs in this same bucket:
+  // its notes are long and frequently overlap/retrigger (see the sustain
+  // comments in playAmalgamStep/_playPhantomNote), so this punch envelope
+  // — built for percussive one-shots — was stacking a fresh +4.6dB attack
+  // spike on top of already-summed sustained layers every single hit,
+  // which is what let FX-engaged TEXTURE distort the whole mix.
+  if (['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sstring', 'sleg', 'fflute', 'blunt', 'opening', 'amlgm'].includes(trackInstruments[tr])) return;
   const g = trackFxNodes[tr].envGain;
   if (!g) return;
   const t0 = Math.max(time, ctx.currentTime);
@@ -7206,10 +7223,24 @@ function duckEchoTrack(t) {
     if (typeof _droneActiveFilters !== 'undefined') {
       _droneActiveFilters.forEach(f => {
         try {
+          // Anchored to a fixed baseline (captured once at note creation),
+          // not a live re-read of f.frequency.value — reading .value right
+          // after scheduling a future ramp is inconsistent across browsers
+          // (some return the ramp's target rather than the pre-kick
+          // value), so using it for the settle-back target let overlapping
+          // kicks in a busy pattern ratchet the filter's center upward a
+          // little on every single hit with nothing ever pulling it back
+          // down. Over a long enough session that drifted the whole DRONE
+          // voice into an ever-brightening, eventually ultrasonic-adjacent
+          // whine — the "high-pitched drone that builds up over time."
+          // Anchoring both ends of every kick to the same fixed baseline
+          // means it always fully settles back to the true center no
+          // matter how many kicks overlap.
+          const _base = (typeof f._duckBaseFreq === 'number') ? f._duckBaseFreq : f.frequency.value;
           f.frequency.cancelScheduledValues(t);
-          f.frequency.setValueAtTime(f.frequency.value, t);
-          f.frequency.linearRampToValueAtTime(f.frequency.value + 900 + Math.random() * 700, t + 0.02);
-          f.frequency.setTargetAtTime(f.frequency.value, t + 0.05, 0.09);
+          f.frequency.setValueAtTime(_base, t);
+          f.frequency.linearRampToValueAtTime(_base + 900 + Math.random() * 700, t + 0.02);
+          f.frequency.setTargetAtTime(_base, t + 0.05, 0.09);
         } catch(e) {}
       });
     }
@@ -11168,30 +11199,17 @@ function randAll(mode, opts) {
   // designated as empty.
   _pendingRandTimeouts.forEach(id => clearTimeout(id));
   _pendingRandTimeouts = [];
-  // WILD mode — deferred now rather than fired as the very first thing in
-  // this function. Color repainting is a burst of style.setProperty/
-  // getComputedStyle calls across half a dozen CSS custom properties,
-  // and getComputedStyle reads can force a synchronous style
-  // recalculation — real main-thread work, competing for the same thread
-  // right at the exact moment this function is also kicking off the new
-  // pattern's per-track generation (itself already staggered below, up to
-  // (NUM_TRACKS-1)*30ms out) and scheduling the masterGain dip that hides
-  // the audio-graph rebuild. Pushing colors out ~220ms — past both the
-  // dip's own 180ms recovery and the last track's staggered finalization
-  // — means color work never has a chance to contend with the
-  // time-critical part of a pattern swap. It also reads as more
-  // purposeful this way: the new pattern is already playing cleanly
-  // before the palette confirms it, rather than both landing in the same
-  // instant. Pushed into _pendingRandTimeouts like every other staggered
-  // piece of this function, so a rapid second + press correctly cancels a
-  // still-pending color change from the previous one instead of letting
-  // it land late.
+  // WILD mode — fires immediately, right alongside the rest of the pattern
+  // swap, same as every other piece of it. (A previous version deferred
+  // this ~220ms to keep the color repaint's synchronous style-recalc work
+  // off the thread during the time-critical part of the swap — reverted:
+  // the delay read as sluggish rather than purposeful, so simultaneous
+  // wins even though it's contending for the same paint work.)
   if (window._wildColorsEnabled) {
     if (window._wildColorsSkipNext) {
       window._wildColorsSkipNext = false;
     } else {
-      const _colorTid = setTimeout(() => { randomizeAppColors(); }, 220);
-      _pendingRandTimeouts.push(_colorTid);
+      randomizeAppColors();
     }
   }
   // Briefly dip master gain to hide node creation noise
@@ -12978,12 +12996,15 @@ function randomizeTrack(tr) {
     randomizeBassTrack(tr, level); return;
   }
 
-  // HIHAT / SHAKER / RIDE / TAMB: uniform regular-beat rule — pick a
-  // straight subdivision (quarters, 8ths, or 16ths) at each instrument's
+  // HIHAT / SHAKER / RIDE / TAMB / NOISE: uniform regular-beat rule — pick
+  // a straight subdivision (quarters, 8ths, or 16ths) at each instrument's
   // own rate, quarter-note positions always accented regardless of which
   // subdivision. TAMB was missing from this entirely before — it fell
   // through to whatever generic handling came after instead of getting
-  // this treatment at all.
+  // this treatment at all. NOISE only ever had the probabilistic
+  // organic/regular fallback further below, never this 3-tap cycle —
+  // added here for full parity with hi-hat's own programming, per direct
+  // request.
   //
   // On top of that: when triggered by a genuine manual tap on this
   // track's own N button (not the main RAND button), every 3rd tap forces
@@ -13009,7 +13030,7 @@ function randomizeTrack(tr) {
     }
     redrawTrackCells(tr); markModified(); return;
   }
-  const _uniformKeys = new Set(['shihat', 'shak', 'ride', 'tamb']);
+  const _uniformKeys = new Set(['shihat', 'shak', 'ride', 'tamb', 'ngate']);
   if (_uniformKeys.has(key)) {
     const _clickCount = window._nButtonClickCount && window._nButtonClickCount[tr];
     const _cyclePos = _clickCount ? ((_clickCount - 1) % 3) : -1; // 0,1,2 repeating — -1 if not a manual N-button tap at all
@@ -14191,6 +14212,7 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   // middy character and let more top end through — airier, less boxy.
   const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.9;
   filter.frequency.value = 2200; // center — LFO swings roughly 600-4200Hz around this (was 300-2000Hz)
+  filter._duckBaseFreq = filter.frequency.value; // fixed anchor for duckEchoTrack's kick below — see the comment there for why this can't just re-read .value each time
   const sweepLfo = ctx.createOscillator(); sweepLfo.type = 'sine';
   sweepLfo.frequency.value = Math.max(0.05, 1 / (sustain * (1.4 + Math.random() * 0.6)));
   const sweepDepth = ctx.createGain(); sweepDepth.gain.value = 1700; // Hz swing around the center (was 1100)
@@ -14487,8 +14509,34 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
   const droneAtten = (trackInstruments[tr] === 'drone') ? 0.1996 : 1; // -14dB total now (was -10dB, +4dB more), DRONE only — TEXTURE unaffected
   _amalgamVolOverride = trackPump[tr] ? vol * droneAtten * 0.5623 : vol * droneAtten; // -5dB when BLAST is on this track
   const dest = getSynthConnectNode(tr); // one resolution — Delay/FX/BLAST all behave like any other instrument now
+  // Harsh granular chop — TEXTURE's chord otherwise stays the exact same
+  // frozen pitch set for the whole pattern (see _regenerateAmalgamChord,
+  // which only ever captures each tonal track's first active note), so on
+  // its own it reads as one static note/drone rather than a texture. This
+  // gates that output through a fast square-wave tremolo instead, rate
+  // driven by whichever other track is currently busiest (more active
+  // steps = choppier/harsher grain) so it tracks the pattern's own energy
+  // rather than being an arbitrary fixed wobble. Deliberately simple —
+  // a real granular engine (overlapping windowed grains) would be a lot
+  // more machinery for what's just meant to add some grit.
+  let busiestCount = 0;
+  for (let bt = 0; bt < NUM_TRACKS; bt++) {
+    if (bt === tr) continue;
+    const c = grid[bt].filter(v => v > 0).length;
+    if (c > busiestCount) busiestCount = c;
+  }
+  const busyness = Math.min(1, busiestCount / NUM_STEPS); // 0 (empty) - 1 (every step)
+  const grainDur = Math.max(durSec || 0.35, 0.35) + 0.3;
+  const grainGate = ctx.createGain(); grainGate.gain.value = 1;
+  const grainLfo = ctx.createOscillator(); grainLfo.type = 'square';
+  grainLfo.frequency.value = 9 + busyness * 33; // 9-42Hz — faster/harsher the busier the pattern is
+  const grainDepth = ctx.createGain(); grainDepth.gain.value = 0.4; // chops into the signal, doesn't gate it fully silent
+  grainLfo.connect(grainDepth); grainDepth.connect(grainGate.gain);
+  grainGate.connect(dest);
+  grainLfo.start(time); grainLfo.stop(time + grainDur);
+  grainLfo.onended = () => { try { grainLfo.disconnect(); grainDepth.disconnect(); grainGate.disconnect(); } catch(e) {} };
   notes.forEach(n => {
-    _playPhantomNote(tr, n.key, n.freq, false, time, dest, durSec);
+    _playPhantomNote(tr, n.key, n.freq, false, time, grainGate, durSec);
   });
   _amalgamVolOverride = null; // reset AFTER the notes read it — it was being cleared too early before, so every note fell back to the flat default instead of the computed volume
 }
@@ -15245,16 +15293,11 @@ function fullReset() {
 
   function openMenu() {
     holdFired = true;
-    const r = btn.getBoundingClientRect();
-    menu.style.top = (r.bottom + 6) + 'px';
-    // Keep it on-screen — anchor from the right edge instead of the left
-    // if left-aligning would run it off the right side of the viewport.
-    const menuWidth = 220;
-    let left = r.left;
-    if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
-    menu.style.left = Math.max(8, left) + 'px';
+    // No more anchoring to the button's position — the menu is now a
+    // centered overlay (see .reverb-menu-inner), same as SETTINGS/the
+    // COLOR MENU, so it always lands dead-center regardless of where the
+    // reverb icon happens to sit.
     menu.classList.add('visible');
-    playUiSound('click');
   }
   function closeMenu() { menu.classList.remove('visible'); }
 
@@ -15269,11 +15312,15 @@ function fullReset() {
   btn.addEventListener('mousedown', startHold);
   document.addEventListener('mouseup', endHold);
 
+  // #reverbMenu is now the full-screen dimmed overlay itself (like the
+  // COLOR MENU/SETTINGS), so "outside the menu" means outside the actual
+  // centered panel (.reverb-menu-inner) — checking #reverbMenu here would
+  // never fire, since every tap on screen is technically inside it.
   document.addEventListener('touchstart', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('#reverbMenu') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
+    if (menu.classList.contains('visible') && !e.target.closest('.reverb-menu-inner') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
   }, { passive: true });
   document.addEventListener('mousedown', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('#reverbMenu') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
+    if (menu.classList.contains('visible') && !e.target.closest('.reverb-menu-inner') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
   });
 })();
 // Drag across multiple track names to mute/unmute them all to match
