@@ -336,10 +336,10 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    logo-color-cycle above) — applied to the "+" glyph specifically while
    the button is actively held in AUTO mode (.pulsing, added by the
    press-and-hold handler below), per direct request. Reuses the exact
-   same keyframes for a consistent look. Speed is settable in SETTINGS —
-   SPIRIT PULSE, 1x (this same 4s default) up to 10x faster (0.4s) — see
-   setSpiritPulse(). */
-#randBtn.pulsing .glyph { animation: logo-color-cycle var(--spirit-pulse-dur, 4s) linear infinite; }
+   same keyframes for a consistent look. Named "SPIRIT PULSE" — hard-coded
+   to one quarter note at the loaded pattern's own tempo (--spirit-pulse-
+   dur, kept in sync wherever bpm changes), not user-adjustable. */
+#randBtn.pulsing .glyph { animation: logo-color-cycle var(--spirit-pulse-dur, 0.5455s) linear infinite; }
 #playBtn.playing { background: var(--top-row-pressed-bg); }
 #playBtn { position: relative; }
 #saveBtn { position: relative; }
@@ -1029,7 +1029,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>JBX<span style="display:inline-block;width:4px;"></span>84</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 21:04:06 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-13 21:37:09 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1177,7 +1177,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 21:04:06 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-13 21:37:09 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1366,13 +1366,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="range" id="autoRandPeriodSlider" min="0" max="3" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="flex:1;">
           <span id="autoRandPeriodReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
-        </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SPIRIT PULSE</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" id="spiritPulseSlider" min="0" max="100" value="0" oninput="setSpiritPulse(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="spiritPulseReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">1X</span>
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
@@ -3163,6 +3156,7 @@ const trackFxMode = new Array(NUM_TRACKS).fill(0); // 0=CHOKE/SLAP, 1=CRUNCH/ENV
 const trackGainNodes = [];
 const trackEnvFilters = [];
 let bpm = 110, playing = false, currentStep = -1, nextStepTime = 0, scheduleInterval = null;
+document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // SPIRIT PULSE initial value, matching the default tempo above — kept in sync from here on by the two update points elsewhere (playback start, tempo changes)
 let _tempoNudge = 0; // live pitch-bend style nudge from the tempo screen's top track; never persisted/saved
 const LOOKAHEAD = 0.1, SCHEDULE_MS = 25;
 function stepDuration() { return 60 / (bpm + _tempoNudge) / 4; }
@@ -3378,6 +3372,7 @@ function scheduler() {
         }
       }
       if (snap.bpm) bpm = snap.bpm;
+      document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // keep SPIRIT PULSE matching whatever tempo this loaded pattern actually carries
       // masterVol is now swing — don't restore it from old slot saves to avoid surprise changes
       // if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
       if (snap.beatPlaying !== undefined) {
@@ -3910,6 +3905,7 @@ function togglePlay() {
     document.body.classList.add('seq-playing');
     const _logoEl = document.getElementById('siFiTitle');
     if (_logoEl) _logoEl.style.setProperty('--logo-anim-dur', ((60 / bpm) * 4) + 's'); // one full measure (4 beats) per trip through all four colors — custom property, not the raw animation-duration, so it can't leak into the logo's tap press-pulse (see CSS)
+    document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // SPIRIT PULSE ("+" glyph color-cycle while in AUTO mode) — hard-coded to one quarter note at the loaded pattern's own tempo, per direct request; set globally (not scoped to one element like the logo's own --logo-anim-dur above) since #randBtn isn't a descendant of the logo
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch (e) {} }
     scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
     startRecallLoop();
@@ -11331,6 +11327,7 @@ function randAll(mode, opts) {
     bpm = _newBpm;
     const bpmEl = document.getElementById('bpmDisplay'); if (bpmEl) bpmEl.textContent = bpm;
     const tempoSlider = document.getElementById('tempoBar'); if (tempoSlider) tempoSlider.value = bpm;
+    document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // keep SPIRIT PULSE matching RAND's own freshly-picked tempo
   }
   if (!_beatTypeLocked) {
     let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
@@ -13892,6 +13889,7 @@ function _tempoSetResting(newBpm) {
   // cause a visible jump.
   const _logoElTempo = document.getElementById('siFiTitle');
   if (_logoElTempo && playing) _logoElTempo.style.setProperty('--logo-anim-dur', ((60 / bpm) * 4) + 's'); // custom property, not raw animation-duration — see CSS comment on the logo's press-pulse rule
+  document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // SPIRIT PULSE — same reasoning, kept in sync with tempo changes too
 }
 function showTempoScreen() {
   const el = document.getElementById('tempoScreenOverlay');
@@ -14884,18 +14882,11 @@ function setAutoRandPeriod(idx) {
   if (readout) readout.textContent = _autoRandPeriod + ' BARS';
 }
 // SPIRIT PULSE — speed of the "+" glyph's color-cycle while held in AUTO
-// mode (see #randBtn.pulsing .glyph above). Slider 0-100 maps linearly to
-// a 1x-10x speed multiplier; 1x is the original fixed 4s duration this
-// always ran at before it was made adjustable.
-const SPIRIT_PULSE_BASE_DUR = 4; // seconds, at 1x (slider = 0)
-function setSpiritPulse(v) {
-  v = +v;
-  const mult = 1 + (v / 100) * 9; // 1x at v=0, 10x at v=100
-  const dur = SPIRIT_PULSE_BASE_DUR / mult;
-  document.documentElement.style.setProperty('--spirit-pulse-dur', dur + 's');
-  const readout = document.getElementById('spiritPulseReadout');
-  if (readout) readout.textContent = (Math.round(mult * 10) / 10) + 'X';
-}
+// mode (see #randBtn.pulsing .glyph above). Hard-coded to one quarter
+// note at the loaded pattern's own tempo, per direct request — kept in
+// sync via --spirit-pulse-dur, set wherever bpm itself changes (playback
+// start, tempo screen, RAND's own tempo randomization, slot recall,
+// reset). No longer user-adjustable — was a 1x-10x slider before this.
 // AUTO-SWEEP — when on, SWEEP automatically engages for the whole bar
 // immediately before RAND's auto-mode generates its next pattern (i.e.
 // exactly _autoRandPeriod - 1 bars into the current cycle), then releases
@@ -15294,6 +15285,7 @@ function fullReset() {
 
   // Global music state
   bpm = 110; swingVal = 0.625; masterVol = 0.8; randAllLevel = 0;
+  document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // keep SPIRIT PULSE matching the reset tempo
   _tempoLocked = false; _beatTypeLocked = false; _beatType = 'disco';
   // Neither the lock icon/UI nor the BPM number display anywhere ever
   // actually got refreshed after a reset — the underlying bpm/_tempoLocked
