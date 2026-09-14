@@ -433,13 +433,6 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
   touch-action: manipulation;
 }
 .beat-type-item.current, .beat-type-item.drag-hover { background: #111; color: #adff00; }
-/* SHUFFLE/JAZZ are an actual tempo change (see the triplet swing offset
-   they apply), so while tempo is locked the menu can't cross between them
-   and every other beat type in either direction — see _isSwingBeatType /
-   commitBeatMenuSelection's guard. Dimmed + inert here rather than removed,
-   so it's clear the option exists but is unavailable right now. */
-.beat-type-item.tempo-lock-blocked { opacity: 0.35; pointer-events: none; }
-.beat-type-item.tempo-lock-blocked.drag-hover { background: #555; color: #fff; }
 #beatBtn.menu-open { background: var(--top-row-pressed-bg) !important; }
 #beatBtn.menu-open:active { opacity: 1; } /* same reasoning as the other two black-on-hold fixes above */
 #turboBtn.boost-on { animation: boost-red 0.5s infinite alternate; }
@@ -1030,7 +1023,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 06:04:21 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 19:27:09 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1178,7 +1171,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 06:04:21 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 19:27:09 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1346,11 +1339,11 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
 
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">0%</span>
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
+          <div id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;">0%</div>
         </div>
+        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -2594,7 +2587,7 @@ function _trackNote() {
 // MIX = the wet output level on top of that (0-100 maps to gain 0.0-2.0).
 // Both readouts on screen show the exact 0-100 number quoted in code below —
 // "set INTENSITY to 20, MIX to 20" means exactly these two sliders at 20.
-const REVERB_MIX_MAX = 0.1;        // output gain at slider=100 — +25% more liberal overall (was 0.08)
+const REVERB_MIX_MAX = 0.4;        // output gain at slider=100 — raised substantially (was 0.1) per direct request; this is a pure post-processing gain multiplier on the convolver's already-computed output, so raising it costs zero extra CPU — it was never a processing-load tradeoff, just a conservative loudness ceiling
 
 function _buildReverbIRBuffer(targetCtx, v) {
   // v: 0 = plate (short/tight/bright), 1 = hall (long/slow/cavernous)
@@ -4642,17 +4635,17 @@ function randomizeBassTrack(tr, level) {
     if (mode === 0) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 0) ? ((s === 0 || Math.random() < 0.45) ? 2 : 1) : 0; // accented more often now — was only ever step 0
+        grid[tr][gs] = (s % 4 === 0) ? 2 : 0; // accented more often now — was only ever step 0
       }
     } else if (mode === 1) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 2) ? (Math.random() < 0.35 ? 2 : 1) : 0; // used to never accent at all
+        grid[tr][gs] = (s % 4 === 2) ? 2 : 0; // used to never accent at all
       }
     } else if (mode === 3) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 2 === 0) ? ((s % 4 === 0 || Math.random() < 0.2) ? 2 : 1) : 0; // a bit more often on the offbeats too now
+        grid[tr][gs] = (s % 2 === 0) ? 2 : 0; // a bit more often on the offbeats too now
       }
     }
     // mode 2 = falls through to normal random placeNotes below
@@ -4672,17 +4665,17 @@ function randomizeBassTrack(tr, level) {
     if (mode === 0) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 0) ? ((s === 0 || Math.random() < 0.45) ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 4 === 0) ? 2 : 0;
       }
     } else if (mode === 1) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 2) ? (Math.random() < 0.35 ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 4 === 2) ? 2 : 0;
       }
     } else if (mode === 3) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 2 === 0) ? ((s % 4 === 0 || Math.random() < 0.2) ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 2 === 0) ? 2 : 0;
       }
     } else {
       // mode 2 — random placement, note count already constrained to
@@ -5723,7 +5716,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.130 : 0.090;
+  const vel = isAccent ? 0.1545 : 0.107; // +1.5dB more (was 0.130/0.090), per direct request
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
@@ -7782,20 +7775,11 @@ setInterval(() => {
 // BEAT button: quick tap still toggles beat instantly (same responsiveness
 // as save slots). Holding — or dragging down — opens a menu of beat types
 // plus the tempo lock, which you drag over and release on rather than tap.
-// SHUFFLE (boogie) and JAZZ both apply the same triplet/swing step-timing
-// offset (see the shared `_beatType === 'boogie' || _beatType === 'jazz'`
-// checks in the scheduler) — they're the two beat types that amount to an
-// actual tempo change rather than just a different accent pattern at the
-// current tempo, which is why tempo lock treats crossing into or out of
-// them as off-limits, same direction-agnostic reasoning either way.
-function _isSwingBeatType(type) { return type === 'boogie' || type === 'jazz'; }
 function refreshBeatMenuHighlight() {
   const menu = document.getElementById('beatTypeMenu');
   if (!menu) return;
-  const currentIsSwing = _isSwingBeatType(_beatType);
   menu.querySelectorAll('.beat-type-item[data-beat]').forEach(it => {
     it.classList.toggle('current', it.dataset.beat === _beatType);
-    it.classList.toggle('tempo-lock-blocked', _tempoLocked && _isSwingBeatType(it.dataset.beat) !== currentIsSwing);
   });
 }
 let _beatMenuOpen = false;
@@ -7867,14 +7851,6 @@ function commitBeatMenuSelection(item) {
   } else if (item.id === 'beatCtrlRand') {
     onBeatCtrlRandTap();
   } else if (item.dataset.beat) {
-    // Tempo lock blocks crossing between SHUFFLE/JAZZ and every other beat
-    // type in either direction — picking either of them changes the actual
-    // tempo (triplet swing offset), which a tempo lock is specifically
-    // there to prevent, same as it already does for RAND's own beat-type
-    // pool (see _tempoLocked && _beatType !== 'boogie' elsewhere). The
-    // .tempo-lock-blocked class above keeps this in sync visually, but the
-    // check is repeated here since a drag can still land on a blocked item.
-    if (_tempoLocked && _isSwingBeatType(item.dataset.beat) !== _isSwingBeatType(_beatType)) return;
     setBeatType(item.dataset.beat);
     refreshBeatMenuHighlight();
   }
@@ -13412,17 +13388,17 @@ function randomizeTrack(tr) {
     if (mode === 0) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 0) ? ((s === 0 || Math.random() < 0.45) ? 2 : 1) : 0; // accented more often now — was only ever step 0
+        grid[tr][gs] = (s % 4 === 0) ? 2 : 0; // accented more often now — was only ever step 0
       }
     } else if (mode === 1) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 2) ? (Math.random() < 0.35 ? 2 : 1) : 0; // used to never accent at all
+        grid[tr][gs] = (s % 4 === 2) ? 2 : 0; // used to never accent at all
       }
     } else if (mode === 3) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 2 === 0) ? ((s % 4 === 0 || Math.random() < 0.2) ? 2 : 1) : 0; // a bit more often on the offbeats too now
+        grid[tr][gs] = (s % 2 === 0) ? 2 : 0; // a bit more often on the offbeats too now
       }
     }
     // mode 2 = falls through to normal random placeNotes below
@@ -13442,17 +13418,17 @@ function randomizeTrack(tr) {
     if (mode === 0) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 0) ? ((s === 0 || Math.random() < 0.45) ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 4 === 0) ? 2 : 0;
       }
     } else if (mode === 1) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 4 === 2) ? (Math.random() < 0.35 ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 4 === 2) ? 2 : 0;
       }
     } else if (mode === 3) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-        grid[tr][gs] = (s % 2 === 0) ? ((s % 4 === 0 || Math.random() < 0.2) ? 2 : 1) : 0;
+        grid[tr][gs] = (s % 2 === 0) ? 2 : 0;
       }
     } else {
       // mode 2 — random placement, note count already constrained to
@@ -16660,7 +16636,7 @@ function setBeatVol(v) {
 let _beatReverbMix = 0.24;               // slider under BEAT VOL — 0-1, scales the send level whenever 'R' is on — 24% default (up another 10% relative from 22%)
 let _beatFx = false, _beatPump = false;  // 'FX' — 3-state cycle: off / on / on+blast
 let _beatAutoRandActive = false, _beatAutoRandBarCount = 0; // rand 'R' double-tap auto mode
-const BEAT_REVERB_MIX_MAX = 0.045; // send level at slider=100% (was 0.09, cut 50% more)
+const BEAT_REVERB_MIX_MAX = 0.18; // send level at slider=100% — raised to match REVERB MIX's own increase (was 0.045); same reasoning, this is a pure gain ceiling with zero CPU cost either way
 function _beatReverbGainForMix(v) {
   // Squared taper — gives much finer control at the low end of the slider,
   // since even a small linear fraction was still too much send.
