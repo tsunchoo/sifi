@@ -1030,7 +1030,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 05:21:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 05:38:26 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1178,7 +1178,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 05:21:25 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 05:38:26 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -2623,6 +2623,7 @@ function setReverbIntensity(v) {
 
 function setGlobalDelayMix(v) {
   if (window._reverbOutGain) window._reverbOutGain.gain.value = v * REVERB_MIX_MAX;
+  if (window._masterReverbSend) window._masterReverbSend.gain.value = v * REVERB_MIX_MAX; // the whole-mix send (see live init) rides the same slider
   window._globalDelayMix = v;
 }
 
@@ -11775,30 +11776,16 @@ function randAll(mode, opts) {
     }
   }
 
-  // TEXTURE (amlgm) needs actual company to sound like a chord rather
-  // than a single note — its own chord draws from every OTHER tonal
-  // track currently in the pattern (see _regenerateAmalgamChord), so with
-  // nothing else tonal around it, it's always just one note, regardless
-  // of how many notes it could theoretically play at once. Guarantees at
-  // least 2 other tonal instruments whenever amlgm is present, overriding
-  // the TONAL/PERC BALANCE slider if it would otherwise leave it alone —
-  // same swap-a-safe-slot approach as CONGA/BONGO and TIMBALE above,
-  // pulling from non-essential percussion slots only.
-  if (pool.includes('amlgm')) {
-    const _amalgamBassKeysLocal = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
-    const _otherTonalCount = pool.filter(k => TONAL_KEYS.has(k) && k !== 'amlgm' && !_amalgamBassKeysLocal.has(k)).length;
-    const _neededTonal = Math.max(0, 2 - _otherTonalCount);
-    for (let n = 0; n < _neededTonal; n++) {
-      let replaceIdx = -1;
-      for (let i = pool.length - 1; i >= 0; i--) {
-        if (!TONAL_KEYS.has(pool[i]) && pool[i] !== 'skick' && pool[i] !== 'shihat') { replaceIdx = i; break; }
-      }
-      if (replaceIdx === -1) break; // nothing safe left in the pool to swap
-      const _candidates = tonalKeysAll.filter(k => k !== 'amlgm' && !_amalgamBassKeysLocal.has(k) && !pool.includes(k));
-      if (_candidates.length === 0) break;
-      pool[replaceIdx] = _candidates[Math.floor(Math.random() * _candidates.length)];
-    }
-  }
+  // TEXTURE's chord no longer needs other tonal tracks to exist at all —
+  // it builds its own chord directly from a scale now (see
+  // _regenerateAmalgamChord), the same way MAGIC always has. This
+  // "borrow other tracks' company" approach is removed: forcing 2 extra
+  // fully-audible tonal tracks into every TEXTURE pattern (not just quiet
+  // echo material) measurably added to overall mix density/clipping, and
+  // it didn't even fix the actual problem — most tracks share the same
+  // scale root, so their first notes kept converging on the same pitch
+  // anyway, still reading as a single-pitch drone regardless of how many
+  // tracks were forced in.
 
   // JAZZ beat type — RIDE and a comping voice (SIDESTICK or SNARE 2,
   // picked 50/50 each time) become real tracks (their pattern is written
@@ -12544,7 +12531,7 @@ function randAll(mode, opts) {
       if (db) db.classList.toggle('on', false);
     });
   }
-  _regenerateAmalgamChord();
+  { const _amlgmTr = trackInstruments.indexOf('amlgm'); if (_amlgmTr !== -1) _regenerateAmalgamChord(_amlgmTr); }
   if (ctx) _fireAmalgamEcho();
   // RAND OFFSET (dev menu) — once everything else about the pattern is
   // decided, push every track's notes along by the same random 1-16
@@ -14574,32 +14561,34 @@ function _playPhantomNote(tr, key, freq, isAccent, when, destOverride, durSec) {
   src.onended = () => { try { g.disconnect(); hp1.disconnect(); hp2.disconnect(); } catch(e) {} };
 }
 let _amalgamChord = null;
-function _regenerateAmalgamChord() {
-  // Capture the actual tonal content of the pattern RAND just generated —
-  // one representative note (its first active step's real pitch) per
-  // tonal track — so the amalgam echo genuinely reflects what's about to
-  // play, rather than an arbitrary random chord unrelated to the pattern.
+function _regenerateAmalgamChord(tr) {
+  // TEXTURE builds its own chord directly from its own scale now — the
+  // same way MAGIC already does — rather than borrowing pitches from
+  // whatever other tonal tracks happen to be in the pattern. Borrowing
+  // depended on those other tracks' own first-note pitches, which very
+  // often converged on the same tonic (most tracks share the same scale
+  // root), so it kept reading as a single-pitch drone no matter how many
+  // tonal tracks existed — and forcing extra tonal tracks into the
+  // pattern just to give it "company" added real, fully-audible density
+  // to the whole mix for no actual harmonic benefit. This is fully
+  // self-contained: always genuine pitch variety, never depends on what
+  // else is in the pattern, no extra tracks needed.
+  const scale = trackBassScale[tr];
   const notes = [];
-  const _amalgamBassKeys = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge']);
-  for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    const key = trackInstruments[tr];
-    if (!TONAL_KEYS.has(key) || _amalgamBassKeys.has(key) || key === 'amlgm') continue; // TEXTURE never contributes to its own echoed chord
-    const scale = trackBassScale[tr];
-    if (!scale) continue;
-    let freq = scale[0];
-    for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0) {
-        freq = (trackPitchOverride[tr] && trackPitchOverride[tr][s] !== undefined) ? trackPitchOverride[tr][s] : scale[s % scale.length];
-        break;
-      }
-    }
-    // Some non-bass instruments (RYTM GTR, MARIO PIANO, HASSELL) still sit in
-    // a genuinely low register (MID_ROOTS, ~110-165Hz) — excluding actual
-    // bass instruments alone let this low content through anyway. Push
-    // anything below 200Hz up an octave so TEXTURE never echoes low pitches,
-    // regardless of which instrument they came from.
-    while (freq < 200) freq *= 2;
-    notes.push({ tr, key, freq });
+  if (scale && scale.length >= 3) {
+    // Spread across scale degrees — root, +2, +4 — same "skip degrees for
+    // real harmonic spread instead of adjacent, muddy tones" idea MAGIC's
+    // own chord already uses. Root position re-rolled each regeneration
+    // so the chord moves around rather than sitting on the same three
+    // degrees every time.
+    const rootIdx = Math.floor(Math.random() * scale.length);
+    [0, 2, 4].forEach(offset => {
+      let freq = scale[(rootIdx + offset) % scale.length];
+      while (freq < 200) freq *= 2; // never echo a low pitch, regardless of register
+      notes.push({ tr, key: 'amlgm', freq });
+    });
+  } else {
+    notes.push({ tr, key: 'amlgm', freq: 220 }); // no scale assigned yet — plain fallback root
   }
   _amalgamChord = notes;
 }
@@ -14694,7 +14683,7 @@ function _fireAmalgamEcho() {
   }
 }
 function _scheduleAmalgamNotes() {
-  if (!_amalgamChord) _regenerateAmalgamChord(); // first-ever touch, before any RAND press
+  if (!_amalgamChord) { const _amlgmTr = trackInstruments.indexOf('amlgm'); _regenerateAmalgamChord(_amlgmTr !== -1 ? _amlgmTr : 0); } // first-ever touch, before any RAND press
   const notes = _amalgamChord;
   // Normalize against chord size, linearly — each note contributes two
   // summed layers inside _playPhantomNote (a sustained body plus a
@@ -14731,9 +14720,9 @@ function _scheduleAmalgamNotes() {
 // completely normally, since there's only ever one event per hit.
 function playAmalgamStep(isAccent, time, tr, durSec) {
   if (!ctx) return;
-  _regenerateAmalgamChord(); // capture the pattern's tonal content as it is right now
+  _regenerateAmalgamChord(tr); // build this hit's chord fresh from TEXTURE's own scale
   let notes = _amalgamChord;
-  if (!notes || notes.length === 0) notes = [{ tr, key: 'amlgm', freq: 220 }]; // no tonal tracks anywhere — fall back to a plain root note so the step is never silent
+  if (!notes || notes.length === 0) notes = [{ tr, key: 'amlgm', freq: 220 }]; // no scale assigned yet — fall back to a plain root note so the step is never silent
   // Linear normalization, not sqrt — each note contributes two summed
   // layers inside _playPhantomNote (a sustained body plus a transient
   // blip), so sqrt(N) undercounted how much multiple simultaneous tonal
@@ -15972,13 +15961,26 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
     window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
     masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
+    // REVERB MIX OVERALL send — a second, parallel reverb send tapping
+    // every track's own fully-processed output (post FX/BLAST/pan, same
+    // point that feeds masterGain), independent of and in addition to
+    // whichever individual tracks have their own R button on. BEAT is
+    // deliberately not included here — it has its own separate REVERB ON
+    // BEAT send/slider. Before this, REVERB MIX OVERALL only controlled
+    // how loud the wet return was for whatever WAS already being sent
+    // (individual track sends) — with none of those on, turning it up
+    // did nothing at all. This makes it a genuine "apply reverb to the
+    // whole mix" control, on top of (not instead of) per-track sends.
+    window._masterReverbSend = ctx.createGain();
+    window._masterReverbSend.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
+    window._masterReverbSend.connect(window._reverbSendBus);
     for (let i=0; i<NUM_TRACKS; i++) {
       const g = ctx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
       const ef = ctx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
       // A little alternating stereo separation between tracks — nothing
       // drastic, just enough that six tracks don't all sit dead-center.
       const pan = ctx.createStereoPanner(); pan.pan.value = (i % 2 === 0) ? -0.15 : 0.15;
-      g.connect(ef); ef.connect(pan); pan.connect(masterGain); trackEnvFilters[i] = ef;
+      g.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(window._masterReverbSend); trackEnvFilters[i] = ef;
       trackFxNodes[i] = buildFxChain(g);
       if (trackInstruments[i] === 'ngate') initNoiseGate(i);
       // Reflect any FX state already set in the data model (e.g. Track 1's
@@ -16037,7 +16039,7 @@ async function hardResetAudioEngine() {
     ctx = null; masterGain = null;
     window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
-    window._reverbSendBus = null; window._reverbOutGain = null;
+    window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
     window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     currentStep = -1; nextStepTime = 0;
