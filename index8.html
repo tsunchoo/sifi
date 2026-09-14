@@ -1030,7 +1030,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 05:49:03 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 06:04:21 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1178,7 +1178,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 05:49:03 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 06:04:21 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3129,7 +3129,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.75 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); CONGA/BONGO +1dB more (was 0.5959); TIMBALE pulled back down to 0.75 (was 1.1221, -3.5dB) — a long series of incremental +0.5/+1dB boosts across many requests had pushed it above unity gain (1.0) and well past the per-track soft-clip's own 0.6 saturation threshold, which was causing every hit to audibly clip/distort. 0.75 keeps it clearly more prominent than CONGA/BONGO's own 0.6686 (the level it started from before any of those boosts) while sitting well clear of that ceiling; SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.75 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959); TIMBALE pulled back down to 0.75 (was 1.1221, -3.5dB) — a long series of incremental +0.5/+1dB boosts across many requests had pushed it above unity gain (1.0) and well past the per-track soft-clip's own 0.6 saturation threshold, which was causing every hit to audibly clip/distort. 0.75 keeps it clearly more prominent than CONGA/BONGO's own 0.6686 (the level it started from before any of those boosts) while sitting well clear of that ceiling; SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -4095,7 +4095,7 @@ function playSynthKick(isAccent, time, tr) {
   osc.frequency.setValueAtTime(isAccent ? 180 : 140, time);
   osc.frequency.exponentialRampToValueAtTime(35, time + 0.35);
   const _kickBossaMult = (_beatType === 'bossa') ? 0.8 : 1; // BOSSA NOVA kicks sit a little softer — 80% of every other beat type's level, per direct request
-  g.gain.setValueAtTime((isAccent ? 0.338 : 0.226) * _kickBossaMult, time); // -3dB from original 0.478/0.319
+  g.gain.setValueAtTime((isAccent ? 0.3664 : 0.245) * _kickBossaMult, time); // +0.7dB more (was 0.338/0.226, -3dB from original 0.478/0.319) — a little more punch, per direct request
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
   _cleanupNodes([g], time + 0.47);
@@ -12350,7 +12350,7 @@ function randAll(mode, opts) {
   const _magicPresentThisRand = trackInstruments.some(k => k === 'magic');
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
-    if (TONAL_KEYS.has(trackInstruments[tr]) || trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || _congaBongoKeysSet.has(trackInstruments[tr])) {
+    if (TONAL_KEYS.has(trackInstruments[tr]) || trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'skick' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || _congaBongoKeysSet.has(trackInstruments[tr])) {
       const isBass = (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass4');
       const isClap = trackInstruments[tr] === 'clap';
       const isSlay = trackInstruments[tr] === 'fflute';
@@ -12361,12 +12361,13 @@ function randAll(mode, opts) {
       const isChug = trackInstruments[tr] === 'chug';
       const isRide = trackInstruments[tr] === 'ride';
       const isSidestick = trackInstruments[tr] === 'sidestick';
+      const isKick = trackInstruments[tr] === 'skick';
       const isToms = trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo';
       const isJinx = trackInstruments[tr] === 'jcmgtr';
       const isSludge = trackInstruments[tr] === 'sludge';
       const isCongaBongo = _congaBongoKeysSet.has(trackInstruments[tr]);
       const fxBoost = level >= 4 ? 0.845 : (level === 3 ? 0.585 : 0); // +30% over previous 0.65/0.45
-      const fxOn = _magicPresentThisRand ? false : isCongaBongo ? _congaBongoFxRoll : isJinx ? _jinxComboRoll[tr] : isSludge ? Math.random() < 0.5 : isSidestick ? Math.random() < 0.7 : isToms ? Math.random() < 0.7 : isRide ? Math.random() < 0.5 : isSlay ? Math.random() < 0.08 : isChug ? Math.random() < 0.95 : isClap ? Math.random() < 0.95 : isDamask ? Math.random() < 0.75 : isOpening ? Math.random() < 0.1 : isHopkins ? Math.random() < 0.5 : isRytmGtr ? Math.random() < 0.4 : Math.random() < Math.min(1, ((isBass ? 0.805 : 0.4025) + fxBoost) * autoBoost * 1.25); // base +15%, then +25% more; DAMASK often gets FX — a plaintive lead wants the reverb-ish send; OPENING rarely does; CHUG/CLAP almost always on but no longer absolute, so "every track" and "no tracks" both stay reachable; RIDE ~50%; SIDESTICK fixed 70%, per direct request — wasn't part of this dispatcher at all before (SIDESTICK is neither tonal, RIDE, nor CONGA/BONGO, so it fell through this whole thing untouched, never getting FX from RAND); TOMS (any of toms/tomHi/tomMid/tomLo) fixed 70% too, per direct request — FX tucks them in a bit, which reads better than the raw bloatier tone; wasn't part of this dispatcher before either; SLUDGE BASS fixed 50% (from there BLAST's own existing chance can escalate it further); JINX linked to its own reverb roll above; CONGA/BONGO shared 50/50 roll for the whole pair; MAGIC anywhere in the pattern forces every track off
+      const fxOn = _magicPresentThisRand ? false : isCongaBongo ? _congaBongoFxRoll : isJinx ? _jinxComboRoll[tr] : isSludge ? Math.random() < 0.5 : isSidestick ? Math.random() < 0.7 : isKick ? Math.random() < 0.75 : isToms ? Math.random() < 0.7 : isRide ? Math.random() < 0.5 : isSlay ? Math.random() < 0.08 : isChug ? Math.random() < 0.95 : isClap ? Math.random() < 0.95 : isDamask ? Math.random() < 0.75 : isOpening ? Math.random() < 0.1 : isHopkins ? Math.random() < 0.5 : isRytmGtr ? Math.random() < 0.4 : Math.random() < Math.min(1, ((isBass ? 0.805 : 0.4025) + fxBoost) * autoBoost * 1.25); // base +15%, then +25% more; DAMASK often gets FX — a plaintive lead wants the reverb-ish send; OPENING rarely does; CHUG/CLAP almost always on but no longer absolute, so "every track" and "no tracks" both stay reachable; RIDE ~50%; SIDESTICK fixed 70%, per direct request — wasn't part of this dispatcher at all before (SIDESTICK is neither tonal, RIDE, nor CONGA/BONGO, so it fell through this whole thing untouched, never getting FX from RAND); KICK fixed 75% too, per direct request — also wasn't part of this dispatcher before; TOMS (any of toms/tomHi/tomMid/tomLo) fixed 70% too, per direct request — FX tucks them in a bit, which reads better than the raw bloatier tone; wasn't part of this dispatcher before either; SLUDGE BASS fixed 50% (from there BLAST's own existing chance can escalate it further); JINX linked to its own reverb roll above; CONGA/BONGO shared 50/50 roll for the whole pair; MAGIC anywhere in the pattern forces every track off
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
       trackFx[tr] = newFxVal;
       if (ctx) setFxActive(tr, newFxVal);
@@ -14737,17 +14738,22 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
   // version can be revisited if the "always the same note" concern comes
   // back up.
   // Cascaded, not fired as one static block chord — each note in the
-  // chord starts a hair after the previous one, fastest at the start of
-  // this list. Spacing is derived from the current tempo and chord size
-  // together so the whole cascade always finishes comfortably inside one
-  // 16th note, never mind how many notes are in it or how fast the
-  // pattern is playing — per direct request. Also nicely spreads the
-  // node-creation cost across a few milliseconds instead of one instant,
-  // same reasoning MAGIC's own chord already uses this trick for.
+  // chord starts a hair after the previous one. Centered on the note's
+  // actual intended hit time, not starting there — the whole span is
+  // shifted earlier so its midpoint lands on `time` instead of its start,
+  // which was making the cascade read as consistently late (only ever
+  // extending forward from the beat, never around it). Spacing is
+  // derived from the current tempo and chord size together so the whole
+  // cascade always finishes comfortably inside one 16th note, never mind
+  // how many notes are in it or how fast the pattern is playing. Also
+  // nicely spreads the node-creation cost across a few milliseconds
+  // instead of one instant, same reasoning MAGIC's own chord already
+  // uses this trick for.
   const _sixteenthDur = (60 / bpm) / 4;
   const _cascadeStagger = _sixteenthDur / (notes.length + 1);
+  const _cascadeStart = time - ((notes.length - 1) * _cascadeStagger) / 2;
   notes.forEach((n, i) => {
-    _playPhantomNote(tr, n.key, n.freq, false, time + i * _cascadeStagger, dest, durSec);
+    _playPhantomNote(tr, n.key, n.freq, false, _cascadeStart + i * _cascadeStagger, dest, durSec);
   });
   _amalgamVolOverride = null; // reset AFTER the notes read it — it was being cleared too early before, so every note fell back to the flat default instead of the computed volume
 }
