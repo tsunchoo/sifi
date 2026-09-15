@@ -664,7 +664,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
   height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* now matches the rest of the track row's own height exactly — was 80% of it (the *0.8 factor), per direct request; --vol-bar-height-override lets the VOL SLIDER HEIGHT slider in SETTINGS override this down to as little as 10px — see setVolBarHeight() */
-  align-self: flex-start; /* stuck to the top of the row regardless of the row's own height, instead of stretching or centering */
+  align-self: center; /* stays vertically centered in the row regardless of its own height (see --vol-bar-height-override) — was flex-start (pinned to the top), which meant shrinking the bar's height via that slider made it look like it was shrinking away from the top rather than staying centered */
 }
 body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) */
 /* Ruler behind the fill — one horizontal line straight through the
@@ -693,7 +693,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
   background-color: color-mix(in srgb, var(--top-row-pressed-bg) 60%, black); /* darker still than #playBtn.playing's own pressed background — that alone wasn't reading as dark enough against the slider */
 }
 .track-vol-fill-solid {
-  position: absolute; top: 15%; left: 0; bottom: 15%; /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate */
+  position: absolute; top: var(--vol-fill-inset-override, 15%); left: 0; bottom: var(--vol-fill-inset-override, 15%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
   filter: saturate(var(--vol-slider-saturation, 1));
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
@@ -708,8 +708,8 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
    (already kept in sync with the volume percentage by the existing JS),
    with zero further JS changes needed for either piece. */
 body.simple-fader .track-vol-fill-solid {
-  top: 0;
-  bottom: 0;
+  top: var(--vol-fill-inset-override, 0%);
+  bottom: var(--vol-fill-inset-override, 0%);
 }
 body.simple-fader .track-vol-fill-solid::after {
   content: '';
@@ -1046,7 +1046,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 16:07:55 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 16:15:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1194,7 +1194,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 16:07:55 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 16:15:39 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1211,6 +1211,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+      <input type="checkbox" id="faderTipTopRowColorToggle" onchange="setFaderTipTopRowColor(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = TOP ROW COLOR
     </label>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1441,6 +1444,13 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div id="volBarHeightReadout" style="font-size:0.62rem;font-weight:700;color:#111;">MAX</div>
         </div>
         <input type="range" id="volBarHeightSlider" min="0" max="100" value="100" oninput="setVolBarHeight(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL FILL HEIGHT</div>
+          <div id="volFillHeightReadout" style="font-size:0.62rem;font-weight:700;color:#111;">70%</div>
+        </div>
+        <input type="range" id="volFillHeightSlider" min="0" max="100" value="70" oninput="setVolFillHeight(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
@@ -8138,6 +8148,18 @@ function setVolBarHeight(v) {
   const readout = document.getElementById('volBarHeightReadout');
   if (readout) readout.textContent = v >= 100 ? 'MAX' : Math.round(h) + 'PX';
 }
+// VOL FILL HEIGHT — the pulsing fill (and, since the SIMPLE FADER tip is
+// literally a child of the fill's own box, the tip along with it) — as a
+// percentage of the bar's own height, independent of the bar's own
+// height set above. Computed as a symmetric top/bottom inset so it always
+// stays vertically centered within the bar, same reasoning as the bar's
+// own new align-self: center.
+function setVolFillHeight(v) {
+  const inset = (100 - (+v)) / 2;
+  document.documentElement.style.setProperty('--vol-fill-inset-override', inset + '%');
+  const readout = document.getElementById('volFillHeightReadout');
+  if (readout) readout.textContent = v + '%';
+}
 const _BEAT_DRUM_KEYS = new Set(['skick', 'ssnare', 'shihat', 'ride', 'sidestick', 'toms', 'tomHi', 'tomMid', 'tomLo']);
 function _syncDrumTracksToBeat(on) {
   if (!window._beatIsAllDrums) return;
@@ -9829,6 +9851,16 @@ function setVolSliderColor(n) {
 // stays in sync if that color itself ever changes.
 function setVolSliderColorToggle(on) {
   document.documentElement.style.setProperty('--simple-fader-tip-color', on ? 'var(--top-row-text-color, #fff)' : '#000');
+}
+// FADER TIP = TOP ROW COLOR (COLOR MENU checkbox) — a separate toggle
+// from the one above: this one matches the top row buttons' own actual
+// button color (--neutral-top, what their background is), not their text/
+// glyph color. Both toggles write to the same --simple-fader-tip-color
+// variable, so whichever was checked most recently wins if both happen to
+// be on at once — same last-action-wins behavior as everywhere else two
+// controls can affect the same thing.
+function setFaderTipTopRowColor(on) {
+  document.documentElement.style.setProperty('--simple-fader-tip-color', on ? 'var(--neutral-top, #555)' : '#000');
 }
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
