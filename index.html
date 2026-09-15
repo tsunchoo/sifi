@@ -505,7 +505,7 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
 
 /* ── Per-track inline control row ── */
 .track-ctrl-row {
-  display: flex; align-items: stretch; gap: clamp(2px, 1vw, 5px);
+  display: flex; align-items: center; gap: clamp(2px, 1vw, 5px);
   height: clamp(28px, 8vw, 32px);
   touch-action: none; /* a touch landing in the gap between buttons (missing one slightly) used to fall through to the page's own pan-y scroll — on iOS that overscroll could trigger a pull-to-refresh reload, silently losing the current pattern. Blocking it at the whole-row level, not just per-button, closes that gap. */
 }
@@ -714,9 +714,10 @@ body.simple-fader .track-vol-fill-solid {
 body.simple-fader .track-vol-fill-solid::after {
   content: '';
   position: absolute;
-  left: 100%; top: 0; bottom: 0;
+  left: 100%; top: 50%;
   width: var(--simple-fader-width, 4px);
-  transform: translateX(-100%); /* sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100% */
+  height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* matches .track-vol-bar's own height directly (same formula, including its VOL SLIDER HEIGHT override) — NOT a percentage of the fill's own box, which would mean VOL FILL HEIGHT affected the tip's height too. An absolute height sidesteps that: the fill's own box can shrink all it wants without touching this. */
+  transform: translate(-100%, -50%); /* horizontal: sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100%. vertical: centers this fixed-height tip within the row, regardless of the fill's own (possibly much shorter) height */
   background: var(--simple-fader-tip-color, #000);
   pointer-events: none;
 }
@@ -1046,7 +1047,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 16:15:39 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 21:22:40 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1194,7 +1195,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 16:15:39 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 21:22:40 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1436,7 +1437,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL TRACK LINE HEIGHT</div>
           <div id="volScaleThicknessReadout" style="font-size:0.62rem;font-weight:700;color:#111;">3.125PX</div>
         </div>
-        <input type="range" id="volScaleThicknessSlider" min="0" max="3.125" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="volScaleThicknessSlider" min="0" max="9.375" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
