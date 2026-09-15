@@ -29,7 +29,7 @@
   --vol-slider-saturation: 1; /* Hard-coded to 100% (saturate(1), unchanged) now — the TRACK VOLUME COLOR SATURATION slider itself was removed from COLOR settings. Still a saturate() filter on the volume slider fill, independent of which color/hue is chosen above it. */
   --top-row-saturation: 1; /* Hard-coded to 100% (maximum, unchanged) now — the TOP ROW COLOR SATURATION slider itself was removed from COLOR settings. Still a saturate() filter on every top-row .btn, independent of the TOP ROW color picker itself. */
   --note-marker-opacity: 0.9; /* Hard-coded to 90% now — the NOTE MARKER OPACITY slider itself was removed from COLOR settings. Still a multiplier on the step-cell note markers' own opacity (soft/on, playing or not), preserving the relative difference between soft and accented notes rather than flattening them to the same value. */
-  --vol-scale-thickness: 3.125px; /* Hard-coded to the old slider's maximum now — the SCALE LINES THICKNESS slider itself was removed from COLOR settings. */
+  --vol-scale-thickness: 4px; /* Hardcoded per direct request — was 3.125px (the old slider's own maximum, before it too was removed from the UI). setVolScaleThickness() is kept intact in case this needs to change again later. */
   --vol-scale-opacity: 1; /* Hard-coded to 100% now — the SCALE LINES OPACITY slider itself was removed from COLOR settings. Color is a darker version of --neutral-top (the volume bar's own background), not independently pickable. */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -659,14 +659,17 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 .track-ctrl-row .shift-btn:not(.right) { font-size: calc((1rem + 0.5em) * var(--track-btn-font-scale, 1)); }
 .track-vol-bar {
   flex: 1; position: relative; overflow: hidden;
-  background: var(--neutral-top, #555); border: none;
+  background: transparent; border: none; /* hardcoded per direct request — VOL SLIDER BG TRANSPARENT toggle removed from SETTINGS, setVolBgTransparent() kept in the code but no longer wired to any UI */
   cursor: ew-resize; touch-action: none;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
-  height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* now matches the rest of the track row's own height exactly — was 80% of it (the *0.8 factor), per direct request; --vol-bar-height-override lets the VOL SLIDER HEIGHT slider in SETTINGS override this down to as little as 10px — see setVolBarHeight() */
-  align-self: center; /* stays vertically centered in the row regardless of its own height (see --vol-bar-height-override) — was flex-start (pinned to the top), which meant shrinking the bar's height via that slider made it look like it was shrinking away from the top rather than staying centered */
+  height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)); /* hardcoded to its natural full height (the VOL SLIDER HEIGHT slider's 100% position) per direct request — the slider and --vol-bar-height-override are removed from use; setVolBarHeight() kept in the code but no longer wired to any UI */
+  align-self: center; /* stays vertically centered in the row */
 }
-body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) */
+/* VOL SLIDER BG TRANSPARENT toggle removed — background is hardcoded to
+   transparent above now. setVolBgTransparent() itself is kept in the code
+   in case this needs re-enabling later; the body.vol-bg-transparent class
+   it toggles now has nothing left to apply to. */
 /* Ruler behind the fill — one horizontal line straight through the
    middle, crossed by 10 evenly-spaced vertical ticks. Two background
    layers on one element rather than a separate line + 10 separate tick
@@ -715,7 +718,7 @@ body.simple-fader .track-vol-fill-solid::after {
   position: absolute;
   left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 4px))); /* standard slider-thumb interpolation: 0 at fill-pct=0 (tip's own left edge flush with the bar's true left edge), up to 100%-width at fill-pct=100 (tip's own right edge flush with the bar's true right edge) — always fully on-screen at both extremes. The old left:100%+translateX(-100%) approach anchored to the fill's own (possibly zero-width) box, which pushed the tip entirely past the bar's left edge — clipped and invisible — the moment the fill hit 0% */
   top: 50%;
-  width: var(--simple-fader-width, 4px);
+  width: var(--simple-fader-width, 12px); /* hardcoded per direct request (was 4px) — --simple-fader-width itself is never set anymore since FADER WIDTH's slider was removed from the UI, so this fallback is the effective value now */
   height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* matches .track-vol-bar's own height directly (same formula, including its VOL SLIDER HEIGHT override) — NOT a percentage of the fill's own box, which would mean VOL FILL HEIGHT affected the tip's height too. An absolute height sidesteps that: the fill's own box can shrink all it wants without touching this. */
   transform: translateY(-50%); /* vertical centering only now — horizontal position is fully resolved by left above */
   background: var(--simple-fader-tip-color, #000);
@@ -1014,7 +1017,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader">
+<body class="simple-fader vol-bg-transparent">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1047,7 +1050,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:07:43 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:28:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1195,7 +1198,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:07:43 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:28:05 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1212,9 +1215,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-      <input type="checkbox" id="faderTipTopRowColorToggle" onchange="setFaderTipTopRowColor(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = TOP ROW COLOR
     </label>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1271,13 +1271,15 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
            contrast) is the only mode reachable via that old system now.
            setVolSliderColor()/_autoPickVolSliderColor() are kept intact
-           for this reason; unrelated to the toggle below. -->
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volSliderColorToggle" onchange="setVolSliderColorToggle(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = GLYPH COLOR
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volBgTransparentToggle" onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
-      </label>
+           for this reason. -->
+
+      <!-- FADER TIP = GLYPH COLOR / VOL SLIDER BG TRANSPARENT — both
+           removed from the UI per direct request: everything about the
+           volume slider's look is hardcoded now (see .track-vol-bar,
+           .track-vol-fill-solid, and body's own class list). Tip color
+           stays at its plain default (--simple-fader-tip-color, #000).
+           setVolSliderColorToggle()/setVolBgTransparent() are kept intact
+           for this reason. -->
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -1422,37 +1424,16 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="simpleFaderToggle" checked onchange="setSimpleFader(this.checked)" style="width:14px;height:14px;cursor:pointer;">SIMPLE FADER
-      </label>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.62rem;font-weight:700;color:#111;">4PX</div>
-        </div>
-        <input type="range" id="simpleFaderWidthSlider" min="4" max="16" value="4" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL TRACK LINE HEIGHT</div>
-          <div id="volScaleThicknessReadout" style="font-size:0.62rem;font-weight:700;color:#111;">3.125PX</div>
-        </div>
-        <input type="range" id="volScaleThicknessSlider" min="0" max="12.5" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL SLIDER HEIGHT</div>
-          <div id="volBarHeightReadout" style="font-size:0.62rem;font-weight:700;color:#111;">MAX</div>
-        </div>
-        <input type="range" id="volBarHeightSlider" min="0" max="100" value="100" oninput="setVolBarHeight(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL FILL HEIGHT</div>
-          <div id="volFillHeightReadout" style="font-size:0.62rem;font-weight:700;color:#111;">70%</div>
-        </div>
-        <input type="range" id="volFillHeightSlider" min="0" max="100" value="70" oninput="setVolFillHeight(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
+      <!-- SIMPLE FADER, FADER WIDTH, VOL TRACK LINE HEIGHT, VOL SLIDER
+           HEIGHT, and VOL FILL HEIGHT all removed from the UI — hardcoded
+           per direct request: SIMPLE FADER is permanently on (see the
+           "simple-fader" class on <body>), fader width is 12px, track
+           line height is 4px, and the bar/fill both stay at their full
+           natural height (the overrides these last two sliders wrote to
+           are simply never set now, so the CSS falls back to that
+           automatically). setSimpleFader()/setSimpleFaderWidth()/
+           setVolScaleThickness()/setVolBarHeight()/setVolFillHeight() are
+           all kept intact for this reason. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
