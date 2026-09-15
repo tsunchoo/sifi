@@ -1012,7 +1012,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body>
+<body class="simple-fader">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1045,7 +1045,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 04:46:32 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 16:02:52 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1193,7 +1193,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 04:46:32 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 16:02:52 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1367,9 +1367,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
-          <div id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;">0%</div>
+          <div id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;">10%</div>
         </div>
-        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="eightBitMixSlider" min="0" max="100" value="10" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -1412,10 +1412,10 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
         <input type="checkbox" id="soloIncludesBeatToggle" checked onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO + BEAT
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="beatIsAllDrumsToggle" onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
+        <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="simpleFaderToggle" onchange="setSimpleFader(this.checked)" style="width:14px;height:14px;cursor:pointer;">SIMPLE FADER
+        <input type="checkbox" id="simpleFaderToggle" checked onchange="setSimpleFader(this.checked)" style="width:14px;height:14px;cursor:pointer;">SIMPLE FADER
       </label>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -2672,8 +2672,9 @@ function setGlobalDelayMix(v) {
 // re-balances between it and the clean signal rather than hard-switching.
 // A ScriptProcessorNode (not AudioWorklet) keeps this self-contained in a
 // single inline script with no separate module file to load.
-window._eightBitEnabled = false; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"
-window._eightBitMix = 0; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position
+window._eightBitEnabled = true; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"; matches the mix's own new 10% default below
+document.body.classList.add('eight-bit-mode'); // normally only set inside setEightBitMix() itself, which only runs on user interaction — needed here too since the mix now starts nonzero by default
+window._eightBitMix = 0.1; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position; defaults to 10%, per direct request (was 0)
 window._randomizeReverbEnabled = false; // RANDOMIZE REVERB toggle in Settings — off by default; see the block near the top of randAll()
 function setRandomizeReverb(on) {
   window._randomizeReverbEnabled = !!on;
@@ -5518,7 +5519,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
 function playDoubleBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.62 : 0.42; // back down to the original level — had been pushed to +8dB then +12dB over several requests, ending up at 2.4688/1.6713 (nearly 2.5x unity gain), which is very likely what was causing both the clipping and the "jumping to zero" — at that much overdrive a soft-clip/limiter downstream can behave erratically rather than just gently saturating
+  const vel = isAccent ? 0.8758 : 0.5933; // +3dB more (was 0.62/0.42, the safe reverted level after the earlier 2.4688/1.6713 overdrive issue) — still comfortably under unity gain
   const startFreq = _dbassGlide[tr] || freq;
   _dbassGlide[tr] = freq;
 
@@ -8088,7 +8089,7 @@ let _beatIncludedInSolo = false; // set when BEAT is explicitly clicked while so
 // toggles the muted state of any track currently holding one of these
 // "drum" instruments, treating BEAT as if it stood in for the whole kit
 // rather than just its own built-in kick/snare/hihat synthesis.
-window._beatIsAllDrums = false;
+window._beatIsAllDrums = true; // defaults on now, per direct request (was false)
 function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // SIMPLE FADER (SETTINGS toggle) — swaps the per-track volume control's
 // growing colored fill for a plain, thin black position marker instead
@@ -9404,7 +9405,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'dbass') {
           // Match playDoubleBass exactly (no portamento continuity needed for offline export)
-          const vel = isAccent ? 0.62 : 0.42; // back down to the original level, matching the live playDoubleBass fix — see its own comment for why
+          const vel = isAccent ? 0.8758 : 0.5933; // +3dB more, matching the live playDoubleBass fix — see its own comment for why
           const tri = o.createOscillator(); tri.type='triangle'; tri.frequency.value=freq;
           const sub = o.createOscillator(); sub.type='sine'; sub.frequency.value=freq*0.5;
           const triG = o.createGain(); triG.gain.value=0.32;
