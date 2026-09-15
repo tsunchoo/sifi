@@ -696,31 +696,40 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
   background-color: color-mix(in srgb, var(--top-row-pressed-bg) 60%, black); /* darker still than #playBtn.playing's own pressed background — that alone wasn't reading as dark enough against the slider */
 }
 .track-vol-fill-solid {
-  position: absolute; top: 50%; left: 0; height: var(--vol-fill-height-override, 70%); transform: translateY(-50%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Height switched from a top/bottom percentage inset (which tied it to the BAR's own current height) to this + a JS-computed absolute override, so VOL FILL HEIGHT and VOL SLIDER HEIGHT are genuinely independent — see setVolFillHeight(). */
+  position: absolute; top: var(--vol-fill-inset-override, 15%); left: 0; bottom: var(--vol-fill-inset-override, 15%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
   filter: saturate(var(--vol-slider-saturation, 1));
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
-/* SIMPLE FADER (SETTINGS toggle) — the colored fill itself is otherwise
-   untouched (same color, same color-cycle animation while playing), just
-   stretched to the slider's full height instead of the normal 15%/15%
-   inset, with a solid black "tip" added at its leading edge — also full
-   height, width set by the FADER WIDTH slider (--simple-fader-width).
-   The tip is a ::after of the fill itself specifically so it can sit at
-   left:100% of that box and automatically track the fill's own width
-   (already kept in sync with the volume percentage by the existing JS),
-   with zero further JS changes needed for either piece. */
+/* SIMPLE FADER (permanently on — see body's class list) — the colored
+   fill itself is otherwise untouched (same color, same color-cycle
+   animation while playing), just stretched to the slider's full height
+   instead of the normal 15%/15% inset, with a solid tip added at its
+   leading edge — also full height, width hardcoded to 12px. The tip is a
+   ::after of the fill itself specifically so it can sit at left:100% of
+   that box and automatically track the fill's own width (already kept in
+   sync with the volume percentage by the existing JS), with zero further
+   JS changes needed for either piece. Reverted back to this exact
+   mechanism from a working reference copy after a later "independent
+   height / never clips at either extreme" rewrite introduced a worse bug:
+   since the tip is a child of the fill, and the fill's own width shrinks
+   with volume, that rewrite's percentage-based left calc() was resolving
+   against the FILL's own (shrunken) width instead of the bar's true
+   width, so the tip trailed further and further behind the fill's actual
+   edge as volume dropped — "sits almost twice its length back from the
+   edge." This simpler mechanism doesn't have that problem, at the cost
+   of the tip clipping out of view at the very bottom of the range, same
+   trade-off the reference copy always had. */
 body.simple-fader .track-vol-fill-solid {
-  height: var(--vol-fill-height-override, 100%);
+  top: var(--vol-fill-inset-override, 0%);
+  bottom: var(--vol-fill-inset-override, 0%);
 }
 body.simple-fader .track-vol-fill-solid::after {
   content: '';
   position: absolute;
-  left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 4px))); /* standard slider-thumb interpolation: 0 at fill-pct=0 (tip's own left edge flush with the bar's true left edge), up to 100%-width at fill-pct=100 (tip's own right edge flush with the bar's true right edge) — always fully on-screen at both extremes. The old left:100%+translateX(-100%) approach anchored to the fill's own (possibly zero-width) box, which pushed the tip entirely past the bar's left edge — clipped and invisible — the moment the fill hit 0% */
-  top: 50%;
-  width: var(--simple-fader-width, 12px); /* hardcoded per direct request (was 4px) — --simple-fader-width itself is never set anymore since FADER WIDTH's slider was removed from the UI, so this fallback is the effective value now */
-  height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* matches .track-vol-bar's own height directly (same formula, including its VOL SLIDER HEIGHT override) — NOT a percentage of the fill's own box, which would mean VOL FILL HEIGHT affected the tip's height too. An absolute height sidesteps that: the fill's own box can shrink all it wants without touching this. */
-  transform: translateY(-50%); /* vertical centering only now — horizontal position is fully resolved by left above */
+  left: 100%; top: 0; bottom: 0;
+  width: var(--simple-fader-width, 12px); /* hardcoded per direct request (was 4px originally) */
+  transform: translateX(-100%); /* sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100% */
   background: var(--simple-fader-tip-color, #000);
   pointer-events: none;
 }
@@ -1050,7 +1059,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:28:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:35:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1198,7 +1207,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:28:05 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:35:11 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3277,9 +3286,7 @@ function _setVolFillPct(vb, pct) {
   const solid = vb.querySelector('.track-vol-fill-solid');
   if (!solid) return;
   const lit = Math.round(pct * 14);
-  const fillPct = lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0;
-  solid.style.width = fillPct + '%';
-  solid.style.setProperty('--fill-pct', fillPct); // unitless — lets the SIMPLE FADER tip (::after) compute its own clamped left position (see CSS), independent of the old left:100%+translateX(-100%) trick, which pushed the tip fully off the bar's left edge (clipped, invisible) once the fill's own width hit 0%
+  solid.style.width = (lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0) + '%';
 }
 function updateVolFillDisplay(tr) {
   const vb = document.getElementById(`vbar-${tr}`);
