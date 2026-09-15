@@ -1023,7 +1023,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-14 19:27:09 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 02:52:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1171,7 +1171,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-14 19:27:09 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 02:52:29 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1371,9 +1371,6 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
         </div>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="autoSweepToggle" onchange="setAutoSweep(this.checked)" style="width:14px;height:14px;cursor:pointer;">AUTO-SWEEP
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="swapSpoolsToggle" onchange="setSwapSpools(this.checked)" style="width:14px;height:14px;cursor:pointer;">SWAP TAPE SPOOLS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
@@ -1387,6 +1384,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloIncludesBeatToggle" checked onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO + BEAT
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="beatIsAllDrumsToggle" onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
@@ -3122,7 +3122,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.75 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959); TIMBALE pulled back down to 0.75 (was 1.1221, -3.5dB) — a long series of incremental +0.5/+1dB boosts across many requests had pushed it above unity gain (1.0) and well past the per-track soft-clip's own 0.6 saturation threshold, which was causing every hit to audibly clip/distort. 0.75 keeps it clearly more prominent than CONGA/BONGO's own 0.6686 (the level it started from before any of those boosts) while sitting well clear of that ceiling; SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959); TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -3362,17 +3362,8 @@ function scheduler() {
           window._spoolBarCreditSkip = false; // consumed — this bar-start doesn't count
         } else {
           _autoRandBarCount++;
-          // AUTO-SWEEP — one bar out from the change, engage SWEEP for
-          // this whole last bar (released right below, the moment the new
-          // pattern actually lands). Guarded so it only ever fires once
-          // per cycle even if this bar-start branch is somehow reached
-          // again before the count moves on.
-          if (window._autoSweepEnabled && _autoRandBarCount === _autoRandPeriod - 1 && !window._spoolBraking) {
-            _leftSpoolEngage();
-          }
           if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
-            _leftSpoolRelease(); // always attempt this — it's a no-op if nothing's actually engaged, but guards against AUTO-SWEEP having been switched off mid-cycle after already engaging
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
@@ -4890,6 +4881,25 @@ function randomizeBassTrack(tr, level) {
       if (grid[tr][s] > 0 && Math.random() < _bassWanderChance) {
         const base = scale[s % scale.length];
         trackPitchOverride[tr][s] = base * Math.pow(2, Math.random() < 0.5 ? -1 : 1);
+      }
+    }
+  }
+
+  // UNDERPASS: roams across its current register and one octave above —
+  // one-directional (up only), unlike the basses' up-or-down wander above,
+  // per direct request. Without this, its pitch just came straight from
+  // scale[s % scale.length] every time — the scale itself already spans 2
+  // octaves (every tonal instrument's does), but with NUM_STEPS(16) vs a
+  // 10-note scale, the upper octave's indices (5-9) are only ever reached
+  // by a narrow handful of step positions, so in practice it almost never
+  // actually got there.
+  if (key === 'underpass' && trackBassScale[tr]) {
+    const scale = trackBassScale[tr];
+    if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] > 0 && Math.random() < 0.4) {
+        const base = scale[s % scale.length];
+        trackPitchOverride[tr][s] = base * 2;
       }
     }
   }
@@ -8018,6 +8028,22 @@ function _pressPulse(id) {
 }
 
 let _beatIncludedInSolo = false; // set when BEAT is explicitly clicked while solo is active — see toggleBeat()/toggleSolo()
+// BEAT IS ALL DRUMS (SETTINGS toggle) — when on, toggling BEAT also
+// toggles the muted state of any track currently holding one of these
+// "drum" instruments, treating BEAT as if it stood in for the whole kit
+// rather than just its own built-in kick/snare/hihat synthesis.
+window._beatIsAllDrums = false;
+function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
+const _BEAT_DRUM_KEYS = new Set(['skick', 'ssnare', 'shihat', 'ride', 'sidestick', 'toms', 'tomHi', 'tomMid', 'tomLo']);
+function _syncDrumTracksToBeat(on) {
+  if (!window._beatIsAllDrums) return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (_BEAT_DRUM_KEYS.has(trackInstruments[tr])) {
+      trackMuted[tr] = !on;
+      updateTrackMute(tr);
+    }
+  }
+}
 function toggleBeat() {
   if (ctx) ctx.resume();
   const btn = document.getElementById('beatBtn');
@@ -8038,6 +8064,7 @@ function toggleBeat() {
     _beatIncludedInSolo = false; // no longer relevant once actually off
     btn.classList.remove('active');
     updateBeatPulse();
+    _syncDrumTracksToBeat(false);
   } else {
     if (playing) {
       // Playing — queue for next downbeat
@@ -8050,6 +8077,7 @@ function toggleBeat() {
       btn.classList.add('active');
       updateBeatPulse();
     }
+    _syncDrumTracksToBeat(true);
     // Turning BEAT on while solo is active also counts as deliberately
     // including it — same "clicked while solo is on" reasoning as above.
     if (soloActive) {
@@ -10778,7 +10806,7 @@ function _buildBounceGraph(targetCtx) {
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 2.5061;
   window._makeupGain = makeupGain;
-  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.4043; // -0.5dB more (was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.3861; // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
   // so an isolated track/BEAT stem doesn't carry every other track along
@@ -12560,7 +12588,6 @@ function stopAllAutoRand() {
   if (_autoRandLoopActive) {
     _autoRandLoopActive = false;
     _autoRandBarCount = 0;
-    _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
     const mainRandBtn = document.getElementById('randBtn');
     if (mainRandBtn) { mainRandBtn.classList.remove('pulsing', 'rand-color-pulse'); mainRandBtn.innerHTML = '<span class="glyph">+</span>'; }
   }
@@ -12585,7 +12612,6 @@ function stopAllAutoRand() {
     if (_autoRandLoopActive) {
       _autoRandLoopActive = false;
       _autoRandBarCount = 0;
-      _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
       btn.classList.remove('pulsing', 'rand-color-pulse');
       btn.innerHTML = '<span class="glyph">+</span>';
     }
@@ -12977,7 +13003,6 @@ function slotPress(i) {
   if (_autoRandLoopActive) {
     _autoRandLoopActive = false;
     _autoRandBarCount = 0;
-    _leftSpoolRelease(); // in case AUTO-SWEEP had it engaged mid-cycle when this stopped
     const _mainRandBtnSlot = document.getElementById('randBtn');
     if (_mainRandBtnSlot) { _mainRandBtnSlot.classList.remove('pulsing', 'rand-color-pulse'); _mainRandBtnSlot.innerHTML = '<span class="glyph">+</span>'; }
   }
@@ -13581,6 +13606,25 @@ function randomizeTrack(tr) {
       if (grid[tr][s] > 0 && Math.random() < _bassWanderChance) {
         const base = scale[s % scale.length];
         trackPitchOverride[tr][s] = base * Math.pow(2, Math.random() < 0.5 ? -1 : 1);
+      }
+    }
+  }
+
+  // UNDERPASS: roams across its current register and one octave above —
+  // one-directional (up only), unlike the basses' up-or-down wander above,
+  // per direct request. Without this, its pitch just came straight from
+  // scale[s % scale.length] every time — the scale itself already spans 2
+  // octaves (every tonal instrument's does), but with NUM_STEPS(16) vs a
+  // 10-note scale, the upper octave's indices (5-9) are only ever reached
+  // by a narrow handful of step positions, so in practice it almost never
+  // actually got there.
+  if (key === 'underpass' && trackBassScale[tr]) {
+    const scale = trackBassScale[tr];
+    if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] > 0 && Math.random() < 0.4) {
+        const base = scale[s % scale.length];
+        trackPitchOverride[tr][s] = base * 2;
       }
     }
   }
@@ -14996,14 +15040,6 @@ function setAutoRandPeriod(idx) {
 // sync via --spirit-pulse-dur, set wherever bpm itself changes (playback
 // start, tempo screen, RAND's own tempo randomization, slot recall,
 // reset). No longer user-adjustable — was a 1x-10x slider before this.
-// AUTO-SWEEP — when on, SWEEP automatically engages for the whole bar
-// immediately before RAND's auto-mode generates its next pattern (i.e.
-// exactly _autoRandPeriod - 1 bars into the current cycle), then releases
-// right as the new pattern actually lands. Same _leftSpoolEngage/
-// _leftSpoolRelease a real press-and-hold on the left spool triggers —
-// this just fires them on a timer instead of a finger.
-window._autoSweepEnabled = false;
-function setAutoSweep(on) { window._autoSweepEnabled = on; }
 // Swaps which physical spool (left/right) carries which behavior — the
 // right spool's own gesture handling (single tap: amalgam swell, double
 // tap: reset beat offset) and the left spool's role as SWEEP's own
@@ -15358,7 +15394,7 @@ function fullReset() {
 
   // Stop every per-track auto-rand loop and the RAND auto-mode loop
   Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch(e) {} });
-  _autoRandLoopActive = false; _autoRandPending = false; _leftSpoolRelease();
+  _autoRandLoopActive = false; _autoRandPending = false;
   document.querySelectorAll('.rand-btn').forEach(rb => {
     rb.classList.remove('rand-auto', 'rand-pending', 'pulsing'); _setRandBtnLabel(rb, false);
   });
@@ -15909,7 +15945,7 @@ async function initAudio() {
     window._BASE_MAKEUP_GAIN = 2.5061; // +8dB fixed output boost (was +14dB — halved)
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.4043; window._beatGain.connect(masterGain); // -0.5dB more (was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.3861; window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -16003,7 +16039,7 @@ async function hardResetAudioEngine() {
     if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
     if (beatPlaying || _beatPending) { try { toggleBeat(); } catch(e) {} }
     Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch(e) {} });
-    _autoRandLoopActive = false; _autoRandPending = false; _leftSpoolRelease();
+    _autoRandLoopActive = false; _autoRandPending = false;
     const _mainRandBtn2 = document.getElementById('randBtn');
     if (_mainRandBtn2) { _mainRandBtn2.classList.remove('pulsing'); _mainRandBtn2.innerHTML = '<span class="glyph">+</span>'; }
     document.getElementById('clearBtn')?.classList.remove('active'); // sweep button visual, in case it was stuck lit
