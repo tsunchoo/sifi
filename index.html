@@ -663,7 +663,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
   cursor: ew-resize; touch-action: none;
   -webkit-tap-highlight-color: transparent;
   box-sizing: border-box;
-  height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1) * 0.8); /* -20% vs. .track-name-btn's own height */
+  height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)); /* now matches the rest of the track row's own height exactly — was 80% of it (the *0.8 factor), per direct request */
   align-self: flex-start; /* stuck to the top of the row regardless of the row's own height, instead of stretching or centering */
 }
 /* Ruler behind the fill — one horizontal line straight through the
@@ -1045,7 +1045,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 04:31:55 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 04:44:08 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1193,7 +1193,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 04:31:55 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 04:44:08 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1423,6 +1423,13 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div id="simpleFaderWidthReadout" style="font-size:0.62rem;font-weight:700;color:#111;">4PX</div>
         </div>
         <input type="range" id="simpleFaderWidthSlider" min="1" max="20" value="4" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL TRACK LINE HEIGHT</div>
+          <div id="volScaleThicknessReadout" style="font-size:0.62rem;font-weight:700;color:#111;">3.125PX</div>
+        </div>
+        <input type="range" id="volScaleThicknessSlider" min="0" max="3.125" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
@@ -13347,7 +13354,7 @@ function randomizeTrack(tr) {
   // other kit/perc instrument. STRINGS is now a normal tonal instrument,
   // dispatched through randomizeBassTrack just below like any other lead.
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'dbass' || trackInstruments[tr] === 'pbass' || trackInstruments[tr] === 'sludge' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'denial' || trackInstruments[tr] === 'jcmgtr' || trackInstruments[tr] === 'sprkls' || trackInstruments[tr] === 'clar' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'spiano' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'magic' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt' || trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'drone') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'dbass' || trackInstruments[tr] === 'pbass' || trackInstruments[tr] === 'sludge' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'denial' || trackInstruments[tr] === 'jcmgtr' || trackInstruments[tr] === 'sprkls' || trackInstruments[tr] === 'clar' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'spiano' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'magic' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt' || trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'drone' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'underpass') {
     randomizeBassTrack(tr, level); return;
   }
 
