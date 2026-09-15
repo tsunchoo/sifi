@@ -678,7 +678,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
    appended first — no z-index needed within this single stacking
    context. */
 .track-vol-scale {
-  position: absolute; top: 15%; left: clamp(2px, 1vw, 5px); right: clamp(2px, 1vw, 5px); bottom: 15%; /* same inset as the fill layers above it, so the ruler lines up with exactly the area the fill actually covers */
+  position: absolute; top: 15%; left: 0; right: 0; bottom: 15%; /* was clamp(2px, 1vw, 5px) inset each side — matches the fill's own left:0 now, per direct request for a longer track with less padding */
   pointer-events: none;
   opacity: calc(var(--vol-scale-opacity, 0.25) / var(--track-default-opacity, 1)); /* SCALE LINES OPACITY slider in COLOR settings — divided by TRACK BUTTON OPACITY to cancel it back out: this element is a child of .track-vol-bar, and CSS opacity on a parent always compounds onto children too, so without this the ruler was landing at scale-opacity × track-opacity instead of just scale-opacity (badly faded, invisible at low TRACK BUTTON OPACITY settings) */
 }
@@ -687,13 +687,13 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
    always visible. */
 .track-vol-scale::before {
   content: '';
-  position: absolute; left: calc(2 * clamp(2px, 1vw, 5px)); right: calc(2 * clamp(2px, 1vw, 5px)); top: 50%; pointer-events: none; /* brought in from the edges by twice the FX-R button gap */
+  position: absolute; left: 0; right: 0; top: 50%; pointer-events: none; /* was calc(2 * clamp(2px, 1vw, 5px)) each side on top of the parent's own now-removed inset — a total of 3x that clamp value eaten off each end. Flush with the true edges now, matching the fill and the parent above. */
   height: var(--vol-scale-thickness, 1px);
   transform: translateY(-50%);
   background-color: color-mix(in srgb, var(--top-row-pressed-bg) 60%, black); /* darker still than #playBtn.playing's own pressed background — that alone wasn't reading as dark enough against the slider */
 }
 .track-vol-fill-solid {
-  position: absolute; top: var(--vol-fill-inset-override, 15%); left: 0; bottom: var(--vol-fill-inset-override, 15%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate */
+  position: absolute; top: 50%; left: 0; height: var(--vol-fill-height-override, 70%); transform: translateY(-50%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Height switched from a top/bottom percentage inset (which tied it to the BAR's own current height) to this + a JS-computed absolute override, so VOL FILL HEIGHT and VOL SLIDER HEIGHT are genuinely independent — see setVolFillHeight(). */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
   filter: saturate(var(--vol-slider-saturation, 1));
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
@@ -708,16 +708,16 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
    (already kept in sync with the volume percentage by the existing JS),
    with zero further JS changes needed for either piece. */
 body.simple-fader .track-vol-fill-solid {
-  top: var(--vol-fill-inset-override, 0%);
-  bottom: var(--vol-fill-inset-override, 0%);
+  height: var(--vol-fill-height-override, 100%);
 }
 body.simple-fader .track-vol-fill-solid::after {
   content: '';
   position: absolute;
-  left: 100%; top: 50%;
+  left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 4px))); /* standard slider-thumb interpolation: 0 at fill-pct=0 (tip's own left edge flush with the bar's true left edge), up to 100%-width at fill-pct=100 (tip's own right edge flush with the bar's true right edge) — always fully on-screen at both extremes. The old left:100%+translateX(-100%) approach anchored to the fill's own (possibly zero-width) box, which pushed the tip entirely past the bar's left edge — clipped and invisible — the moment the fill hit 0% */
+  top: 50%;
   width: var(--simple-fader-width, 4px);
   height: var(--vol-bar-height-override, calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1))); /* matches .track-vol-bar's own height directly (same formula, including its VOL SLIDER HEIGHT override) — NOT a percentage of the fill's own box, which would mean VOL FILL HEIGHT affected the tip's height too. An absolute height sidesteps that: the fill's own box can shrink all it wants without touching this. */
-  transform: translate(-100%, -50%); /* horizontal: sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100%. vertical: centers this fixed-height tip within the row, regardless of the fill's own (possibly much shorter) height */
+  transform: translateY(-50%); /* vertical centering only now — horizontal position is fully resolved by left above */
   background: var(--simple-fader-tip-color, #000);
   pointer-events: none;
 }
@@ -1047,7 +1047,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 21:22:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:07:43 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1195,7 +1195,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 21:22:40 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:07:43 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1437,7 +1437,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">VOL TRACK LINE HEIGHT</div>
           <div id="volScaleThicknessReadout" style="font-size:0.62rem;font-weight:700;color:#111;">3.125PX</div>
         </div>
-        <input type="range" id="volScaleThicknessSlider" min="0" max="9.375" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="volScaleThicknessSlider" min="0" max="12.5" step="0.125" value="3.125" oninput="setVolScaleThickness(this.value); document.getElementById('volScaleThicknessReadout').textContent=this.value+'PX'" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -3296,7 +3296,9 @@ function _setVolFillPct(vb, pct) {
   const solid = vb.querySelector('.track-vol-fill-solid');
   if (!solid) return;
   const lit = Math.round(pct * 14);
-  solid.style.width = (lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0) + '%';
+  const fillPct = lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0;
+  solid.style.width = fillPct + '%';
+  solid.style.setProperty('--fill-pct', fillPct); // unitless — lets the SIMPLE FADER tip (::after) compute its own clamped left position (see CSS), independent of the old left:100%+translateX(-100%) trick, which pushed the tip fully off the bar's left edge (clipped, invisible) once the fill's own width hit 0%
 }
 function updateVolFillDisplay(tr) {
   const vb = document.getElementById(`vbar-${tr}`);
@@ -8149,15 +8151,28 @@ function setVolBarHeight(v) {
   const readout = document.getElementById('volBarHeightReadout');
   if (readout) readout.textContent = v >= 100 ? 'MAX' : Math.round(h) + 'PX';
 }
-// VOL FILL HEIGHT — the pulsing fill (and, since the SIMPLE FADER tip is
-// literally a child of the fill's own box, the tip along with it) — as a
-// percentage of the bar's own height, independent of the bar's own
-// height set above. Computed as a symmetric top/bottom inset so it always
-// stays vertically centered within the bar, same reasoning as the bar's
-// own new align-self: center.
+// VOL FILL HEIGHT — genuinely independent of VOL SLIDER HEIGHT now. It
+// used to be a percentage inset of the bar's own CURRENT height, which
+// meant moving VOL SLIDER HEIGHT silently changed the fill's own absolute
+// size too (same percentage, but of a different base). Fixed the same
+// way the tip's height was: measure the bar's stable NATURAL height
+// (temporarily clearing any existing override so the measurement isn't
+// contaminated by it, then restoring that override afterward), and store
+// the fill's own height as a fixed absolute pixel value computed against
+// that one stable reference — never against whatever the bar's height
+// override currently happens to be.
 function setVolFillHeight(v) {
-  const inset = (100 - (+v)) / 2;
-  document.documentElement.style.setProperty('--vol-fill-inset-override', inset + '%');
+  v = +v;
+  const refBar = document.querySelector('.track-vol-bar');
+  let fullHeight = 28;
+  if (refBar) {
+    const prevOverride = document.documentElement.style.getPropertyValue('--vol-bar-height-override');
+    document.documentElement.style.removeProperty('--vol-bar-height-override');
+    fullHeight = refBar.getBoundingClientRect().height || 28;
+    if (prevOverride) document.documentElement.style.setProperty('--vol-bar-height-override', prevOverride);
+  }
+  const h = fullHeight * (v / 100);
+  document.documentElement.style.setProperty('--vol-fill-height-override', h + 'px');
   const readout = document.getElementById('volFillHeightReadout');
   if (readout) readout.textContent = v + '%';
 }
