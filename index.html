@@ -716,7 +716,7 @@ body.simple-fader .track-vol-fill-solid::after {
   left: 100%; top: 0; bottom: 0;
   width: var(--simple-fader-width, 4px);
   transform: translateX(-100%); /* sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100% */
-  background: #000;
+  background: var(--simple-fader-tip-color, #000);
   pointer-events: none;
 }
 body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; }
@@ -1045,7 +1045,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 04:23:34 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 04:31:55 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1193,7 +1193,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 04:23:34 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 04:31:55 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1266,10 +1266,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
            contrast) is the only mode reachable via that old system now.
            setVolSliderColor()/_autoPickVolSliderColor() are kept intact
-           for this reason. The toggle below is a separate, simpler
-           control added on top of that, per direct request. -->
+           for this reason; unrelated to the toggle below. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volSliderColorToggle" onchange="setVolSliderColorToggle(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER = GLYPH COLOR
+        <input type="checkbox" id="volSliderColorToggle" onchange="setVolSliderColorToggle(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = GLYPH COLOR
       </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
@@ -9778,16 +9777,18 @@ window._volSliderColorMode = 'auto';
 function setVolSliderColor(n) {
   window._volSliderColorMode = n;
   if (n === 'auto') { _autoPickVolSliderColor(); return; }
-  if (n === 'black') { document.documentElement.style.setProperty('--vol-slider-color', '#000'); return; }
-  if (n === 'glyph') { document.documentElement.style.setProperty('--vol-slider-color', 'var(--top-row-text-color, #fff)'); return; } // matches the top row buttons' own resting/default text color — tracks it live via the nested var(), not a one-time copy, so it stays in sync if that color itself ever changes
   const map = { 1: 'var(--playhead-color, #f8ff00)', 2: 'var(--highlight2-color, #0078ff)', 3: 'var(--highlight3-color, #adff00)' };
   document.documentElement.style.setProperty('--vol-slider-color', map[n] || map[3]);
 }
-// VOL SLIDER COLOR (SETTINGS toggle) — a simple two-way choice, separate
-// from the old auto/1/2/3 system above (which stays exactly as it was,
-// AUTO being the only mode reachable any other way): black, or matching
-// the top row buttons' own default glyph color. Off (unchecked) = black.
-function setVolSliderColorToggle(on) { setVolSliderColor(on ? 'glyph' : 'black'); }
+// SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
+// added at the end of the volume fill in SIMPLE FADER mode (see
+// .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
+// here. Off (unchecked) = black. On = matches the top row buttons' own
+// default/resting glyph color, tracked live via the nested var() so it
+// stays in sync if that color itself ever changes.
+function setVolSliderColorToggle(on) {
+  document.documentElement.style.setProperty('--simple-fader-tip-color', on ? 'var(--top-row-text-color, #fff)' : '#000');
+}
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -11419,14 +11420,14 @@ function _randomizeReverbSettings() {
   setReverbIntensity(_newReverbSize);
   const rib = document.getElementById('reverbIntensityBar'); if (rib) rib.value = Math.round(_newReverbSize * 100);
   const riv = document.getElementById('reverbIntensityVal'); if (riv) riv.textContent = Math.round(_newReverbSize * 100);
-  // Overall REVERB MIX randomized again, 25-100% — now that it applies to
-  // the whole mix directly (see the new master reverb send), a low roll
-  // still produces genuinely audible reverb across everything rather than
-  // depending on some track happening to have its own send on, so it no
-  // longer needs to be pinned at a fixed 50% just to guarantee
-  // audibility. Floored at 25% (not 0) so it's never quite silent, per
-  // direct request.
-  const _newReverbMix = 0.25 + Math.random() * 0.75;
+  // Overall REVERB MIX randomized freely, 0-100% — the artificial 25%
+  // floor is removed per direct request. Now that it applies to the
+  // whole mix directly (see the new master reverb send), a low roll
+  // still produces genuinely audible reverb across everything rather
+  // than depending on some track happening to have its own send on, but
+  // it should still be able to land anywhere in the full range, silent
+  // included, same as SIZE and ON BEAT below.
+  const _newReverbMix = Math.random();
   setGlobalDelayMix(_newReverbMix);
   const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = Math.round(_newReverbMix * 100);
   const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = Math.round(_newReverbMix * 100);
