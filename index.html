@@ -525,9 +525,20 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
 /* TRACK ROW BG (COLOR MENU toggle + darkness slider) — the app's own main
    background color, darkened slightly, applied to just this upper row
    (the one carrying the volume slider and the other track buttons), not
-   the step-sequencer grid below it. Off by default. */
-body.track-row-bg .track-ctrl-row {
+   the step-sequencer grid below it. Off by default. A ::before extending
+   2px past the row's own top/bottom, rather than a plain background
+   directly on the row, so it reaches the full height of the buttons
+   (matching the lock button specifically) without changing the row's own
+   layout height at all — the row's own background was stopping a little
+   short of that. */
+body.track-row-bg .track-ctrl-row { position: relative; }
+body.track-row-bg .track-ctrl-row::before {
+  content: '';
+  position: absolute;
+  top: -2px; bottom: -2px; left: 0; right: 0;
   background: color-mix(in srgb, var(--bg, #f5f0e8) calc(100% - var(--track-row-bg-darken, 12%)), black);
+  z-index: -1;
+  pointer-events: none;
 }
 /* Track name button and SOLO button — first/last in this row — reach the
    true screen edge the same way as the transport row's + and record
@@ -588,7 +599,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .fx-btn.on { background: var(--track-btn-on-color, #f17d21); color: var(--track-btn-on-text, #fff); }
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
-.track-ctrl-icon-btn.solo-on { background: var(--track-btn-on-color, #FFA700); animation: engaged-btn-pulse 0.6s ease-in-out infinite; }
+.track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
    color swap with no animation at all. Two separate keyframes, not one
@@ -1085,7 +1096,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:36:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:46:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1233,7 +1244,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:36:53 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:46:58 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3965,8 +3976,9 @@ function fireStepAudio(step, t) {
       if (_beatType === 'reggae' && (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14)) {
         playSynthHihat(false, t, -1);
       } else if (_beatType === 'breaks') {
-        if (bstep === 6) { fireBeatKick(t); playSnare(t); } // 2& kick, plus an added snare 2 sixteenths after the main snare on beat 2, per direct request
+        if (bstep === 6) fireBeatKick(t);   // 2&
         if (bstep === 10) playSnare(t);     // 3&
+        if (bstep === 12) playSnare(t);     // added snare, 2 sixteenths after the "3&" snare (the actual 2nd snare hit in the pattern) — per direct request
       } else if (_beatType === 'bounce') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // 2&, 3&
       } else if (_beatType === 'bossa') {
