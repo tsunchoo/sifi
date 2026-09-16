@@ -1059,7 +1059,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-15 23:35:11 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 00:08:38 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1207,7 +1207,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-15 23:35:11 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 00:08:38 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1596,7 +1596,7 @@ const INSTRUMENTS = {
   magic:  { name: 'MAGIC',        soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'DENIECE',     soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
-  denial: { name: 'ARBY',        soft: null, accent: null, group: 'tonal' },
+  denial: { name: 'BUCK',        soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'RYTM GTR',     soft: null, accent: null, group: 'tonal' },
   chug:   { name: 'CHUG',        soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
@@ -3190,7 +3190,9 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const src = ctx.createBufferSource(); src.buffer = buf;
   const instrumentGain = ctx.createGain();
-  instrumentGain.gain.value = (key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo') ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959); TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  const _isCongaBongoKey = (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo');
+  const _congaBongoFxOnlyBoost = (_isCongaBongoKey && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) && !trackPump[tr]) ? 1.2589 : 1; // +2dB, specifically when FX is on but NOT BLAST, per direct request
+  instrumentGain.gain.value = ((key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : _isCongaBongoKey ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5) * _congaBongoFxOnlyBoost; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959), plus another +2dB specifically when FX (not BLAST) is engaged on that track, per direct request; TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -3654,7 +3656,7 @@ function fireStepAudio(step, t) {
           if (key === 'stab')    playStab(freq, dur, val === 2, t, tr);
           if (key === 'chug')    playChug(freq, dur, val === 2, t, tr);
           if (key === 'bashp')   playBashPiano(freq, dur, val === 2, t, tr);
-          if (key === 'denial')  playDenialism(freq, dur, val === 2, t, tr);
+          if (key === 'denial')  playBuck(freq, dur, val === 2, t, tr);
           if (key === 'jcmgtr')  playJcmGuitar(freq, dur, val === 2, t, tr);
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
@@ -3748,7 +3750,7 @@ function fireStepAudio(step, t) {
             if (key === 'stab')    playStab(freq2, dur2, false, t2, tr);
             if (key === 'chug')    playChug(freq2, dur2, false, t2, tr);
             if (key === 'bashp')   playBashPiano(freq2, dur2, false, t2, tr);
-            if (key === 'denial')  playDenialism(freq2, dur2, false, t2, tr);
+            if (key === 'denial')  playBuck(freq2, dur2, false, t2, tr);
             if (key === 'jcmgtr')  playJcmGuitar(freq2, dur2, false, t2, tr);
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
@@ -4562,7 +4564,7 @@ function randomizeBassTrack(tr, level) {
   // Mid-tier tonal instruments — the supportive/harmonic-filler ones, not
   // the flashy solo leads (JINX/JENNY/DREAM PIANO/SPACE KOTO/DX PIANO) and
   // not bass. These get grouped for octave-separation purposes explicitly,
-  // by name, rather than by shared root array — DENIECE and ARBY, for
+  // by name, rather than by shared root array — DENIECE and BUCK, for
   // example, use entirely different root arrays (SPARKLE_ROOTS vs
   // MELODY_ROOTS) that look like different registers on paper, but the
   // scale actually built from each root extends several notes upward, so
@@ -4621,8 +4623,8 @@ function randomizeBassTrack(tr, level) {
     dronePlus: [[2,5,0.25],[4,7,0.40],[6,10,0.55]], // STRINGS+ — same note-count table as STRINGS; duration is overridden separately (see the contiguous-legato pass) so this only governs how many notes/onsets it gets
     opening: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // OPENING — capped at 3 max, sustained pad chords
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
-    denial:  [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // ARBY — same note counts as the generic default, but explicit and boosted accent ratio, matched to DENIECE below rather than relying on both sharing the same implicit fallback
-    sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now, matched to ARBY above
+    denial:  [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // BUCK — same note counts as the generic default, but explicit and boosted accent ratio, matched to DENIECE below rather than relying on both sharing the same implicit fallback
+    sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now, matched to BUCK above
   };
   const levelTable = noteTables[key] || [
     [2, 5,  0.20],
@@ -5732,62 +5734,93 @@ function playBashPiano(freq, durSec, isAccent, time, tr, _isDouble) {
 // a function of input amplitude, so the chaos is intrinsically "controlled
 // by the overall output level": loud moments get mangled hard, the quiet
 // decay tail stays relatively cleaner. Lead instrument. ──
-function playDenialism(freq, durSec, isAccent, time, tr) {
+// ── BUCK — replaces ARBY in this same slot (key 'denial'), built from
+// UNDERPASS's own knock+resonance structure rather than ARBY's old
+// distorted-sawtooth engine. Each hit fires a fast 3-note octave trill
+// (direction — down-up-down or up-down-up — decided fresh every hit) and
+// leaves behind a resonant, decaying trail of little sparkle blips
+// fizzing off into silence, and sits higher in the frequency range than
+// UNDERPASS itself: a highpass on the whole voice, a brighter knock, and
+// higher resonant partial ratios (2/4/6 instead of UNDERPASS's own 1/3/5).
+function playBuck(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.62 : 0.38; // unchanged — this drives how hard the waveshaper gets pushed; reducing this would tame the chaos, not just the volume
+  const decay = isAccent ? 0.35 : 0.25; // shorter than UNDERPASS's own — a quick glinting hit, not a sustained tube tone
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
+  const peakVol = (isAccent ? 0.5 : 0.36) * blastAtten;
 
-  const legato = durSec > stepDuration() * 1.6;
-  const decayTime = legato ? Math.min(durSec, 2.0) : Math.min(durSec, 0.9); // more sustained overall — was 1.4/0.5
-  const sustainHold = decayTime * 0.35; // holds near peak instead of starting to decay immediately
-  const tailTime = 0.35; // a little extra low-level tail past the main decay, instead of stopping dead
+  // Shared highpass every layer below feeds through — this is what
+  // actually sits BUCK higher in the range than UNDERPASS's own low/mid
+  // tube resonance.
+  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350; hp.Q.value = 0.7;
+  hp.connect(dest);
 
-  // One sawtooth for edge, one triangle for warmth — was two sawtooths,
-  // which read as harder/more angular than intended.
-  const osc1 = ctx.createOscillator(); osc1.type = 'sawtooth'; osc1.frequency.value = freq;
-  const osc2 = ctx.createOscillator(); osc2.type = 'triangle'; osc2.frequency.value = freq * 1.4983;
+  // The fast octave trill — three notes, shape picked fresh each hit.
+  const goingUp = Math.random() < 0.5;
+  const trillFreqs = goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2];
+  const noteGap = 0.032; // fast enough to read as one trilled gesture, not three separate hits
 
-  const env = ctx.createGain(); // feeds the waveshaper directly — its own level IS the distortion control
-  env.gain.setValueAtTime(0, time);
-  env.gain.linearRampToValueAtTime(vel * 1.15, time + 0.006); // punchy overshoot on the attack
-  env.gain.linearRampToValueAtTime(vel, time + 0.02); // settles just as fast
-  env.gain.setValueAtTime(vel, time + sustainHold); // actual sustain plateau, not an immediate decay
-  env.gain.exponentialRampToValueAtTime(vel * 0.5, time + sustainHold + (decayTime - sustainHold) * 0.6);
-  env.gain.exponentialRampToValueAtTime(0.02, time + decayTime); // leaves a touch of body instead of dropping to near-silence
-  env.gain.exponentialRampToValueAtTime(0.0008, time + decayTime + tailTime); // the little trailing tail
+  trillFreqs.forEach((tf, i) => {
+    const t = time + i * noteGap;
+    // Knock transient for this trill note — brighter/tighter bandpass
+    // than UNDERPASS's own (freq*4), part of what sits BUCK higher.
+    const knockDur = 0.008;
+    const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
+    const kd = kbuf.getChannelData(0);
+    for (let j = 0; j < kd.length; j++) kd[j] = (Math.random() * 2 - 1) * (1 - j / kd.length);
+    const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
+    const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = tf * 6; knockFilter.Q.value = 1.4;
+    const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten;
+    knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(hp);
+    knockSrc.start(t);
+    knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
 
-  // Softer drive and a much smaller fold — still has character, but no
-  // longer the hard-clipped, digitally-broken edge it had before.
-  const ws = ctx.createWaveShaper();
-  const curve = new Float32Array(1024);
-  for (let i = 0; i < 1024; i++) {
-    const x = (i * 2) / 1024 - 1;
-    curve[i] = Math.tanh(x * 3.5) + Math.sin(x * 5) * 0.06; // gentler clip, much subtler wobble
+    // Resonant partials — ratios 2/4/6 instead of UNDERPASS's 1/3/5,
+    // the other half of what sits this higher in the range.
+    const detune = (Math.random() * 2 - 1) * 4;
+    [
+      { ratio: 2, amp: peakVol * 0.6,  decayMult: 0.5  },
+      { ratio: 4, amp: peakVol * 0.3,  decayMult: 0.32 },
+      { ratio: 6, amp: peakVol * 0.14, decayMult: 0.2  },
+    ].forEach(p => {
+      const osc = ctx.createOscillator(); osc.type = 'sine';
+      osc.frequency.value = tf * p.ratio;
+      osc.detune.value = detune;
+      const env = ctx.createGain();
+      const pDecay = decay * p.decayMult;
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(p.amp, t + 0.002);
+      env.gain.exponentialRampToValueAtTime(0.0005, t + pDecay);
+      osc.connect(env); env.connect(hp);
+      osc.start(t); osc.stop(t + pDecay + 0.05);
+      osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
+    });
+  });
+
+  // Resonant "fizz" trail — a handful of tiny, quickly-decaying sparkle
+  // blips at random pitches well above the root, spaced increasingly
+  // further apart and shrinking in volume each time, so the hit trails
+  // off into a little glittering tail through time instead of stopping
+  // dead the moment the trill ends.
+  const trillEnd = time + (trillFreqs.length - 1) * noteGap;
+  const sparkleCount = 5 + Math.floor(Math.random() * 3); // 5-7
+  let sparkleT = trillEnd + 0.02;
+  let sparkleVol = peakVol * 0.22;
+  for (let s = 0; s < sparkleCount; s++) {
+    const sparkleFreq = freq * (2 + Math.random() * 4); // well above the root — genuinely "sparkly", not just an echo of the trill
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = sparkleFreq;
+    const env = ctx.createGain();
+    const sDecay = 0.05 + Math.random() * 0.05;
+    env.gain.setValueAtTime(0, sparkleT);
+    env.gain.linearRampToValueAtTime(sparkleVol, sparkleT + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0004, sparkleT + sDecay);
+    osc.connect(env); env.connect(hp);
+    osc.start(sparkleT); osc.stop(sparkleT + sDecay + 0.03);
+    osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
+    sparkleT += 0.03 + Math.random() * 0.05; // increasingly spaced out through the trail
+    sparkleVol *= 0.65; // shrinking each time
   }
-  ws.curve = curve; ws.oversample = '4x';
-  // A lowpass right after the distortion — rounds off the harsh upper
-  // harmonics the waveshaper generates, the main thing that actually reads
-  // as "warmer" rather than just "quieter."
-  const warmthLP = ctx.createBiquadFilter(); warmthLP.type = 'lowpass'; warmthLP.frequency.value = 3800; warmthLP.Q.value = 0.6;
-  // Bit-crush stage — quantizes the signal into discrete steps for a
-  // crunchier, more digitally-broken edge on top of the existing soft
-  // clip. oversample is deliberately 'none' here — oversampling would
-  // smooth away the aliasing artifacts that actually give bit-crushing
-  // its character.
-  const crushSteps = 12;
-  const crush = ctx.createWaveShaper();
-  const crushCurve = new Float32Array(1024);
-  for (let i = 0; i < 1024; i++) { const x = (i * 2) / 1024 - 1; crushCurve[i] = Math.round(x * crushSteps) / crushSteps; }
-  crush.curve = crushCurve; crush.oversample = 'none';
-  const outGain = ctx.createGain(); outGain.gain.value = 0.0398 * 1.3335; // -28dB total, then +2.5dB (was -26dB before that) — output level only, doesn't touch the distortion drive
-
-  osc1.connect(env); osc2.connect(env);
-  env.connect(ws); ws.connect(warmthLP); warmthLP.connect(crush); crush.connect(outGain); outGain.connect(dest);
-
-  const stopAt = time + decayTime + tailTime + 0.1;
-  osc1.start(time); osc1.stop(stopAt);
-  osc2.start(time); osc2.stop(stopAt);
-  osc1.onended = () => { try { env.disconnect(); ws.disconnect(); warmthLP.disconnect(); crush.disconnect(); outGain.disconnect(); } catch(e) {} };
 }
 
 // ── Stab: short sharp synth chord stab, fast tail ──
@@ -7369,14 +7402,14 @@ function hideCelestialMap() {
 // beat-type branch (including off-beat 8th-note kicks like BREAKS/BOUNCE 2&/3&)
 // ── Sidechain duck — a dedicated, always-on duck applied to every
 // instrument EXCEPT the lead-tonal group (JINX, JENNY, DREAM PIANO, DENIECE,
-// SPACE KOTO, DX PIANO, ARBY), triggered by every kick and every bass
+// SPACE KOTO, DX PIANO, BUCK), triggered by every kick and every bass
 // note. Deeper and punchier than the general master duck, since this is
 // meant to be a real characteristic of the mix, not a subtle glue effect.
 // Applied centrally inside getSynthConnectNode (see below) so every
 // synth-based instrument picks it up automatically without each one having
 // to wrap its own output — only the sample-based (WAV) percussion voices in
 // playBuffer need their own explicit call, since they route separately.
-const LEAD_INSTRUMENT_KEYS = new Set(['jcmgtr', 'clar', 'boog', 'sparkle', 'rhodes', 'rhodes2', 'denial', 'damask', 'yamask', 'dulc']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, ARBY, DAMASK, YAMASK, BOOBOO
+const LEAD_INSTRUMENT_KEYS = new Set(['jcmgtr', 'clar', 'boog', 'sparkle', 'rhodes', 'rhodes2', 'denial', 'damask', 'yamask', 'dulc']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK, DAMASK, YAMASK, BOOBOO
 // Basses were getting lost in the mix — rather than boosting them (which
 // just risks clipping/distortion), every OTHER instrument gets a small
 // -1dB trim applied right at its own output, before any FX/delay/pump
@@ -8892,7 +8925,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'stab')    playStab(freq, dur, isAccent, t, tr);
     else if (key === 'chug')    playChug(freq, dur, isAccent, t, tr);
     else if (key === 'bashp')   playBashPiano(freq, dur, isAccent, t, tr);
-    else if (key === 'denial')  playDenialism(freq, dur, isAccent, t, tr);
+    else if (key === 'denial')  playBuck(freq, dur, isAccent, t, tr);
     else if (key === 'jcmgtr')  playJcmGuitar(freq, dur, isAccent, t, tr);
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
@@ -9551,22 +9584,62 @@ async function renderSlotToWav(snap) {
           });
 
         } else if (key === 'denial') {
-          // Match playDenialism exactly
-          const vel = isAccent ? 0.62 : 0.38; // unchanged — drives the waveshaper; level cut happens after, via outGain
-          const decayTime = Math.min(dur, 1.4);
-          const osc1 = o.createOscillator(); osc1.type='sawtooth'; osc1.frequency.value=freq;
-          const osc2 = o.createOscillator(); osc2.type='sawtooth'; osc2.frequency.value=freq*1.4983;
-          const env = o.createGain();
-          env.gain.setValueAtTime(0,t); env.gain.linearRampToValueAtTime(vel,t+0.01);
-          env.gain.exponentialRampToValueAtTime(vel*0.5,t+decayTime*0.6); env.gain.exponentialRampToValueAtTime(0.0008,t+decayTime);
-          const ws = o.createWaveShaper();
-          const curve = new Float32Array(1024);
-          for (let i=0;i<1024;i++){const x=(i*2)/1024-1; curve[i]=Math.tanh(x*6)+Math.sin(x*9)*0.15;}
-          ws.curve = curve; ws.oversample = '4x';
-          const outGain = o.createGain(); outGain.gain.value = 0.0398; // -28dB total (was -26dB)
-          osc1.connect(env); osc2.connect(env); env.connect(ws); ws.connect(outGain); outGain.connect(offDest);
-          const stopAt = t + decayTime + 0.1;
-          osc1.start(t); osc1.stop(stopAt); osc2.start(t); osc2.stop(stopAt);
+          // Match playBuck exactly (ported to this offline context's own
+          // node-creation calls) — three-note octave trill, resonant
+          // partials at 2/4/6 ratios, a sparkle trail, all through a
+          // shared highpass, per playBuck's own comments for why.
+          const _decay = isAccent ? 0.35 : 0.25;
+          const _peakVol = isAccent ? 0.5 : 0.36; // BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
+          const _hp = o.createBiquadFilter(); _hp.type = 'highpass'; _hp.frequency.value = 350; _hp.Q.value = 0.7;
+          _hp.connect(offDest);
+          const _goingUp = Math.random() < 0.5;
+          const _trillFreqs = _goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2];
+          const _noteGap = 0.032;
+          _trillFreqs.forEach((tf, i) => {
+            const _t = t + i * _noteGap;
+            const _knockDur = 0.008;
+            const _kbuf = o.createBuffer(1, Math.ceil(o.sampleRate * _knockDur), o.sampleRate);
+            const _kd = _kbuf.getChannelData(0);
+            for (let j = 0; j < _kd.length; j++) _kd[j] = (Math.random() * 2 - 1) * (1 - j / _kd.length);
+            const _knockSrc = o.createBufferSource(); _knockSrc.buffer = _kbuf;
+            const _knockFilter = o.createBiquadFilter(); _knockFilter.type = 'bandpass'; _knockFilter.frequency.value = tf * 6; _knockFilter.Q.value = 1.4;
+            const _knockGain = o.createGain(); _knockGain.gain.value = isAccent ? 0.32 : 0.22;
+            _knockSrc.connect(_knockFilter); _knockFilter.connect(_knockGain); _knockGain.connect(_hp);
+            _knockSrc.start(_t);
+            const _detune = (Math.random() * 2 - 1) * 4;
+            [
+              { ratio: 2, amp: _peakVol * 0.6,  decayMult: 0.5  },
+              { ratio: 4, amp: _peakVol * 0.3,  decayMult: 0.32 },
+              { ratio: 6, amp: _peakVol * 0.14, decayMult: 0.2  },
+            ].forEach(p => {
+              const osc = o.createOscillator(); osc.type = 'sine';
+              osc.frequency.value = tf * p.ratio; osc.detune.value = _detune;
+              const env = o.createGain();
+              const pDecay = _decay * p.decayMult;
+              env.gain.setValueAtTime(0, _t);
+              env.gain.linearRampToValueAtTime(p.amp, _t + 0.002);
+              env.gain.exponentialRampToValueAtTime(0.0005, _t + pDecay);
+              osc.connect(env); env.connect(_hp);
+              osc.start(_t); osc.stop(_t + pDecay + 0.05);
+            });
+          });
+          const _trillEnd = t + (_trillFreqs.length - 1) * _noteGap;
+          const _sparkleCount = 5 + Math.floor(Math.random() * 3);
+          let _sparkleT = _trillEnd + 0.02;
+          let _sparkleVol = _peakVol * 0.22;
+          for (let s = 0; s < _sparkleCount; s++) {
+            const _sparkleFreq = freq * (2 + Math.random() * 4);
+            const osc = o.createOscillator(); osc.type = 'sine'; osc.frequency.value = _sparkleFreq;
+            const env = o.createGain();
+            const _sDecay = 0.05 + Math.random() * 0.05;
+            env.gain.setValueAtTime(0, _sparkleT);
+            env.gain.linearRampToValueAtTime(_sparkleVol, _sparkleT + 0.002);
+            env.gain.exponentialRampToValueAtTime(0.0004, _sparkleT + _sDecay);
+            osc.connect(env); env.connect(_hp);
+            osc.start(_sparkleT); osc.stop(_sparkleT + _sDecay + 0.03);
+            _sparkleT += 0.03 + Math.random() * 0.05;
+            _sparkleVol *= 0.65;
+          }
 
         } else if (key === 'sstring') {
           // Choir — use shared rev nodes (created once per track above)
@@ -12053,7 +12126,7 @@ function randAll(mode, opts) {
   const tonalNonBassKeys = new Set([...TONAL_KEYS].filter(k => !bassKeys2.has(k)));
 
   // Rank each instrument: 0=hihat, 1=perc, 2=tonal lead, 2.5=tonal mid, 3=bass, 4=kick
-  const leadTonalKeys = new Set(['jcmgtr','clar','boog','sparkle','rhodes','rhodes2','denial']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, ARBY
+  const leadTonalKeys = new Set(['jcmgtr','clar','boog','sparkle','rhodes','rhodes2','denial']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK
   function trackRank(k) {
     if (hihatKeys.has(k)) return 0;
     if (kickKeys.has(k)) return 4;
