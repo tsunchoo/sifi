@@ -775,6 +775,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
   filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
+  animation: vol-slider-color-cycle 1s linear infinite; /* same animation the logo gets on load, applied here unconditionally by default too, per direct request — the existing body.seq-playing rule further down still layers its own saturate(20) !important on top of this during playback specifically */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
 .track-vol-tip { display: none; position: absolute; pointer-events: none; } /* base rule so this never disrupts .track-vol-bar's normal-flow layout — display:none unless SIMPLE FADER's own rule below turns it on */
@@ -1153,7 +1154,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 06:16:06 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:08:09 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1301,7 +1302,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 06:16:06 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:08:09 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
