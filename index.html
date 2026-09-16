@@ -115,6 +115,7 @@ body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
    of green) regardless of the exact filter recipe used, and wasn't what
    was actually wanted anyway. */
 body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0)) drop-shadow(2px 2px 0 #00ff41) drop-shadow(-1px -1px 0 #00ff41) !important; }
+body.eight-bit-mode #tapeWindowImg { filter: drop-shadow(2px 2px 0 #00ff41) drop-shadow(-1px -1px 0 #00ff41) !important; } /* same treatment extended to the tape window, per direct request — this one has no --reel-filter equivalent to preserve (it's recolored via canvas pixel manipulation baked into its own src, not a CSS filter variable), so the shadow is simply added on its own */
 /* Logo cycles through the app's accent colors while playing — one full
    trip through all colors takes exactly one measure (set via JS below,
    tied to bpm), so it stays a musically-timed pulse rather than a fixed
@@ -166,7 +167,7 @@ body.seq-playing.logo-color-static #siFiTitle.press-pulse { animation: press-pul
    shared animation, same as there's only ever one logo). */
 @keyframes vol-slider-color-cycle {
   0%   { background-color: var(--neutral-top, #555); }
-  25%  { background-color: var(--playhead-color, #f8ff00); }
+  25%  { background-color: var(--vol-slider-color, var(--playhead-color, #f8ff00)); } /* was a flat var(--playhead-color, #f8ff00) — the lightest of the 4 stops — now the fill's own actual default/resting color instead, so the cycle genuinely pulses back through its own original color rather than an unrelated bright shade */
   50%  { background-color: var(--highlight2-color, #0078ff); }
   75%  { background-color: var(--highlight3-color, #adff00); }
   100% { background-color: var(--neutral-top, #555); }
@@ -1081,7 +1082,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 03:16:34 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 03:27:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1229,7 +1230,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 03:16:34 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 03:27:29 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
