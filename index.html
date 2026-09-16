@@ -139,7 +139,7 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
   25% { transform: translateX(-0.5px); }
   75% { transform: translateX(0.5px); }
 }
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle var(--logo-anim-dur, 4s) linear infinite, logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; filter: saturate(20); } /* forces whatever color is currently showing to (effectively) full saturation, regardless of how saturated --neutral-top/--playhead-color/etc. themselves currently are — per direct request */
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle var(--logo-anim-dur, 4s) linear infinite, logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
 body.seq-playing.logo-note-jump-mode #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
 body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; color: var(--vol-slider-color, var(--playhead-color, #f8ff00)); } /* was var(--bg), matching the page background so the logo effectively disappeared — now matches the volume slider's own resting color instead (its static value, not the vol-slider-color-cycle animation that overrides it during playback), per direct request */
 /* Logo tap's own scale-pulse (see #siFiTitle.press-pulse further down —
@@ -752,7 +752,7 @@ body.simple-fader .track-vol-tip {
   background: var(--simple-fader-tip-color, var(--top-row-pressed-bg, #555)); /* was a plain #000 default — now the top row's own "secondary" color, the one a button's background turns to when pressed (NOT the glyph color) */
   pointer-events: none;
 }
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; filter: saturate(20) !important; } /* !important needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) — forces full saturation during the pulse regardless of that (or any other) setting, per direct request */
+body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; filter: saturate(20) !important; } /* was scoped by :not(.logo-note-jump-mode):not(.logo-color-static), which meant switching the LOGO's own color mode was also changing whether the VOLUME SLIDER pulsed — the two are unrelated, so that scoping is removed entirely now; this always applies while playing, in every logo mode. !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) — forces full saturation during the pulse regardless of that (or any other) setting */
 .track-vol-bar.muted { background: #ccc; }
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
 /* TRACK BUTTON OPACITY (see --track-default-opacity above) — the volume
@@ -1078,7 +1078,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:22:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:31:43 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1226,7 +1226,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:22:38 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:31:43 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
