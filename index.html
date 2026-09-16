@@ -139,9 +139,10 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
   25% { transform: translateX(-0.5px); }
   75% { transform: translateX(0.5px); }
 }
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle { animation: logo-color-cycle var(--logo-anim-dur, 4s) linear infinite, logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static):not(.logo-flash-mode) #siFiTitle { animation: logo-color-cycle var(--logo-anim-dur, 4s) linear infinite, logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
 body.seq-playing.logo-note-jump-mode #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; }
 body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; color: var(--vol-slider-color, var(--playhead-color, #f8ff00)); } /* was var(--bg), matching the page background so the logo effectively disappeared — now matches the volume slider's own resting color instead (its static value, not the vol-slider-color-cycle animation that overrides it during playback), per direct request */
+body.seq-playing.logo-flash-mode #siFiTitle { animation: logo-wobble var(--logo-anim-dur, 1.4s) ease-in-out infinite; } /* FLASH mode — same idea as JUMP (color set directly via JS on each note trigger, see _flashLogoColor()), just a single fixed color — the same one the track name button flashes to while playing (--track-text-pulse-color/--highlight3-color) — instead of a random one each time, and reverting after a brief moment instead of persisting until the next note. Now the default mode on startup. */
 /* Logo tap's own scale-pulse (see #siFiTitle.press-pulse further down —
    the same snappy press-pulse RAND/+ and PLAY get on every tap, NOT
    PLAY's other, slower per-beat top-row-pulse) needs to actually win over
@@ -156,9 +157,10 @@ body.seq-playing.logo-color-static #siFiTitle { animation: logo-wobble var(--log
    above now goes through the --logo-anim-dur custom property instead of
    the raw animation-duration inline style specifically so it can never
    leak into this pulse's timing the way it used to. */
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) #siFiTitle.press-pulse,
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static):not(.logo-flash-mode) #siFiTitle.press-pulse,
 body.seq-playing.logo-note-jump-mode #siFiTitle.press-pulse,
-body.seq-playing.logo-color-static #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; }
+body.seq-playing.logo-color-static #siFiTitle.press-pulse,
+body.seq-playing.logo-flash-mode #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; }
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -536,7 +538,7 @@ body.track-row-bg .track-ctrl-row::before {
   content: '';
   position: absolute;
   top: -2px; bottom: -2px; left: calc(-50vw + 50%); right: calc(-50vw + 50%); /* full-bleed to the true screen edges, same viewport-breakout trick used elsewhere (e.g. the header) — was left:0;right:0, which only reached .track-ctrl-row's own (constrained) width, not the screen's */
-  background: color-mix(in srgb, var(--bg, #f5f0e8) calc(100% - var(--track-row-bg-darken, 12%)), black);
+  background: color-mix(in srgb, var(--bg, #f5f0e8) calc(100% - var(--track-row-bg-darken, 9%)), black); /* 9% hardcoded per direct request (was a 12% default, slider-adjustable) */
   z-index: -1;
   pointer-events: none;
 }
@@ -766,11 +768,11 @@ body.simple-fader .track-vol-tip {
   position: absolute;
   left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 12px)));
   top: 0; bottom: 0;
-  width: var(--simple-fader-width, 12px);
+  width: var(--simple-fader-width, 11px); /* hardcoded per direct request (was 12px, briefly a slider before that) — --simple-fader-width itself is never set anymore, so this fallback is the effective value */
   background: var(--simple-fader-tip-color, var(--top-row-pressed-bg, #555)); /* was a plain #000 default — now the top row's own "secondary" color, the one a button's background turns to when pressed (NOT the glyph color) */
   pointer-events: none;
 }
-body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; filter: saturate(20) !important; } /* was scoped by :not(.logo-note-jump-mode):not(.logo-color-static), which meant switching the LOGO's own color mode was also changing whether the VOLUME SLIDER pulsed — the two are unrelated, so that scoping is removed entirely now; this always applies while playing, in every logo mode. !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) — forces full saturation during the pulse regardless of that (or any other) setting */
+body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; filter: saturate(20) !important; } /* restored the logo-mode scoping this used to have — "smooth" is the one specific logo mode meant to also make the volume slider pulse in color, same idea as the track name buttons' own playing-state flash; a previous edit removed this scoping entirely thinking the coupling was a bug, but it was actually the intended design. !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) — forces full saturation during the pulse regardless of that (or any other) setting */
 .track-vol-bar.muted { background: #ccc; }
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
 /* TRACK BUTTON OPACITY (see --track-default-opacity above) — the volume
@@ -1009,9 +1011,11 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — legato-tail excluded, since
    its own half-height positioning above is a distinct visual concept
-   (not a plain note-on marker) that a circular shape would break. */
+   (not a plain note-on marker) that a circular shape would break. Size
+   controlled by --note-marker-circle-inset (SETTINGS slider) — a bigger
+   inset means a smaller circle. */
 body.note-markers-circle .step-cell:not(.legato-tail)::after {
-  top: 15%; bottom: 15%; left: 15%; right: 15%;
+  top: var(--note-marker-circle-inset, 15%); bottom: var(--note-marker-circle-inset, 15%); left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
   border-radius: 50%;
 }
 
@@ -1070,7 +1074,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1103,7 +1107,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:56:56 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 05:35:22 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1251,7 +1255,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:56:56 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 05:35:22 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1272,16 +1276,10 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
     <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
       <input type="checkbox" id="faderTipTopRowColorToggle" onchange="setFaderTipTopRowColor(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = TOP ROW COLOR
     </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-      <input type="checkbox" id="trackRowBgToggle" onchange="setTrackRowBg(this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK ROW BG
-    </label>
-    <div style="display:flex;flex-direction:column;gap:15px;">
-      <div style="display:flex;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
-        <div id="trackRowBgDarkenReadout" style="font-size:0.62rem;font-weight:700;color:#111;">12%</div>
-      </div>
-      <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="12" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
+    <!-- TRACK ROW BG / TRACK ROW BG DARKNESS removed from the UI —
+         hardcoded on, at 9% darkness, per direct request.
+         setTrackRowBg()/setTrackRowBgDarken() are kept intact in the code
+         in case this needs to change again later. -->
 
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -1501,23 +1499,24 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
            class on <body>), track line height is 4px, and the bar/fill
            both stay at their full natural height (the overrides these
            last two sliders wrote to are simply never set now, so the CSS
-           falls back to that automatically). FADER WIDTH itself was
-           brought back below after being removed here too. setSimpleFader()
-           /setVolScaleThickness()/setVolBarHeight()/setVolFillHeight() are
+           falls back to that automatically). FADER WIDTH is hardcoded at
+           11px now too (was brought back as a slider briefly, then
+           removed again). setSimpleFader()/setSimpleFaderWidth()/
+           setVolScaleThickness()/setVolBarHeight()/setVolFillHeight() are
            all kept intact for this reason. -->
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.62rem;font-weight:700;color:#111;">12PX</div>
-        </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="12" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
       </label>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
+          <div id="noteMarkerCircleSizeReadout" style="font-size:0.62rem;font-weight:700;color:#111;">50%</div>
+        </div>
+        <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="50" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
@@ -2104,10 +2103,13 @@ _resetAppColorsToDefault();
 // every time any track actually plays a note. Mutually exclusive with the
 // CSS cycle (see body.logo-note-jump-mode in the stylesheet) since both
 // drive the same element's color and would otherwise fight each other.
-// Now the default/initialized mode instead of the smooth cycle, per
-// direct request — the logo tap still toggles between the two exactly
+// FLASH mode (added later) is now the default/initialized mode instead —
+// same note-trigger timing as jump, but a single fixed color (the one
+// the track name button flashes to while playing) instead of a random
+// one, and reverting after a brief moment rather than persisting until
+// the next note — the logo tap still cycles through all 4 modes exactly
 // as before, this only changes which one the app starts on.
-setLogoNoteJump(true);
+setLogoColorMode('flash');
 // SATURATION CEILING (COLOR MENU) — must be initialized before the first
 // randomizeAppColors() call just below, not after (an ordering bug this
 // used to have — see git history/prior conversation if that comment ever
@@ -2128,12 +2130,14 @@ try { localStorage.removeItem('_colorSaturationCeiling'); } catch(e) {} // clear
 // Running it once here means everything (including the fixed red
 // HIGHLIGHT 3) is live from the very first paint.
 randomizeAppColors();
-window._logoColorMode = 'jump'; // 'jump' | 'smooth' | 'static' — cycled by tapping the logo; setLogoNoteJump(true) just above re-sets this to the same value via setLogoColorMode() below, kept here too just as the up-front declaration
+window._logoColorMode = 'flash'; // 'jump' | 'smooth' | 'static' | 'flash' — cycled by tapping the logo; setLogoColorMode('flash') just above re-sets this to the same value, kept here too just as the up-front declaration
 function setLogoColorMode(mode) {
   window._logoColorMode = mode;
   window._logoNoteJumpEnabled = (mode === 'jump'); // kept in sync — still what the vol-slider flash and a couple of playback hooks check
+  window._logoFlashEnabled = (mode === 'flash'); // separate from _logoNoteJumpEnabled deliberately — the vol-slider's own jump-flash (elsewhere) checks _logoNoteJumpEnabled specifically and shouldn't also fire in FLASH mode
   document.body.classList.toggle('logo-note-jump-mode', mode === 'jump');
   document.body.classList.toggle('logo-color-static', mode === 'static');
+  document.body.classList.toggle('logo-flash-mode', mode === 'flash');
   const el = document.getElementById('siFiTitle');
   if (el) el.style.color = ''; // clear any leftover jump color (or let CSS — the cycle, or the static rule — take back over) on every mode switch
 }
@@ -2143,6 +2147,17 @@ function _jumpLogoColor() {
   const el = document.getElementById('siFiTitle');
   if (!el) return;
   el.style.color = _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)];
+}
+// FLASH mode — same note-trigger timing as JUMP, but a single fixed color
+// (the same one the track name button flashes to while playing, not a
+// random pick), and reverts after a brief moment instead of persisting
+// until the next note — closer to a genuine "flash" than JUMP's own
+// stay-lit-until-the-next-hit behavior.
+function _flashLogoColor() {
+  const el = document.getElementById('siFiTitle');
+  if (!el) return;
+  el.style.color = 'var(--track-text-pulse-color, var(--highlight3-color, #adff00))';
+  setTimeout(() => { if (window._logoColorMode === 'flash' && el.style.color) el.style.color = ''; }, 80);
 }
 function randomizeAppColors() {
   // SATURATION CEILING (COLOR MENU) — caps how vivid any of these random
@@ -3656,11 +3671,11 @@ function scheduler() {
     // LOGO NOTE JUMP — decoupled from fireStepAudio's own (already
     // complex) internals; just re-checks the same grid data it uses to
     // decide whether anything actually played this step.
-    if (window._logoNoteJumpEnabled) {
+    if (window._logoNoteJumpEnabled || window._logoFlashEnabled) {
       for (let _tr = 0; _tr < NUM_TRACKS; _tr++) {
         if (trackMuted[_tr]) continue;
         const _gs = (step - trackOffset[_tr] + NUM_STEPS) % NUM_STEPS;
-        if (grid[_tr][_gs] > 0) { _jumpLogoColor(); break; }
+        if (grid[_tr][_gs] > 0) { window._logoNoteJumpEnabled ? _jumpLogoColor() : _flashLogoColor(); break; }
       }
     }
     } // end !_muteForTransition
@@ -3988,7 +4003,7 @@ function fireStepAudio(step, t) {
       } else if (_beatType === 'breaks') {
         if (bstep === 6) fireBeatKick(t);   // 2&
         if (bstep === 10) playSnare(t);     // 3&
-        if (bstep === 14) playSnare(t);     // added snare, moved forward an 1/8th note (was step 12) — 2 sixteenths after the "3&" snare (the actual 2nd snare hit in the pattern)
+        if (bstep === 15) playSnare(t);     // added snare, moved forward another 16th note (was step 14, before that step 12) — 1/8th + 1/16th after the "3&" snare (the actual 2nd snare hit in the pattern)
       } else if (_beatType === 'bounce') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // 2&, 3&
       } else if (_beatType === 'bossa') {
@@ -4319,7 +4334,7 @@ function playSynthHihat(isAccent, time, tr) {
 // stretch the sound — like a real struck pipe, it always rings out on its
 // own fixed decay regardless of how long the note "slot" is, the same way
 // playXylophone's mallet decay ignores durSec too.
-function playUnderpass(freq, durSec, isAccent, time, tr) {
+function playUnderpass(freq, durSec, isAccent, time, tr, _isSecondHit) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const decay = isAccent ? 0.55 : 0.4;
@@ -4357,6 +4372,17 @@ function playUnderpass(freq, durSec, isAccent, time, tr) {
     osc.start(time); osc.stop(time + pDecay + 0.05);
     osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
   });
+
+  // Fast double-pitch — per direct request, "the ability to play
+  // different pitches very fast, like it can play two 32nd notes at
+  // different pitches." 25% chance, and only on the actual, original hit
+  // — the recursive second-hit call passes _isSecondHit=true specifically
+  // so this can't cascade into more than two notes.
+  if (!_isSecondHit && Math.random() < 0.25) {
+    const thirtySecondDur = (60 / bpm) / 8;
+    const ratio = [0.5, 0.6667, 1.5, 2][Math.floor(Math.random() * 4)]; // octave down, a fifth down, a fifth up, octave up — clearly different pitches each time, not close/muddy intervals
+    playUnderpass(freq * ratio, durSec, isAccent, time + thirtySecondDur, tr, true);
+  }
 }
 
 // ── Synth Bass with legato glide (ported from SMPLJAK) ──
@@ -4722,7 +4748,7 @@ function randomizeBassTrack(tr, level) {
   window._lastNoteMaxUsed = maxN;
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
-  if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 3); // a few extra notes on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below) to actually land somewhere audible, per direct request
+  if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
@@ -15493,6 +15519,14 @@ function setDevNotesGrayscale(on) {
   if (otherCb) otherCb.checked = on;
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
+function setNoteMarkerCircleSize(v) {
+  // v: 0-100 slider position — higher v = bigger circle, so the inset
+  // (which shrinks the circle as it grows) is computed as the inverse.
+  const inset = (100 - (+v)) * 0.3; // 0-30% inset range — v=100 gives 0% inset (fills the cell), v=0 gives 30% inset (small circle)
+  document.documentElement.style.setProperty('--note-marker-circle-inset', inset + '%');
+  const readout = document.getElementById('noteMarkerCircleSizeReadout');
+  if (readout) readout.textContent = v + '%';
+}
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
 // REVERB already share when engaged. Checked by default since pulsing is
 // the existing behavior; unchecking just removes the animation via a CSS
@@ -15580,7 +15614,7 @@ function setTonalPercBalance(v) {
   // jump -> smooth -> static -> back to jump. 8-BIT MODE turning ON is
   // SETTINGS-only, but this tap turns it back OFF if it's currently on
   // (see below) — per direct request, one-directional only.
-  const _LOGO_COLOR_MODE_CYCLE = ['jump', 'smooth', 'static'];
+  const _LOGO_COLOR_MODE_CYCLE = ['jump', 'smooth', 'static', 'flash'];
   title.addEventListener('click', () => {
     // 8-BIT MIX — a tap resets it back to 0 (fully clean) if it's
     // currently above 0, alongside the color-mode cycle below.
