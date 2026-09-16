@@ -1152,7 +1152,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 20:54:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 20:56:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1300,7 +1300,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 20:54:46 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 20:56:46 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -16491,6 +16491,7 @@ async function hardResetAudioEngine() {
     ctx = null; masterGain = null;
     window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
+    window._beatDryGain = null; window._beatCrunchSend = null; window._beatReverbSend = null; // stale references tied to the closed context, same reasoning as the eight-bit ones below — without this, _ensureBeatFxChain()'s guard (!window._beatDryGain) incorrectly thinks the chain is already built for the new context, so BEAT's reverb/crunch sends silently update an orphaned node from the old (closed) context while the new _beatGain stays directly wired to masterGain, bypassing them entirely
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
     window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
