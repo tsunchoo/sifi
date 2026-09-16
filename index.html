@@ -102,6 +102,11 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 2.0671rem; line-heigh
    blurred/soft, to read as "blocky" rather than just "different color". */
 body.eight-bit-mode #siFiTitle { letter-spacing: 1px; text-shadow: 2px 2px 0 #00ff41, -1px -1px 0 #00ff41; }
 body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
+/* Same 8-BIT treatment extended to the tape spools, per direct request —
+   same filter-based recolor trick the reel's own recording/hiss/compress
+   states already use (see .reel-wrap.recording/.hiss-on/.compress-on
+   above), just tuned to land on the same #00ff41 green. */
+body.eight-bit-mode .reel-wrap .reel { filter: brightness(0) sepia(1) saturate(8) hue-rotate(70deg) brightness(1.3) !important; }
 /* Logo cycles through the app's accent colors while playing — one full
    trip through all colors takes exactly one measure (set via JS below,
    tied to bpm), so it stays a musically-timed pulse rather than a fixed
@@ -724,13 +729,20 @@ body.simple-fader .track-vol-fill-solid {
   top: var(--vol-fill-inset-override, 0%);
   bottom: var(--vol-fill-inset-override, 0%);
 }
+/* JUST TRACK (SETTINGS toggle) — a separate, standalone control for the
+   same "fill matches the track's own full height" outcome, independent
+   of SIMPLE FADER's own (currently permanent) state. */
+body.just-track .track-vol-fill-solid {
+  top: 0 !important;
+  bottom: 0 !important;
+}
 body.simple-fader .track-vol-fill-solid::after {
   content: '';
   position: absolute;
   left: 100%; top: 0; bottom: 0;
   width: var(--simple-fader-width, 12px); /* hardcoded per direct request (was 4px originally) */
   transform: translateX(-100%); /* sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100% */
-  background: var(--simple-fader-tip-color, #000);
+  background: var(--simple-fader-tip-color, var(--top-row-pressed-bg, #555)); /* was a plain #000 default — now the top row's own "secondary" color, the one a button's background turns to when pressed (NOT the glyph color) */
   pointer-events: none;
 }
 body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; }
@@ -1059,7 +1071,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 00:25:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 02:25:17 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1207,7 +1219,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 00:25:53 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 02:25:17 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1289,6 +1301,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
            stays at its plain default (--simple-fader-tip-color, #000).
            setVolSliderColorToggle()/setVolBgTransparent() are kept intact
            for this reason. -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+      </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -1390,6 +1405,9 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
         </div>
         <input type="range" id="eightBitMixSlider" min="0" max="100" value="10" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="randomize8BitMixToggle" onchange="setRandomize8BitMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">RANDOMIZE 8-BIT MIX
+      </label>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TAPES</div>
@@ -1433,16 +1451,23 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
       </label>
-      <!-- SIMPLE FADER, FADER WIDTH, VOL TRACK LINE HEIGHT, VOL SLIDER
-           HEIGHT, and VOL FILL HEIGHT all removed from the UI — hardcoded
-           per direct request: SIMPLE FADER is permanently on (see the
-           "simple-fader" class on <body>), fader width is 12px, track
-           line height is 4px, and the bar/fill both stay at their full
-           natural height (the overrides these last two sliders wrote to
-           are simply never set now, so the CSS falls back to that
-           automatically). setSimpleFader()/setSimpleFaderWidth()/
-           setVolScaleThickness()/setVolBarHeight()/setVolFillHeight() are
+      <!-- SIMPLE FADER, VOL TRACK LINE HEIGHT, VOL SLIDER HEIGHT, and VOL
+           FILL HEIGHT all removed from the UI — hardcoded per direct
+           request: SIMPLE FADER is permanently on (see the "simple-fader"
+           class on <body>), track line height is 4px, and the bar/fill
+           both stay at their full natural height (the overrides these
+           last two sliders wrote to are simply never set now, so the CSS
+           falls back to that automatically). FADER WIDTH itself was
+           brought back below after being removed here too. setSimpleFader()
+           /setVolScaleThickness()/setVolBarHeight()/setVolFillHeight() are
            all kept intact for this reason. -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.62rem;font-weight:700;color:#111;">12PX</div>
+        </div>
+        <input type="range" id="simpleFaderWidthSlider" min="4" max="16" value="12" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
@@ -2686,6 +2711,7 @@ function setGlobalDelayMix(v) {
 // single inline script with no separate module file to load.
 window._eightBitEnabled = true; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"; matches the mix's own new 10% default below
 document.body.classList.add('eight-bit-mode'); // normally only set inside setEightBitMix() itself, which only runs on user interaction — needed here too since the mix now starts nonzero by default
+{ const _tcm = document.querySelector('meta[name="theme-color"]'); if (_tcm) _tcm.content = '#00ff41'; } // same reasoning — the theme-color meta tag normally only updates inside setEightBitMix() too
 window._eightBitMix = 0.1; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position; defaults to 10%, per direct request (was 0)
 window._randomizeReverbEnabled = false; // RANDOMIZE REVERB toggle in Settings — off by default; see the block near the top of randAll()
 function setRandomizeReverb(on) {
@@ -2808,12 +2834,17 @@ function setEightBitMix(v) {
   window._eightBitMix = Math.max(0, Math.min(1, (+v) / 100));
   window._eightBitEnabled = window._eightBitMix > 0; // derived — the body class / logo tap-to-clear below both key off this
   document.body.classList.toggle('eight-bit-mode', window._eightBitEnabled);
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) themeColorMeta.content = window._eightBitEnabled ? '#00ff41' : '#f5f0e8'; // "the window" (browser/PWA chrome color) — same green as the logo and tape spools in 8-bit mode, per direct request; #f5f0e8 is this tag's own original, un-touched-elsewhere default
   const slider = document.getElementById('eightBitMixSlider'); if (slider) slider.value = Math.round(window._eightBitMix * 100);
   const readout = document.getElementById('eightBitMixReadout'); if (readout) readout.textContent = Math.round(window._eightBitMix * 100) + '%';
   if (!ctx || !window._postLimiterGain) return; // graph not built yet — _ensureEightBitSplit picks up the flag when it runs
   _ensureEightBitSplit(ctx);
   _applyEightBitMixGains();
 }
+// RANDOMIZE 8-BIT MIX (SETTINGS toggle) — see the check inside randAll().
+window._randomize8BitMix = false;
+function setRandomize8BitMix(on) { window._randomize8BitMix = !!on; }
 // Thin on/off wrapper kept for anything still calling the old boolean API
 // (e.g. the logo tap turning this back off) — maps straight to the mix
 // slider's own two extremes.
@@ -3221,7 +3252,7 @@ const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
 // "L" text everywhere it gets (re)assigned below. currentColor picks up
 // whatever text color the button already has (white, per its grayscale
 // styling), so it doesn't need its own color logic.
-const LOCK_ICON_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
+const LOCK_ICON_SVG = '<svg width="13.39" height="13.39" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
 
 const trackInstruments = [(Math.random() < 0.5 ? 'drone' : 'amlgm'),'sleg','sparkle','sbass3','congHi','congLo']; // DRONE/TEXTURE share slot 0, 50/50
 const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
@@ -5748,7 +5779,7 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const decay = isAccent ? 0.35 : 0.25; // shorter than UNDERPASS's own — a quick glinting hit, not a sustained tube tone
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
-  const peakVol = (isAccent ? 0.4456 : 0.3209) * blastAtten; // -1dB more, per direct request (was 0.5/0.36)
+  const peakVol = (isAccent ? 0.354 : 0.2549) * blastAtten; // -2dB more, per direct request (was 0.4456/0.3209, -1dB before that, was 0.5/0.36)
 
   // Shared highpass every layer below feeds through — this is what
   // actually sits BUCK higher in the range than UNDERPASS's own low/mid
@@ -8153,6 +8184,7 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // percentage, so the marker rides its right edge with no other JS
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
+function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
 // but harmless to set regardless (the CSS variable just sits unused if
@@ -9601,7 +9633,7 @@ async function renderSlotToWav(snap) {
           // highpass, per playBuck's own comments for why (including why
           // this is the lighter, ~half-the-nodes revision).
           const _decay = isAccent ? 0.35 : 0.25;
-          const _peakVol = isAccent ? 0.4456 : 0.3209; // -1dB more, matching the live playBuck fix (was 0.5/0.36) — BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
+          const _peakVol = isAccent ? 0.354 : 0.2549; // -2dB more, matching the live playBuck fix (was 0.4456/0.3209, -1dB before that, was 0.5/0.36) — BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
           const _hp = o.createBiquadFilter(); _hp.type = 'highpass'; _hp.frequency.value = 350; _hp.Q.value = 0.7;
           _hp.connect(offDest);
           const _goingUp = Math.random() < 0.5;
@@ -11662,6 +11694,10 @@ function randAll(mode, opts) {
     const tempoSlider = document.getElementById('tempoBar'); if (tempoSlider) tempoSlider.value = bpm;
     document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // keep SPIRIT PULSE matching RAND's own freshly-picked tempo
   }
+  // RANDOMIZE 8-BIT MIX (SETTINGS toggle) — off by default; when on, every
+  // RAND press (the "+" button and its auto-mode) also rolls a fresh
+  // 8-BIT MIX value, same as tempo/beat type above.
+  if (window._randomize8BitMix) setEightBitMix(Math.random() * 100);
   if (!_beatTypeLocked) {
     let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
