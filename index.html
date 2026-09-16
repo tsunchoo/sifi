@@ -1059,7 +1059,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 00:08:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 00:25:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1207,7 +1207,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 00:08:38 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 00:25:53 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -2642,7 +2642,7 @@ function _trackNote() {
 // MIX = the wet output level on top of that (0-100 maps to gain 0.0-2.0).
 // Both readouts on screen show the exact 0-100 number quoted in code below —
 // "set INTENSITY to 20, MIX to 20" means exactly these two sliders at 20.
-const REVERB_MIX_MAX = 0.4;        // output gain at slider=100 — raised substantially (was 0.1) per direct request; this is a pure post-processing gain multiplier on the convolver's already-computed output, so raising it costs zero extra CPU — it was never a processing-load tradeoff, just a conservative loudness ceiling
+const REVERB_MIX_MAX = 0.18;       // output gain at slider=100 — pulled back down (was raised to 0.4 a few requests ago) now that a permanent whole-mix send feeds this same bus continuously (see the master reverb send further down) — 0.4 was calibrated back when only occasional per-track sends fed the reverb; with the entire mix always feeding it now, plus the icon's random roll having no floor (can land anywhere up to 100%), that combination was almost certainly the cause of a sudden loud noise-like wash — the reverb's impulse response is a synthesized noise decay, and driving that hard with the whole mix constantly behind it reads as exactly that
 
 function _buildReverbIRBuffer(targetCtx, v) {
   // v: 0 = plate (short/tight/bright), 1 = hall (long/slow/cavernous)
@@ -4623,8 +4623,8 @@ function randomizeBassTrack(tr, level) {
     dronePlus: [[2,5,0.25],[4,7,0.40],[6,10,0.55]], // STRINGS+ — same note-count table as STRINGS; duration is overridden separately (see the contiguous-legato pass) so this only governs how many notes/onsets it gets
     opening: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // OPENING — capped at 3 max, sustained pad chords
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
-    denial:  [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // BUCK — same note counts as the generic default, but explicit and boosted accent ratio, matched to DENIECE below rather than relying on both sharing the same implicit fallback
-    sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now, matched to BUCK above
+    denial:  [[1,3,0.15],[2,4,0.30],[3,5,0.40]],  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
+    sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now (BUCK above no longer shares this table — cut sparser separately after it was reading as too constant/regular)
   };
   const levelTable = noteTables[key] || [
     [2, 5,  0.20],
@@ -4642,6 +4642,7 @@ function randomizeBassTrack(tr, level) {
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 3); // a few extra notes on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below) to actually land somewhere audible, per direct request
+  if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // BOOBOO — with fewer notes now, connect most of its onsets into short
@@ -5747,7 +5748,7 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const decay = isAccent ? 0.35 : 0.25; // shorter than UNDERPASS's own — a quick glinting hit, not a sustained tube tone
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
-  const peakVol = (isAccent ? 0.5 : 0.36) * blastAtten;
+  const peakVol = (isAccent ? 0.4456 : 0.3209) * blastAtten; // -1dB more, per direct request (was 0.5/0.36)
 
   // Shared highpass every layer below feeds through — this is what
   // actually sits BUCK higher in the range than UNDERPASS's own low/mid
@@ -5756,32 +5757,41 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   hp.connect(dest);
 
   // The fast octave trill — three notes, shape picked fresh each hit.
+  // Lighter than the first version of this: the knock transient only
+  // fires on the first note (not all three — a trill reads as one
+  // gesture, it doesn't need three separate attack transients), and each
+  // note gets 2 resonant partials instead of 3. Roughly half the node
+  // count of the original per hit, after this synth turned out heavy
+  // enough to bog down the whole page's responsiveness (including things
+  // as unrelated as the left tape spool) when it showed up often in a
+  // pattern.
   const goingUp = Math.random() < 0.5;
-  const trillFreqs = goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2];
+  const doTrill = Math.random() < 1 / 6; // most hits are just a plain single note now — the trill is the exception, not the rule, per direct request
+  const trillFreqs = doTrill ? (goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2]) : [freq];
   const noteGap = 0.032; // fast enough to read as one trilled gesture, not three separate hits
+
+  // Knock transient — brighter/tighter bandpass than UNDERPASS's own
+  // (freq*4), part of what sits BUCK higher — just once, on the trill's
+  // first note.
+  const knockDur = 0.008;
+  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
+  const kd = kbuf.getChannelData(0);
+  for (let j = 0; j < kd.length; j++) kd[j] = (Math.random() * 2 - 1) * (1 - j / kd.length);
+  const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
+  const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = trillFreqs[0] * 6; knockFilter.Q.value = 1.4;
+  const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten;
+  knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(hp);
+  knockSrc.start(time);
+  knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
 
   trillFreqs.forEach((tf, i) => {
     const t = time + i * noteGap;
-    // Knock transient for this trill note — brighter/tighter bandpass
-    // than UNDERPASS's own (freq*4), part of what sits BUCK higher.
-    const knockDur = 0.008;
-    const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
-    const kd = kbuf.getChannelData(0);
-    for (let j = 0; j < kd.length; j++) kd[j] = (Math.random() * 2 - 1) * (1 - j / kd.length);
-    const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
-    const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = tf * 6; knockFilter.Q.value = 1.4;
-    const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten;
-    knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(hp);
-    knockSrc.start(t);
-    knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
-
-    // Resonant partials — ratios 2/4/6 instead of UNDERPASS's 1/3/5,
-    // the other half of what sits this higher in the range.
+    // Resonant partials — ratios 2/4 instead of UNDERPASS's 1/3/5, the
+    // other half of what sits this higher in the range.
     const detune = (Math.random() * 2 - 1) * 4;
     [
-      { ratio: 2, amp: peakVol * 0.6,  decayMult: 0.5  },
+      { ratio: 2, amp: peakVol * 0.65, decayMult: 0.5  },
       { ratio: 4, amp: peakVol * 0.3,  decayMult: 0.32 },
-      { ratio: 6, amp: peakVol * 0.14, decayMult: 0.2  },
     ].forEach(p => {
       const osc = ctx.createOscillator(); osc.type = 'sine';
       osc.frequency.value = tf * p.ratio;
@@ -5801,9 +5811,10 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   // blips at random pitches well above the root, spaced increasingly
   // further apart and shrinking in volume each time, so the hit trails
   // off into a little glittering tail through time instead of stopping
-  // dead the moment the trill ends.
+  // dead the moment the trill ends. Trimmed from 5-7 down to 3-4 as part
+  // of the same lightening pass.
   const trillEnd = time + (trillFreqs.length - 1) * noteGap;
-  const sparkleCount = 5 + Math.floor(Math.random() * 3); // 5-7
+  const sparkleCount = 3 + Math.floor(Math.random() * 2); // 3-4
   let sparkleT = trillEnd + 0.02;
   let sparkleVol = peakVol * 0.22;
   for (let s = 0; s < sparkleCount; s++) {
@@ -9586,31 +9597,32 @@ async function renderSlotToWav(snap) {
         } else if (key === 'denial') {
           // Match playBuck exactly (ported to this offline context's own
           // node-creation calls) — three-note octave trill, resonant
-          // partials at 2/4/6 ratios, a sparkle trail, all through a
-          // shared highpass, per playBuck's own comments for why.
+          // partials at 2/4 ratios, a sparkle trail, all through a shared
+          // highpass, per playBuck's own comments for why (including why
+          // this is the lighter, ~half-the-nodes revision).
           const _decay = isAccent ? 0.35 : 0.25;
-          const _peakVol = isAccent ? 0.5 : 0.36; // BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
+          const _peakVol = isAccent ? 0.4456 : 0.3209; // -1dB more, matching the live playBuck fix (was 0.5/0.36) — BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
           const _hp = o.createBiquadFilter(); _hp.type = 'highpass'; _hp.frequency.value = 350; _hp.Q.value = 0.7;
           _hp.connect(offDest);
           const _goingUp = Math.random() < 0.5;
-          const _trillFreqs = _goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2];
+          const _doTrill = Math.random() < 1 / 6; // matching the live playBuck fix — most hits are a plain single note now
+          const _trillFreqs = _doTrill ? (_goingUp ? [freq * 2, freq, freq * 2] : [freq / 2, freq, freq / 2]) : [freq];
           const _noteGap = 0.032;
+          const _knockDur = 0.008;
+          const _kbuf = o.createBuffer(1, Math.ceil(o.sampleRate * _knockDur), o.sampleRate);
+          const _kd = _kbuf.getChannelData(0);
+          for (let j = 0; j < _kd.length; j++) _kd[j] = (Math.random() * 2 - 1) * (1 - j / _kd.length);
+          const _knockSrc = o.createBufferSource(); _knockSrc.buffer = _kbuf;
+          const _knockFilter = o.createBiquadFilter(); _knockFilter.type = 'bandpass'; _knockFilter.frequency.value = _trillFreqs[0] * 6; _knockFilter.Q.value = 1.4;
+          const _knockGain = o.createGain(); _knockGain.gain.value = isAccent ? 0.32 : 0.22;
+          _knockSrc.connect(_knockFilter); _knockFilter.connect(_knockGain); _knockGain.connect(_hp);
+          _knockSrc.start(t);
           _trillFreqs.forEach((tf, i) => {
             const _t = t + i * _noteGap;
-            const _knockDur = 0.008;
-            const _kbuf = o.createBuffer(1, Math.ceil(o.sampleRate * _knockDur), o.sampleRate);
-            const _kd = _kbuf.getChannelData(0);
-            for (let j = 0; j < _kd.length; j++) _kd[j] = (Math.random() * 2 - 1) * (1 - j / _kd.length);
-            const _knockSrc = o.createBufferSource(); _knockSrc.buffer = _kbuf;
-            const _knockFilter = o.createBiquadFilter(); _knockFilter.type = 'bandpass'; _knockFilter.frequency.value = tf * 6; _knockFilter.Q.value = 1.4;
-            const _knockGain = o.createGain(); _knockGain.gain.value = isAccent ? 0.32 : 0.22;
-            _knockSrc.connect(_knockFilter); _knockFilter.connect(_knockGain); _knockGain.connect(_hp);
-            _knockSrc.start(_t);
             const _detune = (Math.random() * 2 - 1) * 4;
             [
-              { ratio: 2, amp: _peakVol * 0.6,  decayMult: 0.5  },
+              { ratio: 2, amp: _peakVol * 0.65, decayMult: 0.5  },
               { ratio: 4, amp: _peakVol * 0.3,  decayMult: 0.32 },
-              { ratio: 6, amp: _peakVol * 0.14, decayMult: 0.2  },
             ].forEach(p => {
               const osc = o.createOscillator(); osc.type = 'sine';
               osc.frequency.value = tf * p.ratio; osc.detune.value = _detune;
@@ -9624,7 +9636,7 @@ async function renderSlotToWav(snap) {
             });
           });
           const _trillEnd = t + (_trillFreqs.length - 1) * _noteGap;
-          const _sparkleCount = 5 + Math.floor(Math.random() * 3);
+          const _sparkleCount = 3 + Math.floor(Math.random() * 2);
           let _sparkleT = _trillEnd + 0.02;
           let _sparkleVol = _peakVol * 0.22;
           for (let s = 0; s < _sparkleCount; s++) {
