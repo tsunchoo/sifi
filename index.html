@@ -106,7 +106,7 @@ body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
    same filter-based recolor trick the reel's own recording/hiss/compress
    states already use (see .reel-wrap.recording/.hiss-on/.compress-on
    above), just tuned to land on the same #00ff41 green. */
-body.eight-bit-mode .reel-wrap .reel { filter: brightness(0) sepia(1) saturate(8) hue-rotate(70deg) brightness(1.3) !important; }
+body.eight-bit-mode .reel-wrap .reel { filter: brightness(0) saturate(100%) invert(16%) sepia(90%) saturate(7000%) hue-rotate(130deg) brightness(100%) !important; }
 /* Logo cycles through the app's accent colors while playing — one full
    trip through all colors takes exactly one measure (set via JS below,
    tied to bpm), so it stays a musically-timed pulse rather than a fixed
@@ -706,42 +706,43 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
   filter: saturate(var(--vol-slider-saturation, 1));
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
-/* SIMPLE FADER (permanently on — see body's class list) — the colored
-   fill itself is otherwise untouched (same color, same color-cycle
-   animation while playing), just stretched to the slider's full height
-   instead of the normal 15%/15% inset, with a solid tip added at its
-   leading edge — also full height, width hardcoded to 12px. The tip is a
-   ::after of the fill itself specifically so it can sit at left:100% of
-   that box and automatically track the fill's own width (already kept in
-   sync with the volume percentage by the existing JS), with zero further
-   JS changes needed for either piece. Reverted back to this exact
-   mechanism from a working reference copy after a later "independent
-   height / never clips at either extreme" rewrite introduced a worse bug:
-   since the tip is a child of the fill, and the fill's own width shrinks
-   with volume, that rewrite's percentage-based left calc() was resolving
-   against the FILL's own (shrunken) width instead of the bar's true
-   width, so the tip trailed further and further behind the fill's actual
-   edge as volume dropped — "sits almost twice its length back from the
-   edge." This simpler mechanism doesn't have that problem, at the cost
-   of the tip clipping out of view at the very bottom of the range, same
-   trade-off the reference copy always had. */
-body.simple-fader .track-vol-fill-solid {
-  top: var(--vol-fill-inset-override, 0%);
-  bottom: var(--vol-fill-inset-override, 0%);
-}
-/* JUST TRACK (SETTINGS toggle) — a separate, standalone control for the
-   same "fill matches the track's own full height" outcome, independent
-   of SIMPLE FADER's own (currently permanent) state. */
+.track-vol-tip { display: none; position: absolute; pointer-events: none; } /* base rule so this never disrupts .track-vol-bar's normal-flow layout — display:none unless SIMPLE FADER's own rule below turns it on */
+/* JUST TRACK (SETTINGS toggle, on by default — see body's class list) —
+   the fill's own full-height behavior now lives ONLY here, not baked
+   into SIMPLE FADER's own rule anymore (it used to force this
+   unconditionally, which meant this toggle had literally nothing left to
+   do — turning it off couldn't have any visible effect since SIMPLE
+   FADER's rule already won regardless). Turning this off now genuinely
+   drops the fill back to the plain 15%/15% inset look. */
 body.just-track .track-vol-fill-solid {
   top: 0 !important;
   bottom: 0 !important;
 }
-body.simple-fader .track-vol-fill-solid::after {
-  content: '';
+/* SIMPLE FADER tip — a real sibling element of the fill now (.track-vol-
+   tip, appended right after it in the DOM — see row-build JS), not a
+   ::after of the fill itself. As a ::after, its left/width percentages
+   always resolved against the FILL's own (volume-dependent, shrinking)
+   box, never the bar's true, stable width — impossible to get right at
+   both ends of the range that way: anchoring via left:100%+translateX
+   (-100%) clipped it off-screen at 0% volume (its whole body pushed left
+   of the bar's true edge), while an earlier attempt at a percentage-based
+   calc() to fix that made it trail further and further behind the fill's
+   actual edge at every value in between (that calc()'s "100%" secretly
+   meant 100% of the fill's own shrunken width, not the bar's). As a
+   sibling positioned directly against the bar's own real width instead,
+   both problems are solved by the same one formula: standard slider-
+   thumb interpolation, 0 at 0% volume (tip's own left edge flush with the
+   bar's true left edge) up to 100%-width at 100% volume (tip's own right
+   edge flush with the bar's true right edge) — always fully on-screen,
+   correctly positioned, at every point in between too. --fill-pct is set
+   on the bar itself (not the fill) by _setVolFillPct() specifically so
+   this sibling can read it. */
+body.simple-fader .track-vol-tip {
+  display: block;
   position: absolute;
-  left: 100%; top: 0; bottom: 0;
-  width: var(--simple-fader-width, 12px); /* hardcoded per direct request (was 4px originally) */
-  transform: translateX(-100%); /* sits entirely to the left of the fill's own right edge, not centered on it — a centered tip would overrun the bar's true edge by half its own width once the fill reaches 100% */
+  left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 12px)));
+  top: 0; bottom: 0;
+  width: var(--simple-fader-width, 12px);
   background: var(--simple-fader-tip-color, var(--top-row-pressed-bg, #555)); /* was a plain #000 default — now the top row's own "secondary" color, the one a button's background turns to when pressed (NOT the glyph color) */
   pointer-events: none;
 }
@@ -1038,7 +1039,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent">
+<body class="simple-fader vol-bg-transparent just-track">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1071,7 +1072,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 02:25:17 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 02:51:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1219,7 +1220,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 02:25:17 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 02:51:45 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1302,7 +1303,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
            setVolSliderColorToggle()/setVolBgTransparent() are kept intact
            for this reason. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+        <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
       </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
@@ -1466,7 +1467,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
           <div id="simpleFaderWidthReadout" style="font-size:0.62rem;font-weight:700;color:#111;">12PX</div>
         </div>
-        <input type="range" id="simpleFaderWidthSlider" min="4" max="16" value="12" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="12" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
@@ -3319,7 +3320,9 @@ function _setVolFillPct(vb, pct) {
   const solid = vb.querySelector('.track-vol-fill-solid');
   if (!solid) return;
   const lit = Math.round(pct * 14);
-  solid.style.width = (lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0) + '%';
+  const fillPct = lit > 0 ? VOL_STEP_BOUNDARIES[lit - 1] * 100 : 0;
+  solid.style.width = fillPct + '%';
+  vb.style.setProperty('--fill-pct', fillPct); // unitless — set on the BAR itself (not the fill) so the tip, now a real sibling of the fill rather than its ::after, can position itself against the bar's own true width via this same value
 }
 function updateVolFillDisplay(tr) {
   const vb = document.getElementById(`vbar-${tr}`);
@@ -8558,6 +8561,19 @@ function buildUI() {
     volBar.appendChild(volScale);
     const volFillSolid = document.createElement('div'); volFillSolid.className = 'track-vol-fill-solid'; // width-based fill, snapped to VOL_STEP_BOUNDARIES's 14 steps — always solid now, the old segmented (notched) alternative and its toggle were removed
     volBar.appendChild(volFillSolid);
+    // SIMPLE FADER tip — a real sibling element of the fill (both direct
+    // children of volBar), not a ::after of the fill itself. It used to
+    // be a ::after, which meant its percentage-based positioning always
+    // resolved against the FILL's own (volume-dependent, shrinking) width
+    // instead of the bar's true, stable width — impossible to get right
+    // at both ends of the range that way (one fix made it clip off-screen
+    // at 0%, a different fix made it trail behind the fill's real edge at
+    // every value in between). As a sibling of the fill instead, its own
+    // left position (in CSS, driven by --fill-pct set alongside the
+    // fill's width below) resolves against the bar's own real width, so
+    // it can be correct at both extremes at once.
+    const volTip = document.createElement('div'); volTip.className = 'track-vol-tip';
+    volBar.appendChild(volTip);
     _setVolFillPct(volBar, volGainToPos(trackVolume[tr]));
     attachVolBarEvents(volBar, tr);
     ctrlRow.appendChild(volBar);
