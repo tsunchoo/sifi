@@ -134,19 +134,6 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
   80%  { color: #ffffff; }
   100% { color: var(--neutral-top, #555); }
 }
-/* Same stops as logo-color-cycle above, as a background-color variant —
-   the RAND BTN ARROW's shape is a mask+background-color, not text, so
-   SPIRIT PULSE (which animates the "+" glyph's own color) needed this to
-   still visibly pulse once that glyph became invisible text in arrow
-   mode. */
-@keyframes logo-color-cycle-bg {
-  0%   { background-color: var(--neutral-top, #555); }
-  20%  { background-color: var(--playhead-color, #f8ff00); }
-  40%  { background-color: var(--highlight2-color, #0078ff); }
-  60%  { background-color: var(--highlight3-color, #adff00); }
-  80%  { background-color: #ffffff; }
-  100% { background-color: var(--neutral-top, #555); }
-}
 /* SONG NAME SCROLL-IN — 4 different entrance styles, one picked at random
    each time the name text changes (see _setSongNameDisplay()), all 0.5s.
    Applied to #nameDisplay's own transform/opacity; the element needs
@@ -374,26 +361,6 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    stays there permanently (not a pulse that reverts) — same trigger
    applies whether it's a single press or entering AUTO mode. */
 #randBtn .glyph { display: inline-block; transform: translateY(-2px); }
-/* RAND BTN GLYPH = ARROW (SETTINGS toggle) — an alternative to the plain
-   "+" text: a bold diagonal arrow pointing into the bottom-right corner,
-   same footprint as the "+" it replaces. Pure CSS (mask-image), not a
-   swapped innerHTML — the "+" text is simply made invisible and this
-   shape drawn over it instead, so it works automatically regardless of
-   which of the many places elsewhere reset this glyph's HTML back to a
-   plain "+" span, without needing to touch every one of them. */
-body.rand-btn-arrow #randBtn .glyph { color: transparent; position: relative; }
-body.rand-btn-arrow #randBtn .glyph::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-color: var(--top-row-text-color, #fff);
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 5 L19 19 M19 19 L19 9 M19 19 L9 19' stroke='black' stroke-width='4.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 5 L19 19 M19 19 L19 9 M19 19 L9 19' stroke='black' stroke-width='4.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-  -webkit-mask-size: contain; mask-size: contain;
-  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-  -webkit-mask-position: center; mask-position: center;
-}
-body.rand-btn-arrow #randBtn.pulsing .glyph::before { animation: logo-color-cycle-bg var(--spirit-pulse-dur, 0.5455s) linear infinite; } /* the background-color equivalent of #randBtn.pulsing .glyph's own animation above, since that one animates color (now invisible text) rather than this shape's background-color */
 /* Same color-cycle treatment the main logo gets while playing (see
    logo-color-cycle above) — applied to the "+" glyph specifically while
    the button is actively held in AUTO mode (.pulsing, added by the
@@ -819,7 +786,8 @@ body.simple-fader .track-vol-tip {
   pointer-events: none;
 }
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(20) !important; } /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
-.track-vol-bar.muted { background: #ccc; }
+.track-vol-bar.muted { background: #ccc; opacity: 0.55; } /* opacity added to match the track name button's own .muted treatment (opacity:0.55) — was missing here, per direct request. opacity on the bar itself dims both the fill and the tip together, since they're both children of it */
+.track-wrap.track-empty .track-vol-bar { opacity: 0.55; } /* same treatment for empty tracks — nothing here dimmed at all before, per direct request */
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
 /* TRACK BUTTON OPACITY (see --track-default-opacity above) — the volume
    bar background and every track button's resting look, EXCEPT the
@@ -1049,6 +1017,17 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 .step-cell.playing::after { background: var(--playhead-color, #f8ff00); opacity: 0.15; }
 .step-cell.on.playing::after   { background: var(--playhead-color, #f8ff00); opacity: var(--note-marker-opacity, 1); }
 .step-cell.soft.playing::after { background: var(--playhead-color, #f8ff00); opacity: calc(var(--note-marker-opacity, 1) * 0.7); }
+/* In circles mode, the playhead darkens the circle marker itself instead
+   of highlighting the whole cell as a square — per direct request. No
+   cell-background tint, and the marker keeps its own track color instead
+   of switching to the playhead's yellow, just darkened. */
+body.note-markers-circle .step-cell.playing { background: transparent; }
+body.note-markers-circle .step-cell.playing::after,
+body.note-markers-circle .step-cell.on.playing::after,
+body.note-markers-circle .step-cell.soft.playing::after {
+  background: var(--track-color, var(--text));
+  filter: brightness(0.55);
+}
 .step-cell.split32::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: 1;
@@ -1058,25 +1037,30 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
   opacity: 0.5;
   top: 0; bottom: 50%; left: 1px; right: 1px;
 }
-/* NOTE MARKERS = CIRCLES (SETTINGS toggle) — legato-tail excluded, since
-   its own half-height positioning above is a distinct visual concept
-   (not a plain note-on marker) that a circular shape would break. Size
-   controlled by --note-marker-circle-inset (SETTINGS slider) — a bigger
-   inset means a smaller circle. */
-body.note-markers-circle .step-cell:not(.legato-tail)::after {
+/* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
+   --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
+   smaller circle. Per direct request, accented notes (.on) get that full
+   base size, regular notes (.soft) are 80% of it, and the legato tail is
+   65% of it — all three centered in the cell regardless of size. Each
+   percentage below is derived algebraically from the base inset so they
+   all stay proportional if that slider is ever adjusted: for a circle at
+   S% of the base diameter, new_inset = (100% - S%)/2 + inset*(S/100). */
+body.note-markers-circle .step-cell.on::after {
   top: var(--note-marker-circle-inset, 15%); bottom: var(--note-marker-circle-inset, 15%); left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
   border-radius: 50%;
 }
-/* Legato tail gets its own smaller circle too — 50% the diameter of the
-   regular note-circle above, centered in the cell, per direct request.
-   Derived from the same --note-marker-circle-inset so it stays
-   proportional if that's ever adjusted: half the diameter means the new
-   inset is 25% + (that inset / 2) on every side. */
+body.note-markers-circle .step-cell.soft::after {
+  top: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  bottom: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  left: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  right: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  border-radius: 50%;
+}
 body.note-markers-circle .step-cell.legato-tail::after {
-  top: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
-  bottom: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
-  left: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
-  right: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
+  top: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
+  bottom: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
+  left: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
+  right: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
   border-radius: 50%;
 }
 
@@ -1168,7 +1152,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:40:06 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 16:01:04 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1316,7 +1300,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:40:06 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 16:01:04 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1481,7 +1465,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS V MUSIC</div>
-          <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
+          <div id="tonalPercBalanceReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
         </div>
         <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
@@ -1494,7 +1478,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">SWING</div>
-          <div id="swingReadout" style="font-size:0.6rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">25ms</div>
+          <div id="swingReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">25ms</div>
         </div>
         <input type="range" id="swingBar" min="0" max="100" value="62" class="master-vol-slider" style="width:100%;">
       </div>
@@ -1504,7 +1488,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
-          <div id="eightBitMixReadout" style="font-size:0.62rem;font-weight:700;color:#111;">10%</div>
+          <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10%</div>
         </div>
         <input type="range" id="eightBitMixSlider" min="0" max="100" value="10" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
@@ -1526,27 +1510,22 @@ body.note-markers-circle .step-cell.legato-tail::after {
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="range" id="devOffsetStepSlider" min="0" max="3" step="1" value="0" oninput="setDevOffsetStepSize(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="devOffsetStepReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
+          <span id="devOffsetStepReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO RANDOM PERIOD</div>
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="range" id="autoRandPeriodSlider" min="0" max="3" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="autoRandPeriodReadout" style="font-size:0.62rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
+          <span id="autoRandPeriodReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
         </div>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="swapSpoolsToggle" onchange="setSwapSpools(this.checked)" style="width:14px;height:14px;cursor:pointer;">SWAP TAPE SPOOLS
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="altTapeSpoolsToggle" onchange="setAltTapeSpools(this.checked)" style="width:14px;height:14px;cursor:pointer;">ALT TAPE SPOOLS
-      </label>
+      <!-- SWAP TAPE SPOOLS, ALT TAPE SPOOLS, and RAND OFFSET all removed
+           from the UI per direct request. setSwapSpools()/
+           setAltTapeSpools()/setDevRandOffset() are all kept intact in
+           case this needs re-enabling later. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL = +
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="devRandOffset" onchange="setDevRandOffset(this.checked)" style="width:14px;height:14px;cursor:pointer;">RAND OFFSET
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloIncludesBeatToggle" checked onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO + BEAT
@@ -1571,13 +1550,10 @@ body.note-markers-circle .step-cell.legato-tail::after {
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="randBtnArrowToggle" onchange="setRandBtnArrow(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ARROW
-      </label>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
-          <div id="noteMarkerCircleSizeReadout" style="font-size:0.62rem;font-weight:700;color:#111;">50%</div>
+          <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
         </div>
         <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="50" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
@@ -15600,7 +15576,6 @@ function setDevNotesGrayscale(on) {
   if (otherCb) otherCb.checked = on;
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
-function setRandBtnArrow(on) { document.body.classList.toggle('rand-btn-arrow', !!on); }
 function setNoteMarkerCircleSize(v) {
   // v: 0-100 slider position — higher v = bigger circle, so the inset
   // (which shrinks the circle as it grows) is computed as the inverse.
