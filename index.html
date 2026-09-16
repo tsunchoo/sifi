@@ -968,12 +968,15 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
 .seq-wrap { width: 100%; max-width: 960px; margin-top: 4px; margin-bottom: 0; display: flex; flex-direction: column; gap: clamp(4px, 2vw, 10px); }
 .track-wrap { display: flex; flex-direction: column; gap: 4px; }
 /* Empty tracks (no notes at all) sort to the bottom via the order style
-   _updateEmptyTrackVisuals() sets in JS, and hide everything except the
-   name button — visibility:hidden rather than display:none, so the row
-   doesn't collapse and cause the rest of the layout to jump every time a
-   track empties or fills back in. */
-.track-wrap.track-empty .track-ctrl-row > *:not(.track-name-btn) { visibility: hidden; }
-.track-wrap.track-empty .track-row { visibility: hidden; }
+   _updateEmptyTrackVisuals() sets in JS. They used to also hide
+   everything except the name button (visibility:hidden) — removed per
+   direct request: that hiding only ever applied in some code paths that
+   toggled .track-empty and not others, so empty tracks would
+   inconsistently show either just the name button or the full row with
+   no content depending on how the pattern was picked. Always showing the
+   full row (just with no notes in the grid) is the only correct
+   behavior now, so the hiding rules are gone rather than fixed to be
+   more consistent. */
 .track-row {
   display: flex; align-items: stretch;
 }
@@ -1062,6 +1065,18 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
    inset means a smaller circle. */
 body.note-markers-circle .step-cell:not(.legato-tail)::after {
   top: var(--note-marker-circle-inset, 15%); bottom: var(--note-marker-circle-inset, 15%); left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
+  border-radius: 50%;
+}
+/* Legato tail gets its own smaller circle too — 50% the diameter of the
+   regular note-circle above, centered in the cell, per direct request.
+   Derived from the same --note-marker-circle-inset so it stays
+   proportional if that's ever adjusted: half the diameter means the new
+   inset is 25% + (that inset / 2) on every side. */
+body.note-markers-circle .step-cell.legato-tail::after {
+  top: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
+  bottom: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
+  left: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
+  right: calc(25% + var(--note-marker-circle-inset, 15%) / 2);
   border-radius: 50%;
 }
 
@@ -1153,7 +1168,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:20:59 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:40:06 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1301,7 +1316,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:20:59 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:40:06 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -8641,7 +8656,7 @@ function buildUI() {
     // Name button (click=mute, hold=sound picker) — now first in the row
     const nameBtn = document.createElement('button'); nameBtn.className = 'track-name-btn'; nameBtn.id = `tbtn-${tr}`;
     nameBtn.dataset.tr = tr;
-    nameBtn.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'EMPTY';
+    nameBtn.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'Add Inst';
     setTrackNameColor(tr, trackInstruments[tr]);
     nameBtn.classList.toggle('muted', trackMuted[tr]);
     ctrlRow.appendChild(nameBtn);
@@ -11610,7 +11625,7 @@ function fullClear() {
     }
     const tb = document.getElementById(`tbtn-${tr}`);
     _trackInstrumentTouched[tr] = false; // back to pristine, matching the fresh grid[tr].fill(0) above — same reasoning as fullReset()
-    if (tb) { tb.textContent = 'EMPTY'; tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
+    if (tb) { tb.textContent = 'Add Inst'; tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.remove('sweep-on'); }
@@ -13297,7 +13312,7 @@ function restoreState(snap, opts) {
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
     const tb=document.getElementById(`tbtn-${tr}`);
     if(tb) {
-      tb.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1)) : 'EMPTY';
+      tb.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1)) : 'Add Inst';
       tb.classList.toggle('muted', trackMuted[tr]);
       setTrackNameColor(tr, trackInstruments[tr]);
     }
