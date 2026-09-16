@@ -522,6 +522,13 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
   height: clamp(28px, 8vw, 32px);
   touch-action: none; /* a touch landing in the gap between buttons (missing one slightly) used to fall through to the page's own pan-y scroll — on iOS that overscroll could trigger a pull-to-refresh reload, silently losing the current pattern. Blocking it at the whole-row level, not just per-button, closes that gap. */
 }
+/* TRACK ROW BG (COLOR MENU toggle + darkness slider) — the app's own main
+   background color, darkened slightly, applied to just this upper row
+   (the one carrying the volume slider and the other track buttons), not
+   the step-sequencer grid below it. Off by default. */
+body.track-row-bg .track-ctrl-row {
+  background: color-mix(in srgb, var(--bg, #f5f0e8) calc(100% - var(--track-row-bg-darken, 12%)), black);
+}
 /* Track name button and SOLO button — first/last in this row — reach the
    true screen edge the same way as the transport row's + and record
    buttons above; this row has no max-width of its own, but it inherits
@@ -1078,7 +1085,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:31:43 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 04:36:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1226,7 +1233,7 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:31:43 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 04:36:53 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1244,6 +1251,19 @@ body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important
     <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+      <input type="checkbox" id="faderTipTopRowColorToggle" onchange="setFaderTipTopRowColor(this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = TOP ROW COLOR
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+      <input type="checkbox" id="trackRowBgToggle" onchange="setTrackRowBg(this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK ROW BG
+    </label>
+    <div style="display:flex;flex-direction:column;gap:15px;">
+      <div style="display:flex;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
+        <div id="trackRowBgDarkenReadout" style="font-size:0.62rem;font-weight:700;color:#111;">12%</div>
+      </div>
+      <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="12" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -3945,7 +3965,7 @@ function fireStepAudio(step, t) {
       if (_beatType === 'reggae' && (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14)) {
         playSynthHihat(false, t, -1);
       } else if (_beatType === 'breaks') {
-        if (bstep === 6) fireBeatKick(t);   // 2&
+        if (bstep === 6) { fireBeatKick(t); playSnare(t); } // 2& kick, plus an added snare 2 sixteenths after the main snare on beat 2, per direct request
         if (bstep === 10) playSnare(t);     // 3&
       } else if (_beatType === 'bounce') {
         if (bstep === 6 || bstep === 10) fireBeatKick(t); // 2&, 3&
@@ -10003,6 +10023,14 @@ function setVolSliderColorToggle(on) {
 // controls can affect the same thing.
 function setFaderTipTopRowColor(on) {
   document.documentElement.style.setProperty('--simple-fader-tip-color', on ? 'var(--neutral-top, #555)' : '#000');
+}
+// TRACK ROW BG (COLOR MENU toggle + darkness slider) — see the CSS rule
+// on .track-ctrl-row for what this actually does.
+function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
+function setTrackRowBgDarken(v) {
+  document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
+  const readout = document.getElementById('trackRowBgDarkenReadout');
+  if (readout) readout.textContent = v + '%';
 }
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
