@@ -147,6 +147,19 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
   80%  { background-color: #ffffff; }
   100% { background-color: var(--neutral-top, #555); }
 }
+/* SONG NAME SCROLL-IN — 4 different entrance styles, one picked at random
+   each time the name text changes (see _setSongNameDisplay()), all 0.5s.
+   Applied to #nameDisplay's own transform/opacity; the element needs
+   display:inline-block for a transform to actually apply to inline text. */
+@keyframes song-name-scroll-left  { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes song-name-scroll-right { from { transform: translateX(100%);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes song-name-scroll-down  { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+#nameDisplay { display: inline-block; }
+#nameDisplay.song-name-scroll-left  { animation: song-name-scroll-left  0.5s ease-out; }
+#nameDisplay.song-name-scroll-right { animation: song-name-scroll-right 0.5s ease-out; }
+#nameDisplay.song-name-scroll-up    { animation: song-name-scroll-up    0.5s ease-out; }
+#nameDisplay.song-name-scroll-down  { animation: song-name-scroll-down  0.5s ease-out; }
 @keyframes logo-wobble {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-0.5px); }
@@ -761,7 +774,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
 .track-vol-fill-solid {
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
-  filter: saturate(var(--vol-slider-saturation, 1));
+  filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
 .track-vol-tip { display: none; position: absolute; pointer-events: none; } /* base rule so this never disrupts .track-vol-bar's normal-flow layout — display:none unless SIMPLE FADER's own rule below turns it on */
@@ -1140,7 +1153,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 06:03:37 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 06:16:06 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1288,7 +1301,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 06:03:37 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 06:16:06 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3674,7 +3687,7 @@ function scheduler() {
         if (bb) bb.classList.toggle('active', beatPlaying);
         updateBeatPulse();
         // Restore species name and bar color
-        if (snap.speciesName) { _currentSpecies = snap.speciesName; const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = _currentSpecies; }
+        if (snap.speciesName) { _currentSpecies = snap.speciesName; _setSongNameDisplay(_currentSpecies); }
         if (snap.barColor) {
           _currentBarColor = snap.barColor;
           const barEl = document.querySelector('#nameDisplay')?.parentElement;
@@ -10088,13 +10101,14 @@ function setTrackTextPulseColor(n) {
   const map = { 1: 'var(--playhead-color, #f8ff00)', 2: 'var(--highlight2-color, #0078ff)', 3: 'var(--highlight3-color, #adff00)' };
   document.documentElement.style.setProperty('--track-text-pulse-color', map[n] || map[3]);
 }
-window._volSliderColorMode = 'auto';
+window._volSliderColorMode = 2; // hardcoded to mode 2 (--highlight2-color) per direct request — was 'auto'
 function setVolSliderColor(n) {
   window._volSliderColorMode = n;
   if (n === 'auto') { _autoPickVolSliderColor(); return; }
   const map = { 1: 'var(--playhead-color, #f8ff00)', 2: 'var(--highlight2-color, #0078ff)', 3: 'var(--highlight3-color, #adff00)' };
   document.documentElement.style.setProperty('--vol-slider-color', map[n] || map[3]);
 }
+setVolSliderColor(2); // applied immediately at load, matching the hardcoded default above
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
@@ -11043,6 +11057,20 @@ function getSpeciesName() {
   return Math.random() < 0.5 ? `${celestialCap} ${surname}` : `${surname} ${celestialCap}`;
 }
 let _currentSpecies = getSpeciesName();
+// SONG NAME SCROLL-IN — sets #nameDisplay's text and triggers one of the
+// 4 scroll-in styles at random, restarting cleanly even if the previous
+// animation is still mid-flight (remove -> reflow -> re-add, same trick
+// _pressPulse uses elsewhere for the same reason).
+const _SONG_NAME_SCROLL_STYLES = ['song-name-scroll-left', 'song-name-scroll-right', 'song-name-scroll-up', 'song-name-scroll-down'];
+function _setSongNameDisplay(text) {
+  const nd = document.getElementById('nameDisplay');
+  if (!nd) return;
+  nd.textContent = text || '';
+  _SONG_NAME_SCROLL_STYLES.forEach(c => nd.classList.remove(c));
+  void nd.offsetWidth; // force reflow so the class below is treated as a fresh addition, restarting the animation
+  const style = _SONG_NAME_SCROLL_STYLES[Math.floor(Math.random() * _SONG_NAME_SCROLL_STYLES.length)];
+  nd.classList.add(style);
+}
 function getKeyName() {
   if (!globalScaleRoot) return null;
   const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -12842,7 +12870,7 @@ function randAll(mode, opts) {
   // randomizes colors, same as every other role, rather than on every
   // single RAND press regardless of WILD.
   // Update key/scale display
-  const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = (_currentSpecies || '');
+  _setSongNameDisplay(_currentSpecies || '');
   const kd = document.getElementById('keyDisplayValue');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks. Every instrument now keeps at least a
@@ -13301,7 +13329,7 @@ function restoreState(snap, opts) {
   if (snap.masterVol !== undefined) setMasterVol(snap.masterVol);
   if (snap.speciesName) {
     _currentSpecies = snap.speciesName;
-    const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = _currentSpecies;
+    _setSongNameDisplay(_currentSpecies);
   }
   if (snap.barColor) {
     applyBarColor(snap.barColor);
@@ -14344,7 +14372,7 @@ let _settingsOpenedAt = 0;
 // nothing else needs to be told separately; they all read it fresh.
 function _updateSongNameFromSettings(v) {
   _currentSpecies = v;
-  const nd = document.getElementById('nameDisplay'); if (nd) nd.textContent = _currentSpecies;
+  _setSongNameDisplay(_currentSpecies);
   markModified();
 }
 function showSettings() {
