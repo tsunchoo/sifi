@@ -988,7 +988,7 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   opacity: 0.2;
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
-  top: 0; bottom: 0; left: 1px; right: 1px;
+  left: 1px; right: 1px; top: 50%; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down, per direct request */
 }
 /* Same size hierarchy as the circle markers below, applied to the
    rectangular markers too, per direct request: accented (.on) stays the
@@ -1000,10 +1000,17 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
    still match the base selector otherwise (they only override background/
    opacity, not position, unless given their own rule below). */
 .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  top: 5%; bottom: 5%; left: 5%; right: 5%; /* 90% size — 10% smaller than accent */
+  left: 5%; right: 5%; /* 90% size — 10% smaller than accent */
 }
 .step-cell.soft::after {
-  top: 10%; bottom: 10%; left: 10%; right: 10%; /* 80% size */
+  left: 10%; right: 10%; /* 80% size */
+}
+.step-cell.split32::after {
+  /* explicit revert back to the original full-width rectangle (not
+     squared) — this compound marker represents two 32nd notes side by
+     side, so it isn't meant to be a single square the way the others
+     are; the striped background further down still applies on top */
+  left: 1px; right: 1px; top: 0; bottom: 0; height: auto; aspect-ratio: unset; transform: none;
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — reshapes this same empty-
    cell marker (color/opacity above untouched, so it still matches the
@@ -1015,7 +1022,7 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
    derivation as the other size variants: for S% of the base diameter,
    new_inset = (100-S)/2 + inset*(S/100), here S=90. */
 body.note-markers-circle .step-cell::after {
-  top: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9); bottom: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9); left: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9);
+  left: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9);
   border-radius: 50%;
 }
 .step-cell.soft::after { background: var(--track-color, var(--text)); opacity: calc(var(--note-marker-opacity, 1) * 0.4); }
@@ -1074,34 +1081,39 @@ body.note-markers-circle .step-cell.soft.playing::after {
    all stay proportional if that slider is ever adjusted: for a circle at
    S% of the base diameter, new_inset = (100% - S%)/2 + inset*(S/100). */
 body.note-markers-circle .step-cell.on::after {
-  top: var(--note-marker-circle-inset, 15%); bottom: var(--note-marker-circle-inset, 15%); left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
+  left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height matches width via aspect-ratio now — same reasoning as the rectangle-mode base rule above: equal top/bottom+left/right insets only make a true circle if the cell itself happens to be square, per direct request */
   border-radius: 50%;
 }
 body.note-markers-circle .step-cell.soft::after {
-  top: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
-  bottom: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
   left: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
   right: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
 body.note-markers-circle .step-cell.legato-tail::after {
-  top: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
-  bottom: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
   left: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
   right: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
 /* Split32 (32nd notes) — two mini-circles side by side, each half the
    base circle's diameter, per direct request. Uses two radial-gradients
    (ellipse, since only ellipse supports percentage radii in CSS — with
-   equal x/y radii it reads as a circle) rather than border-radius, since
-   a single pseudo-element can't otherwise draw two separate shapes.
-   top/bottom/left/right reset to the full cell so the gradients can
-   position the pair within it; border-radius reset since it no longer
-   applies to a gradient-drawn shape. Radius derived the same way the
-   legato tail's size is — half the base diameter's own radius. */
+   equal x/y radii it reads as a circle, but only if the box they're
+   drawn into is itself square, which is why this box now also gets the
+   same aspect-ratio treatment as everything else here) rather than
+   border-radius, since a single pseudo-element can't otherwise draw two
+   separate shapes. Width unchanged (full cell) — height now matches it
+   via aspect-ratio, vertically centered, instead of the old top:0;
+   bottom:0 (which stretched to the cell's own, usually non-square,
+   height and skewed the pair into ellipses). border-radius reset since
+   it no longer applies to a gradient-drawn shape. Radius derived the
+   same way the legato tail's size is — half the base diameter's own
+   radius; unaffected by this box-shape fix since it was already relative
+   to this same box's own width. */
 body.note-markers-circle .step-cell.split32::after {
-  top: 0; bottom: 0; left: 0; right: 0;
+  left: 0; right: 0; top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 0;
   background:
     radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 15%) / 2) calc(25% - var(--note-marker-circle-inset, 15%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%),
@@ -1197,7 +1209,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:12:39 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:15:15 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1345,7 +1357,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:12:39 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:15:15 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
