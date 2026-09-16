@@ -1209,7 +1209,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:22:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:37:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1357,7 +1357,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:22:28 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:37:03 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1448,7 +1448,11 @@ body.note-markers-circle .step-cell.split32::after {
            reason. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
-      </label>      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="volSliderNeonToggle" onchange="setVolSliderNeon(this.checked)" style="width:14px;height:14px;cursor:pointer;">NEON
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
       </label>
 
@@ -4163,8 +4167,25 @@ function updatePlayhead(step) {
       // wasn't actually tied to this track's own notes at all).
       const vb = document.getElementById(`vbar-${tr}`);
       if (vb) {
-        vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
-        setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
+        // NEON (SETTINGS toggle) — flashes to a brighter, almost-white
+        // version of the same #adff00 green instead of a random jump
+        // color, so the pulse reads as "this same green getting brighter"
+        // rather than switching to an unrelated hue.
+        const isNeon = document.body.classList.contains('vol-slider-neon');
+        const flashColor = isNeon
+          ? 'color-mix(in srgb, #adff00 50%, white)'
+          : _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)];
+        vb.style.setProperty('--vol-slider-color', flashColor);
+        // The fill has its own unconditional filter: saturate(20) — left
+        // alone, that would re-saturate this near-white blend right back
+        // toward solid green, undoing the point of it. Drop it to 1 just
+        // for the flash's duration.
+        const fillEl = isNeon ? vb.querySelector('.track-vol-fill-solid') : null;
+        if (fillEl) fillEl.style.setProperty('filter', 'saturate(1)', 'important');
+        setTimeout(() => {
+          vb.style.removeProperty('--vol-slider-color');
+          if (fillEl) fillEl.style.removeProperty('filter');
+        }, 80);
       }
     }
   }
@@ -4435,7 +4456,7 @@ function playUnderpass(freq, durSec, isAccent, time, tr, _isSecondHit) {
   const dest = getSynthConnectNode(tr);
   const decay = isAccent ? 0.55 : 0.4;
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1; // -2.5dB when BLAST specifically is on this track, per direct request
-  const peakVol = (isAccent ? 0.5 : 0.36) * blastAtten;
+  const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten; // -1.5dB more, per direct request (was 0.5/0.36)
 
   // 1. Knock transient.
   const knockDur = 0.012;
@@ -8692,7 +8713,7 @@ function buildUI() {
     // Name button (click=mute, hold=sound picker) — now first in the row
     const nameBtn = document.createElement('button'); nameBtn.className = 'track-name-btn'; nameBtn.id = `tbtn-${tr}`;
     nameBtn.dataset.tr = tr;
-    nameBtn.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'Add Inst';
+    nameBtn.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'EMPTY';
     setTrackNameColor(tr, trackInstruments[tr]);
     nameBtn.classList.toggle('muted', trackMuted[tr]);
     ctrlRow.appendChild(nameBtn);
@@ -9273,7 +9294,7 @@ const LEGATO_CAP_STEPS = 6; // the single hard limit on legato phrase length, sh
 // How long a note at ownerGs would sustain if it just ran until the next
 // note (or the end of the bar) — the ceiling a trim/extend drag can't pass.
 function _legatoMaxLen(tr, ownerGs) {
-  const CAP = LEGATO_CAP_STEPS; // shared hard limit
+  const CAP = (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS; // STRINGS+ gets the same NUM_STEPS exception the playback scheduler and updateLegatoVisuals() both have — was flat at LEGATO_CAP_STEPS here too, so a manual drag on this instrument couldn't reach the length it's actually designed to sustain
   for (let ld = 1; ld < NUM_STEPS; ld++) {
     if (grid[tr][(ownerGs + ld) % NUM_STEPS] > 0) return Math.min(ld, CAP);
   }
@@ -9321,7 +9342,7 @@ function _applyDragStep(tr, s, cellEl, erase, isFirst) {
     grid[tr][gs] = isFirst ? 1 : 0;
     const startGs = (dragStartStep - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
-    const newLegatoLen = Math.min(dragWrittenSteps.size, LEGATO_CAP_STEPS);
+    const newLegatoLen = Math.min(dragWrittenSteps.size, (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS); // STRINGS+ exception, same reasoning as _legatoMaxLen() and updateLegatoVisuals()
     trackLegatoLen[tr][startGs] = newLegatoLen;
     // Once the drag actually becomes a legato phrase (more than one step),
     // the note is accented by default — a plain single-step tap stays
@@ -10156,6 +10177,16 @@ function setVolSliderColor(n) {
   document.documentElement.style.setProperty('--vol-slider-color', map[n] || map[3]);
 }
 setVolSliderColor(2); // applied immediately at load, matching the hardcoded default above
+// NEON (SETTINGS toggle) — overrides the volume slider's resting color to
+// a fixed #adff00 green (the note-driven pulse itself, see updatePlayhead,
+// separately flashes to a brighter almost-white version of this same
+// green while this is on, instead of a random jump color). Off reverts to
+// the hardcoded mode 2 default above.
+function setVolSliderNeon(on) {
+  document.body.classList.toggle('vol-slider-neon', !!on);
+  if (on) document.documentElement.style.setProperty('--vol-slider-color', '#adff00');
+  else setVolSliderColor(2);
+}
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
@@ -11664,7 +11695,7 @@ function fullClear() {
     }
     const tb = document.getElementById(`tbtn-${tr}`);
     _trackInstrumentTouched[tr] = false; // back to pristine, matching the fresh grid[tr].fill(0) above — same reasoning as fullReset()
-    if (tb) { tb.textContent = 'Add Inst'; tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
+    if (tb) { tb.textContent = 'EMPTY'; tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.remove('sweep-on'); }
@@ -13351,7 +13382,7 @@ function restoreState(snap, opts) {
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
     const tb=document.getElementById(`tbtn-${tr}`);
     if(tb) {
-      tb.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1)) : 'Add Inst';
+      tb.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1)) : 'EMPTY';
       tb.classList.toggle('muted', trackMuted[tr]);
       setTrackNameColor(tr, trackInstruments[tr]);
     }
@@ -13464,7 +13495,7 @@ function updateLegatoVisuals() {
       if (trackLegatoLen[tr] && trackLegatoLen[tr][gs]) {
         span = trackLegatoLen[tr][gs];
       }
-      span = Math.min(span, LEGATO_CAP_STEPS); // never draw longer than playback allows
+      span = Math.min(span, (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS); // never draw longer than playback allows — STRINGS+ (dronePlus) gets the same NUM_STEPS exception the playback scheduler already has (see _legatoCap in the scheduler), since it's always fully contiguous by design; this display cap was still flat at LEGATO_CAP_STEPS, so a STRINGS+ note sustaining past step 6 had its tail visually truncated even though it kept playing correctly
       for (let k = 1; k < span; k++) tailFlags[(gs + k) % NUM_STEPS] = true;
     }
     for (let gs = 0; gs < NUM_STEPS; gs++) {
