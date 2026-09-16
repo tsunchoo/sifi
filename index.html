@@ -775,7 +775,6 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
   filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
-  animation: vol-slider-color-cycle 1s linear infinite; /* same animation the logo gets on load, applied here unconditionally by default too, per direct request — the existing body.seq-playing rule further down still layers its own saturate(20) !important on top of this during playback specifically */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
 .track-vol-tip { display: none; position: absolute; pointer-events: none; } /* base rule so this never disrupts .track-vol-bar's normal-flow layout — display:none unless SIMPLE FADER's own rule below turns it on */
@@ -819,7 +818,7 @@ body.simple-fader .track-vol-tip {
   background: var(--simple-fader-tip-color, var(--top-row-pressed-bg, #555)); /* was a plain #000 default — now the top row's own "secondary" color, the one a button's background turns to when pressed (NOT the glyph color) */
   pointer-events: none;
 }
-body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static) .track-vol-bar:not(.muted) .track-vol-fill-solid { animation: vol-slider-color-cycle 1s linear infinite; filter: saturate(20) !important; } /* restored the logo-mode scoping this used to have — "smooth" is the one specific logo mode meant to also make the volume slider pulse in color, same idea as the track name buttons' own playing-state flash; a previous edit removed this scoping entirely thinking the coupling was a bug, but it was actually the intended design. !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) — forces full saturation during the pulse regardless of that (or any other) setting */
+body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(20) !important; } /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
 .track-vol-bar.muted { background: #ccc; }
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
 /* TRACK BUTTON OPACITY (see --track-default-opacity above) — the volume
@@ -1154,7 +1153,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:08:09 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 15:20:59 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1302,7 +1301,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:08:09 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 15:20:59 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4104,21 +4103,17 @@ function updatePlayhead(step) {
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
       tbtn.classList.add('playing');
       setTimeout(() => tbtn.classList.remove('playing'), 80);
-      // VOLUME SLIDER pulse — linked to the exact same LOGO NOTE JUMP
-      // toggle the logo itself uses, same trigger (a note actually
-      // sounding on this track) and the logo's own candidate colors
-      // (_LOGO_JUMP_VARS). Jump mode: a random one of those colors for
-      // one 80ms flash, then back to normal — same shape as the logo's
-      // own per-note jump. Smooth mode: no JS flash at all here — the
-      // CSS vol-slider-color-cycle animation (gated the same way the
-      // logo's own smooth cycle is, :not(.logo-note-jump-mode)) handles
-      // it continuously instead.
-      if (window._logoNoteJumpEnabled) {
-        const vb = document.getElementById(`vbar-${tr}`);
-        if (vb) {
-          vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
-          setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
-        }
+      // VOLUME SLIDER pulse — driven by this track's own notes, not a
+      // generic time loop: fires every time a note actually sounds on
+      // this specific track, regardless of which logo color mode is
+      // currently selected (was gated to jump mode only, with a separate
+      // CSS vol-slider-color-cycle time-loop animation covering smooth
+      // mode instead — that CSS animation has been removed, since it
+      // wasn't actually tied to this track's own notes at all).
+      const vb = document.getElementById(`vbar-${tr}`);
+      if (vb) {
+        vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
+        setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
       }
     }
   }
