@@ -134,6 +134,19 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
   80%  { color: #ffffff; }
   100% { color: var(--neutral-top, #555); }
 }
+/* Same stops as logo-color-cycle above, as a background-color variant —
+   the RAND BTN ARROW's shape is a mask+background-color, not text, so
+   SPIRIT PULSE (which animates the "+" glyph's own color) needed this to
+   still visibly pulse once that glyph became invisible text in arrow
+   mode. */
+@keyframes logo-color-cycle-bg {
+  0%   { background-color: var(--neutral-top, #555); }
+  20%  { background-color: var(--playhead-color, #f8ff00); }
+  40%  { background-color: var(--highlight2-color, #0078ff); }
+  60%  { background-color: var(--highlight3-color, #adff00); }
+  80%  { background-color: #ffffff; }
+  100% { background-color: var(--neutral-top, #555); }
+}
 @keyframes logo-wobble {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-0.5px); }
@@ -348,6 +361,26 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    stays there permanently (not a pulse that reverts) — same trigger
    applies whether it's a single press or entering AUTO mode. */
 #randBtn .glyph { display: inline-block; transform: translateY(-2px); }
+/* RAND BTN GLYPH = ARROW (SETTINGS toggle) — an alternative to the plain
+   "+" text: a bold diagonal arrow pointing into the bottom-right corner,
+   same footprint as the "+" it replaces. Pure CSS (mask-image), not a
+   swapped innerHTML — the "+" text is simply made invisible and this
+   shape drawn over it instead, so it works automatically regardless of
+   which of the many places elsewhere reset this glyph's HTML back to a
+   plain "+" span, without needing to touch every one of them. */
+body.rand-btn-arrow #randBtn .glyph { color: transparent; position: relative; }
+body.rand-btn-arrow #randBtn .glyph::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--top-row-text-color, #fff);
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 5 L19 19 M19 19 L19 9 M19 19 L9 19' stroke='black' stroke-width='4.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M5 5 L19 19 M19 19 L19 9 M19 19 L9 19' stroke='black' stroke-width='4.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+}
+body.rand-btn-arrow #randBtn.pulsing .glyph::before { animation: logo-color-cycle-bg var(--spirit-pulse-dur, 0.5455s) linear infinite; } /* the background-color equivalent of #randBtn.pulsing .glyph's own animation above, since that one animates color (now invisible text) rather than this shape's background-color */
 /* Same color-cycle treatment the main logo gets while playing (see
    logo-color-cycle above) — applied to the "+" glyph specifically while
    the button is actively held in AUTO mode (.pulsing, added by the
@@ -1107,7 +1140,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 05:56:35 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 06:03:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1255,7 +1288,7 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 05:56:35 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 06:03:37 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1509,6 +1542,9 @@ body.note-markers-circle .step-cell:not(.legato-tail)::after {
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="randBtnArrowToggle" onchange="setRandBtnArrow(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ARROW
       </label>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -15525,6 +15561,7 @@ function setDevNotesGrayscale(on) {
   if (otherCb) otherCb.checked = on;
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
+function setRandBtnArrow(on) { document.body.classList.toggle('rand-btn-arrow', !!on); }
 function setNoteMarkerCircleSize(v) {
   // v: 0-100 slider position — higher v = bigger circle, so the inset
   // (which shrinks the circle as it grows) is computed as the inverse.
