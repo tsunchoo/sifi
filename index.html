@@ -786,6 +786,7 @@ body.simple-fader .track-vol-tip {
   pointer-events: none;
 }
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(20) !important; } /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
+body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(1) !important; } /* overrides the saturate(20) rule above for neon mode specifically — boosting saturation on the dark half of this fixed two-color scheme washes out the exact bright/dark contrast the mode depends on. Matches that other rule's own selector structure (plus vol-slider-neon) specifically so this has equal-or-greater specificity and actually wins — a plainer, shorter selector here previously had fewer classes than that rule and silently lost every time */
 .track-vol-bar.muted { background: #ccc; opacity: 0.35; } /* opacity added to match the track name button's own .muted treatment (opacity:0.55), then taken down another 10% twice per direct request (was 0.45, 0.55 before that). opacity on the bar itself dims both the fill and the tip together, since they're both children of it */
 .track-wrap.track-empty .track-vol-bar { opacity: 0.35; } /* same treatment for empty tracks — taken down another 10% twice per direct request (was 0.45, 0.55 before that) */
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
@@ -1213,7 +1214,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 02:37:15 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 02:48:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1361,7 +1362,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 02:37:15 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 02:48:28 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4193,19 +4194,21 @@ function updatePlayhead(step) {
         // is never just absent.
         const isNeon = document.body.classList.contains('vol-slider-neon');
         if (isNeon) {
-          const fillEl = vb.querySelector('.track-vol-fill-solid');
-          if (fillEl) {
-            const hasSoftNotes = grid[tr].includes(1);
-            let bright;
-            if (hasSoftNotes) {
-              bright = grid[tr][gs] === 2;
-            } else {
-              window._neonAltFlag = window._neonAltFlag || {};
-              window._neonAltFlag[tr] = !window._neonAltFlag[tr];
-              bright = window._neonAltFlag[tr];
-            }
-            fillEl.style.backgroundColor = bright ? '#adff00' : 'color-mix(in srgb, #adff00 35%, black)';
+          const hasSoftNotes = grid[tr].includes(1);
+          let bright;
+          if (hasSoftNotes) {
+            bright = grid[tr][gs] === 2;
+          } else {
+            window._neonAltFlag = window._neonAltFlag || {};
+            window._neonAltFlag[tr] = !window._neonAltFlag[tr];
+            bright = window._neonAltFlag[tr];
           }
+          // Setting --vol-slider-color on vb (the bar) rather than
+          // backgroundColor directly on the fill — this is the same
+          // mechanism the jump-color branch below already uses and is
+          // proven to actually reach the screen; setting the fill's own
+          // inline background-color directly did not reliably take.
+          vb.style.setProperty('--vol-slider-color', bright ? '#adff00' : 'color-mix(in srgb, #adff00 35%, black)');
         } else {
           vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
           setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
