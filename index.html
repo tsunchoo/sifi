@@ -391,15 +391,20 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    over it instead, so it works automatically regardless of which of the
    many places elsewhere reset this glyph's HTML back to a plain "+"
    span, without needing to touch every one of them (same approach used
-   for the arrow alternative previously, since removed). */
-body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; }
+   for the arrow alternative previously, since removed). Thicker/shorter
+   spokes and a bigger center gap now, per direct request (stroke-width
+   2.5→3.4, spoke reach 22.5%→9.2% from center, gap 15.2%→4.8%). Also
+   resets the glyph's own translateY(-2px) — tuned for the "+" text's own
+   baseline, not this shape, which was throwing off centering in the
+   button. */
+body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: none; }
 body.rand-btn-asterisk #randBtn .glyph::before {
   content: '';
   position: absolute;
   inset: 0;
   background-color: var(--top-row-text-color, #fff);
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M15.20 12.00L22.50 12.00 M13.60 14.77L17.25 21.09 M10.40 14.77L6.75 21.09 M8.80 12.00L1.50 12.00 M10.40 9.23L6.75 2.91 M13.60 9.23L17.25 2.91' stroke='black' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M15.20 12.00L22.50 12.00 M13.60 14.77L17.25 21.09 M10.40 14.77L6.75 21.09 M8.80 12.00L1.50 12.00 M10.40 9.23L6.75 2.91 M13.60 9.23L17.25 2.91' stroke='black' stroke-width='2.5' fill='none' stroke-linecap='round'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.80 12.00L21.20 12.00 M14.40 16.16L16.60 19.97 M9.60 16.16L7.40 19.97 M7.20 12.00L2.80 12.00 M9.60 7.84L7.40 4.03 M14.40 7.84L16.60 4.03' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='round'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.80 12.00L21.20 12.00 M14.40 16.16L16.60 19.97 M9.60 16.16L7.40 19.97 M7.20 12.00L2.80 12.00 M9.60 7.84L7.40 4.03 M14.40 7.84L16.60 4.03' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='round'/></svg>");
   -webkit-mask-size: contain; mask-size: contain;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
@@ -671,6 +676,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
+.track-ctrl-icon-btn.lock-btn { opacity: var(--lock-btn-opacity, 1); } /* SETTINGS slider */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
    color swap with no animation at all. Two separate keyframes, not one
@@ -837,7 +843,7 @@ body.simple-fader .track-vol-tip {
   position: absolute;
   left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 12px)));
   top: 0; bottom: 0;
-  width: var(--simple-fader-width, 11px); /* hardcoded per direct request (was 12px, briefly a slider before that) — --simple-fader-width itself is never set anymore, so this fallback is the effective value */
+  width: var(--simple-fader-width, 10px); /* hardcoded per direct request (was 11px, 12px before that, briefly a slider before that too) — --simple-fader-width itself is never set anymore, so this fallback is the effective value */
   background: #000; /* hardcoded, per direct request — this was the original "almost black" color the user was actually asking to keep as the permanent tip color, not a placeholder to be replaced by a dynamic default */
   pointer-events: none;
 }
@@ -1083,7 +1089,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
    derivation as the other size variants: for S% of the base diameter,
    new_inset = (100-S)/2 + inset*(S/100), here S=90. */
 body.note-markers-circle .step-cell::after {
-  left: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 15%) * 0.9);
+  left: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9);
   border-radius: 50%;
 }
 .step-cell.soft::after { background: var(--track-color, var(--text)); opacity: calc(var(--note-marker-opacity, 1) * 0.4); }
@@ -1142,19 +1148,19 @@ body.note-markers-circle .step-cell.soft.playing::after {
    all stay proportional if that slider is ever adjusted: for a circle at
    S% of the base diameter, new_inset = (100% - S%)/2 + inset*(S/100). */
 body.note-markers-circle .step-cell.on::after {
-  left: var(--note-marker-circle-inset, 15%); right: var(--note-marker-circle-inset, 15%);
+  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height matches width via aspect-ratio now — same reasoning as the rectangle-mode base rule above: equal top/bottom+left/right insets only make a true circle if the cell itself happens to be square, per direct request */
   border-radius: 50%;
 }
 body.note-markers-circle .step-cell.soft::after {
-  left: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
-  right: calc(10% + var(--note-marker-circle-inset, 15%) * 0.8);
+  left: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8);
+  right: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
 body.note-markers-circle .step-cell.legato-tail::after {
-  left: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
-  right: calc(17.5% + var(--note-marker-circle-inset, 15%) * 0.65);
+  left: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65);
+  right: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
@@ -1177,8 +1183,8 @@ body.note-markers-circle .step-cell.split32::after {
   left: 0; right: 0; top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 0;
   background:
-    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 15%) / 2) calc(25% - var(--note-marker-circle-inset, 15%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%),
-    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 15%) / 2) calc(25% - var(--note-marker-circle-inset, 15%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%);
+    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%),
+    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%);
   opacity: 1;
 }
 
@@ -1237,7 +1243,7 @@ body.note-markers-circle .step-cell.split32::after {
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track track-row-bg">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg vol-slider-neon">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1270,7 +1276,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 15:38:23 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:06:19 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1418,7 +1424,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 15:38:23 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:06:19 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1524,19 +1530,12 @@ body.note-markers-circle .step-cell.split32::after {
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volSliderNeonToggle" onchange="setVolSliderNeon(this.checked)" style="width:14px;height:14px;cursor:pointer;">NEON
-      </label>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEON PULSE SPEED</div>
-          <div id="neonPulseSpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">2X</div>
-        </div>
-        <input type="range" id="neonPulseSpeedSlider" min="2" max="10" value="2" step="1" oninput="setNeonPulseSpeed(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
-      </label>
+      <!-- NEON, NEON PULSE SPEED, and JUST TRACK all removed from the UI
+           — hardcoded per direct request: NEON permanently on, pulse
+           speed fixed at 4x, JUST TRACK permanently on. setVolSliderNeon()
+           /setNeonPulseSpeed()/setJustTrack() all kept intact in case
+           these need to change again later; called once at load below to
+           apply these fixed values. -->
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -1689,13 +1688,9 @@ body.note-markers-circle .step-cell.split32::after {
            a slider again below. setSimpleFader()/setVolScaleThickness()/
            setVolBarHeight()/setVolFillHeight() are all kept intact for
            this reason. -->
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">11PX</div>
-        </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="11" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
+      <!-- FADER WIDTH removed from the UI — hardcoded to 10px per direct
+           request. setSimpleFaderWidth() kept intact in case this needs
+           to change again later; called once at load below. -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
@@ -1707,11 +1702,14 @@ body.note-markers-circle .step-cell.split32::after {
       </label>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
-          <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON OPACITY</div>
+          <div id="lockBtnOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
         </div>
-        <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="50" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="lockBtnOpacitySlider" min="0" max="100" value="100" oninput="setLockBtnOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
+      <!-- CIRCLE MARKER SIZE removed from the UI — hardcoded to 60% per
+           direct request. setNoteMarkerCircleSize() kept intact in case
+           this needs to change again later; called once at load below. -->
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
@@ -10312,6 +10310,8 @@ function setNeonPulseSpeed(v) {
   const readout = document.getElementById('neonPulseSpeedReadout');
   if (readout) readout.textContent = v + 'X';
 }
+setVolSliderNeon(true); // hardcoded on, per direct request — applied immediately, matching the vol-slider-neon class already on <body>
+setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
@@ -15812,6 +15812,13 @@ function setNoteMarkerCircleSize(v) {
   const inset = (100 - (+v)) * 0.3; // 0-30% inset range — v=100 gives 0% inset (fills the cell), v=0 gives 30% inset (small circle)
   document.documentElement.style.setProperty('--note-marker-circle-inset', inset + '%');
   const readout = document.getElementById('noteMarkerCircleSizeReadout');
+  if (readout) readout.textContent = v + '%';
+}
+// LOCK BUTTON OPACITY (SETTINGS slider, 0-100) — the padlock/sweep icon
+// buttons on each track.
+function setLockBtnOpacity(v) {
+  document.documentElement.style.setProperty('--lock-btn-opacity', (+v) / 100);
+  const readout = document.getElementById('lockBtnOpacityReadout');
   if (readout) readout.textContent = v + '%';
 }
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
