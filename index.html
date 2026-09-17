@@ -1062,7 +1062,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
   opacity: 0.2;
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
-  left: 1px; right: 1px; top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. bottom:auto explicit (not just relying on it defaulting there) so vertical centering via top:50%+translateY(-50%) is never accidentally fought by a leftover bottom value from elsewhere, keeping the marker properly centered in the cell */
+  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. bottom:auto explicit (not just relying on it defaulting there) so vertical centering via top:50%+translateY(-50%) is never accidentally fought by a leftover bottom value from elsewhere, keeping the marker properly centered in the cell. left/right now driven by the same --note-marker-circle-inset the CIRCLE MARKER SIZE slider controls (was a fixed 1px) — per direct request, that slider now affects all three marker styles (rectangle/circle/asterisk), not just circles */
 }
 /* Same size hierarchy as the circle markers below, applied to the
    rectangular markers too, per direct request: accented (.on) stays the
@@ -1074,21 +1074,22 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
    still match the base selector otherwise (they only override background/
    opacity, not position, unless given their own rule below). */
 .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  left: 5%; right: 5%; /* 90% size — 10% smaller than accent */
+  left: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9); /* 90% size — 10% smaller than accent — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
 }
 .step-cell.soft::after {
-  left: 10%; right: 10%; /* 80% size */
+  left: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8); right: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8); /* 80% size — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
 }
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
      that a compound "two notes side by side" marker shouldn't be a
      square — but that made it visibly taller than the accented marker,
      which is squared now. Per direct request: same height as the accent
-     square, not the cell's full height. Same width as accent too (left:
-     1px;right:1px, matching .on/base), with aspect-ratio deriving height
-     from that same width — so this ends up sized identically to the
-     accent marker, striped pattern (further down) drawn within that. */
-  left: 1px; right: 1px; top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+     square, not the cell's full height. Same width as accent too (now
+     the CIRCLE MARKER SIZE variable, matching .on/base), with aspect-
+     ratio deriving height from that same width — so this ends up sized
+     identically to the accent marker, striped pattern (further down)
+     drawn within that. */
+  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — reshapes this same empty-
    cell marker (color/opacity above untouched, so it still matches the
@@ -1148,7 +1149,7 @@ body.note-markers-circle .step-cell.soft.playing::after {
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
   opacity: 0.5;
-  left: 17.5%; right: 17.5%; top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* was top:0;bottom:50% (a half-height band stuck to the top of the cell) — now centered like every other marker, matching the square/circle treatment the rest already got; that top-stuck positioning read as misaligned once everything around it became centered squares. Width stays scaled to 65% (inset=(100-65)/2), matching the same size hierarchy as the other markers */
+  left: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65); right: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* was top:0;bottom:50% (a half-height band stuck to the top of the cell) — now centered like every other marker, matching the square/circle treatment the rest already got; that top-stuck positioning read as misaligned once everything around it became centered squares. Width stays scaled to 65% (inset=(100-65)/2), now driven by the same CIRCLE MARKER SIZE slider as the other markers, per direct request */
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
@@ -1214,8 +1215,8 @@ body.note-markers-asterisk .step-cell.on::after,
 body.note-markers-asterisk .step-cell.soft::after,
 body.note-markers-asterisk .step-cell.legato-tail::after,
 body.note-markers-asterisk .step-cell.split32::after {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.57' fill='none' stroke-linecap='butt'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.57' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
@@ -1338,7 +1339,7 @@ body.note-markers-asterisk .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 22:53:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 23:02:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1486,7 +1487,7 @@ body.note-markers-asterisk .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 22:53:53 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 23:02:28 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
