@@ -396,16 +396,26 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    2.5→3.4, spoke reach 22.5%→9.2% from center, gap 15.2%→4.8%). Also
    resets the glyph's own translateY(-2px) — tuned for the "+" text's own
    baseline, not this shape, which was throwing off centering in the
-   button. Slightly bigger again, sharp (butt, not round) spoke ends, and
-   shifted 2px left, all per direct request. */
-body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-2px); }
+   button. Sized up 5% more and shifted to -1px (was -2px, i.e. 1px
+   right), all per direct request. */
+body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
+/* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
+   in asterisk mode that text is invisible, but a CSS animation still
+   overrides the plain color:transparent above it (animations beat normal
+   rules), so without this the "+" text became visible again during the
+   pulse, layered on top of the ::before asterisk shape (which pulses its
+   own background-color separately) — looked like several glyphs stacked
+   on each other. This wins on specificity and turns that color animation
+   off for asterisk mode specifically; the ::before's own animation below
+   still provides the actual visible pulse. */
+body.rand-btn-asterisk #randBtn.pulsing .glyph { animation: none; color: transparent; }
 body.rand-btn-asterisk #randBtn .glyph::before {
   content: '';
   position: absolute;
   inset: 0;
   background-color: var(--top-row-text-color, #fff);
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.20 12.00L22.00 12.00 M14.10 15.64L17.00 20.66 M9.90 15.64L7.00 20.66 M7.80 12.00L2.00 12.00 M9.90 8.36L7.00 3.34 M14.10 8.36L17.00 3.34' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.20 12.00L22.00 12.00 M14.10 15.64L17.00 20.66 M9.90 15.64L7.00 20.66 M7.80 12.00L2.00 12.00 M9.90 8.36L7.00 3.34 M14.10 8.36L17.00 3.34' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
@@ -1277,7 +1287,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:31:30 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 21:27:48 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1425,7 +1435,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:31:30 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 21:27:48 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
