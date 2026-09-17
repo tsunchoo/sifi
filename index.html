@@ -1213,7 +1213,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 02:31:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 02:37:15 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1361,7 +1361,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 02:31:44 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 02:37:15 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4183,10 +4183,29 @@ function updatePlayhead(step) {
         // of that same green. No fade, no timer — it just sits at
         // whichever color the most recent hit on this track actually was,
         // until the next hit updates it again.
+        // Recalibrated per direct request: most patterns barely use the
+        // grid's "soft" level at all, so almost every track would just
+        // show flat bright with no contrast. If this track has zero soft
+        // notes anywhere in it (checked fresh each time — patterns
+        // change), there's no dynamic range in the grid to represent, so
+        // fall back to alternating bright/dark on each successive hit
+        // instead, so the loud/quiet contrast the color is meant to show
+        // is never just absent.
         const isNeon = document.body.classList.contains('vol-slider-neon');
         if (isNeon) {
           const fillEl = vb.querySelector('.track-vol-fill-solid');
-          if (fillEl) fillEl.style.backgroundColor = (grid[tr][gs] === 2) ? '#adff00' : 'color-mix(in srgb, #adff00 35%, black)';
+          if (fillEl) {
+            const hasSoftNotes = grid[tr].includes(1);
+            let bright;
+            if (hasSoftNotes) {
+              bright = grid[tr][gs] === 2;
+            } else {
+              window._neonAltFlag = window._neonAltFlag || {};
+              window._neonAltFlag[tr] = !window._neonAltFlag[tr];
+              bright = window._neonAltFlag[tr];
+            }
+            fillEl.style.backgroundColor = bright ? '#adff00' : 'color-mix(in srgb, #adff00 35%, black)';
+          }
         } else {
           vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
           setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
