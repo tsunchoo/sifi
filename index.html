@@ -676,7 +676,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
-.track-ctrl-icon-btn.lock-btn { opacity: var(--lock-btn-opacity, 1); } /* SETTINGS slider */
+.track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
    color swap with no animation at all. Two separate keyframes, not one
@@ -1276,7 +1276,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:06:19 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:20:01 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1424,7 +1424,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:06:19 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:20:01 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1455,16 +1455,16 @@ body.note-markers-circle .step-cell.split32::after {
     <div style="display:flex;flex-direction:column;gap:15px;">
       <div style="display:flex;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
-        <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">9%</div>
+        <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">75%</div>
       </div>
-      <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="9" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+      <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="75" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <div style="display:flex;flex-direction:column;gap:15px;">
       <div style="display:flex;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-        <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+        <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
       </div>
-      <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="100" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="20" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1530,12 +1530,19 @@ body.note-markers-circle .step-cell.split32::after {
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
       </label>
-      <!-- NEON, NEON PULSE SPEED, and JUST TRACK all removed from the UI
-           — hardcoded per direct request: NEON permanently on, pulse
-           speed fixed at 4x, JUST TRACK permanently on. setVolSliderNeon()
-           /setNeonPulseSpeed()/setJustTrack() all kept intact in case
-           these need to change again later; called once at load below to
-           apply these fixed values. -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="volSliderNeonToggle" checked onchange="setVolSliderNeon(this.checked)" style="width:14px;height:14px;cursor:pointer;">NEON
+      </label>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEON PULSE SPEED</div>
+          <div id="neonPulseSpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">4X</div>
+        </div>
+        <input type="range" id="neonPulseSpeedSlider" min="2" max="10" value="4" step="1" oninput="setNeonPulseSpeed(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+      </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -1688,9 +1695,13 @@ body.note-markers-circle .step-cell.split32::after {
            a slider again below. setSimpleFader()/setVolScaleThickness()/
            setVolBarHeight()/setVolFillHeight() are all kept intact for
            this reason. -->
-      <!-- FADER WIDTH removed from the UI — hardcoded to 10px per direct
-           request. setSimpleFaderWidth() kept intact in case this needs
-           to change again later; called once at load below. -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
+        </div>
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
@@ -1702,14 +1713,18 @@ body.note-markers-circle .step-cell.split32::after {
       </label>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON OPACITY</div>
-          <div id="lockBtnOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON DARKNESS</div>
+          <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
         </div>
-        <input type="range" id="lockBtnOpacitySlider" min="0" max="100" value="100" oninput="setLockBtnOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="0" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
-      <!-- CIRCLE MARKER SIZE removed from the UI — hardcoded to 60% per
-           direct request. setNoteMarkerCircleSize() kept intact in case
-           this needs to change again later; called once at load below. -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
+          <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div>
+        </div>
+        <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="60" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
@@ -10351,6 +10366,8 @@ function setTrackRowBgOpacity(v) {
   const readout = document.getElementById('trackRowBgOpacityReadout');
   if (readout) readout.textContent = v + '%';
 }
+setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
+setTrackRowBgOpacity(20); // startup default, per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -15814,11 +15831,12 @@ function setNoteMarkerCircleSize(v) {
   const readout = document.getElementById('noteMarkerCircleSizeReadout');
   if (readout) readout.textContent = v + '%';
 }
-// LOCK BUTTON OPACITY (SETTINGS slider, 0-100) — the padlock/sweep icon
-// buttons on each track.
-function setLockBtnOpacity(v) {
-  document.documentElement.style.setProperty('--lock-btn-opacity', (+v) / 100);
-  const readout = document.getElementById('lockBtnOpacityReadout');
+// LOCK BUTTON DARKNESS (SETTINGS slider, 0-100) — the padlock/sweep icon
+// buttons on each track. Was opacity, changed to darkness (brightness-
+// based) per direct request.
+function setLockBtnDarkness(v) {
+  document.documentElement.style.setProperty('--lock-btn-darkness', (+v) / 100);
+  const readout = document.getElementById('lockBtnDarknessReadout');
   if (readout) readout.textContent = v + '%';
 }
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
