@@ -396,15 +396,16 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    2.5→3.4, spoke reach 22.5%→9.2% from center, gap 15.2%→4.8%). Also
    resets the glyph's own translateY(-2px) — tuned for the "+" text's own
    baseline, not this shape, which was throwing off centering in the
-   button. */
-body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: none; }
+   button. Slightly bigger again, sharp (butt, not round) spoke ends, and
+   shifted 2px left, all per direct request. */
+body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-2px); }
 body.rand-btn-asterisk #randBtn .glyph::before {
   content: '';
   position: absolute;
   inset: 0;
   background-color: var(--top-row-text-color, #fff);
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.80 12.00L21.20 12.00 M14.40 16.16L16.60 19.97 M9.60 16.16L7.40 19.97 M7.20 12.00L2.80 12.00 M9.60 7.84L7.40 4.03 M14.40 7.84L16.60 4.03' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='round'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.80 12.00L21.20 12.00 M14.40 16.16L16.60 19.97 M9.60 16.16L7.40 19.97 M7.20 12.00L2.80 12.00 M9.60 7.84L7.40 4.03 M14.40 7.84L16.60 4.03' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='round'/></svg>");
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.20 12.00L22.00 12.00 M14.10 15.64L17.00 20.66 M9.90 15.64L7.00 20.66 M7.80 12.00L2.00 12.00 M9.90 8.36L7.00 3.34 M14.10 8.36L17.00 3.34' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.20 12.00L22.00 12.00 M14.10 15.64L17.00 20.66 M9.90 15.64L7.00 20.66 M7.80 12.00L2.00 12.00 M9.90 8.36L7.00 3.34 M14.10 8.36L17.00 3.34' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain;
   -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
   -webkit-mask-position: center; mask-position: center;
@@ -1117,8 +1118,8 @@ body.notes-grayscale .step-cell.split32::after {
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
 .step-cell.playing { background: rgba(192,57,43,0.07); }
 .step-cell.playing::after { background: var(--playhead-color, #f8ff00); opacity: 0.15; }
-.step-cell.on.playing::after   { background: var(--playhead-color, #f8ff00); opacity: var(--note-marker-opacity, 1); }
-.step-cell.soft.playing::after { background: var(--playhead-color, #f8ff00); opacity: calc(var(--note-marker-opacity, 1) * 0.7); }
+.step-cell.on.playing::after   { background: var(--play-flash-color, #f8ff00); opacity: var(--note-marker-opacity, 1); } /* PLAY FLASH (SETTINGS color picker) — actual notes only, not empty cells (the generic .step-cell.playing::after rule above still handles those, unchanged) */
+.step-cell.soft.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(var(--note-marker-opacity, 1) * 0.7); }
 /* In circles mode, the playhead darkens the circle marker itself instead
    of highlighting the whole cell as a square — per direct request. No
    cell-background tint, and the marker keeps its own track color instead
@@ -1276,7 +1277,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:20:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 16:31:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1424,7 +1425,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:20:01 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 16:31:30 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1705,6 +1706,10 @@ body.note-markers-circle .step-cell.split32::after {
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">PLAY FLASH</div>
+        <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
+      </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
       </label>
@@ -1714,9 +1719,9 @@ body.note-markers-circle .step-cell.split32::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON DARKNESS</div>
-          <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
+          <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
         </div>
-        <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="0" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -15839,6 +15844,7 @@ function setLockBtnDarkness(v) {
   const readout = document.getElementById('lockBtnDarknessReadout');
   if (readout) readout.textContent = v + '%';
 }
+setLockBtnDarkness(20); // startup default, per direct request
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
 // REVERB already share when engaged. Checked by default since pulsing is
 // the existing behavior; unchecking just removes the animation via a CSS
@@ -15894,6 +15900,12 @@ function setNoteMarkerOpacity(v) {
 // those handlers check.
 function setSoloFlashMode(on) {
   window._soloFlashMode = !!on;
+}
+// PLAY FLASH (SETTINGS color picker) — the color the playhead flashes
+// actual notes (not empty cells) as it passes through them. See
+// .step-cell.on.playing::after / .soft.playing::after.
+function setPlayFlashColor(hex) {
+  document.documentElement.style.setProperty('--play-flash-color', hex);
 }
 // SOLO + BEAT — whether BEAT stays in the mix regardless of any active
 // SOLO (on, default) or gets silenced by solo like every un-soloed track
