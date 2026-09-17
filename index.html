@@ -582,9 +582,9 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
    either way, whichever one the browser actually renders. */
 .master-vol-slider, .master-vol-slider::-webkit-slider-runnable-track { -webkit-appearance: none; appearance: none; background: transparent; height: 4px; }
 .master-vol-slider::-webkit-slider-runnable-track { background: var(--neutral-top, #555); border-radius: 2px; }
-.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--neutral-top, #555); margin-top: -6px; cursor: pointer; }
+.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 16px; border-radius: 0; background: #000; margin-top: -6px; cursor: pointer; } /* matches the volume slider's own tip — rectangular, 10px wide, solid black — was a 16px round dot in --neutral-top; track/everything else here untouched */
 .master-vol-slider::-moz-range-track { background: var(--neutral-top, #555); height: 4px; border-radius: 2px; }
-.master-vol-slider::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--neutral-top, #555); border: none; cursor: pointer; }
+.master-vol-slider::-moz-range-thumb { width: 10px; height: 16px; border-radius: 0; background: #000; border: none; cursor: pointer; } /* matches the volume slider's own tip — see the -webkit- version above for details */
 #bpmSettingsSlider.tempo-locked::-webkit-slider-thumb { background: #b0b0b0; }
 #bpmSettingsSlider.tempo-locked::-moz-range-thumb { background: #b0b0b0; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
@@ -1339,7 +1339,7 @@ body.note-markers-asterisk .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 23:10:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 23:15:23 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1487,7 +1487,7 @@ body.note-markers-asterisk .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 23:10:05 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 23:15:23 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1787,6 +1787,13 @@ body.note-markers-asterisk .step-cell.split32::after {
           <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
         </div>
         <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
+          <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">1.00X</div>
+        </div>
+        <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="100" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -15954,6 +15961,15 @@ function setLockBtnDarkness(v) {
   if (readout) readout.textContent = v + '%';
 }
 setLockBtnDarkness(20); // startup default, per direct request
+// SWEEP DECAY SPEED (SETTINGS slider, 0-200) — multiplies the fade-out
+// length stopSweep() uses after SWEEP reaches the downbeat. 100 = the
+// original fixed length (1x), 200 = twice as slow, 0 = instant cutoff.
+window._sweepDecayMult = 1;
+function setSweepDecaySpeed(v) {
+  window._sweepDecayMult = (+v) / 100;
+  const readout = document.getElementById('sweepDecaySpeedReadout');
+  if (readout) readout.textContent = (+v / 100).toFixed(2) + 'X';
+}
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
 // REVERB already share when engaged. Checked by default since pulsing is
 // the existing behavior; unchecking just removes the animation via a CSS
@@ -17025,7 +17041,7 @@ async function hardResetAudioEngine() {
     if (_sweepDuckLoop) cancelAnimationFrame(_sweepDuckLoop); _sweepDuckLoop = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
-    const quarterNote = stepDuration() * 4; // fade-out length — longer now so it stays a bit before fading
+    const quarterNote = stepDuration() * 4 * (window._sweepDecayMult !== undefined ? window._sweepDecayMult : 1); // fade-out length — longer now so it stays a bit before fading. Multiplier is the SWEEP DECAY SPEED slider (SETTINGS) — 1 = this original length, 2 = twice as slow, 0 = instant
     // Ramp duckGain back to 1 smoothly rather than snapping it instantly —
     // an instant jump from wherever it was (potentially deep in a duck dip,
     // near-silent) straight up to 1, at the same moment the boosted presence
