@@ -1199,6 +1199,57 @@ body.note-markers-circle .step-cell.split32::after {
   opacity: 1;
 }
 
+/* NOTE MARKERS = ASTERISKS (SETTINGS toggle) — same asterisk shape as
+   the RAND button's own alternative glyph (mask-image, same SVG path),
+   applied as a note marker option alongside NOTE MARKERS = CIRCLES,
+   using the exact same size hierarchy/formulas as that circle mode
+   (accent = base size, soft = 80%, empty = 90% smaller, legato tail =
+   65%) — just a different mask shape instead of border-radius:50%.
+   Split32 (which normally draws its own striped gradient background)
+   gets a single asterisk at the accent size instead for this mode,
+   since the mask technique can't combine with that gradient the way
+   border-radius could. */
+body.note-markers-asterisk .step-cell::after,
+body.note-markers-asterisk .step-cell.on::after,
+body.note-markers-asterisk .step-cell.soft::after,
+body.note-markers-asterisk .step-cell.legato-tail::after,
+body.note-markers-asterisk .step-cell.split32::after {
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  -webkit-mask-size: contain; mask-size: contain;
+  -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+  -webkit-mask-position: center; mask-position: center;
+  border-radius: 0;
+}
+body.note-markers-asterisk .step-cell::after {
+  background-color: var(--empty-cell-color, #DCD7D0);
+  left: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9); right: calc(5% + var(--note-marker-circle-inset, 12%) * 0.9);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+}
+body.note-markers-asterisk .step-cell.on::after {
+  background-color: var(--track-color, var(--text));
+  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+}
+body.note-markers-asterisk .step-cell.soft::after {
+  background-color: var(--track-color, var(--text));
+  left: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8);
+  right: calc(10% + var(--note-marker-circle-inset, 12%) * 0.8);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+}
+body.note-markers-asterisk .step-cell.legato-tail::after {
+  background-color: var(--track-color, var(--text));
+  left: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65);
+  right: calc(17.5% + var(--note-marker-circle-inset, 12%) * 0.65);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+}
+body.note-markers-asterisk .step-cell.split32::after {
+  background: var(--track-color, var(--text));
+  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+  opacity: 1;
+}
+
 /* ── Track lane label — now inside ctrl row, removed ── */
 
 /* ── Footer ── */
@@ -1287,7 +1338,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 21:27:48 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-17 22:53:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1435,7 +1486,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 21:27:48 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-17 22:53:53 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1722,6 +1773,9 @@ body.note-markers-circle .step-cell.split32::after {
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
@@ -7922,7 +7976,7 @@ function playKick(t, velMult) {
   osc.connect(g); g.connect(beatDest);
   osc.frequency.setValueAtTime(160, t);
   osc.frequency.exponentialRampToValueAtTime(38, t + 0.22);
-  g.gain.setValueAtTime(0.504 * _pushAtten * _jazzAtten * _velAtten, t);
+  g.gain.setValueAtTime(0.4492 * _pushAtten * _jazzAtten * _velAtten, t); // -1dB more, per direct request (was 0.504) — affects every beat type equally, since they all share this one base gain and just layer their own attenuation multipliers on top
   g.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
   osc.start(t); osc.stop(t + 0.31);
   osc.onended = () => { try { g.disconnect(); } catch(e) {} };
@@ -15837,6 +15891,7 @@ function setDevNotesGrayscale(on) {
   if (otherCb) otherCb.checked = on;
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
+function setNoteMarkersAsterisk(on) { document.body.classList.toggle('note-markers-asterisk', !!on); }
 function setRandBtnAsterisk(on) { document.body.classList.toggle('rand-btn-asterisk', !!on); }
 function setNoteMarkerCircleSize(v) {
   // v: 0-100 slider position — higher v = bigger circle, so the inset
