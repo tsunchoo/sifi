@@ -1209,7 +1209,7 @@ body.note-markers-circle .step-cell.split32::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:43:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-16 21:56:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1357,7 +1357,7 @@ body.note-markers-circle .step-cell.split32::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:43:20 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-16 21:56:50 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4173,25 +4173,21 @@ function updatePlayhead(step) {
       // wasn't actually tied to this track's own notes at all).
       const vb = document.getElementById(`vbar-${tr}`);
       if (vb) {
-        // NEON (SETTINGS toggle) — flashes to a brighter, almost-white
-        // version of the same #adff00 green instead of a random jump
-        // color, so the pulse reads as "this same green getting brighter"
-        // rather than switching to an unrelated hue.
+        // NEON (SETTINGS toggle) — flashes to the full, bright #adff00
+        // itself (the "loudest" version of the color) instead of a random
+        // jump color; the resting color is a darkened version of this
+        // same green (see setVolSliderNeon()), so the pulse reads as this
+        // green getting louder/brighter rather than switching hue. No
+        // longer needs a temporary filter override here — #adff00 is
+        // already fully saturated, so the fill's own forced saturate(20)
+        // doesn't distort it the way it would have distorted the earlier
+        // near-white blend this used to flash to.
         const isNeon = document.body.classList.contains('vol-slider-neon');
         const flashColor = isNeon
-          ? 'color-mix(in srgb, #adff00 50%, white)'
+          ? '#adff00'
           : _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)];
         vb.style.setProperty('--vol-slider-color', flashColor);
-        // The fill has its own unconditional filter: saturate(20) — left
-        // alone, that would re-saturate this near-white blend right back
-        // toward solid green, undoing the point of it. Drop it to 1 just
-        // for the flash's duration.
-        const fillEl = isNeon ? vb.querySelector('.track-vol-fill-solid') : null;
-        if (fillEl) fillEl.style.setProperty('filter', 'saturate(1)', 'important');
-        setTimeout(() => {
-          vb.style.removeProperty('--vol-slider-color');
-          if (fillEl) fillEl.style.removeProperty('filter');
-        }, 80);
+        setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
       }
     }
   }
@@ -10183,14 +10179,14 @@ function setVolSliderColor(n) {
   document.documentElement.style.setProperty('--vol-slider-color', map[n] || map[3]);
 }
 setVolSliderColor(2); // applied immediately at load, matching the hardcoded default above
-// NEON (SETTINGS toggle) — overrides the volume slider's resting color to
-// a fixed #adff00 green (the note-driven pulse itself, see updatePlayhead,
-// separately flashes to a brighter almost-white version of this same
-// green while this is on, instead of a random jump color). Off reverts to
-// the hardcoded mode 2 default above.
+// NEON (SETTINGS toggle) — flipped per direct request: #adff00 is now the
+// loudest/brightest color (shown only during the note-driven pulse, see
+// updatePlayhead), and the resting color is the darkest version of that
+// same green instead — was the reverse (green at rest, pulsing up to
+// almost-white). Off reverts to the hardcoded mode 2 default above.
 function setVolSliderNeon(on) {
   document.body.classList.toggle('vol-slider-neon', !!on);
-  if (on) document.documentElement.style.setProperty('--vol-slider-color', '#adff00');
+  if (on) document.documentElement.style.setProperty('--vol-slider-color', 'color-mix(in srgb, #adff00 35%, black)');
   else setVolSliderColor(2);
 }
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
