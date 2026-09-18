@@ -1059,7 +1059,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
   content: '';
   position: absolute;
   background: var(--empty-cell-color, #DCD7D0);
-  opacity: var(--empty-marker-opacity, 0.2); /* SETTINGS slider — .on/.soft override this separately with their own opacity, so this only ever affects the empty-cell case */
+  opacity: var(--empty-marker-opacity, 0.8); /* SETTINGS slider — .on/.soft override this separately with their own opacity, so this only ever affects the empty-cell case */
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
   left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. bottom:auto explicit (not just relying on it defaulting there) so vertical centering via top:50%+translateY(-50%) is never accidentally fought by a leftover bottom value from elsewhere, keeping the marker properly centered in the cell. left/right now driven by the same --note-marker-circle-inset the CIRCLE MARKER SIZE slider controls (was a fixed 1px) — per direct request, that slider now affects all three marker styles (rectangle/circle/asterisk), not just circles */
@@ -1074,7 +1074,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
    still match the base selector otherwise (they only override background/
    opacity, not position, unless given their own rule below). */
 .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  left: var(--marker-empty-inset, 15.8%); right: var(--marker-empty-inset, 15.8%); /* 90% size — 10% smaller than accent — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
+  left: var(--marker-empty-inset, 42.4%); right: var(--marker-empty-inset, 42.4%); /* 90% size — 10% smaller than accent — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
 }
 .step-cell.soft::after {
   left: var(--marker-soft-inset, 19.6%); right: var(--marker-soft-inset, 19.6%); /* 80% size — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
@@ -1091,7 +1091,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
    selector), so this wins outright without needing !important. */
 body.marker-left-justify-squares .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-empty-inset, 15.8%) - var(--note-marker-circle-inset, 12%));
+  right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-circle-inset, 12%));
 }
 body.marker-left-justify-squares .step-cell.soft::after {
   left: var(--note-marker-circle-inset, 12%);
@@ -1119,7 +1119,7 @@ body.marker-left-justify-squares .step-cell.soft::after {
    derivation as the other size variants: for S% of the base diameter,
    new_inset = (100-S)/2 + inset*(S/100), here S=90. */
 body.note-markers-circle .step-cell::after {
-  left: var(--marker-empty-inset, 15.8%); right: var(--marker-empty-inset, 15.8%);
+  left: var(--marker-empty-inset, 42.4%); right: var(--marker-empty-inset, 42.4%);
   border-radius: 50%;
 }
 .step-cell.soft::after { background: var(--track-color, var(--text)); opacity: calc(var(--note-marker-opacity, 1) * 0.4); }
@@ -1200,7 +1200,7 @@ body.note-markers-circle .step-cell.soft::after {
    from centered to left-pinned at the accent circle's own left edge. */
 body.marker-left-justify-circles.note-markers-circle .step-cell::after {
   left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-empty-inset, 15.8%) - var(--note-marker-circle-inset, 12%));
+  right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-circle-inset, 12%));
 }
 body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
   left: var(--note-marker-circle-inset, 12%);
@@ -1260,7 +1260,7 @@ body.note-markers-asterisk .step-cell.split32::after {
 }
 body.note-markers-asterisk .step-cell::after {
   background-color: var(--empty-cell-color, #DCD7D0);
-  left: var(--marker-empty-inset, 15.8%); right: var(--marker-empty-inset, 15.8%);
+  left: var(--marker-empty-inset, 42.4%); right: var(--marker-empty-inset, 42.4%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
 }
 body.note-markers-asterisk .step-cell.on::after {
@@ -1415,7 +1415,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 18:29:37 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 18:43:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1563,7 +1563,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 18:29:37 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 18:43:58 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1873,16 +1873,16 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
-          <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">1.00X</div>
+          <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.00X</div>
         </div>
-        <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="100" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="0" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEW PATTERN NOISE VOLUME</div>
-          <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+          <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">30%</div>
         </div>
-        <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="100" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="30" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -1908,16 +1908,16 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER OPACITY</div>
-          <div id="emptyMarkerOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+          <div id="emptyMarkerOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">80%</div>
         </div>
-        <input type="range" id="emptyMarkerOpacitySlider" min="0" max="100" value="20" oninput="setEmptyMarkerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="emptyMarkerOpacitySlider" min="0" max="100" value="80" oninput="setEmptyMarkerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER SIZE</div>
-          <div id="emptyMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">90%</div>
+          <div id="emptyMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
         </div>
-        <input type="range" id="emptyMarkerSizeSlider" min="0" max="100" value="90" oninput="setEmptyMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="emptyMarkerSizeSlider" min="0" max="100" value="20" oninput="setEmptyMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -16085,7 +16085,7 @@ function setNoteMarkerCircleSize(v) {
 // precomputes the actual --marker-*-inset percentage for each tier
 // instead, which the CSS then just reads directly.
 window._markerSizeRatio = 100;
-window._emptyMarkerSizePct = 90; // direct control (SETTINGS slider) — no longer part of the ratio-derived loop below, since this is meant as a direct "% of accent size" independent of NOTE MARKER SIZE RATIO
+window._emptyMarkerSizePct = 20; // direct control (SETTINGS slider), hardcoded default per direct request (was 90) — no longer part of the ratio-derived loop below, since this is meant as a direct "% of accent size" independent of NOTE MARKER SIZE RATIO
 function _recomputeMarkerTierInsets() {
   const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
   const ratio = window._markerSizeRatio / 100;
@@ -16138,7 +16138,7 @@ setLockBtnDarkness(20); // startup default, per direct request
 // SWEEP DECAY SPEED (SETTINGS slider, 0-200) — multiplies the fade-out
 // length stopSweep() uses after SWEEP reaches the downbeat. 100 = the
 // original fixed length (1x), 200 = twice as slow, 0 = instant cutoff.
-window._sweepDecayMult = 1;
+window._sweepDecayMult = 0; // hardcoded default per direct request (was 1, i.e. slider 100) — instant cutoff
 function setSweepDecaySpeed(v) {
   window._sweepDecayMult = (+v) / 100;
   const readout = document.getElementById('sweepDecaySpeedReadout');
@@ -16147,7 +16147,7 @@ function setSweepDecaySpeed(v) {
 // NEW PATTERN NOISE VOLUME (SETTINGS slider, 0-100) — the noise-sweep cue
 // in playRandReleaseSweep() that plays whenever a new pattern actually
 // lands. 100 = its current level, 0 = silent.
-window._randReleaseSweepVol = 1;
+window._randReleaseSweepVol = 0.3; // hardcoded default per direct request (was 1, i.e. slider 100)
 function setRandReleaseSweepVol(v) {
   window._randReleaseSweepVol = (+v) / 100;
   const readout = document.getElementById('randReleaseSweepVolReadout');
