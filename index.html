@@ -1079,6 +1079,24 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
 .step-cell.soft::after {
   left: var(--marker-soft-inset, 19.6%); right: var(--marker-soft-inset, 19.6%); /* 80% size — now scaled by the same CIRCLE MARKER SIZE slider, per direct request */
 }
+/* LEFT-JUSTIFY SQUARES (SETTINGS toggle) — the un-accented (.soft) and
+   empty markers keep their own size (still driven by the same
+   --marker-*-inset variables as the centered version above) but their
+   left edge is pinned to the accented marker's own left edge
+   (--note-marker-circle-inset) instead of being centered. Width is
+   preserved exactly: original centered width = 100% - 2*insetPct, so
+   with left now fixed at baseInsetPct, right = 2*insetPct - baseInsetPct
+   reconstructs that same width from the new anchor. Higher specificity
+   than the centered rules above (one extra class from the body
+   selector), so this wins outright without needing !important. */
+body.marker-left-justify-squares .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
+  left: var(--note-marker-circle-inset, 12%);
+  right: calc(2 * var(--marker-empty-inset, 15.8%) - var(--note-marker-circle-inset, 12%));
+}
+body.marker-left-justify-squares .step-cell.soft::after {
+  left: var(--note-marker-circle-inset, 12%);
+  right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-circle-inset, 12%));
+}
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
      that a compound "two notes side by side" marker shouldn't be a
@@ -1175,6 +1193,18 @@ body.note-markers-circle .step-cell.soft::after {
   right: var(--marker-soft-inset, 19.6%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
+}
+/* LEFT-JUSTIFY CIRCLES (SETTINGS toggle) — same idea and same width-
+   preserving math as LEFT-JUSTIFY SQUARES above, just for circle mode's
+   own empty/soft markers. Diameter is unchanged; only the anchor moves
+   from centered to left-pinned at the accent circle's own left edge. */
+body.marker-left-justify-circles.note-markers-circle .step-cell::after {
+  left: var(--note-marker-circle-inset, 12%);
+  right: calc(2 * var(--marker-empty-inset, 15.8%) - var(--note-marker-circle-inset, 12%));
+}
+body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
+  left: var(--note-marker-circle-inset, 12%);
+  right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-circle-inset, 12%));
 }
 body.note-markers-circle .step-cell.legato-tail::after {
   left: var(--marker-legato-inset, 25.3%);
@@ -1385,7 +1415,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:47:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 18:29:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1533,7 +1563,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:47:25 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 18:29:37 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1823,6 +1853,12 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="markerLeftJustifySquaresToggle" onchange="setMarkerLeftJustifySquares(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY SQUARES
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="markerLeftJustifyCirclesToggle" onchange="setMarkerLeftJustifyCircles(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY CIRCLES
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
@@ -13419,6 +13455,7 @@ function randAll(mode, opts) {
   // No longer auto-saving to a slot here — double-clicking a track name is
   // now the only way a pattern gets into the slot bar.
   setTimeout(() => { updateLegatoVisuals(); }, NUM_TRACKS * 30 + 50);
+  setTimeout(() => { _ensureMozambiqueKitCorrect(); }, NUM_TRACKS * 30 + 60); // just after the legato pass above, same reasoning — waits for every staggered per-track call to genuinely finish first
 }
 
 // Little downward sweep when a new RAND pattern actually starts playing —
@@ -16016,6 +16053,17 @@ function setDevNotesGrayscale(on) {
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
 function setNoteMarkersAsterisk(on) { document.body.classList.toggle('note-markers-asterisk', !!on); }
+// LEFT-JUSTIFY SQUARES / LEFT-JUSTIFY CIRCLES (SETTINGS toggles, per
+// direct request) — shifts the un-accented (.soft) and empty note
+// markers so their left edge lines up with the accented marker's own
+// left edge, instead of being centered in the cell as they normally
+// are. Independent toggles for the rectangle/square marker mode and the
+// circle marker mode (see .note-markers-circle), since either can be on
+// without the other. Purely CSS-driven (see the matching
+// body.marker-left-justify-squares / body.marker-left-justify-circles
+// rules) — these just flip the body classes those rules key off of.
+function setMarkerLeftJustifySquares(on) { document.body.classList.toggle('marker-left-justify-squares', !!on); }
+function setMarkerLeftJustifyCircles(on) { document.body.classList.toggle('marker-left-justify-circles', !!on); }
 function setRandBtnAsterisk(on) { document.body.classList.toggle('rand-btn-asterisk', !!on); }
 function setNoteMarkerCircleSize(v) {
   // v: 0-100 slider position — higher v = bigger circle, so the inset
@@ -18005,6 +18053,36 @@ function _applyMozambiqueTracksToCurrentPattern() {
   _applyOneMoz(sidestickTr, 'sidestick');
   _applyOneMoz(tomsTr, 'toms');
   markModified();
+}
+// Safety net — whichever track(s) ended up holding RIDE/SIDESTICK/TOMS
+// after a RAND pass (however that happened: the initial-transition
+// function above, the pool-insertion mechanism inside randAll's own main
+// loop, or just a track that already held one from before) are
+// guaranteed to have their correct fixed pattern and be unmuted, no
+// matter what state they were in beforehand. Per direct request — the
+// existing paths mostly did this already but depended on specific
+// timing/state lining up; this always runs last (see randAll's own
+// deferred call to it, after every staggered per-track setTimeout has
+// genuinely finished) and simply overwrites whatever's there with the
+// correct final state, so it can't be left stale or empty regardless of
+// what happened earlier in the pass.
+function _ensureMozambiqueKitCorrect() {
+  if (_beatType !== 'mozambique') return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const k = trackInstruments[tr];
+    if (k !== 'ride' && k !== 'sidestick' && k !== 'toms') continue;
+    trackMuted[tr] = false; updateTrackMute(tr);
+    grid[tr].fill(0);
+    if (k === 'ride') {
+      grid[tr][0] = 2; grid[tr][2] = 1; grid[tr][4] = 2; grid[tr][5] = 1;
+      grid[tr][7] = 1; grid[tr][9] = 1; grid[tr][10] = 2; grid[tr][12] = 1; grid[tr][13] = 1;
+    } else if (k === 'sidestick') {
+      grid[tr][3] = 2; grid[tr][11] = 2;
+    } else if (k === 'toms') {
+      grid[tr][7] = 2; grid[tr][14] = 2; grid[tr][15] = 2;
+    }
+    redrawTrackCells(tr);
+  }
 }
 // Same idea again, for BOSSA's single SIDE STICK track — a fixed 5-hit
 // Brazilian clave pattern (0, 3, 6, 10, 13), applied to 1 of the current
