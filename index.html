@@ -1356,7 +1356,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:17:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:28:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1504,7 +1504,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:17:42 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:28:03 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4345,7 +4345,15 @@ function fireStepAudio(step, t) {
         if (bstep === 3 || bstep === 11) fireBeatKick(t); // 16th immediately before each snare
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSnare(t); // restored original off-beat snare — double-time feel
       } else if (_beatType === 'samba') {
-        if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
+        // Hihat and snare/sidestick both land on steps 6 and 14 — two
+        // separate voices firing at the exact same instant with no gain
+        // compensation for the combined loudness, which is exactly the
+        // kind of stacked-transient moment that can push past the
+        // limiter's ability to catch it cleanly. Hihat reduced by ~35%
+        // specifically on those two overlap steps (not the other two,
+        // which fire alone) to ease that, per direct request.
+        if (bstep === 2 || bstep === 10) playSynthHihat(false, t, -1);
+        if (bstep === 6 || bstep === 14) playSynthHihat(false, t, -1, 0.65);
         if (bstep === 3 || bstep === 6 || bstep === 9 || bstep === 11 || bstep === 14) { if (_sambaSnareVariant === 'sidestick') playBeatSidestickSample(t); else playBeatSnareSample(t); }
       } else if (_beatType === 'swagger') {
         if (bstep === 15 || bstep === 7) fireBeatKick(t); // single kick leading into each snare — was paired with an "anticipating" kick a few steps later, which doubled up right at the start of the bar
@@ -4659,11 +4667,11 @@ function playSynthSnare(isAccent, time, tr) {
   rattle.onended = () => { try { rattleHP.disconnect(); rattleBP.disconnect(); rattleG.disconnect(); } catch(e) {} };
 }
 
-function playSynthHihat(isAccent, time, tr) {
+function playSynthHihat(isAccent, time, tr, volMult) {
   if (!ctx) return;
   if (tr === -1 ? !_renderTapBeat : (_renderTapTracks && !_renderTapTracks.has(tr))) return;
   const dest = (tr === -1) ? (window._beatGain || masterGain) : getSynthConnectNode(tr);
-  const dur = isAccent ? 0.12 : 0.06, vol = isAccent ? 0.1968 : 0.1238; // -3dB more (was -2dB)
+  const dur = isAccent ? 0.12 : 0.06, vol = (isAccent ? 0.1968 : 0.1238) * (volMult !== undefined ? volMult : 1); // -3dB more (was -2dB). volMult (new, optional, default 1) — lets a caller reduce this specific hit when it's about to land on top of another voice at the same instant, e.g. SAMBA's hihat/snare overlap
   const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
   const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
   const src = ctx.createBufferSource(), g = ctx.createGain();
@@ -6218,7 +6226,7 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const decay = isAccent ? 0.35 : 0.25; // shorter than UNDERPASS's own — a quick glinting hit, not a sustained tube tone
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
-  const peakVol = (isAccent ? 0.354 : 0.2549) * blastAtten; // -2dB more, per direct request (was 0.4456/0.3209, -1dB before that, was 0.5/0.36)
+  const peakVol = (isAccent ? 0.3066 : 0.2207) * blastAtten; // -1.25dB more, per direct request (was 0.354/0.2549, -2dB before that, was 0.4456/0.3209, -1dB before that, was 0.5/0.36)
 
   // Shared highpass every layer below feeds through — this is what
   // actually sits BUCK higher in the range than UNDERPASS's own low/mid
@@ -10091,7 +10099,7 @@ async function renderSlotToWav(snap) {
           // highpass, per playBuck's own comments for why (including why
           // this is the lighter, ~half-the-nodes revision).
           const _decay = isAccent ? 0.35 : 0.25;
-          const _peakVol = isAccent ? 0.354 : 0.2549; // -2dB more, matching the live playBuck fix (was 0.4456/0.3209, -1dB before that, was 0.5/0.36) — BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
+          const _peakVol = isAccent ? 0.3066 : 0.2207; // -1.25dB more, matching the live playBuck fix (was 0.354/0.2549, -2dB before that, was 0.4456/0.3209, -1dB before that, was 0.5/0.36) — BLAST attenuation intentionally omitted here — offline bounce doesn't model per-track BLAST state the same way live playback does
           const _hp = o.createBiquadFilter(); _hp.type = 'highpass'; _hp.frequency.value = 350; _hp.Q.value = 0.7;
           _hp.connect(offDest);
           const _goingUp = Math.random() < 0.5;
