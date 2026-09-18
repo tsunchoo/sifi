@@ -1062,7 +1062,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
   opacity: var(--empty-marker-opacity, 0.8); /* SETTINGS slider — .on/.soft override this separately with their own opacity, so this only ever affects the empty-cell case */
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
-  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. bottom:auto explicit (not just relying on it defaulting there) so vertical centering via top:50%+translateY(-50%) is never accidentally fought by a leftover bottom value from elsewhere, keeping the marker properly centered in the cell. left/right now driven by the same --note-marker-circle-inset the CIRCLE MARKER SIZE slider controls (was a fixed 1px) — per direct request, that slider now affects all three marker styles (rectangle/circle/asterisk), not just circles */
+  left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. This is the square-mode accent (.on) marker's actual size source — every other class here (.soft/.legato-tail/.split32/empty) has its own more specific override further down, so this rule only really governs .on. Driven by --note-marker-square-inset (SQUARE MARKER SIZE slider) — was the shared --note-marker-circle-inset, split off per direct request so squares and circles can have independent sizes */
 }
 /* Same size hierarchy as the circle markers below, applied to the
    rectangular markers too, per direct request: accented (.on) stays the
@@ -1083,19 +1083,19 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
    empty markers keep their own size (still driven by the same
    --marker-*-inset variables as the centered version above) but their
    left edge is pinned to the accented marker's own left edge
-   (--note-marker-circle-inset) instead of being centered. Width is
+   (--note-marker-square-inset) instead of being centered. Width is
    preserved exactly: original centered width = 100% - 2*insetPct, so
    with left now fixed at baseInsetPct, right = 2*insetPct - baseInsetPct
    reconstructs that same width from the new anchor. Higher specificity
    than the centered rules above (one extra class from the body
    selector), so this wins outright without needing !important. */
 body.marker-left-justify-squares .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-circle-inset, 12%));
+  left: var(--note-marker-square-inset, 12%);
+  right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-square-inset, 12%));
 }
 body.marker-left-justify-squares .step-cell.soft::after {
-  left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-circle-inset, 12%));
+  left: var(--note-marker-square-inset, 12%);
+  right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-square-inset, 12%));
 }
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
@@ -1107,7 +1107,7 @@ body.marker-left-justify-squares .step-cell.soft::after {
      ratio deriving height from that same width — so this ends up sized
      identically to the accent marker, striped pattern (further down)
      drawn within that. */
-  left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+  left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — reshapes this same empty-
    cell marker (color/opacity above untouched, so it still matches the
@@ -1213,8 +1213,8 @@ body.note-markers-circle .step-cell.on::after {
   border-radius: 50%;
 }
 body.note-markers-circle .step-cell.soft::after {
-  left: var(--marker-soft-inset, 19.6%);
-  right: var(--marker-soft-inset, 19.6%);
+  left: var(--marker-soft-inset-circle, 27.2%);
+  right: var(--marker-soft-inset-circle, 27.2%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
@@ -1238,11 +1238,11 @@ body.marker-left-justify-circles.note-markers-circle .step-cell:not(.on):not(.so
 }
 body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
   left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-circle-inset, 12%));
+  right: calc(2 * var(--marker-soft-inset-circle, 27.2%) - var(--note-marker-circle-inset, 12%));
 }
 body.note-markers-circle .step-cell.legato-tail::after {
-  left: var(--marker-legato-inset, 25.3%);
-  right: var(--marker-legato-inset, 25.3%);
+  left: var(--marker-legato-inset-circle, 38.6%);
+  right: var(--marker-legato-inset-circle, 38.6%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
   border-radius: 50%;
 }
@@ -1449,7 +1449,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 19:11:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 19:44:49 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1597,7 +1597,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 19:11:46 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 19:44:49 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1934,10 +1934,24 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NOTE MARKER SIZE RATIO</div>
-          <div id="noteMarkerSizeRatioReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE</div>
+          <div id="squareMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">76%</div>
         </div>
-        <input type="range" id="noteMarkerSizeRatioSlider" min="0" max="200" value="100" oninput="setNoteMarkerSizeRatio(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="squareMarkerSizeSlider" min="10" max="100" value="76" oninput="setSquareMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE RATIO</div>
+          <div id="noteMarkerSizeRatioSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+        </div>
+        <input type="range" id="noteMarkerSizeRatioSquareSlider" min="0" max="200" value="100" oninput="setNoteMarkerSizeRatioSquare(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE RATIO</div>
+          <div id="noteMarkerSizeRatioCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">200%</div>
+        </div>
+        <input type="range" id="noteMarkerSizeRatioCircleSlider" min="0" max="200" value="200" oninput="setNoteMarkerSizeRatioCircle(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -10576,6 +10590,7 @@ function setNeonPulseSpeed(v) {
 setVolSliderNeon(true); // hardcoded on, per direct request — applied immediately, matching the vol-slider-neon class already on <body>
 setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
 setSimpleFaderWidth(10); // hardcoded at 10px, per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
+setSquareMarkerSize(76); // startup default, matches the size already in effect before SQUARE MARKER SIZE existed as its own control
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
@@ -16109,6 +16124,24 @@ function setNoteMarkerCircleSize(v) {
   if (readout) readout.textContent = v + '%';
   _recomputeMarkerTierInsets(); // the smaller tiers (empty/soft/legato) are derived from this same base inset, so they need recomputing too whenever it changes
 }
+// SQUARE MARKER SIZE (SETTINGS slider, 10-100) — the accented square
+// marker's own size as a direct, literal percentage of the cell, per
+// direct request (100 = fills the cell, 10 = shrinks to a small square).
+// Independent of CIRCLE MARKER SIZE above — squares used to share that
+// same --note-marker-circle-inset variable (and asterisks still do, left
+// untouched), but now write their own --note-marker-square-inset, which
+// every square-mode rule (accent, split32, and the LEFT-JUSTIFY SQUARES
+// empty/soft anchor points) reads instead. Standard inset formula: for a
+// marker at S% of cell width, inset = (100-S)/2. Default 76 reproduces
+// the 12% inset that was already in effect, so nothing changes visually
+// until this is touched.
+function setSquareMarkerSize(v) {
+  const inset = (100 - (+v)) / 2;
+  document.documentElement.style.setProperty('--note-marker-square-inset', inset + '%');
+  const readout = document.getElementById('squareMarkerSizeReadout');
+  if (readout) readout.textContent = v + '%';
+  _recomputeMarkerTierInsets(); // square ratio tiers (soft/legato) are derived from this same base inset
+}
 // NOTE MARKER SIZE RATIO (SETTINGS slider, 0-100) — how much smaller the
 // smaller tiers (empty/soft/legato-tail) are relative to the accent
 // marker. 100 = current fixed proportions (90%/80%/65% of accent). 0 =
@@ -16119,14 +16152,16 @@ function setNoteMarkerCircleSize(v) {
 // percentage and unitless values in a way calc() can't cleanly do; this
 // precomputes the actual --marker-*-inset percentage for each tier
 // instead, which the CSS then just reads directly.
-window._markerSizeRatio = 100;
+window._markerSizeRatioSquare = 100; // squares/asterisks — independent from circles now, per direct request
+window._markerSizeRatioCircle = 200; // circles — kept at the value just set before the split, so nothing changes visually right now (circles are the hardcoded-on mode)
 window._emptyMarkerSizePct = 20; // direct control (SETTINGS slider), hardcoded default per direct request (was 90) — no longer part of the ratio-derived loop below, since this is meant as a direct "% of accent size" independent of NOTE MARKER SIZE RATIO
 function _recomputeMarkerTierInsets() {
   const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
-  const ratio = window._markerSizeRatio / 100;
   // EMPTY — direct, standard "for S% size, inset=(100-S)/2 + baseInset*
   // (S/100)" formula, independent of the ratio slider (SETTINGS slider
   // controls S directly as a straight percentage of the accent size).
+  // Left on the shared circle-mode base — SQUARE MARKER SIZE below only
+  // affects the accent/soft/legato square tiers, not this.
   const Se = window._emptyMarkerSizePct;
   const insetEmpty = (100 - Se) / 2 + baseInsetPct * (Se / 100);
   document.documentElement.style.setProperty('--marker-empty-inset', insetEmpty + '%');
@@ -16134,14 +16169,26 @@ function _recomputeMarkerTierInsets() {
   // ratio=100; D = how far that is from 100 (accent's own size). At
   // ratio r, effective inset = baseInset + r*D*(0.5 - baseInset/100) —
   // derived from that same standard formula, substituting S = 100 - r*D
-  // and simplifying.
+  // and simplifying. SQUARE MARKER SIZE RATIO and CIRCLE MARKER SIZE
+  // RATIO are independent sliders now — squares write the original
+  // unprefixed --marker-soft-inset/--marker-legato-inset (also still
+  // read by asterisk mode, unchanged), circles write their own
+  // -circle-suffixed variables that only the circle-mode CSS rules read.
+  // Squares also scale off their OWN base inset (--note-marker-square-
+  // inset, SQUARE MARKER SIZE slider) rather than the circle one, now
+  // that the two accent sizes are independent.
+  const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
+  const ratioSquare = window._markerSizeRatioSquare / 100;
+  const ratioCircle = window._markerSizeRatioCircle / 100;
   [
     { name: 'soft', P: 80 },
     { name: 'legato', P: 65 },
   ].forEach(t => {
     const D = 100 - t.P;
-    const insetEff = baseInsetPct + ratio * D * (0.5 - baseInsetPct / 100);
-    document.documentElement.style.setProperty(`--marker-${t.name}-inset`, insetEff + '%');
+    const insetSquare = baseInsetSquare + ratioSquare * D * (0.5 - baseInsetSquare / 100);
+    document.documentElement.style.setProperty(`--marker-${t.name}-inset`, insetSquare + '%');
+    const insetCircle = baseInsetPct + ratioCircle * D * (0.5 - baseInsetPct / 100);
+    document.documentElement.style.setProperty(`--marker-${t.name}-inset-circle`, insetCircle + '%');
   });
 }
 function setEmptyMarkerSize(v) {
@@ -16155,10 +16202,16 @@ function setEmptyMarkerOpacity(v) {
   const readout = document.getElementById('emptyMarkerOpacityReadout');
   if (readout) readout.textContent = v + '%';
 }
-function setNoteMarkerSizeRatio(v) {
-  window._markerSizeRatio = +v;
+function setNoteMarkerSizeRatioSquare(v) {
+  window._markerSizeRatioSquare = +v;
   _recomputeMarkerTierInsets();
-  const readout = document.getElementById('noteMarkerSizeRatioReadout');
+  const readout = document.getElementById('noteMarkerSizeRatioSquareReadout');
+  if (readout) readout.textContent = v + '%';
+}
+function setNoteMarkerSizeRatioCircle(v) {
+  window._markerSizeRatioCircle = +v;
+  _recomputeMarkerTierInsets();
+  const readout = document.getElementById('noteMarkerSizeRatioCircleReadout');
   if (readout) readout.textContent = v + '%';
 }
 // LOCK BUTTON DARKNESS (SETTINGS slider, 0-100) — the padlock/sweep icon
