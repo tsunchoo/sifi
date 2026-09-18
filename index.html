@@ -1356,7 +1356,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 16:12:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:17:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1504,7 +1504,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 16:12:46 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:17:42 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1818,6 +1818,13 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
           <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
         </div>
         <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="100" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
+          <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">8.0DB</div>
+        </div>
+        <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="8" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -11552,7 +11559,7 @@ function _snapshotLiveGraph() {
     beatGain: window._beatGain, duckGain: window._duckGain,
     normalTrackFadeGain: window._normalTrackFadeGain, postLimiterGain: window._postLimiterGain,
     reverbSendBus: window._reverbSendBus, reverbOutGain: window._reverbOutGain,
-    makeupGain: window._makeupGain, masterLimiter: window.masterLimiter,
+    makeupGain: window._makeupGain, masterLimiter: window.masterLimiter, safetyLimiter: window._safetyLimiter,
     trackGainNodes: trackGainNodes.slice(), trackEnvFilters: trackEnvFilters.slice(), trackFxNodes: trackFxNodes.slice(),
     reverbSendGains: Object.assign({}, _reverbSendGains),
     sidechainDuckGains: Object.assign({}, _sidechainDuckGains),
@@ -11567,7 +11574,7 @@ function _restoreLiveGraph(snap) {
   window._beatGain = snap.beatGain; window._duckGain = snap.duckGain;
   window._normalTrackFadeGain = snap.normalTrackFadeGain; window._postLimiterGain = snap.postLimiterGain;
   window._reverbSendBus = snap.reverbSendBus; window._reverbOutGain = snap.reverbOutGain;
-  window._makeupGain = snap.makeupGain; window.masterLimiter = snap.masterLimiter;
+  window._makeupGain = snap.makeupGain; window.masterLimiter = snap.masterLimiter; window._safetyLimiter = snap.safetyLimiter;
   trackGainNodes.length = 0; trackGainNodes.push(...snap.trackGainNodes);
   trackEnvFilters.length = 0; trackEnvFilters.push(...snap.trackEnvFilters);
   trackFxNodes.length = 0; trackFxNodes.push(...snap.trackFxNodes);
@@ -11602,6 +11609,21 @@ function _buildBounceGraph(targetCtx) {
   window._duckGain = targetCtx.createGain(); window._duckGain.gain.value = 1;
   window._normalTrackFadeGain = targetCtx.createGain(); window._normalTrackFadeGain.gain.value = 1;
   window._postLimiterGain = targetCtx.createGain(); window._postLimiterGain.gain.value = 1;
+  // Second, true brickwall safety stage — the main limiter above (12:1,
+  // -3dB threshold) is fast but, like any DynamicsCompressorNode, can't
+  // guarantee zero-overshoot on sharp transients; it can still let brief
+  // peaks through before it fully catches up. Combined with the fixed
+  // +8dB makeupGain applied unconditionally above (compensating for the
+  // sidechain ducking's average loudness loss) hitting an already-loud
+  // voice (e.g. JAMES BASS) right as a kick's duck/pump discontinuities
+  // land, that's exactly the kind of moment that clipped. This catches
+  // whatever the first stage misses — much harder knee/ratio/threshold,
+  // no makeup-gain pressure feeding into it since it's the last node
+  // before output, per direct request for guarding against clipping from
+  // sidechained level changes specifically.
+  window._safetyLimiter = targetCtx.createDynamicsCompressor();
+  window._safetyLimiter.threshold.value = -0.5; window._safetyLimiter.knee.value = 0; window._safetyLimiter.ratio.value = 20;
+  window._safetyLimiter.attack.value = 0.001; window._safetyLimiter.release.value = 0.05;
   window._reverbSendBus = targetCtx.createGain(); window._reverbSendBus.gain.value = 1;
   window._reverbConv = targetCtx.createConvolver();
   window._reverbConv.normalize = false; // browser auto-normalize crushes a dense noise-decay IR like this to near-silence
@@ -11610,7 +11632,7 @@ function _buildBounceGraph(targetCtx) {
   window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
   window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
   masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain);
-  window._duckGain.connect(masterLimiter); masterLimiter.connect(window._postLimiterGain);
+  window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain);
   // window._postLimiterGain is connected to targetCtx.destination uniformly
   // by _renderOfflineLoop itself, once, for every pass.
 
@@ -16014,6 +16036,22 @@ function setRandReleaseSweepVol(v) {
   const readout = document.getElementById('randReleaseSweepVolReadout');
   if (readout) readout.textContent = v + '%';
 }
+// OUTPUT MAKEUP GAIN (SETTINGS slider, dB) — directly controls the fixed
+// makeup-gain boost applied to the whole mix (see _BASE_MAKEUP_GAIN /
+// makeupGain in the audio graph setup). Slider's middle position (8dB)
+// matches where this has been sitting; room to go both lower (quieter,
+// less distortion risk) and higher (louder, more) from there, so the
+// effect of the boost can actually be heard both ways, per direct
+// request. Updates the live gain node directly (not just the stored
+// default) so it takes effect immediately, mid-playback, without needing
+// a context rebuild.
+function setOutputMakeupGain(db) {
+  const linear = Math.pow(10, (+db) / 20);
+  window._BASE_MAKEUP_GAIN = linear;
+  if (window._makeupGain && ctx) window._makeupGain.gain.setTargetAtTime(linear, ctx.currentTime, 0.02);
+  const readout = document.getElementById('outputMakeupGainReadout');
+  if (readout) readout.textContent = (+db).toFixed(1) + 'DB';
+}
 // FX/REVERB PULSE — the scale+brightness pulse (engaged-btn-pulse) FX and
 // REVERB already share when engaged. Checked by default since pulsing is
 // the existing behavior; unchecking just removes the animation via a CSS
@@ -16811,7 +16849,7 @@ async function initAudio() {
     // Single source of truth for the base output boost — the turbo toggle
     // below derives its own value from this instead of a hardcoded number,
     // so future changes here don't get silently undone by toggling turbo.
-    window._BASE_MAKEUP_GAIN = 2.5061; // +8dB fixed output boost (was +14dB — halved)
+    window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 2.5061; // +8dB fixed output boost (was +14dB — halved) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.3861; window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
@@ -16833,6 +16871,20 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._duckGain = ctx.createGain(); window._duckGain.gain.value = 1;
     window._normalTrackFadeGain = ctx.createGain(); window._normalTrackFadeGain.gain.value = 1; // fades the normal mix during a SWEEP takeover — sits after masterGain so the sidechain analyser (tapped off masterGain directly) never sees this reduction
     window._postLimiterGain = ctx.createGain(); window._postLimiterGain.gain.value = 1; // BOOST lives here — after the limiter, not before it, so it actually reaches the output instead of just making the limiter compress harder
+    // Second, true brickwall safety stage — the main limiter above (12:1,
+    // -3dB threshold) is fast but, like any DynamicsCompressorNode, can't
+    // guarantee zero-overshoot on sharp transients; it can still let brief
+    // peaks through before it fully catches up. Combined with the fixed
+    // +8dB makeupGain applied unconditionally above (compensating for the
+    // sidechain ducking's average loudness loss) hitting an already-loud
+    // voice (e.g. JAMES BASS) right as a kick's duck/pump discontinuities
+    // land, that's exactly the kind of moment that clipped. This catches
+    // whatever the first stage misses — much harder knee/ratio/threshold,
+    // per direct request for guarding against clipping from sidechained
+    // level changes specifically.
+    window._safetyLimiter = ctx.createDynamicsCompressor();
+    window._safetyLimiter.threshold.value = -0.5; window._safetyLimiter.knee.value = 0; window._safetyLimiter.ratio.value = 20;
+    window._safetyLimiter.attack.value = 0.001; window._safetyLimiter.release.value = 0.05;
     // Cheap shared reverb bus — one persistent convolver processing
     // continuously, reused by every instrument's small send tap, instead of
     // creating a new convolver per note. The impulse response is a short
@@ -16845,7 +16897,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbConv.buffer = _buildReverbIRBuffer(ctx, _reverbSizeFromSlider((window._reverbIntensity !== undefined) ? window._reverbIntensity : 0.51));
     window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
     window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
-    masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
+    masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
     // REVERB MIX OVERALL send — a second, parallel reverb send tapping
     // every track's own fully-processed output (post FX/BLAST/pan, same
     // point that feeds masterGain), independent of and in addition to
@@ -16923,7 +16975,7 @@ async function hardResetAudioEngine() {
     if (ctx) { try { await ctx.close(); } catch(e) {} }
     ctx = null; masterGain = null;
     window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
-    window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null;
+    window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null; window._safetyLimiter = null;
     window._beatDryGain = null; window._beatCrunchSend = null; window._beatReverbSend = null; // stale references tied to the closed context, same reasoning as the eight-bit ones below — without this, _ensureBeatFxChain()'s guard (!window._beatDryGain) incorrectly thinks the chain is already built for the new context, so BEAT's reverb/crunch sends silently update an orphaned node from the old (closed) context while the new _beatGain stays directly wired to masterGain, bypassing them entirely
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
     window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
