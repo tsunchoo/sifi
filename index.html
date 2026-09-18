@@ -852,9 +852,9 @@ body.just-track .track-vol-fill-solid {
 body.simple-fader .track-vol-tip {
   display: block;
   position: absolute;
-  left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 12px)));
+  left: calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 10px)));
   top: 0; bottom: 0;
-  width: var(--simple-fader-width, 6px); /* hardcoded per direct request (was 10px, 11px before that, 12px before that, briefly a slider before that too) — --simple-fader-width itself is never set anymore, so this fallback is the effective value */
+  width: var(--simple-fader-width, 10px); /* hardcoded to 10px per direct request — was two mismatched fallbacks here (12px on the left-position calc above, 6px on width), which would have thrown the tip's own alignment off from its travel range the moment the CSS variable wasn't explicitly set; both now consistent, and the FADER WIDTH slider (SETTINGS) still calls setSimpleFaderWidth() to actually set --simple-fader-width if adjusted, with an explicit startup call locking in 10px as the real default rather than leaving it to this fallback alone */
   background: #000; /* hardcoded, per direct request — this was the original "almost black" color the user was actually asking to keep as the permanent tip color, not a placeholder to be replaced by a dynamic default */
   pointer-events: none;
 }
@@ -1221,8 +1221,18 @@ body.note-markers-circle .step-cell.soft::after {
 /* LEFT-JUSTIFY CIRCLES (SETTINGS toggle) — same idea and same width-
    preserving math as LEFT-JUSTIFY SQUARES above, just for circle mode's
    own empty/soft markers. Diameter is unchanged; only the anchor moves
-   from centered to left-pinned at the accent circle's own left edge. */
-body.marker-left-justify-circles.note-markers-circle .step-cell::after {
+   from centered to left-pinned at the accent circle's own left edge.
+   BUGFIX: the "empty" override below used to be a bare .step-cell::after
+   with no :not() exclusions — same equal specificity (1 type + 3
+   classes) as the .on::after sizing rule above, but declared later in
+   the file, so on a tie it silently won and resized/repositioned the
+   accented (and soft, and legato-tail) circles too, not just genuinely
+   empty cells, whenever LEFT-JUSTIFY CIRCLES was toggled on. Adding the
+   same :not(.on):not(.soft):not(.legato-tail):not(.split32) exclusions
+   the square-mode version already uses both scopes this correctly to
+   empty cells only AND pushes its specificity strictly higher than
+   .on/.soft/.legato-tail's own rules, so it can't win that tie again. */
+body.marker-left-justify-circles.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   left: var(--note-marker-circle-inset, 12%);
   right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-circle-inset, 12%));
 }
@@ -1406,7 +1416,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track track-row-bg vol-slider-neon">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg vol-slider-neon note-markers-circle">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1439,7 +1449,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 18:52:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 19:11:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1587,7 +1597,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 18:52:58 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 19:11:46 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1861,9 +1871,9 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">6PX</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
         </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="6" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
@@ -1873,7 +1883,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
         <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="noteMarkersCircleToggle" onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
+        <input type="checkbox" id="noteMarkersCircleToggle" checked onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
@@ -10565,6 +10575,7 @@ function setNeonPulseSpeed(v) {
 }
 setVolSliderNeon(true); // hardcoded on, per direct request — applied immediately, matching the vol-slider-neon class already on <body>
 setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
+setSimpleFaderWidth(10); // hardcoded at 10px, per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
