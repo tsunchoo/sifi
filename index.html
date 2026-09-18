@@ -1059,7 +1059,7 @@ body.vol-slider-neon.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-soli
   content: '';
   position: absolute;
   background: var(--empty-cell-color, #DCD7D0);
-  opacity: 0.2;
+  opacity: var(--empty-marker-opacity, 0.2); /* SETTINGS slider — .on/.soft override this separately with their own opacity, so this only ever affects the empty-cell case */
   pointer-events: none;
   transition: background 0.05s, opacity 0.05s;
   left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* height now matches width via aspect-ratio instead of a separate top/bottom inset, so this (and everything below that only sets left/right) is a proper square, not a rectangle stretched to the cell's own (usually non-square) aspect ratio — same reasoning applies to every circle-mode rule further down. bottom:auto explicit (not just relying on it defaulting there) so vertical centering via top:50%+translateY(-50%) is never accidentally fought by a leftover bottom value from elsewhere, keeping the marker properly centered in the cell. left/right now driven by the same --note-marker-circle-inset the CIRCLE MARKER SIZE slider controls (was a fixed 1px) — per direct request, that slider now affects all three marker styles (rectangle/circle/asterisk), not just circles */
@@ -1356,7 +1356,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:28:03 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 17:37:56 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1504,7 +1504,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:28:03 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 17:37:56 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1822,9 +1822,9 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
-          <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">8.0DB</div>
+          <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">13.0DB</div>
         </div>
-        <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="8" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="13" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -1839,6 +1839,20 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
           <div id="noteMarkerSizeRatioReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
         </div>
         <input type="range" id="noteMarkerSizeRatioSlider" min="0" max="200" value="100" oninput="setNoteMarkerSizeRatio(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER OPACITY</div>
+          <div id="emptyMarkerOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+        </div>
+        <input type="range" id="emptyMarkerOpacitySlider" min="0" max="100" value="20" oninput="setEmptyMarkerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER SIZE</div>
+          <div id="emptyMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">90%</div>
+        </div>
+        <input type="range" id="emptyMarkerSizeSlider" min="0" max="100" value="90" oninput="setEmptyMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -8860,6 +8874,7 @@ function selectSound(tr, k) {
   if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
   setTrackNameColor(tr, k);
+  trackMuted[tr] = false; updateTrackMute(tr); // picking an instrument unmutes the track, per direct request
   const sb = document.getElementById(`swpbtn-${tr}`);
   if (sb) {
     const tonal = TONAL_KEYS.has(k);
@@ -8867,7 +8882,7 @@ function selectSound(tr, k) {
   }
   closeSoundPicker();
   markModified();
-  _updateEmptyTrackVisuals();
+  _updateEmptyTrackVisuals(true); // skipReorder — picking an instrument shouldn't relocate the track in the layout, per direct request
 }
 function closeSoundPicker() {
   document.getElementById('soundPicker').classList.remove('visible');
@@ -9396,7 +9411,7 @@ function redrawTrackCells(tr) {
 // every row's controls and grid simultaneously left nothing usable on
 // screen right after a reset.
 let _trackInstrumentTouched = new Array(NUM_TRACKS).fill(false);
-function _updateEmptyTrackVisuals() {
+function _updateEmptyTrackVisuals(skipReorder) {
   let anyActive = false;
   for (let t = 0; t < NUM_TRACKS; t++) {
     if (grid[t].some(v => v > 0) || _trackInstrumentTouched[t]) { anyActive = true; break; }
@@ -9406,7 +9421,7 @@ function _updateEmptyTrackVisuals() {
     if (!wrap) continue;
     const isEmpty = anyActive && !grid[t].some(v => v > 0) && !_trackInstrumentTouched[t];
     wrap.classList.toggle('track-empty', isEmpty);
-    wrap.style.order = isEmpty ? (100 + t) : t;
+    if (!skipReorder) wrap.style.order = isEmpty ? (100 + t) : t; // skipReorder (new, optional) — selectSound() passes true so picking an instrument still correctly clears the dimmed "empty" look without also relocating the track in the layout, per direct request
   }
 }
 function previewNote(tr, isAccent) {
@@ -11603,7 +11618,7 @@ function _restoreLiveGraph(snap) {
 function _buildBounceGraph(targetCtx) {
   ctx = targetCtx;
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
-  const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 2.5061;
+  const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 4.4668;
   window._makeupGain = makeupGain;
   window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.3861; // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   // NOT auto-connected to masterGain here — the caller wires in only the
@@ -15993,16 +16008,22 @@ function setNoteMarkerCircleSize(v) {
 // precomputes the actual --marker-*-inset percentage for each tier
 // instead, which the CSS then just reads directly.
 window._markerSizeRatio = 100;
+window._emptyMarkerSizePct = 90; // direct control (SETTINGS slider) — no longer part of the ratio-derived loop below, since this is meant as a direct "% of accent size" independent of NOTE MARKER SIZE RATIO
 function _recomputeMarkerTierInsets() {
   const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
   const ratio = window._markerSizeRatio / 100;
-  // P = each tier's own fixed percent-of-accent size at ratio=100; D =
-  // how far that is from 100 (accent's own size). At ratio r, effective
-  // inset = baseInset + r*D*(0.5 - baseInset/100) — derived from the
-  // standard "for S% size, inset=(100-S)/2 + baseInset*(S/100)" formula
-  // used throughout, substituting S = 100 - r*D and simplifying.
+  // EMPTY — direct, standard "for S% size, inset=(100-S)/2 + baseInset*
+  // (S/100)" formula, independent of the ratio slider (SETTINGS slider
+  // controls S directly as a straight percentage of the accent size).
+  const Se = window._emptyMarkerSizePct;
+  const insetEmpty = (100 - Se) / 2 + baseInsetPct * (Se / 100);
+  document.documentElement.style.setProperty('--marker-empty-inset', insetEmpty + '%');
+  // P = each remaining tier's own fixed percent-of-accent size at
+  // ratio=100; D = how far that is from 100 (accent's own size). At
+  // ratio r, effective inset = baseInset + r*D*(0.5 - baseInset/100) —
+  // derived from that same standard formula, substituting S = 100 - r*D
+  // and simplifying.
   [
-    { name: 'empty', P: 90 },
     { name: 'soft', P: 80 },
     { name: 'legato', P: 65 },
   ].forEach(t => {
@@ -16010,6 +16031,17 @@ function _recomputeMarkerTierInsets() {
     const insetEff = baseInsetPct + ratio * D * (0.5 - baseInsetPct / 100);
     document.documentElement.style.setProperty(`--marker-${t.name}-inset`, insetEff + '%');
   });
+}
+function setEmptyMarkerSize(v) {
+  window._emptyMarkerSizePct = +v;
+  _recomputeMarkerTierInsets();
+  const readout = document.getElementById('emptyMarkerSizeReadout');
+  if (readout) readout.textContent = v + '%';
+}
+function setEmptyMarkerOpacity(v) {
+  document.documentElement.style.setProperty('--empty-marker-opacity', (+v) / 100);
+  const readout = document.getElementById('emptyMarkerOpacityReadout');
+  if (readout) readout.textContent = v + '%';
 }
 function setNoteMarkerSizeRatio(v) {
   window._markerSizeRatio = +v;
@@ -16857,7 +16889,7 @@ async function initAudio() {
     // Single source of truth for the base output boost — the turbo toggle
     // below derives its own value from this instead of a hardcoded number,
     // so future changes here don't get silently undone by toggling turbo.
-    window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 2.5061; // +8dB fixed output boost (was +14dB — halved) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
+    window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 4.4668; // +13dB fixed output boost, hardcoded per direct request (was +8dB/2.5061, +14dB before that) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.3861; window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
