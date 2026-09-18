@@ -1119,7 +1119,7 @@ body.marker-left-justify-squares .step-cell.soft::after {
    derivation as the other size variants: for S% of the base diameter,
    new_inset = (100-S)/2 + inset*(S/100), here S=90. */
 body.note-markers-circle .step-cell::after {
-  left: var(--marker-empty-inset, 42.4%); right: var(--marker-empty-inset, 42.4%);
+  left: var(--marker-empty-inset-circle, 42.4%); right: var(--marker-empty-inset-circle, 42.4%);
   border-radius: 50%;
 }
 /* CIRCLE OPACITY COMPENSATION — a circle only fills ~78.5% of its own
@@ -1138,7 +1138,7 @@ body.note-markers-circle .step-cell::after {
    circle class) than the base .on/.soft/empty opacity rules, so this
    wins outright without !important. */
 body.note-markers-circle .step-cell::after {
-  opacity: calc(min(1, var(--empty-marker-opacity, 0.8) * 1.2732));
+  opacity: calc(min(1, var(--empty-marker-opacity-circle, 0.2) * 1.2732));
 }
 body.note-markers-circle .step-cell.soft::after {
   opacity: calc(min(1, var(--note-marker-opacity, 1) * 0.4 * 1.2732));
@@ -1185,6 +1185,7 @@ body.note-markers-circle .step-cell.playing { background: transparent; }
 body.note-markers-circle .step-cell.playing::after {
   background: var(--track-color, var(--text));
   filter: brightness(0.55);
+  opacity: calc(0.1875 * var(--empty-marker-opacity-circle, 0.2)); /* was inheriting the square-mode formula (based on --empty-marker-opacity) — now that empty opacity is split per mode, this uses circle's own value instead, for a genuinely empty cell the playhead is sweeping over */
 }
 body.note-markers-circle .step-cell.on.playing::after,
 body.note-markers-circle .step-cell.soft.playing::after {
@@ -1193,7 +1194,7 @@ body.note-markers-circle .step-cell.soft.playing::after {
 }
 .step-cell.split32::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
-  opacity: 1;
+  opacity: var(--note-marker-opacity, 1); /* was hardcoded to 1, unlike .on which uses this variable (0.9) — split32 sat visibly more opaque than an accented note despite representing the same accent-level hit */
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
@@ -1235,7 +1236,7 @@ body.note-markers-circle .step-cell.soft::after {
    .on/.soft/.legato-tail's own rules, so it can't win that tie again. */
 body.marker-left-justify-circles.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   left: var(--note-marker-circle-inset, 12%);
-  right: calc(2 * var(--marker-empty-inset, 42.4%) - var(--note-marker-circle-inset, 12%));
+  right: calc(2 * var(--marker-empty-inset-circle, 42.4%) - var(--note-marker-circle-inset, 12%));
 }
 body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
   left: var(--note-marker-circle-inset, 12%);
@@ -1268,7 +1269,7 @@ body.note-markers-circle .step-cell.split32::after {
   background:
     radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%),
     radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%);
-  opacity: 1;
+  opacity: var(--note-marker-opacity, 1);
 }
 
 /* NOTE MARKERS = ASTERISKS (SETTINGS toggle) — same asterisk shape as
@@ -1319,7 +1320,7 @@ body.note-markers-asterisk .step-cell.split32::after {
   background: var(--track-color, var(--text));
   left: var(--note-marker-circle-inset, 12%); right: var(--note-marker-circle-inset, 12%);
   top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
-  opacity: 1;
+  opacity: var(--note-marker-opacity, 1);
 }
 /* PLAY FLASH didn't work in asterisk mode at all — this mode had no
    explicit .playing rule of its own, so the generic rectangle-mode rule
@@ -1450,7 +1451,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 21:30:31 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 22:41:09 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1598,7 +1599,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 21:30:31 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 22:41:09 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1956,17 +1957,31 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER OPACITY</div>
-          <div id="emptyMarkerOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">80%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER OPACITY</div>
+          <div id="emptyMarkerOpacitySquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">80%</div>
         </div>
-        <input type="range" id="emptyMarkerOpacitySlider" min="0" max="100" value="80" oninput="setEmptyMarkerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="emptyMarkerOpacitySquareSlider" min="0" max="100" value="80" oninput="setEmptyMarkerOpacitySquare(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">EMPTY MARKER SIZE</div>
-          <div id="emptyMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER SIZE</div>
+          <div id="emptyMarkerSizeSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
         </div>
-        <input type="range" id="emptyMarkerSizeSlider" min="0" max="100" value="20" oninput="setEmptyMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="emptyMarkerSizeSquareSlider" min="10" max="100" value="20" oninput="setEmptyMarkerSizeSquare(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER OPACITY</div>
+          <div id="emptyMarkerOpacityCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+        </div>
+        <input type="range" id="emptyMarkerOpacityCircleSlider" min="0" max="100" value="20" oninput="setEmptyMarkerOpacityCircle(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER SIZE</div>
+          <div id="emptyMarkerSizeCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
+        </div>
+        <input type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -9604,7 +9619,7 @@ function tapStep(tr, s, cell) {
     tbtn.classList.toggle('has-notes', hasNotes);
     tbtn.textContent = INSTRUMENTS[trackInstruments[tr]]?.name || '';
   }
-  if (val > 0 && ctx) previewNote(tr, val === 2);
+  if (val > 0 && ctx) previewNote(tr, val === 2 || val === 3); // was just val===2, so cycling a step into split32 (val 3) previewed as a soft hit even though the real scheduler always treats a split's main hit as accent-level (see fireStepAudio's own "treat split as accent-level for the main hit") — preview now matches
   markModified();
 }
 
@@ -9816,7 +9831,7 @@ document.addEventListener('touchend', () => {
     if (dragStartCellEl) {
       dragStartCellEl.classList.toggle('on', val === 2); dragStartCellEl.classList.toggle('soft', val === 1); dragStartCellEl.classList.toggle('split32', val === 3);
     }
-    if (val > 0) previewNote(tr, val === 2);
+    if (val > 0) previewNote(tr, val === 2 || val === 3);
     markModified();
   }
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
@@ -9886,7 +9901,7 @@ document.addEventListener('mouseup', () => {
     if (dragStartCellEl) {
       dragStartCellEl.classList.toggle('on', val === 2); dragStartCellEl.classList.toggle('soft', val === 1); dragStartCellEl.classList.toggle('split32', val === 3);
     }
-    if (val > 0) previewNote(tr, val === 2);
+    if (val > 0) previewNote(tr, val === 2 || val === 3);
     markModified();
   }
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
@@ -10592,6 +10607,10 @@ setVolSliderNeon(true); // hardcoded on, per direct request — applied immediat
 setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
 setSimpleFaderWidth(10); // hardcoded at 10px, per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
 setSquareMarkerSize(76); // startup default, matches the size already in effect before SQUARE MARKER SIZE existed as its own control
+setEmptyMarkerOpacitySquare(80); // startup default
+setEmptyMarkerSizeSquare(20); // startup default
+setEmptyMarkerOpacityCircle(20); // hardcoded, per direct request
+setEmptyMarkerSizeCircle(50); // hardcoded, per direct request
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
 // added at the end of the volume fill in SIMPLE FADER mode (see
 // .track-vol-fill-solid::after) — NOT the fill itself, which is untouched
@@ -16154,33 +16173,53 @@ function setSquareMarkerSize(v) {
 // precomputes the actual --marker-*-inset percentage for each tier
 // instead, which the CSS then just reads directly.
 window._markerSizeRatioSquare = 100; // squares/asterisks — independent from circles now, per direct request
-window._markerSizeRatioCircle = 200; // circles — kept at the value just set before the split, so nothing changes visually right now (circles are the hardcoded-on mode)
-window._emptyMarkerSizePct = 20; // direct control (SETTINGS slider), hardcoded default per direct request (was 90) — no longer part of the ratio-derived loop below, since this is meant as a direct "% of accent size" independent of NOTE MARKER SIZE RATIO
+window._markerSizeRatioCircle = 200; // circles — hardcoded at 200%, per direct request
+window._emptyMarkerSizePctSquare = 20; // direct control (SETTINGS slider) — a straight "% of the square accent's own size" ratio, 1:1 (100, full size) down to 1:0.10 (10, a tenth of the accent's size)
+window._emptyMarkerSizePctCircle = 50; // hardcoded at 50%, per direct request — independent of the square value above
 function _recomputeMarkerTierInsets() {
+  // BUGFIX: this used to read window._emptyMarkerSizePct / _markerSizeRatioSquare
+  // / _markerSizeRatioCircle directly with no fallback. Those three are declared
+  // much further down in the file (by plain `window._x = value` statements, not
+  // hoisted function declarations), but setSquareMarkerSize() at startup calls
+  // this function long before execution ever reaches those lines — so on that
+  // first call every one of them was `undefined`, every formula below came out
+  // NaN, and every "NaN%" written to a --marker-*-inset variable is an invalid
+  // CSS length: per the var() spec, an explicitly-set-but-invalid custom
+  // property does NOT fall back to the var()'s own fallback value (that only
+  // applies when the property is unset) — instead left/right computed to their
+  // initial value `auto`, collapsing several markers (empty, soft, legato-tail,
+  // in both square and circle mode) to zero width. Guarding each read here with
+  // `?? default` makes this resilient regardless of call order.
   const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
+  const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
   // EMPTY — direct, standard "for S% size, inset=(100-S)/2 + baseInset*
-  // (S/100)" formula, independent of the ratio slider (SETTINGS slider
-  // controls S directly as a straight percentage of the accent size).
-  // Left on the shared circle-mode base — SQUARE MARKER SIZE below only
-  // affects the accent/soft/legato square tiers, not this.
-  const Se = window._emptyMarkerSizePct;
-  const insetEmpty = (100 - Se) / 2 + baseInsetPct * (Se / 100);
-  document.documentElement.style.setProperty('--marker-empty-inset', insetEmpty + '%');
+  // (S/100)" formula, independent of the ratio sliders (SETTINGS sliders
+  // control S directly as a straight percentage of the accent size).
+  // SQUARE MARKER SIZE (EMPTY) and CIRCLE MARKER SIZE (EMPTY) are
+  // independent now, each scaled off that mode's own accent base inset —
+  // squares write the original unprefixed --marker-empty-inset (also
+  // still read by asterisk mode, unchanged), circles write their own
+  // -circle-suffixed variable that only the circle-mode CSS rules read.
+  const SeSquare = window._emptyMarkerSizePctSquare ?? 20;
+  const insetEmptySquare = (100 - SeSquare) / 2 + baseInsetSquare * (SeSquare / 100);
+  document.documentElement.style.setProperty('--marker-empty-inset', insetEmptySquare + '%');
+  const SeCircle = window._emptyMarkerSizePctCircle ?? 50;
+  const insetEmptyCircle = (100 - SeCircle) / 2 + baseInsetPct * (SeCircle / 100);
+  document.documentElement.style.setProperty('--marker-empty-inset-circle', insetEmptyCircle + '%');
   // P = each remaining tier's own fixed percent-of-accent size at
   // ratio=100; D = how far that is from 100 (accent's own size). At
   // ratio r, effective inset = baseInset + r*D*(0.5 - baseInset/100) —
   // derived from that same standard formula, substituting S = 100 - r*D
   // and simplifying. SQUARE MARKER SIZE RATIO and CIRCLE MARKER SIZE
-  // RATIO are independent sliders now — squares write the original
+  // RATIO are independent sliders — squares write the original
   // unprefixed --marker-soft-inset/--marker-legato-inset (also still
   // read by asterisk mode, unchanged), circles write their own
   // -circle-suffixed variables that only the circle-mode CSS rules read.
   // Squares also scale off their OWN base inset (--note-marker-square-
   // inset, SQUARE MARKER SIZE slider) rather than the circle one, now
   // that the two accent sizes are independent.
-  const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
-  const ratioSquare = window._markerSizeRatioSquare / 100;
-  const ratioCircle = window._markerSizeRatioCircle / 100;
+  const ratioSquare = (window._markerSizeRatioSquare ?? 100) / 100;
+  const ratioCircle = (window._markerSizeRatioCircle ?? 200) / 100;
   [
     { name: 'soft', P: 80 },
     { name: 'legato', P: 65 },
@@ -16192,15 +16231,26 @@ function _recomputeMarkerTierInsets() {
     document.documentElement.style.setProperty(`--marker-${t.name}-inset-circle`, insetCircle + '%');
   });
 }
-function setEmptyMarkerSize(v) {
-  window._emptyMarkerSizePct = +v;
+function setEmptyMarkerSizeSquare(v) {
+  window._emptyMarkerSizePctSquare = +v;
   _recomputeMarkerTierInsets();
-  const readout = document.getElementById('emptyMarkerSizeReadout');
+  const readout = document.getElementById('emptyMarkerSizeSquareReadout');
   if (readout) readout.textContent = v + '%';
 }
-function setEmptyMarkerOpacity(v) {
+function setEmptyMarkerOpacitySquare(v) {
   document.documentElement.style.setProperty('--empty-marker-opacity', (+v) / 100);
-  const readout = document.getElementById('emptyMarkerOpacityReadout');
+  const readout = document.getElementById('emptyMarkerOpacitySquareReadout');
+  if (readout) readout.textContent = v + '%';
+}
+function setEmptyMarkerSizeCircle(v) {
+  window._emptyMarkerSizePctCircle = +v;
+  _recomputeMarkerTierInsets();
+  const readout = document.getElementById('emptyMarkerSizeCircleReadout');
+  if (readout) readout.textContent = v + '%';
+}
+function setEmptyMarkerOpacityCircle(v) {
+  document.documentElement.style.setProperty('--empty-marker-opacity-circle', (+v) / 100);
+  const readout = document.getElementById('emptyMarkerOpacityCircleReadout');
   if (readout) readout.textContent = v + '%';
 }
 function setNoteMarkerSizeRatioSquare(v) {
