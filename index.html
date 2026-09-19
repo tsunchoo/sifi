@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-12 18:08:09 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 04:27:02 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -30,6 +30,7 @@
   --top-row-saturation: 1; /* Hard-coded to 100% (maximum, unchanged) now — the TOP ROW COLOR SATURATION slider itself was removed from COLOR settings. Still a saturate() filter on every top-row .btn, independent of the TOP ROW color picker itself. */
   --note-marker-opacity: 0.9; /* Hard-coded to 90% now — the NOTE MARKER OPACITY slider itself was removed from COLOR settings. Still a multiplier on the step-cell note markers' own opacity (soft/on, playing or not), preserving the relative difference between soft and accented notes rather than flattening them to the same value. */
   --vol-scale-thickness: 4px; /* Hardcoded per direct request — was 3.125px (the old slider's own maximum, before it too was removed from the UI). setVolScaleThickness() is kept intact in case this needs to change again later. */
+  --just-track-fill-thickness: 8px; /* JUST TRACK's fill band height — split out from --vol-scale-thickness (the ruler line's own thickness) so the fill can be made thicker/more visible without also thickening the ruler ticks. */
   --vol-scale-opacity: 1; /* Hard-coded to 100% now — the SCALE LINES OPACITY slider itself was removed from COLOR settings. Color is a darker version of --neutral-top (the volume bar's own background), not independently pickable. */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -156,8 +157,16 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    styles or CSS variables, which kept silently failing to actually
    reach the screen), just with these two fixed hex colors instead of a
    multi-stop gradient. Class add/remove happens in updatePlayhead(). */
-@keyframes neon-vol-pulse-bright { from { background-color: #adff00; } to { background-color: color-mix(in srgb, #adff00 35%, black); } }
-@keyframes neon-vol-pulse-dark   { from { background-color: color-mix(in srgb, #adff00 65%, black); } to { background-color: color-mix(in srgb, #adff00 35%, black); } }
+@keyframes neon-vol-pulse-bright { 0% { background-color: #adff00; } 60% { background-color: #adff00; } 100% { background-color: color-mix(in srgb, #adff00 35%, black); } }
+@keyframes neon-vol-pulse-dark   { 0% { background-color: color-mix(in srgb, #adff00 65%, black); } 60% { background-color: color-mix(in srgb, #adff00 65%, black); } 100% { background-color: color-mix(in srgb, #adff00 35%, black); } }
+/* BUGFIX: these were plain from/to fades, so the whole --neon-pulse-duration
+   was spent fading, with no genuine "hold at the peak" phase — on any track
+   with notes closer together than that duration (most tracks), the next hit
+   retriggers the animation before the fade ever gets far, so the NEON PULSE
+   SPEED slider had barely any visible effect either way. Added an explicit
+   0%-60% hold at the true peak color, THEN a 60%-100% fade — now a longer
+   duration visibly holds the bright color longer before it drops, which is
+   what that slider was actually supposed to do. */
 .track-vol-fill-solid.neon-pulse-bright { animation: neon-vol-pulse-bright var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
 .track-vol-fill-solid.neon-pulse-dark   { animation: neon-vol-pulse-dark var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
 /* Non-NEON note-driven vol slider pulse — same restart-a-@keyframes
@@ -853,7 +862,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
 body.just-track .track-vol-fill-solid {
   top: 50% !important;
   bottom: auto !important;
-  height: var(--vol-scale-thickness, 4px) !important;
+  height: var(--just-track-fill-thickness, 8px) !important; /* was var(--vol-scale-thickness, 4px) — that variable is shared with the ruler line's own thickness (.track-vol-scale::before above), so bumping it to make the NEON color easier to see would have thickened the ruler ticks/line too. Split into its own dedicated variable instead, doubled to 8px, so the fill band itself (and the neon pulse color riding on it) is actually visible without touching the ruler's look. */
   transform: translateY(-50%) !important;
 }
 /* SIMPLE FADER tip — a real sibling element of the fill now (.track-vol-
@@ -1477,7 +1486,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 01:32:48 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 04:27:02 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1625,12 +1634,19 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 01:32:48 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 04:27:02 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
       <label class="wild-toggle">
         <input type="checkbox" id="wildColorsToggle" checked>
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">MARKER STYLE</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="markerStyleToggle" checked onchange="setNoteMarkersCircle(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -1670,7 +1686,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
-      <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">MORE</button>
+      <button id="devMoreToggleBtn" class="rec-mode-btn" onclick="toggleDevMore()">DEV</button>
     </div>
 
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
@@ -1717,6 +1733,18 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
             <input type="radio" name="trackPulseMode" value="a" checked onchange="setTrackPulseMode('a')" style="width:15px;height:15px;cursor:pointer;">PULSING
           </label>
         </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FADER WIDTH</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
+        </div>
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH</div>
+        <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
 
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
@@ -1896,31 +1924,12 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
            a slider again below. setSimpleFader()/setVolScaleThickness()/
            setVolBarHeight()/setVolFillHeight() are all kept intact for
            this reason. -->
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
-        </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO FLASH
       </label>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">PLAY FLASH</div>
-        <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">MARKER STYLE</div>
-        <button id="markerStyleToggleBtn" onclick="toggleMarkerStyle()" style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;cursor:pointer;background:#111;color:#f5f0e8;border:none;border-radius:3px;min-width:72px;">CIRCLES</button>
-      </div>
-
       <div style="border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;">
         <button id="devTabToggleBtn" onclick="toggleDevTab()" style="width:100%;font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px;cursor:pointer;background:transparent;border:1px solid #111;color:#111;border-radius:3px;">DEV</button>
         <div id="devTabContent" style="display:none;flex-direction:column;gap:15px;margin-top:16px;">
-          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="noteMarkersCircleToggle" checked onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
-          </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
             <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
           </label>
@@ -13651,6 +13660,7 @@ function randAll(mode, opts) {
   // now the only way a pattern gets into the slot bar.
   setTimeout(() => { updateLegatoVisuals(); }, NUM_TRACKS * 30 + 50);
   setTimeout(() => { _ensureMozambiqueKitCorrect(); }, NUM_TRACKS * 30 + 60); // just after the legato pass above, same reasoning — waits for every staggered per-track call to genuinely finish first
+  setTimeout(() => { _ensureJazzKitCorrect(); }, NUM_TRACKS * 30 + 60); // same class of bug as MOZAMBIQUE's own safety net above, same fix — JAZZ's RIDE/comping pattern is written by the same staggered per-track setTimeout mechanism (see the _hasFixedBeatPattern block), so it depended on the same timing/state lining up and could come out with RIDE assigned but its fixed pattern never actually written (or the track still muted from before), reported as "came in without the RIDE track and pattern"
 }
 
 // Little downward sweep when a new RAND pattern actually starts playing —
@@ -16104,7 +16114,7 @@ function toggleDevMore() {
   const showing = p1 && p1.style.display !== 'none';
   if (p1) p1.style.display = showing ? 'none' : 'flex';
   if (p2) p2.style.display = showing ? 'none' : 'flex';
-  if (btn) btn.textContent = showing ? 'MORE' : 'LESS';
+  if (btn) btn.textContent = showing ? 'DEV' : 'LESS';
 }
 // Offset step size — how many 16th-note steps beatCtrlShift() moves per
 // press of < or the right spool. 0=16th(1 step), 1=8th(2), 2=quarter(4),
@@ -16246,20 +16256,18 @@ function setDevNotesGrayscale(on) {
   const otherCb = document.getElementById('notesGrayscaleEnable');
   if (otherCb) otherCb.checked = on;
 }
-function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
-// MARKER STYLE (SETTINGS toggle, top-level) — a simple two-state button
-// replacing the old NOTE MARKERS = CIRCLES checkbox at this spot, per
-// direct request; that checkbox still exists (now inside the DEV tab
-// below, alongside NOTE MARKERS = ASTERISKS and the rest of the marker
-// tuning controls) and stays in sync so either control reflects the same
-// underlying state.
-function toggleMarkerStyle() {
-  const isCircle = !document.body.classList.contains('note-markers-circle');
-  setNoteMarkersCircle(isCircle);
-  const btn = document.getElementById('markerStyleToggleBtn');
-  if (btn) btn.textContent = isCircle ? 'CIRCLES' : 'SQUARES';
-  const cb = document.getElementById('noteMarkersCircleToggle');
-  if (cb) cb.checked = isCircle;
+// MARKER STYLE — two controls drive this same body class now: the pill
+// switch in the COLOR MENU (right under WILD, id="markerStyleToggle" — see
+// its own onchange, which calls this then mirrors the result onto the DEV
+// checkbox below) and the plain NOTE MARKERS = CIRCLES checkbox still
+// inside SETTINGS' DEV tab (id="noteMarkersCircleToggle", alongside NOTE
+// MARKERS = ASTERISKS and the rest of the marker tuning controls). Both
+// always mirrored here so either one reflects the true current state
+// regardless of which was used most recently.
+function setNoteMarkersCircle(on) {
+  document.body.classList.toggle('note-markers-circle', !!on);
+  const pill = document.getElementById('markerStyleToggle'); if (pill) pill.checked = !!on;
+  const devCb = document.getElementById('noteMarkersCircleToggle'); if (devCb) devCb.checked = !!on;
 }
 // DEV (SETTINGS tab, bottom of panel) — collapses every marker-tuning
 // slider/toggle (plus a few unrelated settings that happened to sit below
@@ -16589,6 +16597,23 @@ function setTonalPercBalance(v) {
       if (e.animationName !== 'press-pulse') return; // ignore wobble/color-cycle's own animationend events
       title.classList.remove('press-pulse');
       title.removeEventListener('animationend', _onLogoPulseEnd);
+    });
+  });
+  // 8-BIT MODE — the opposite gesture, per direct request: a single tap
+  // above only ever turns it off (if already on) alongside the color-mode
+  // cycle; a double-tap/double-click turns it fully ON (100% mix) instead.
+  // No touchstart/preventDefault anywhere in this IIFE, so the browser's
+  // native dblclick synthesizes fine from a real double-tap, same as
+  // nameBar's own double-tap-to-save falls back to native dblclick for
+  // desktop mice (see below) — no raw touchend timing needed here.
+  title.addEventListener('dblclick', e => {
+    e.preventDefault();
+    setEightBitMode(true); // internally calls setEightBitMix(100), which also updates the slider/readout in Settings
+    _pressPulse('siFiTitle');
+    title.addEventListener('animationend', function _onLogoPulseEnd2(e2) {
+      if (e2.animationName !== 'press-pulse') return;
+      title.classList.remove('press-pulse');
+      title.removeEventListener('animationend', _onLogoPulseEnd2);
     });
   });
 })();
@@ -18376,6 +18401,37 @@ function _ensureMozambiqueKitCorrect() {
       grid[tr][3] = 2; grid[tr][11] = 2;
     } else if (k === 'toms') {
       grid[tr][7] = 2; grid[tr][14] = 2; grid[tr][15] = 2;
+    }
+    redrawTrackCells(tr);
+  }
+}
+// Same safety net as _ensureMozambiqueKitCorrect above, for JAZZ's own
+// forced RIDE + comping (SIDESTICK or SSNARE) tracks — see that function's
+// comment for the full reasoning. Note the comping instrument's pattern
+// here is randomized (ghost notes on off-beats), not fixed like ride/
+// sidestick/toms are for MOZAMBIQUE, so this regenerates a fresh one
+// rather than writing one constant layout — still guarantees RIDE itself
+// always has its correct fixed pattern and neither track is left muted,
+// regardless of what state a staggered per-track call left them in.
+function _ensureJazzKitCorrect() {
+  if (_beatType !== 'jazz') return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const k = trackInstruments[tr];
+    if (k !== 'ride' && k !== 'sidestick' && k !== 'ssnare') continue;
+    trackMuted[tr] = false; updateTrackMute(tr);
+    if (k === 'ride') {
+      if (grid[tr].every(v => v === 0)) {
+        grid[tr][0] = 2; grid[tr][8] = 2;
+        grid[tr][4] = 1; grid[tr][12] = 1;
+        grid[tr][7] = 1; grid[tr][15] = 1;
+      }
+    } else {
+      if (grid[tr].every(v => v === 0)) {
+        const _offBeatSteps = [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15];
+        const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round(5 * intensityMult())));
+        const _shuffledOff = [..._offBeatSteps].sort(() => Math.random() - 0.5);
+        _shuffledOff.slice(0, _ghostCount).forEach(s => { grid[tr][s] = Math.random() < 0.2 ? 2 : 1; });
+      }
     }
     redrawTrackCells(tr);
   }
