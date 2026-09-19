@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 04:32:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 04:38:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -30,7 +30,6 @@
   --top-row-saturation: 1; /* Hard-coded to 100% (maximum, unchanged) now — the TOP ROW COLOR SATURATION slider itself was removed from COLOR settings. Still a saturate() filter on every top-row .btn, independent of the TOP ROW color picker itself. */
   --note-marker-opacity: 0.9; /* Hard-coded to 90% now — the NOTE MARKER OPACITY slider itself was removed from COLOR settings. Still a multiplier on the step-cell note markers' own opacity (soft/on, playing or not), preserving the relative difference between soft and accented notes rather than flattening them to the same value. */
   --vol-scale-thickness: 4px; /* Hardcoded per direct request — was 3.125px (the old slider's own maximum, before it too was removed from the UI). setVolScaleThickness() is kept intact in case this needs to change again later. */
-  --just-track-fill-thickness: 8px; /* JUST TRACK's fill band height — split out from --vol-scale-thickness (the ruler line's own thickness) so the fill can be made thicker/more visible without also thickening the ruler ticks. */
   --vol-scale-opacity: 1; /* Hard-coded to 100% now — the SCALE LINES OPACITY slider itself was removed from COLOR settings. Color is a darker version of --neutral-top (the volume bar's own background), not independently pickable. */
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -157,18 +156,21 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    styles or CSS variables, which kept silently failing to actually
    reach the screen), just with these two fixed hex colors instead of a
    multi-stop gradient. Class add/remove happens in updatePlayhead(). */
-@keyframes neon-vol-pulse-bright { 0% { background-color: #adff00; } 60% { background-color: #adff00; } 100% { background-color: color-mix(in srgb, #adff00 35%, black); } }
-@keyframes neon-vol-pulse-dark   { 0% { background-color: color-mix(in srgb, #adff00 65%, black); } 60% { background-color: color-mix(in srgb, #adff00 65%, black); } 100% { background-color: color-mix(in srgb, #adff00 35%, black); } }
-/* BUGFIX: these were plain from/to fades, so the whole --neon-pulse-duration
-   was spent fading, with no genuine "hold at the peak" phase — on any track
-   with notes closer together than that duration (most tracks), the next hit
-   retriggers the animation before the fade ever gets far, so the NEON PULSE
-   SPEED slider had barely any visible effect either way. Added an explicit
-   0%-60% hold at the true peak color, THEN a 60%-100% fade — now a longer
-   duration visibly holds the bright color longer before it drops, which is
-   what that slider was actually supposed to do. */
-.track-vol-fill-solid.neon-pulse-bright { animation: neon-vol-pulse-bright var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
-.track-vol-fill-solid.neon-pulse-dark   { animation: neon-vol-pulse-dark var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
+@keyframes neon-vol-pulse-bright { from { background-color: #adff00; } to { background-color: color-mix(in srgb, #adff00 35%, black); } }
+@keyframes neon-vol-pulse-dark   { from { background-color: color-mix(in srgb, #adff00 65%, black); } to { background-color: color-mix(in srgb, #adff00 35%, black); } }
+/* PEAK HOLD (SETTINGS slider) — CSS @keyframes offsets can't read a CSS
+   variable, so the hold-then-fade split isn't done with a percentage inside
+   one animation (that's what produced the flat-hold-then-sudden-jump look —
+   a hard offset baked into the keyframes, with the actual fade squeezed into
+   whatever was left). Instead it's two classes, swapped by a JS timer in
+   updatePlayhead(): a plain static "-hold" color class for the hold portion,
+   then swapped to a "-fade" class carrying the real animation for the
+   remaining portion. See setNeonPulseSpeed()/setNeonPulseHold() below, which
+   compute both portions' actual millisecond lengths from the two sliders. */
+.track-vol-fill-solid.neon-pulse-bright-hold { background-color: #adff00 !important; }
+.track-vol-fill-solid.neon-pulse-dark-hold   { background-color: color-mix(in srgb, #adff00 65%, black) !important; }
+.track-vol-fill-solid.neon-pulse-bright-fade { animation: neon-vol-pulse-bright var(--neon-pulse-fade-duration, 0.3s) ease-out forwards !important; }
+.track-vol-fill-solid.neon-pulse-dark-fade   { animation: neon-vol-pulse-dark var(--neon-pulse-fade-duration, 0.3s) ease-out forwards !important; }
 /* Non-NEON note-driven vol slider pulse — same restart-a-@keyframes
    mechanism as NEON above (proven to actually reach the screen), used
    instead of NEON's fixed bright/dark green when NEON is off. Per direct
@@ -862,7 +864,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
 body.just-track .track-vol-fill-solid {
   top: 50% !important;
   bottom: auto !important;
-  height: var(--just-track-fill-thickness, 8px) !important; /* was var(--vol-scale-thickness, 4px) — that variable is shared with the ruler line's own thickness (.track-vol-scale::before above), so bumping it to make the NEON color easier to see would have thickened the ruler ticks/line too. Split into its own dedicated variable instead, doubled to 8px, so the fill band itself (and the neon pulse color riding on it) is actually visible without touching the ruler's look. */
+  height: var(--vol-scale-thickness, 4px) !important;
   transform: translateY(-50%) !important;
 }
 /* SIMPLE FADER tip — a real sibling element of the fill now (.track-vol-
@@ -1486,7 +1488,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 04:32:39 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 04:38:07 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1634,7 +1636,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 04:32:39 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 04:38:07 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1768,6 +1770,13 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
           <div id="neonPulseSpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">4X</div>
         </div>
         <input type="range" id="neonPulseSpeedSlider" min="2" max="10" value="4" step="1" oninput="setNeonPulseSpeed(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">PEAK HOLD</div>
+          <div id="neonPulseHoldReadout" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div>
+        </div>
+        <input type="range" id="neonPulseHoldSlider" min="0" max="100" value="60" step="5" oninput="setNeonPulseHold(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
@@ -4654,9 +4663,15 @@ function updatePlayhead(step) {
           // screen.
           const fillEl = vb.querySelector('.track-vol-fill-solid');
           if (fillEl) {
-            fillEl.classList.remove('neon-pulse-bright', 'neon-pulse-dark');
+            clearTimeout(fillEl._neonHoldTimer);
+            fillEl.classList.remove('neon-pulse-bright-hold', 'neon-pulse-dark-hold', 'neon-pulse-bright-fade', 'neon-pulse-dark-fade');
             void fillEl.offsetWidth;
-            fillEl.classList.add(bright ? 'neon-pulse-bright' : 'neon-pulse-dark');
+            fillEl.classList.add(bright ? 'neon-pulse-bright-hold' : 'neon-pulse-dark-hold');
+            const holdMs = (window._neonPulseHoldMs != null) ? window._neonPulseHoldMs : 720;
+            fillEl._neonHoldTimer = setTimeout(() => {
+              fillEl.classList.remove('neon-pulse-bright-hold', 'neon-pulse-dark-hold');
+              fillEl.classList.add(bright ? 'neon-pulse-bright-fade' : 'neon-pulse-dark-fade');
+            }, holdMs);
           }
         } else {
           // Non-NEON note-driven pulse — per direct request, was a random
@@ -4668,12 +4683,13 @@ function updatePlayhead(step) {
           // quick revert timing this branch already had.
           const fillEl = vb.querySelector('.track-vol-fill-solid');
           if (fillEl) {
-            // Also strips any leftover neon-pulse-bright/dark class here,
+            // Also strips any leftover neon-pulse-*-hold/fade class here,
             // not just in setVolSliderNeon() — belt and braces, since
             // those animate with !important and would otherwise silently
             // out-rank flash-pulse (which has none) for as long as they
             // remained.
-            fillEl.classList.remove('flash-pulse', 'neon-pulse-bright', 'neon-pulse-dark');
+            clearTimeout(fillEl._neonHoldTimer);
+            fillEl.classList.remove('flash-pulse', 'neon-pulse-bright-hold', 'neon-pulse-dark-hold', 'neon-pulse-bright-fade', 'neon-pulse-dark-fade');
             void fillEl.offsetWidth;
             fillEl.classList.add('flash-pulse');
             setTimeout(() => { fillEl.classList.remove('flash-pulse'); }, 80);
@@ -10707,16 +10723,42 @@ function setVolSliderNeon(on) {
     // JS was correctly adding/removing flash-pulse on every note.
     document.querySelectorAll('.track-vol-fill-solid').forEach(el => {
       el.style.removeProperty('background-color');
-      el.classList.remove('neon-pulse-bright', 'neon-pulse-dark');
+      clearTimeout(el._neonHoldTimer);
+      el.classList.remove('neon-pulse-bright-hold', 'neon-pulse-dark-hold', 'neon-pulse-bright-fade', 'neon-pulse-dark-fade');
     });
   }
 }
 // NEON PULSE SPEED (SETTINGS slider, 2-10) — a multiplier on the pulse's
-// own base 0.3s fade-out duration, so it dies 2x to 10x slower.
+// own base 0.3s TOTAL duration (hold + fade combined), so the whole thing
+// takes 2x to 10x longer to die out. PEAK HOLD (below) decides how much of
+// that total is spent flat at the peak color before the fade even starts.
+window._neonPulseTotalMs = 1200; // 0.3s * default 4X
+window._neonPulseHoldFrac = 0.6; // default: 60% hold, 40% fade
+function _recomputeNeonPulseTiming() {
+  window._neonPulseHoldMs = window._neonPulseTotalMs * window._neonPulseHoldFrac;
+  const fadeMs = window._neonPulseTotalMs - window._neonPulseHoldMs;
+  document.documentElement.style.setProperty('--neon-pulse-fade-duration', (fadeMs / 1000) + 's');
+}
 function setNeonPulseSpeed(v) {
-  document.documentElement.style.setProperty('--neon-pulse-duration', (0.3 * (+v)) + 's');
+  window._neonPulseTotalMs = 0.3 * (+v) * 1000;
+  _recomputeNeonPulseTiming();
   const readout = document.getElementById('neonPulseSpeedReadout');
   if (readout) readout.textContent = v + 'X';
+}
+// PEAK HOLD (SETTINGS slider, 0-100%) — what fraction of the total NEON
+// PULSE SPEED duration is spent flat at the peak color before the fade to
+// the resting shade starts. This is what was missing before: without it,
+// the fade always ate the WHOLE duration, so any track with notes closer
+// together than that duration never visibly held at the peak at all — it
+// just looked like an instant jump between the two colors. Now the hold
+// portion is a real, separately-timed flat color (see updatePlayhead()),
+// so raising this slider makes the peak color visibly linger longer before
+// it starts to fade, independent of how long the fade itself takes.
+function setNeonPulseHold(v) {
+  window._neonPulseHoldFrac = (+v) / 100;
+  _recomputeNeonPulseTiming();
+  const readout = document.getElementById('neonPulseHoldReadout');
+  if (readout) readout.textContent = v + '%';
 }
 setVolSliderNeon(true); // hardcoded on, per direct request — applied immediately, matching the vol-slider-neon class already on <body>
 setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
