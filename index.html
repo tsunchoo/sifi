@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 16:24:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 17:04:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1541,7 +1541,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 16:24:14 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 17:04:41 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1689,7 +1689,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 16:24:14 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 17:04:41 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4655,16 +4655,17 @@ function fireStepAudio(step, t) {
         if (bstep === 3 || bstep === 11) fireBeatKick(t); // 16th immediately before each snare
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSnare(t); // restored original off-beat snare — double-time feel
       } else if (_beatType === 'samba') {
-        // Hihat and snare/sidestick both land on steps 6 and 14 — two
-        // separate voices firing at the exact same instant with no gain
-        // compensation for the combined loudness, which is exactly the
-        // kind of stacked-transient moment that can push past the
-        // limiter's ability to catch it cleanly. Hihat reduced by ~35%
-        // specifically on those two overlap steps (not the other two,
-        // which fire alone) to ease that, per direct request.
-        if (bstep === 2 || bstep === 10) playSynthHihat(false, t, -1);
-        if (bstep === 6 || bstep === 14) playSynthHihat(false, t, -1, 0.65);
-        if (bstep === 3 || bstep === 6 || bstep === 9 || bstep === 11 || bstep === 14) { if (_sambaSnareVariant === 'sidestick') playBeatSidestickSample(t); else playBeatSnareSample(t); }
+        // Rebuilt from scratch — the old pattern put the snare/sidestick on
+        // top of the hihat at steps 6 and 14 (both voices firing at the
+        // exact same instant), and a volume-reduction band-aid on the hihat
+        // there never actually removed the stacked-transient hit, just made
+        // it quieter. This version instead never puts two voices on the
+        // same step at all, anywhere in the bar — kick (0,4,8,12), hihat
+        // (2,6,10,14) and snare/sidestick (3,5,9,11,13) are three fully
+        // disjoint sets of steps, so there is nothing left to stack or
+        // compensate for.
+        if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
+        if (bstep === 3 || bstep === 5 || bstep === 9 || bstep === 11 || bstep === 13) { if (_sambaSnareVariant === 'sidestick') playBeatSidestickSample(t); else playBeatSnareSample(t); }
       } else if (_beatType === 'swagger') {
         if (bstep === 15 || bstep === 7) fireBeatKick(t); // single kick leading into each snare — was paired with an "anticipating" kick a few steps later, which doubled up right at the start of the bar
         if (bstep === 4 || bstep === 12) playSnare(t);     // snare lands exactly on 2 & 4
