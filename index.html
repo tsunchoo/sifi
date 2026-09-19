@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 07:14:18 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 07:27:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1488,7 +1488,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:14:18 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:27:49 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1636,7 +1636,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:14:18 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:27:49 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1983,6 +1983,9 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="randomize8BitMixToggle" onchange="setRandomize8BitMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">RANDOMIZE 8-BIT MIX
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="randomizeDrumFxToggle" onchange="setRandomizeDrumFx(this.checked)" style="width:14px;height:14px;cursor:pointer;">RANDOMIZE DRUM FX
       </label>
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -3459,6 +3462,12 @@ function setEightBitMix(v) {
 // RANDOMIZE 8-BIT MIX (SETTINGS toggle) — see the check inside randAll().
 window._randomize8BitMix = false;
 function setRandomize8BitMix(on) { window._randomize8BitMix = !!on; }
+// RANDOMIZE DRUM FX (SETTINGS toggle) — see the check inside randAll(). On
+// every RAND press, randomly picks a state for DRUMS' own FX button (off /
+// FX / FX+BLAST) and rerolls REVERB ON BEAT, same as RANDOMIZE 8-BIT MIX
+// does for the 8-bit slider.
+window._randomizeDrumFx = false;
+function setRandomizeDrumFx(on) { window._randomizeDrumFx = !!on; }
 // Thin on/off wrapper kept for anything still calling the old boolean API
 // (e.g. the logo tap turning this back off) — maps straight to the mix
 // slider's own two extremes.
@@ -3941,6 +3950,18 @@ function updateVolFillDisplay(tr) {
   const vb = document.getElementById(`vbar-${tr}`);
   if (!vb) return;
   _setVolFillPct(vb, volGainToPos(trackVolume[tr]));
+}
+// DOUBLE BASS gets an extra 20% on its vol slider, per direct request —
+// meaning the SLIDER POSITION itself sits 20% further right, not just a
+// louder synth voice. Nudges the position (not the raw gain, which is
+// log-scaled) by +0.2 and snaps back to gain-space, once, whenever a track
+// newly becomes DOUBLE BASS — guarded by prevKey so re-picking it or RAND
+// landing on it again on an already-dbass track never stacks the boost.
+function _applyDoubleBassVolBoost(tr) {
+  const pos = Math.min(1, volGainToPos(trackVolume[tr]) + 0.2);
+  trackVolume[tr] = volPosToGain(pos);
+  if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
+  updateVolFillDisplay(tr);
 }
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackDelay = new Array(NUM_TRACKS).fill(false);
@@ -6271,7 +6292,9 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
   }
   const dest = getSynthConnectNode(tr);
   const _blastAtten = trackPump[tr] ? 0.5623 : 1; // -5dB when BLAST is on this track (was -3dB, another -2dB) — still too hot combined with the crunch chain
-  const vel = (isAccent ? 1.601 : 1.155) * _blastAtten; // +3dB on top (was too quiet without FX)
+  const _fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
+  const _fxOrBlastAtten = (_fxOn || trackPump[tr]) ? 0.8 : 1; // -20% per direct request, whenever FX or FX BLAST is engaged on this track — stacks with _blastAtten above when BLAST specifically is on
+  const vel = (isAccent ? 1.601 : 1.155) * _blastAtten * _fxOrBlastAtten; // +3dB on top (was too quiet without FX)
   _plunkGlide[tr] = freq;
 
   // Distorted sawtooth through a tight bandpass — nasal, aggressive
@@ -6333,7 +6356,7 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
     } catch(e) {}
   }
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.8758 : 0.5933; // +3dB more (was 0.62/0.42, the safe reverted level after the earlier 2.4688/1.6713 overdrive issue) — still comfortably under unity gain
+  const vel = isAccent ? 0.8758 : 0.5933; // reverted — the +20% request meant the vol SLIDER position, not this synth velocity
   const startFreq = _dbassGlide[tr] || freq;
   _dbassGlide[tr] = freq;
 
@@ -9194,6 +9217,7 @@ function selectSound(tr, k) {
     trackFx[tr] = { x: 0.5, y: 0.5 };
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.add('on');
   }
+  if (k === 'dbass' && prevKey !== 'dbass') _applyDoubleBassVolBoost(tr);
   if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
   setTrackNameColor(tr, k);
@@ -10347,7 +10371,7 @@ async function renderSlotToWav(snap) {
 
         } else if (key === 'dbass') {
           // Match playDoubleBass exactly (no portamento continuity needed for offline export)
-          const vel = isAccent ? 0.8758 : 0.5933; // +3dB more, matching the live playDoubleBass fix — see its own comment for why
+          const vel = isAccent ? 0.8758 : 0.5933; // reverted, matching playDoubleBass
           const tri = o.createOscillator(); tri.type='triangle'; tri.frequency.value=freq;
           const sub = o.createOscillator(); sub.type='sine'; sub.frequency.value=freq*0.5;
           const triG = o.createGain(); triG.gain.value=0.32;
@@ -12651,6 +12675,10 @@ function randAll(mode, opts) {
   // RAND press (the "+" button and its auto-mode) also rolls a fresh
   // 8-BIT MIX value, same as tempo/beat type above.
   if (window._randomize8BitMix) setEightBitMix(Math.random() * 100);
+  // RANDOMIZE DRUM FX (SETTINGS toggle) — off by default; when on, every
+  // RAND press also rolls a fresh state for DRUMS' own FX button (off/FX/
+  // FX+BLAST) and REVERB ON BEAT, same idea as RANDOMIZE 8-BIT MIX above.
+  if (window._randomizeDrumFx) _randomizeDrumFxSettings();
   if (!_beatTypeLocked) {
     let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
@@ -13246,6 +13274,7 @@ function randAll(mode, opts) {
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && typeof _noiseGateNodes !== 'undefined' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
+    if (k === 'dbass' && trackInstruments[tr] !== 'dbass') _applyDoubleBassVolBoost(tr);
     trackInstruments[tr] = k;
     if (k === 'ngate' && typeof initNoiseGate === 'function' && ctx) initNoiseGate(tr);
     // A new RAND pattern clears any Delay/FX/BLAST this (unlocked) track was
@@ -13477,6 +13506,7 @@ function randAll(mode, opts) {
       if (target !== -1) {
         const bassChoiceKeys = Object.keys(INSTRUMENTS).filter(k => bassKeys.has(k));
         const forcedBass = bassChoiceKeys[Math.floor(Math.random() * bassChoiceKeys.length)];
+        if (forcedBass === 'dbass' && trackInstruments[target] !== 'dbass') _applyDoubleBassVolBoost(target);
         trackInstruments[target] = forcedBass;
         const tbF = document.getElementById(`tbtn-${target}`); if (tbF) tbF.textContent = INSTRUMENTS[forcedBass]?.name || forcedBass;
         setTrackNameColor(target, forcedBass);
@@ -18253,6 +18283,28 @@ function beatCtrlCycleFx() {
   _applyBeatVolWithDuck();
   updateBeatCtrlRow();
   markModified();
+}
+// Sets DRUMS' FX state directly to one of the 3 beatCtrlCycleFx() stops
+// (0=off, 1=FX, 2=FX+BLAST) rather than cycling — used by RANDOMIZE DRUM FX
+// below, which needs to land on a specific randomly-picked state in one go.
+function _setBeatFxState(state) {
+  _ensureBeatFxChain();
+  _beatFx = state >= 1;
+  _beatPump = state >= 2;
+  if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
+  _applyBeatVolWithDuck();
+  updateBeatCtrlRow();
+}
+// RANDOMIZE DRUM FX (SETTINGS toggle) — called from randAll() below. Picks
+// a random state for DRUMS' own FX button (same 3-state cycle as tapping it
+// by hand) and, per direct request, also rerolls REVERB ON BEAT alongside
+// it — same slider/logic _randomizeReverbSettings() already uses for that.
+function _randomizeDrumFxSettings() {
+  _setBeatFxState(Math.floor(Math.random() * 3));
+  const _newBeatReverbMix = Math.random();
+  setBeatReverbMix(_newBeatReverbMix);
+  const brmb2 = document.getElementById('beatReverbMixBar'); if (brmb2) brmb2.value = Math.round(_newBeatReverbMix * 100);
+  const brmv2 = document.getElementById('beatReverbMixVal'); if (brmv2) brmv2.textContent = Math.round(_newBeatReverbMix * 100);
 }
 
 // R (rand) — single tap picks a new BEAT type once; double tap toggles an
