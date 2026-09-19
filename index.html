@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 07:55:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 08:03:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -193,7 +193,7 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    actually finished. */
 .track-vol-fill-solid.flash-pulse-hit { background-color: var(--play-flash-color, #f8ff00) !important; }
 @keyframes flash-vol-pulse-decay { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--neutral-top, #555); } }
-.track-vol-fill-solid.flash-pulse-decay { animation: flash-vol-pulse-decay 0.22s ease-out forwards; }
+.track-vol-fill-solid.flash-pulse-decay { animation: flash-vol-pulse-decay 0.38s ease-out forwards; }
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-hit,
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-decay { filter: saturate(1) !important; } /* MUST match (or beat) the specificity of the body.seq-playing...saturate(20) rule below, not just add !important on a plain class selector — a lower-specificity !important still loses to a higher-specificity !important. Without this, saturate(20) (meant for the resting fill color) kept winning during playback and slammed every in-between blended color of the decay sweep to near-full saturation almost immediately */
 @keyframes song-name-scroll-left  { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -1508,7 +1508,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:55:41 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 08:03:17 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1656,7 +1656,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:55:41 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 08:03:17 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4737,11 +4737,21 @@ function updatePlayhead(step) {
             fillEl.classList.remove('flash-pulse-hit', 'flash-pulse-decay', 'neon-pulse-bright-hold', 'neon-pulse-dark-hold', 'neon-pulse-bright-fade', 'neon-pulse-dark-fade');
             void fillEl.offsetWidth;
             fillEl.classList.add('flash-pulse-hit');
+            // Hold + decay lengthened — at normal note density (steps every
+            // 150-300ms) the previous short timing (40ms hold + 220ms decay)
+            // retriggered before it ever read as two distinct colors, just a
+            // flicker. Hold itself stays short (60ms, just long enough to
+            // register as a genuine snap to yellow) — a long hold would mean
+            // dense 16th-note patterns never leave the hit color at all and
+            // never show the dark color, which is just the opposite failure.
+            // The decay is what's stretched out, so most of the visible
+            // sweep back down to the dark color is what actually reads as
+            // "pulsing between two colors."
             fillEl._flashPulseTimer = setTimeout(() => {
               fillEl.classList.remove('flash-pulse-hit');
               fillEl.classList.add('flash-pulse-decay');
-              fillEl._flashPulseTimer = setTimeout(() => { fillEl.classList.remove('flash-pulse-decay'); }, 220);
-            }, 40);
+              fillEl._flashPulseTimer = setTimeout(() => { fillEl.classList.remove('flash-pulse-decay'); }, 380);
+            }, 60);
           }
         }
       }
@@ -5754,13 +5764,15 @@ function randomizeBassTrack(tr, level) {
   // here, when the pattern is generated, so the pitch stays put across loop
   // repeats instead of re-rolling every single measure.
   const _bassWanderChance = { sbass3: 0.4, sbass4: 0.25, sbass: 0.1, dbass: 0.3, pbass: 0.15 }[key];
+  const _BASS_WANDER_CEILING_HZ = 220; // A3 — BUGFIX: an unconstrained up-wander landing on a note already near the top of the 2-octave scale (which itself can already sit almost 2 octaves above the root) could land close to an octave above middle C, which just doesn't read as "a bass" playing at all regardless of the patch — this was the "bass instruments get really high notes and sound mental" report. Only wander up when the result stays under a sane bass ceiling; the down direction is always safe, since the scale's own bottom is already down near the true bass register, so that's the fallback whenever up would overshoot.
   if (_bassWanderChance !== undefined && trackBassScale[tr]) {
     const scale = trackBassScale[tr];
     if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
       if (grid[tr][s] > 0 && Math.random() < _bassWanderChance) {
         const base = scale[s % scale.length];
-        trackPitchOverride[tr][s] = base * Math.pow(2, Math.random() < 0.5 ? -1 : 1);
+        const wantUp = Math.random() < 0.5;
+        trackPitchOverride[tr][s] = (wantUp && base * 2 <= _BASS_WANDER_CEILING_HZ) ? base * 2 : base * 0.5;
       }
     }
   }
@@ -14914,13 +14926,15 @@ function randomizeTrack(tr) {
   // here, when the pattern is generated, so the pitch stays put across loop
   // repeats instead of re-rolling every single measure.
   const _bassWanderChance = { sbass3: 0.4, sbass4: 0.25, sbass: 0.1, dbass: 0.3, pbass: 0.15 }[key];
+  const _BASS_WANDER_CEILING_HZ = 220; // A3 — BUGFIX: an unconstrained up-wander landing on a note already near the top of the 2-octave scale (which itself can already sit almost 2 octaves above the root) could land close to an octave above middle C, which just doesn't read as "a bass" playing at all regardless of the patch — this was the "bass instruments get really high notes and sound mental" report. Only wander up when the result stays under a sane bass ceiling; the down direction is always safe, since the scale's own bottom is already down near the true bass register, so that's the fallback whenever up would overshoot.
   if (_bassWanderChance !== undefined && trackBassScale[tr]) {
     const scale = trackBassScale[tr];
     if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
       if (grid[tr][s] > 0 && Math.random() < _bassWanderChance) {
         const base = scale[s % scale.length];
-        trackPitchOverride[tr][s] = base * Math.pow(2, Math.random() < 0.5 ? -1 : 1);
+        const wantUp = Math.random() < 0.5;
+        trackPitchOverride[tr][s] = (wantUp && base * 2 <= _BASS_WANDER_CEILING_HZ) ? base * 2 : base * 0.5;
       }
     }
   }
