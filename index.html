@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 17:21:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 18:32:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -830,6 +830,11 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 .shift-btn:active { opacity: 0.4; }
 .shift-btn.on { background: #f17d21; color: var(--track-btn-on-text, #fff); }
 .shift-btn.right.on { background: var(--track-btn-on-color, #0081FE); animation: engaged-btn-pulse 0.6s ease-in-out infinite; }
+/* BATTERY SAVER — the per-track REVERB (R) icon greys out and stops
+   responding entirely; !important beats even the .on/pulsing state above,
+   since reverb is force-disabled at the JS level too (_setTrackReverb)
+   while this is active, so the icon must never show/allow "on" either. */
+body.battery-saver-mode .shift-btn.right { opacity: 0.3 !important; pointer-events: none !important; animation: none !important; background: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) !important; }
 /* The "<" offset button specifically (not the "R" reverb toggle, which
    also uses .shift-btn but always carries .right) — bigger text, same
    button size. The larger size exaggerates how low the glyph sits within
@@ -1289,7 +1294,7 @@ body.note-markers-circle .step-cell.soft.playing::after {
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
   opacity: 0.5;
-  left: var(--marker-legato-inset, 25.3%); right: var(--marker-legato-inset, 25.3%); top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); /* was top:0;bottom:50% (a half-height band stuck to the top of the cell) — now centered like every other marker, matching the square/circle treatment the rest already got; that top-stuck positioning read as misaligned once everything around it became centered squares. Width stays scaled to 65% (inset=(100-65)/2), now driven by the same CIRCLE MARKER SIZE slider as the other markers, per direct request */
+  left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%); top: var(--marker-empty-inset, 42.4%); bottom: var(--marker-empty-inset, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally per direct request — same height as the empty marker (top/bottom insets borrowed from --marker-empty-inset), same width as the accented note (left/right insets borrowed from --note-marker-square-inset), instead of the old square tail. aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
@@ -1333,9 +1338,9 @@ body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
   right: calc(2 * var(--marker-soft-inset-circle, 27.2%) - var(--note-marker-circle-inset, 12%));
 }
 body.note-markers-circle .step-cell.legato-tail::after {
-  left: var(--marker-legato-inset-circle, 38.6%);
-  right: var(--marker-legato-inset-circle, 38.6%);
-  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+  left: var(--note-marker-circle-inset, 12%);
+  right: var(--note-marker-circle-inset, 12%);
+  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — width from the accent circle's own inset, height from the empty circle's — border-radius:50% on a non-square box renders as an ellipse */
   border-radius: 50%;
 }
 /* Split32 (32nd notes) — two mini-circles side by side, each half the
@@ -1402,9 +1407,9 @@ body.note-markers-asterisk .step-cell.soft::after {
 }
 body.note-markers-asterisk .step-cell.legato-tail::after {
   background-color: var(--track-color, var(--text));
-  left: var(--marker-legato-inset, 25.3%);
-  right: var(--marker-legato-inset, 25.3%);
-  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%);
+  left: var(--note-marker-circle-inset, 12%);
+  right: var(--note-marker-circle-inset, 12%);
+  top: var(--marker-empty-inset, 42.4%); bottom: var(--marker-empty-inset, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated box, same reasoning as the other two modes — the asterisk glyph itself (mask-size:contain) still scales to fit proportionally within it */
 }
 body.note-markers-asterisk .step-cell.split32::after {
   background: var(--track-color, var(--text));
@@ -1541,7 +1546,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 17:21:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 18:32:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1689,7 +1694,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 17:21:42 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 18:32:00 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -2083,7 +2088,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
         <input type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL GENERATES NEW PATTERN
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="soloIncludesBeatToggle" checked onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES BEAT
+        <input type="checkbox" id="soloIncludesBeatToggle" onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES DRUMS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
@@ -2206,7 +2211,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 let _bgPulseEnabled = false, _bgStaticEnabled = false, _bgPulseSteps = 4, _bgPulseCounter = 0;
 window._wildColorsEnabled = true; // WILD toggle in settings — randomizes app colors alongside every new whole-pattern RAND, on by default
 window._soloFlashMode = true; // SOLO FLASH toggle in settings — track SOLO buttons work as press-and-hold (solo only while held) rather than click-to-toggle, on by default
-window._soloIncludesBeat = true; // SOLO + BEAT toggle in settings — BEAT stays in the mix and completely unaffected by any SOLO, on by default; off restores the original behavior (BEAT silenced by solo unless explicitly clicked to include it)
+window._soloIncludesBeat = false; // SOLO INCLUDES DRUMS toggle in settings — off by default, per direct request (was on by default); off means BEAT/DRUMS is silenced by any SOLO like every other track, unless this is explicitly checked to keep it in the mix regardless
 window._wildColorsSkipNext = true; // don't apply WILD to the initial startup pattern — the first + press or auto-rand cycle after that is where it actually starts
 const INSTRUMENTS = {
   skick:  { name: 'KICK',        soft: null, accent: null, group: 'kit' },
@@ -3549,6 +3554,7 @@ function getOrCreateDelay(tr) {
 }
 
 function _setTrackReverb(tr, on) {
+  if (window._batterySaverOn) on = false; // BATTERY SAVER — refuse to engage reverb on any track, even via a path that bypasses the greyed-out/disabled icon (drag-to-engage, pattern load, RAND, etc.)
   trackDelay[tr] = !!on;
   const btn = document.getElementById(`delaybtn-${tr}`);
   if (btn) btn.classList.toggle('on', trackDelay[tr]);
@@ -12761,6 +12767,12 @@ function randAll(mode, opts) {
   }
   _split32CycleCount = 0;
   mode = mode || 'all';
+  // Checked once, up front, per direct request — every "any track locked?"
+  // scan further down (the various [...Array(NUM_TRACKS)].some/filter
+  // calls checking trackSweep) short-circuits off this instead of each
+  // separately re-scanning all 6 tracks on every single + press even when
+  // nothing is actually locked, which is the common case.
+  const _anyTrackLocked = trackSweep.some(Boolean);
   const level = Math.floor(Math.random() * 5); // random pick every press, not a 1-5 cycle
   // FX and Delay are 25% more likely to be added when RAND is running in
   // auto mode (the #randBtn press-and-hold loop) versus a one-off press.
@@ -12891,7 +12903,7 @@ function randAll(mode, opts) {
 
   function buildPool(keys) {
     const shuffled = [...keys].sort(() => Math.random() - 0.5);
-    const result = []; let bassUsed = false; let soloPercUsed = false; let soloLeadUsed = false; let soloUniqueUsed = false; let soloHatUsed = false; let soloRareLeadUsed = false; let jinxClashUsed = false; let snareUsed = false; let padUsed = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && padKeys.has(trackInstruments[tr])); // only actually triggers for a locked track now — track 0 isn't special-cased anymore
+    const result = []; let bassUsed = false; let soloPercUsed = false; let soloLeadUsed = false; let soloUniqueUsed = false; let soloHatUsed = false; let soloRareLeadUsed = false; let jinxClashUsed = false; let snareUsed = false; let padUsed = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && padKeys.has(trackInstruments[tr])); // only actually triggers for a locked track now — track 0 isn't special-cased anymore
     // Bass is always included when available, rather than leaving it to
     // shuffle luck — with ~20 tonal options and only 5 basses, a plain
     // shuffle rarely happened to draw one.
@@ -12934,8 +12946,8 @@ function randAll(mode, opts) {
     // settings, defaulting to 3/3. Left = 6 perc, right = 6 tonal.
     const tonalTarget = window._tonalPercBalance !== undefined ? window._tonalPercBalance : 2;
     // Count how many of each are already locked in
-    const lockedTonal = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr])).length;
-    const lockedPerc = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && !TONAL_KEYS.has(trackInstruments[tr])).length;
+    const lockedTonal = _anyTrackLocked ? [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr])).length : 0;
+    const lockedPerc = _anyTrackLocked ? [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && !TONAL_KEYS.has(trackInstruments[tr])).length : 0;
     // Remaining slots needed to fill out the split — perc absorbs whatever
     // tonal doesn't need, rather than using a fixed target, so the two
     // always add up to the 6 real tracks.
@@ -12952,11 +12964,11 @@ function randAll(mode, opts) {
     // Solo-group "already used" flags — checked against LOCKED tracks
     // specifically, since locked tracks never go through the shuffle
     // below at all but still count toward each group's one-only limit.
-    let soloLeadUsed2 = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloLeadKeys.has(trackInstruments[tr]));
-    let soloUniqueUsed2 = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloUniqueKeys.has(trackInstruments[tr]));
-    let soloRareLeadUsed2 = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloRareLeadKeys.has(trackInstruments[tr]));
-    let jinxClashUsed2 = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && jinxClashKeys.has(trackInstruments[tr]));
-    let padUsed2 = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && padKeys.has(trackInstruments[tr]));
+    let soloLeadUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloLeadKeys.has(trackInstruments[tr]));
+    let soloUniqueUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloUniqueKeys.has(trackInstruments[tr]));
+    let soloRareLeadUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloRareLeadKeys.has(trackInstruments[tr]));
+    let jinxClashUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && jinxClashKeys.has(trackInstruments[tr]));
+    let padUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && padKeys.has(trackInstruments[tr]));
 
     const nonBassShuffle = [];
     const _leadKeysSet = new Set([...soloLeadKeys, ...soloRareLeadKeys]);
@@ -13043,9 +13055,9 @@ function randAll(mode, opts) {
     // still matters for a MAGIC track that's locked in from before,
     // which the pool never sees since locked tracks skip the shuffle
     // entirely.
-    const magicAlreadyLocked = [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && trackInstruments[tr] === 'magic');
+    const magicAlreadyLocked = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && trackInstruments[tr] === 'magic');
     if (magicAlreadyLocked || nonBassShuffle.includes('magic')) {
-      const lockedOtherTonalCount = [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr]) && !bassKeys.has(trackInstruments[tr]) && trackInstruments[tr] !== 'magic').length;
+      const lockedOtherTonalCount = _anyTrackLocked ? [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr]) && !bassKeys.has(trackInstruments[tr]) && trackInstruments[tr] !== 'magic').length : 0;
       const allowedOthers = Math.max(0, 1 - lockedOtherTonalCount);
       const magicInThisPass = nonBassShuffle.includes('magic');
       const others = nonBassShuffle.filter(k => k !== 'magic' && k !== 'boog'); // MAGIC is DREAM PIANO's own synthesis played as a chord — the two together would be redundant/clashing, so DREAM PIANO never gets to be the "one other" tonal slot alongside it
@@ -17121,8 +17133,8 @@ function fullReset() {
   const wildCb = document.getElementById('wildColorsToggle'); if (wildCb) wildCb.checked = true;
   window._soloFlashMode = true;
   const soloFlashCb = document.getElementById('soloFlashToggle'); if (soloFlashCb) soloFlashCb.checked = true;
-  setSoloIncludesBeat(true);
-  const soloBeatCb = document.getElementById('soloIncludesBeatToggle'); if (soloBeatCb) soloBeatCb.checked = true;
+  setSoloIncludesBeat(false); // matches the new off-by-default (was true)
+  const soloBeatCb = document.getElementById('soloIncludesBeatToggle'); if (soloBeatCb) soloBeatCb.checked = false;
   _resetAppColorsToDefault();
   const speedWrap = document.getElementById('bgPulseSpeedWrap'); if (speedWrap) speedWrap.style.display = 'none';
   // Note marker color is tinted against whatever background is currently
@@ -18790,12 +18802,22 @@ function toggleBatterySaver() {
     btn.classList.toggle('saver-on', window._batterySaverOn);
     btn.style.background = window._batterySaverOn ? '' : '#555';
   }
+  document.body.classList.toggle('battery-saver-mode', window._batterySaverOn); // greys out + disables the per-track REVERB (R) icons — see CSS
   if (window._batterySaverOn && _wakeLock) {
     try { _wakeLock.release(); } catch (e) {}
     _wakeLock = null;
   }
-  if (window._reverbSendBus) {
-    window._reverbSendBus.gain.setTargetAtTime(window._batterySaverOn ? 0 : 1, ctx ? ctx.currentTime : 0, 0.05);
+  // Actually DISCONNECT the shared reverb bus from its convolver, rather
+  // than just muting the gain to 0 — a muted-but-still-connected convolver
+  // can still get scheduled to run its full real-time convolution every
+  // audio quantum depending on the browser, so a gain of 0 alone doesn't
+  // reliably guarantee the DSP work itself stops. Disconnecting it does,
+  // per direct request ("make sure reverb isn't being calculated in the
+  // background"). Reconnected exactly as it was wired at startup when
+  // battery saver turns back off.
+  if (window._reverbSendBus && window._reverbConv) {
+    try { window._reverbSendBus.disconnect(); } catch (e) {}
+    if (!window._batterySaverOn) window._reverbSendBus.connect(window._reverbConv);
   }
 }
 // ── Boost: hard brickwall limiting ──
