@@ -1451,7 +1451,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 23:17:32 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-18 23:29:12 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1599,7 +1599,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 23:17:32 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-18 23:29:12 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -16193,19 +16193,26 @@ function _recomputeMarkerTierInsets() {
   // `?? default` makes this resilient regardless of call order.
   const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
   const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
-  // EMPTY — direct, standard "for S% size, inset=(100-S)/2 + baseInset*
-  // (S/100)" formula, independent of the ratio sliders (SETTINGS sliders
-  // control S directly as a straight percentage of the accent size).
+  // EMPTY — BUGFIX: this used to blend toward the accent's own base inset
+  // (inset=(100-S)/2 + baseInset*(S/100)), which meant S=100 only ever
+  // reached the ACCENT marker's size, not the full cell — so the slider's
+  // top end (and therefore most of its range) barely moved anything, and
+  // the "size ratio" sliders (which also feed off that same base inset)
+  // compounded the same ceiling. Per direct request, this is now a plain,
+  // literal "S% of the cell" formula — the same one SQUARE MARKER SIZE
+  // itself uses for the accent marker — with no dependency on the accent
+  // inset at all: S=100 fills the cell, S=10 shrinks to 10% of it, and the
+  // full slider range is actually visible edge to edge.
   // SQUARE MARKER SIZE (EMPTY) and CIRCLE MARKER SIZE (EMPTY) are
-  // independent now, each scaled off that mode's own accent base inset —
-  // squares write the original unprefixed --marker-empty-inset (also
-  // still read by asterisk mode, unchanged), circles write their own
-  // -circle-suffixed variable that only the circle-mode CSS rules read.
+  // independent now — squares write the original unprefixed
+  // --marker-empty-inset (also still read by asterisk mode, unchanged),
+  // circles write their own -circle-suffixed variable that only the
+  // circle-mode CSS rules read.
   const SeSquare = window._emptyMarkerSizePctSquare ?? 20;
-  const insetEmptySquare = (100 - SeSquare) / 2 + baseInsetSquare * (SeSquare / 100);
+  const insetEmptySquare = (100 - SeSquare) / 2;
   document.documentElement.style.setProperty('--marker-empty-inset', insetEmptySquare + '%');
   const SeCircle = window._emptyMarkerSizePctCircle ?? 50;
-  const insetEmptyCircle = (100 - SeCircle) / 2 + baseInsetPct * (SeCircle / 100);
+  const insetEmptyCircle = (100 - SeCircle) / 2;
   document.documentElement.style.setProperty('--marker-empty-inset-circle', insetEmptyCircle + '%');
   // P = each remaining tier's own fixed percent-of-accent size at
   // ratio=100; D = how far that is from 100 (accent's own size). At
