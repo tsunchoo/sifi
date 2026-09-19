@@ -160,6 +160,17 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
 @keyframes neon-vol-pulse-dark   { from { background-color: color-mix(in srgb, #adff00 65%, black); } to { background-color: color-mix(in srgb, #adff00 35%, black); } }
 .track-vol-fill-solid.neon-pulse-bright { animation: neon-vol-pulse-bright var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
 .track-vol-fill-solid.neon-pulse-dark   { animation: neon-vol-pulse-dark var(--neon-pulse-duration, 0.3s) ease-out forwards !important; }
+/* Non-NEON note-driven vol slider pulse — same restart-a-@keyframes
+   mechanism as NEON above (proven to actually reach the screen), used
+   instead of NEON's fixed bright/dark green when NEON is off. Per direct
+   request: flashes from the vol slider's own tip color to PLAY FLASH's
+   picked color, then — class removed a beat later in updatePlayhead(),
+   same as it already did when this used a plain --vol-slider-color swap —
+   reverts straight back to the track's own normal fill color (no
+   forwards/hold, unlike NEON, since this should snap back to "the track
+   contents" rather than sit at the flash color until the next hit). */
+@keyframes flash-vol-pulse { from { background-color: var(--simple-fader-tip-color, #000); } to { background-color: var(--play-flash-color, #f8ff00); } }
+.track-vol-fill-solid.flash-pulse { animation: flash-vol-pulse 0.08s ease-out forwards; }
 @keyframes song-name-scroll-left  { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes song-name-scroll-right { from { transform: translateX(100%);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -648,8 +659,11 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
-   SOLID mode genuinely shows a static button with no pulse at all. */
-body.track-pulse-a .track-name-btn.playing { filter: brightness(1.35) saturate(1.2); opacity: 1; }
+   SOLID mode genuinely shows a static button with no pulse at all. Per
+   direct request, now flashes to PLAY FLASH's own picked color (was a
+   generic brightness/saturate filter boost on the track's existing
+   color, unrelated to PLAY FLASH entirely). */
+body.track-pulse-a .track-name-btn.playing { background: var(--play-flash-color, #f8ff00) !important; opacity: 1; }
 /* Independent of the background pulse above — same .playing trigger
    (updatePlayhead, one flash per actual note hit), separate setting,
    both can be on/off independently of each other. */
@@ -1451,7 +1465,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 00:48:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 01:08:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1599,7 +1613,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 00:48:44 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 01:08:28 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1884,112 +1898,122 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">PLAY FLASH</div>
         <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="noteMarkersCircleToggle" checked onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="markerLeftJustifySquaresToggle" onchange="setMarkerLeftJustifySquares(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY SQUARES
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="markerLeftJustifyCirclesToggle" onchange="setMarkerLeftJustifyCircles(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY CIRCLES
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
-      </label>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON DARKNESS</div>
-          <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
-        </div>
-        <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
-          <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.00X</div>
-        </div>
-        <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="0" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEW PATTERN NOISE VOLUME</div>
-          <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">30%</div>
-        </div>
-        <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="30" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
-          <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">13.0DB</div>
-        </div>
-        <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="13" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
-          <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div>
-        </div>
-        <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="60" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE</div>
-          <div id="squareMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">90%</div>
-        </div>
-        <input type="range" id="squareMarkerSizeSlider" min="10" max="100" value="90" oninput="setSquareMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE RATIO</div>
-          <div id="noteMarkerSizeRatioSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
-        </div>
-        <input type="range" id="noteMarkerSizeRatioSquareSlider" min="0" max="200" value="50" oninput="setNoteMarkerSizeRatioSquare(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE RATIO</div>
-          <div id="noteMarkerSizeRatioCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">200%</div>
-        </div>
-        <input type="range" id="noteMarkerSizeRatioCircleSlider" min="0" max="200" value="200" oninput="setNoteMarkerSizeRatioCircle(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER OPACITY</div>
-          <div id="emptyMarkerOpacitySquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
-        </div>
-        <input type="range" id="emptyMarkerOpacitySquareSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacitySquare(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER SIZE</div>
-          <div id="emptyMarkerSizeSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
-        </div>
-        <input type="range" id="emptyMarkerSizeSquareSlider" min="10" max="100" value="50" oninput="setEmptyMarkerSizeSquare(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER OPACITY</div>
-          <div id="emptyMarkerOpacityCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
-        </div>
-        <input type="range" id="emptyMarkerOpacityCircleSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacityCircle(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER SIZE</div>
-          <div id="emptyMarkerSizeCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
-        </div>
-        <input type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">MARKER STYLE</div>
+        <button id="markerStyleToggleBtn" onclick="toggleMarkerStyle()" style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;cursor:pointer;background:#111;color:#f5f0e8;border:none;border-radius:3px;min-width:72px;">CIRCLES</button>
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button id="recMode_realtime" class="rec-mode-btn" onclick="setRecordMode('realtime')">REALTIME</button>
-          <button id="recMode_bounceLoop" class="rec-mode-btn" onclick="setRecordMode('bounceLoop')">BOUNCE LOOP</button>
-          <button id="recMode_bounceStems" class="rec-mode-btn" onclick="setRecordMode('bounceStems')">BOUNCE LOOP STEMS</button>
+      <div style="border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;">
+        <button id="devTabToggleBtn" onclick="toggleDevTab()" style="width:100%;font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:8px;cursor:pointer;background:transparent;border:1px solid #111;color:#111;border-radius:3px;">DEV</button>
+        <div id="devTabContent" style="display:none;flex-direction:column;gap:15px;margin-top:16px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+            <input type="checkbox" id="noteMarkersCircleToggle" checked onchange="setNoteMarkersCircle(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = CIRCLES
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+            <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+            <input type="checkbox" id="markerLeftJustifySquaresToggle" onchange="setMarkerLeftJustifySquares(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY SQUARES
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+            <input type="checkbox" id="markerLeftJustifyCirclesToggle" onchange="setMarkerLeftJustifyCircles(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY CIRCLES
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+            <input type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
+          </label>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON DARKNESS</div>
+              <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+            </div>
+            <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
+              <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.00X</div>
+            </div>
+            <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="0" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEW PATTERN NOISE VOLUME</div>
+              <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">30%</div>
+            </div>
+            <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="30" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
+              <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">13.0DB</div>
+            </div>
+            <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="13" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
+              <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div>
+            </div>
+            <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="60" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE</div>
+              <div id="squareMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">95%</div>
+            </div>
+            <input type="range" id="squareMarkerSizeSlider" min="10" max="100" value="95" oninput="setSquareMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE RATIO</div>
+              <div id="noteMarkerSizeRatioSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
+            </div>
+            <input type="range" id="noteMarkerSizeRatioSquareSlider" min="0" max="200" value="0" oninput="setNoteMarkerSizeRatioSquare(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE RATIO</div>
+              <div id="noteMarkerSizeRatioCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">200%</div>
+            </div>
+            <input type="range" id="noteMarkerSizeRatioCircleSlider" min="0" max="200" value="200" oninput="setNoteMarkerSizeRatioCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER OPACITY</div>
+              <div id="emptyMarkerOpacitySquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
+            </div>
+            <input type="range" id="emptyMarkerOpacitySquareSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacitySquare(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER SIZE</div>
+              <div id="emptyMarkerSizeSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">95%</div>
+            </div>
+            <input type="range" id="emptyMarkerSizeSquareSlider" min="10" max="100" value="95" oninput="setEmptyMarkerSizeSquare(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER OPACITY</div>
+              <div id="emptyMarkerOpacityCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
+            </div>
+            <input type="range" id="emptyMarkerOpacityCircleSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacityCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:15px;">
+            <div style="display:flex;justify-content:space-between;">
+              <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER SIZE</div>
+              <div id="emptyMarkerSizeCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
+            </div>
+            <input type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button id="recMode_realtime" class="rec-mode-btn" onclick="setRecordMode('realtime')">REALTIME</button>
+              <button id="recMode_bounceLoop" class="rec-mode-btn" onclick="setRecordMode('bounceLoop')">BOUNCE LOOP</button>
+              <button id="recMode_bounceStems" class="rec-mode-btn" onclick="setRecordMode('bounceStems')">BOUNCE LOOP STEMS</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4580,8 +4604,20 @@ function updatePlayhead(step) {
             fillEl.classList.add(bright ? 'neon-pulse-bright' : 'neon-pulse-dark');
           }
         } else {
-          vb.style.setProperty('--vol-slider-color', _LOGO_JUMP_VARS[Math.floor(Math.random() * _LOGO_JUMP_VARS.length)]);
-          setTimeout(() => { vb.style.removeProperty('--vol-slider-color'); }, 80);
+          // Non-NEON note-driven pulse — per direct request, was a random
+          // jump-var color flash (_LOGO_JUMP_VARS), now flashes from the
+          // vol slider's own tip color (--simple-fader-tip-color) to PLAY
+          // FLASH's picked color (see .track-vol-fill-solid.flash-pulse
+          // above), then snaps back to the track's own normal fill color —
+          // same restart-the-class trick NEON uses just above, same
+          // quick revert timing this branch already had.
+          const fillEl = vb.querySelector('.track-vol-fill-solid');
+          if (fillEl) {
+            fillEl.classList.remove('flash-pulse');
+            void fillEl.offsetWidth;
+            fillEl.classList.add('flash-pulse');
+            setTimeout(() => { fillEl.classList.remove('flash-pulse'); }, 80);
+          }
         }
       }
     }
@@ -10607,10 +10643,10 @@ setVolSliderNeon(true); // hardcoded on, per direct request — applied immediat
 setNeonPulseSpeed(4); // hardcoded at 4x, per direct request
 setSimpleFaderWidth(10); // hardcoded at 10px, per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
 setNoteMarkerCircleSize(60); // startup default, matches the slider's own default — was never called at init before, so --note-marker-circle-inset (which every circle-mode tier's own size derives from) was relying entirely on CSS/JS fallback values instead of actually being set; harmless when the fallback (12%) happens to agree with the slider default, but left the property genuinely unset going into the very first _recomputeMarkerTierInsets() call
-setSquareMarkerSize(90); // hardcoded, per direct request
-setNoteMarkerSizeRatioSquare(50); // hardcoded, per direct request
+setSquareMarkerSize(95); // hardcoded, per direct request
+setNoteMarkerSizeRatioSquare(0); // hardcoded, per direct request
 setEmptyMarkerOpacitySquare(35); // hardcoded, per direct request
-setEmptyMarkerSizeSquare(50); // hardcoded, per direct request
+setEmptyMarkerSizeSquare(95); // hardcoded, per direct request
 setEmptyMarkerOpacityCircle(35); // was 20 — per report, empty circle markers were barely visible at init (0.2 opacity * the ~0.785 circle-coverage compensation still only nets ~0.25 real opacity); 35 nets ~0.45, clearly visible without matching accented notes
 setEmptyMarkerSizeCircle(50); // hardcoded, per direct request
 // SIMPLE FADER TIP COLOR (SETTINGS toggle) — the black tip/cap marker
@@ -16124,6 +16160,31 @@ function setDevNotesGrayscale(on) {
   if (otherCb) otherCb.checked = on;
 }
 function setNoteMarkersCircle(on) { document.body.classList.toggle('note-markers-circle', !!on); }
+// MARKER STYLE (SETTINGS toggle, top-level) — a simple two-state button
+// replacing the old NOTE MARKERS = CIRCLES checkbox at this spot, per
+// direct request; that checkbox still exists (now inside the DEV tab
+// below, alongside NOTE MARKERS = ASTERISKS and the rest of the marker
+// tuning controls) and stays in sync so either control reflects the same
+// underlying state.
+function toggleMarkerStyle() {
+  const isCircle = !document.body.classList.contains('note-markers-circle');
+  setNoteMarkersCircle(isCircle);
+  const btn = document.getElementById('markerStyleToggleBtn');
+  if (btn) btn.textContent = isCircle ? 'CIRCLES' : 'SQUARES';
+  const cb = document.getElementById('noteMarkersCircleToggle');
+  if (cb) cb.checked = isCircle;
+}
+// DEV (SETTINGS tab, bottom of panel) — collapses every marker-tuning
+// slider/toggle (plus a few unrelated settings that happened to sit below
+// NOTE MARKERS = CIRCLES in the panel) behind a single DEV button, per
+// direct request, so the main settings panel stays short and only the
+// MARKER STYLE toggle above is visible by default.
+function toggleDevTab() {
+  const el = document.getElementById('devTabContent');
+  if (!el) return;
+  const showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : 'flex';
+}
 function setNoteMarkersAsterisk(on) { document.body.classList.toggle('note-markers-asterisk', !!on); }
 // LEFT-JUSTIFY SQUARES / LEFT-JUSTIFY CIRCLES (SETTINGS toggles, per
 // direct request) — shifts the un-accented (.soft) and empty note
@@ -16174,9 +16235,9 @@ function setSquareMarkerSize(v) {
 // percentage and unitless values in a way calc() can't cleanly do; this
 // precomputes the actual --marker-*-inset percentage for each tier
 // instead, which the CSS then just reads directly.
-window._markerSizeRatioSquare = 50; // squares/asterisks — hardcoded at 50%, per direct request
+window._markerSizeRatioSquare = 0; // squares/asterisks — hardcoded at 0%, per direct request
 window._markerSizeRatioCircle = 200; // circles — hardcoded at 200%, per direct request
-window._emptyMarkerSizePctSquare = 50; // direct control (SETTINGS slider) — literal % of the cell, hardcoded at 50%, per direct request
+window._emptyMarkerSizePctSquare = 95; // direct control (SETTINGS slider) — literal % of the cell, hardcoded at 95%, per direct request
 window._emptyMarkerSizePctCircle = 50; // direct control (SETTINGS slider) — literal % of the cell, hardcoded at 50%, per direct request
 function _recomputeMarkerTierInsets() {
   // BUGFIX: this used to read window._emptyMarkerSizePct / _markerSizeRatioSquare
@@ -16209,7 +16270,7 @@ function _recomputeMarkerTierInsets() {
   // --marker-empty-inset (also still read by asterisk mode, unchanged),
   // circles write their own -circle-suffixed variable that only the
   // circle-mode CSS rules read.
-  const SeSquare = window._emptyMarkerSizePctSquare ?? 50;
+  const SeSquare = window._emptyMarkerSizePctSquare ?? 95;
   const insetEmptySquare = (100 - SeSquare) / 2;
   document.documentElement.style.setProperty('--marker-empty-inset', insetEmptySquare + '%');
   const SeCircle = window._emptyMarkerSizePctCircle ?? 50;
@@ -16227,7 +16288,7 @@ function _recomputeMarkerTierInsets() {
   // Squares also scale off their OWN base inset (--note-marker-square-
   // inset, SQUARE MARKER SIZE slider) rather than the circle one, now
   // that the two accent sizes are independent.
-  const ratioSquare = (window._markerSizeRatioSquare ?? 50) / 100;
+  const ratioSquare = (window._markerSizeRatioSquare ?? 0) / 100;
   const ratioCircle = (window._markerSizeRatioCircle ?? 200) / 100;
   [
     { name: 'soft', P: 80 },
