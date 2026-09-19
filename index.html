@@ -207,6 +207,17 @@ body.seq-playing:not(.logo-note-jump-mode):not(.logo-color-static):not(.logo-fla
 body.seq-playing.logo-note-jump-mode #siFiTitle.press-pulse,
 body.seq-playing.logo-color-static #siFiTitle.press-pulse,
 body.seq-playing.logo-flash-mode #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; }
+/* LOGO PULSE TIMEOUT — per direct request, the logo stops pulsing/color-
+   cycling after a max of 6s of continuous play and settles back to solid
+   black, in every color mode (smooth cycle, JUMP, STATIC, FLASH) and
+   regardless of a mid-timeout tap's own press-pulse. Class added/removed
+   by a timer in togglePlay() — see _logoPulseTimeoutId. !important beats
+   every rule above (none of them use it), including STATIC's own inline-
+   specificity color and JUMP/FLASH's direct el.style.color writes from
+   _flashLogoColor()/_jumpLogoColor(), since an !important stylesheet rule
+   always outranks a plain (non-!important) inline style. */
+body.logo-pulse-expired #siFiTitle,
+body.logo-pulse-expired #siFiTitle.press-pulse { animation: none !important; color: #000 !important; }
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -660,10 +671,11 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
    SOLID mode genuinely shows a static button with no pulse at all. Per
-   direct request, now flashes to PLAY FLASH's own picked color (was a
-   generic brightness/saturate filter boost on the track's existing
-   color, unrelated to PLAY FLASH entirely). */
-body.track-pulse-a .track-name-btn.playing { background: var(--play-flash-color, #f8ff00) !important; opacity: 1; }
+   direct request, the TEXT (not the background) now flashes to PLAY
+   FLASH's own picked color — was a generic brightness/saturate filter
+   boost on the button's existing background, unrelated to PLAY FLASH
+   entirely. */
+body.track-pulse-a .track-name-btn.playing { color: var(--play-flash-color, #f8ff00) !important; opacity: 1; }
 /* Independent of the background pulse above — same .playing trigger
    (updatePlayhead, one flash per actual note hit), separate setting,
    both can be on/off independently of each other. */
@@ -1465,7 +1477,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 01:08:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 01:32:48 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1613,7 +1625,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 01:08:28 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 01:32:48 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -3380,6 +3392,40 @@ function _applyEightBitMixGains() {
   window._eightBitDryGain.gain.value = Math.cos(mix * Math.PI / 2);
   window._eightBitWetGain.gain.value = Math.sin(mix * Math.PI / 2);
 }
+// BOUNCE LOOP / BOUNCE LOOP STEMS offline-render equivalent of the live
+// 8-BIT MIX crossfade above. Per direct request — exported bounces should
+// match the actual final output, but the live crossfade depends on
+// AudioWorkletNode (see _ensureEightBitSplit), which is registered
+// per-AudioContext-instance and can't just be reconnected into a fresh
+// OfflineAudioContext per render pass; re-registering + rebuilding it for
+// every offline pass would also cost real (audioWorklet.addModule is
+// async) complexity for no audible benefit, since a finished render is
+// just samples at that point. So instead of graph nodes, this reproduces
+// the exact same bit-depth/downsample math the live crusher uses (see
+// _buildEightBitNodeScriptProcessorFallback above — same 8-bit
+// quantization, same 6x sample-and-hold) directly on the rendered
+// AudioBuffer's own sample data, blended with the same equal-power
+// dry/wet gains as _applyEightBitMixGains, so a bounced file actually
+// carries whatever 8-BIT MIX % was set when it was rendered — same as
+// REALTIME (see toggleRecord's tap point) and same as what's actually
+// heard live.
+function _applyEightBitToBuffer(buffer, mix) {
+  if (!buffer || !mix || mix <= 0) return buffer;
+  const bits = 8, downsample = 6;
+  const halfLevels = Math.pow(2, bits - 1);
+  const dryGain = Math.cos(mix * Math.PI / 2);
+  const wetGain = Math.sin(mix * Math.PI / 2);
+  for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+    const data = buffer.getChannelData(ch);
+    let hold = 0, phase = 0;
+    for (let i = 0; i < data.length; i++) {
+      if (phase === 0) hold = Math.round(Math.max(-1, Math.min(1, data[i])) * halfLevels) / halfLevels;
+      phase = (phase + 1) % downsample;
+      data[i] = data[i] * dryGain + hold * wetGain;
+    }
+  }
+  return buffer;
+}
 // 8-BIT MIX slider in SETTINGS — v is 0-100. 0 = fully clean, 100 = fully
 // crushed, anything between actually blends the two rather than switching.
 function setEightBitMix(v) {
@@ -4613,7 +4659,12 @@ function updatePlayhead(step) {
           // quick revert timing this branch already had.
           const fillEl = vb.querySelector('.track-vol-fill-solid');
           if (fillEl) {
-            fillEl.classList.remove('flash-pulse');
+            // Also strips any leftover neon-pulse-bright/dark class here,
+            // not just in setVolSliderNeon() — belt and braces, since
+            // those animate with !important and would otherwise silently
+            // out-rank flash-pulse (which has none) for as long as they
+            // remained.
+            fillEl.classList.remove('flash-pulse', 'neon-pulse-bright', 'neon-pulse-dark');
             void fillEl.offsetWidth;
             fillEl.classList.add('flash-pulse');
             setTimeout(() => { fillEl.classList.remove('flash-pulse'); }, 80);
@@ -4691,6 +4742,12 @@ function togglePlay() {
       }
     }
     document.body.classList.add('seq-playing');
+    // LOGO PULSE TIMEOUT — per direct request, max 6s of logo pulsing/
+    // color-cycling per play, then it settles back to solid black (see the
+    // body.logo-pulse-expired CSS override above) until the next play.
+    document.body.classList.remove('logo-pulse-expired');
+    clearTimeout(window._logoPulseTimeoutId);
+    window._logoPulseTimeoutId = setTimeout(() => { document.body.classList.add('logo-pulse-expired'); }, 6000);
     const _logoEl = document.getElementById('siFiTitle');
     if (_logoEl) _logoEl.style.setProperty('--logo-anim-dur', ((60 / bpm) * 4) + 's'); // one full measure (4 beats) per trip through all four colors — custom property, not the raw animation-duration, so it can't leak into the logo's tap press-pulse (see CSS)
     document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // SPIRIT PULSE ("+" glyph color-cycle while in AUTO mode) — hard-coded to one quarter note at the loaded pattern's own tempo, per direct request; set globally (not scoped to one element like the logo's own --logo-anim-dur above) since #randBtn isn't a descendant of the logo
@@ -4709,6 +4766,8 @@ function togglePlay() {
     }
   } else {
     document.body.classList.remove('seq-playing');
+    clearTimeout(window._logoPulseTimeoutId);
+    document.body.classList.remove('logo-pulse-expired'); // reset so the next play gets its own fresh 6s, not an already-expired logo
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'paused'; } catch (e) {} }
     clearInterval(scheduleInterval); scheduleInterval = null;
     btn.classList.remove('playing');
@@ -10629,7 +10688,18 @@ function setVolSliderNeon(on) {
     // any track that had even one note play while neon was on stayed
     // stuck showing whichever green it last landed on, permanently,
     // even after switching neon back off.
-    document.querySelectorAll('.track-vol-fill-solid').forEach(el => el.style.removeProperty('background-color'));
+    // BUGFIX: also wasn't removing the neon-pulse-bright/neon-pulse-dark
+    // classes themselves. Those animate with `forwards !important`, so
+    // once a track had played a note under NEON, it kept that class
+    // (frozen at its final green shade) forever — silently outranking
+    // the non-NEON flash-pulse class added below (which has no
+    // !important) every single time, so tracks just sat there green with
+    // no visible pulse at all after switching NEON off, even though the
+    // JS was correctly adding/removing flash-pulse on every note.
+    document.querySelectorAll('.track-vol-fill-solid').forEach(el => {
+      el.style.removeProperty('background-color');
+      el.classList.remove('neon-pulse-bright', 'neon-pulse-dark');
+    });
   }
 }
 // NEON PULSE SPEED (SETTINGS slider, 2-10) — a multiplier on the pulse's
@@ -11668,7 +11738,22 @@ function toggleRecord() {
   // Set up MediaRecorder
   try {
     const dest = ctx.createMediaStreamDestination();
-    masterGain.connect(dest);
+    // BUGFIX: this used to tap masterGain directly — the very FIRST node
+    // in the output chain (masterGain -> _normalTrackFadeGain -> makeupGain
+    // -> _duckGain -> masterLimiter -> _safetyLimiter -> _postLimiterGain
+    // -> 8-BIT MIX dry/wet split -> destination). Reverb returns into
+    // _normalTrackFadeGain (downstream of masterGain), so REALTIME
+    // recordings were missing reverb entirely, along with makeup gain,
+    // both limiter stages, and the 8-BIT MIX crossfade — none of that is
+    // present until further down the chain. _ensureEightBitSplit()
+    // guarantees the dry/wet split nodes exist (built once at graph-init
+    // via _connectEightBitOutput, and idempotent besides), so connecting
+    // to both of those — the actual last nodes before ctx.destination,
+    // already carrying the live, currently-set 8-BIT MIX blend — captures
+    // the true final output, same as what's actually heard.
+    _ensureEightBitSplit(ctx);
+    window._eightBitDryGain.connect(dest);
+    window._eightBitWetGain.connect(dest);
     _recChunks = [];
     // Force an explicit audio mimeType — never trust the browser's silent
     // default, which can quietly shift to a video container even for an
@@ -11682,7 +11767,8 @@ function toggleRecord() {
     _mediaRecorder = _recMimeType ? new MediaRecorder(dest.stream, { mimeType: _recMimeType }) : new MediaRecorder(dest.stream);
     _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
     _mediaRecorder.onstop = async () => {
-      try { masterGain.disconnect(dest); } catch(e) {}
+      try { window._eightBitDryGain.disconnect(dest); } catch(e) {}
+      try { window._eightBitWetGain.disconnect(dest); } catch(e) {}
       updateRecBtn();
       if (_recChunks.length === 0) return;
       _showBounceToast();
@@ -11945,6 +12031,7 @@ async function _renderOfflineLoop(connectFn, loopSequence, tailSec) {
       }
     }
     const rendered = await offlineCtx.startRendering();
+    _applyEightBitToBuffer(rendered, window._eightBitMix); // bake in the current 8-BIT MIX % — see _applyEightBitToBuffer for why this happens on the finished buffer rather than in the offline graph itself
     return rendered;
   } finally {
     _restoreLiveGraph(liveSnap);
@@ -12487,7 +12574,7 @@ function randAll(mode, opts) {
     if (trackSweep[tr]) lockedInstruments.add(trackInstruments[tr]);
   }
   // Prefer non-locked instruments but allow locked ones if category is depleted
-  const percKeysAll = Object.keys(INSTRUMENTS).filter(k => k !== 'toms' && !TONAL_KEYS.has(k) && !(k === 'guiro' && Math.random() < 0.5) && !(k === 'shihat' && (_beatType === 'reggae' || _beatType === 'reggae2' || _beatType === 'samba' || _beatType === 'cumbia' || _beatType === 'afrobeat' || _beatType === 'jazz')) && !((k === 'skick' || k === 'ssnare') && _beatType === 'samba') && !(k === 'skick' && _beatType === 'cumbia') && !((k === 'skick' || k === 'ssnare' || k === 'shihat') && _beatType === 'mozambique')); // 'toms' excluded — MOZAMBIQUE-only, assigned directly by _applyMozambiqueTracksToCurrentPattern/the mozambique RAND branch, not through this general pool (it has no real samples of its own outside that fixed step-7-is-hi/else-is-lo context); KICK/SNARE/HIHAT also excluded for MOZAMBIQUE specifically — that beat's own kick/hihat are BEAT-menu-only synthesis, never tracks, so having a track-based kick/snare/hihat competing alongside them doesn't fit the style
+  const percKeysAll = Object.keys(INSTRUMENTS).filter(k => k !== 'toms' && !TONAL_KEYS.has(k) && !(k === 'guiro' && Math.random() < 0.5) && !(k === 'shihat' && (_beatType === 'reggae' || _beatType === 'reggae2' || _beatType === 'samba' || _beatType === 'cumbia' || _beatType === 'afrobeat' || _beatType === 'jazz')) && !((k === 'skick' || k === 'ssnare' || k === 'sidestick') && _beatType === 'samba') && !(k === 'skick' && _beatType === 'cumbia') && !((k === 'skick' || k === 'ssnare' || k === 'shihat') && _beatType === 'mozambique')); // 'toms' excluded — MOZAMBIQUE-only, assigned directly by _applyMozambiqueTracksToCurrentPattern/the mozambique RAND branch, not through this general pool (it has no real samples of its own outside that fixed step-7-is-hi/else-is-lo context); KICK/SNARE/HIHAT also excluded for MOZAMBIQUE specifically — that beat's own kick/hihat are BEAT-menu-only synthesis, never tracks, so having a track-based kick/snare/hihat competing alongside them doesn't fit the style. SIDESTICK also excluded for SAMBA now (was missing — only SKICK/SSNARE were excluded there) — SAMBA's own kick/hihat/snare-or-sidestick are all fixed BEAT-menu-only hits (see the samba branches above), never tracks, so a track independently getting SIDESTICK assigned meant a second, unrelated sidestick pattern competing against the beat engine's own fixed one, but only whenever the samba variant happened to roll sidestick rather than snare — since SSNARE was already excluded, this only ever glitched in the sidestick version, exactly as reported
   const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && ((k !== 'jcmgtr' && k !== 'dulc') || _intensitySliderVal > 80)); // JINX and BOOBOO stay out of RAND below 80% INTENSITY — still fully selectable manually from the sound picker regardless
   const percKeys = percKeysAll.filter(k => !lockedInstruments.has(k)).length > 0
     ? percKeysAll.filter(k => !lockedInstruments.has(k))
