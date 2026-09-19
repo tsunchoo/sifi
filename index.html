@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 18:32:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 18:38:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1295,6 +1295,7 @@ body.note-markers-circle .step-cell.soft.playing::after {
   background: var(--track-color, var(--text));
   opacity: 0.5;
   left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%); top: var(--marker-empty-inset, 42.4%); bottom: var(--marker-empty-inset, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally per direct request — same height as the empty marker (top/bottom insets borrowed from --marker-empty-inset), same width as the accented note (left/right insets borrowed from --note-marker-square-inset), instead of the old square tail. aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
+  border-radius: 9999px; /* pill/capsule shape, per direct request — a plain border-radius:50% on a non-square box draws an ellipse (scales x/y radius independently off the box's own width/height, the "egg" look); a fixed radius this much bigger than the box gets clamped down to exactly half the box's shorter side (its height here), which is what actually produces two true semicircular end-caps joined by straight edges instead of a stretched oval */
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
@@ -1340,8 +1341,8 @@ body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
 body.note-markers-circle .step-cell.legato-tail::after {
   left: var(--note-marker-circle-inset, 12%);
   right: var(--note-marker-circle-inset, 12%);
-  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — width from the accent circle's own inset, height from the empty circle's — border-radius:50% on a non-square box renders as an ellipse */
-  border-radius: 50%;
+  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — width from the accent circle's own inset, height from the empty circle's */
+  border-radius: 9999px; /* pill/capsule, not an ellipse — see the square-mode tail rule above for why a huge fixed radius (clamped down to half the box's own height) beats border-radius:50% here */
 }
 /* Split32 (32nd notes) — two mini-circles side by side, each half the
    base circle's diameter, per direct request. Uses two radial-gradients
@@ -1546,7 +1547,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 18:32:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 18:38:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1694,7 +1695,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 18:32:00 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 18:38:30 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1919,9 +1920,9 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
-            <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">13.0DB</div>
+            <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10.0DB</div>
           </div>
-          <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="13" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
+          <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="10" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
@@ -12171,7 +12172,7 @@ function _restoreLiveGraph(snap) {
 function _buildBounceGraph(targetCtx) {
   ctx = targetCtx;
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
-  const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 4.4668;
+  const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
   window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.3861; // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   // NOT auto-connected to masterGain here — the caller wires in only the
@@ -13514,7 +13515,10 @@ function randAll(mode, opts) {
         // re-randomized like any other track if you actually want to.
       } else if (_beatType === 'jazz' && (trackInstruments[_tr] === 'sidestick' || trackInstruments[_tr] === 'ssnare')) {
         grid[_tr].fill(0);
-        const _offBeatSteps = [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15]; // never on the downbeats — comping stays out of the way of the main beat
+        // 7 and 15 excluded — RIDE's own fixed pattern always has an
+        // anticipation hit there, so a ghost note on the same step stacked
+        // two loud transients on the same instant and slammed the limiter.
+        const _offBeatSteps = [1, 2, 3, 5, 6, 9, 10, 11, 13, 14]; // never on the downbeats or RIDE's own 7/15 — comping stays out of the way of the main beat
         const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round(5 * intensityMult()))); // raised from 2-5 to a flat 5 (top end left as it was), still scaled by INTENSITY
         const _shuffledOff = [..._offBeatSteps].sort(() => Math.random() - 0.5);
         _shuffledOff.slice(0, _ghostCount).forEach(s => { grid[_tr][s] = Math.random() < 0.2 ? 2 : 1; }); // mostly quiet ghost notes, occasional accent
@@ -13545,11 +13549,14 @@ function randAll(mode, opts) {
         grid[_tr][14] = 2; grid[_tr][15] = 2;
         redrawTrackCells(_tr); markModified();
       } else if (_beatType === 'bossa' && trackInstruments[_tr] === 'sidestick') {
-        // Fixed 5-hit Brazilian clave pattern (0, 3, 6, 10, 13) — the
-        // same shape used by _applyBossaTracksToCurrentPattern, not left
-        // to normal randomization.
+        // Fixed 5-hit Brazilian clave pattern (1, 2, 6, 10, 13) — same
+        // shape used by _applyBossaTracksToCurrentPattern, not left to
+        // normal randomization. Steps 1/2 (not the original 0/3) so
+        // nothing here lands on the exact same instant as the beat
+        // engine's own kick/anticipation-kick — see that function's
+        // comment for why.
         grid[_tr].fill(0);
-        grid[_tr][0] = 2; grid[_tr][3] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2;
+        grid[_tr][1] = 2; grid[_tr][2] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2;
         redrawTrackCells(_tr); markModified();
       } else {
         randomizeTrack(_tr);
@@ -16778,10 +16785,11 @@ function setRandReleaseSweepVol(v) {
 }
 // OUTPUT MAKEUP GAIN (SETTINGS slider, dB) — directly controls the fixed
 // makeup-gain boost applied to the whole mix (see _BASE_MAKEUP_GAIN /
-// makeupGain in the audio graph setup). Slider's middle position (8dB)
-// matches where this has been sitting; room to go both lower (quieter,
-// less distortion risk) and higher (louder, more) from there, so the
-// effect of the boost can actually be heard both ways, per direct
+// makeupGain in the audio graph setup). Default now 10dB (was 13dB —
+// pulled back per direct request after being flagged as a likely
+// general-overclocking/clipping contributor); room to go both lower
+// (quieter, less distortion risk) and higher (louder, more) from there,
+// so the effect of the boost can actually be heard both ways, per direct
 // request. Updates the live gain node directly (not just the stored
 // default) so it takes effect immediately, mid-playback, without needing
 // a context rebuild.
@@ -17600,7 +17608,7 @@ async function initAudio() {
     // Single source of truth for the base output boost — the turbo toggle
     // below derives its own value from this instead of a hardcoded number,
     // so future changes here don't get silently undone by toggling turbo.
-    window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 4.4668; // +13dB fixed output boost, hardcoded per direct request (was +8dB/2.5061, +14dB before that) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
+    window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.3861; window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
@@ -18570,7 +18578,12 @@ function _applyJazzTracksToCurrentPattern() {
       // any other track if you actually want to.
     } else {
       grid[tr].fill(0);
-      const _offBeatSteps = [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15];
+      // 7 and 15 excluded — RIDE's own fixed pattern (above) always has an
+      // anticipation hit on those exact steps, so a ghost note landing
+      // there stacked two loud sample transients on the same instant and
+      // slammed the limiter, same root cause as the old SAMBA glitch and
+      // BOSSA's sidestick clave (see _applyBossaTracksToCurrentPattern).
+      const _offBeatSteps = [1, 2, 3, 5, 6, 9, 10, 11, 13, 14];
       const _ghostCount = Math.max(1, Math.min(_offBeatSteps.length, Math.round(5 * intensityMult()))); // raised from 2-5 to a flat 5 (top end left as it was), still scaled by INTENSITY
       const _shuffledOff = [..._offBeatSteps].sort(() => Math.random() - 0.5);
       _shuffledOff.slice(0, _ghostCount).forEach(s => { grid[tr][s] = Math.random() < 0.2 ? 2 : 1; });
@@ -18756,7 +18769,15 @@ function _applyBossaTracksToCurrentPattern() {
   if (ctx) setFxActive(targetTr, trackFx[targetTr]);
   const fb = document.getElementById(`fxbtn-${targetTr}`); if (fb) { fb.classList.remove('on'); fb.classList.remove('blast-on'); }
   grid[targetTr].fill(0);
-  grid[targetTr][0] = 2; grid[targetTr][3] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2;
+  // Was 0,3,6,10,13 — steps 0 and 3 landed on the exact same instant as the
+  // beat engine's own downbeat kick (0/4/8/12) and anticipation kick
+  // (3/7/11/15, see fireStepAudio's bossa branches), stacking two loud
+  // full-amplitude sample transients together and slamming the limiter —
+  // same root cause as the old SAMBA glitch. Shifted those two hits to
+  // 1/2 (never touched by the kick engine at all) so nothing on this fixed
+  // pattern coincides with a kick hit; 6/10/13 only ever land alongside the
+  // much quieter synth hihat foot-close, left as-is.
+  grid[targetTr][1] = 2; grid[targetTr][2] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2;
   redrawTrackCells(targetTr);
   _dedupeBeatOwnedTracks(['sidestick']);
   markModified();
