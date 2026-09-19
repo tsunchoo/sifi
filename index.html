@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 15:49:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 15:53:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -180,19 +180,26 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    reverts straight back to the track's own normal fill color (no
    forwards/hold, unlike NEON, since this should snap back to "the track
    contents" rather than sit at the flash color until the next hit). */
-/* Two-color pulse: DARK TRACK COLOR (--neutral-top) <-> PLAY FLASH color
-   (--play-flash-color). Re-architected — the previous single ramp-up
-   animation (grey -> yellow over the whole duration) never actually
+/* Two-color pulse: literal DARK GREY <-> PLAY FLASH color (--play-flash-
+   color). This is hardcoded to #555555, NOT var(--neutral-top) — that
+   variable is the TOP ROW COLOR setting, which WILD (on by default,
+   randomizes app colors on every RAND press) reassigns to an arbitrary
+   hue constantly, e.g. orange. Tying this pulse to --neutral-top meant its
+   "dark" resting color was never actually grey at all in normal use, it
+   was whatever random color WILD last landed on — which is exactly the
+   "the bars are ORANGE, not sure I ever asked for that color" report.
+   Literal grey, always, regardless of WILD/theme state, per direct
+   request ("dark grey got it?"). Re-architected from a single ramp-up
+   animation (grey -> yellow over the whole duration) which never actually
    reached yellow at normal note densities, because every new hit restarted
-   it from the grey end before it got there, so in practice it just sat
-   permanently near grey. Now the PEAK color is hit INSTANTLY (a plain
-   class, no animation — guaranteed to actually be seen every single note,
-   same reasoning NEON's own hold/fade split already uses for its bright/
-   dark colors), held briefly, then eases back down to the dark color, and
-   only reverts to the track's own normal fill color once that decay has
-   actually finished. */
+   it before it got there, so in practice it just sat permanently near
+   grey. Now the PEAK color is hit INSTANTLY (a plain class, no animation —
+   guaranteed to actually be seen every single note, same reasoning NEON's
+   own hold/fade split already uses for its bright/dark colors), held
+   briefly, then eases back down to the dark color, and only reverts to the
+   track's own normal fill color once that decay has actually finished. */
 .track-vol-fill-solid.flash-pulse-hit { background-color: var(--play-flash-color, #f8ff00) !important; }
-@keyframes flash-vol-pulse-decay { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--neutral-top, #555); } }
+@keyframes flash-vol-pulse-decay { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: #555555; } }
 .track-vol-fill-solid.flash-pulse-decay { animation: flash-vol-pulse-decay 0.38s ease-out forwards; }
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-hit,
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-decay { filter: saturate(1) !important; } /* MUST match (or beat) the specificity of the body.seq-playing...saturate(20) rule below, not just add !important on a plain class selector — a lower-specificity !important still loses to a higher-specificity !important. Without this, saturate(20) (meant for the resting fill color) kept winning during playback and slammed every in-between blended color of the decay sweep to near-full saturation almost immediately */
@@ -874,9 +881,10 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
   filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
-/* NEON off: the fill's RESTING color is the same dark track color the
-   pulse itself starts from (--neutral-top), not --vol-slider-color (mode 2/
-   HIGHLIGHT 2 — whatever that's currently set to, e.g. orange) — otherwise
+/* NEON off: the fill's RESTING color is the same literal dark grey the
+   pulse itself decays to (#555555, NOT var(--neutral-top) — see the pulse's
+   own comment above), not --vol-slider-color (mode 2/HIGHLIGHT 2 —
+   whatever that's currently set to, e.g. orange) — otherwise
    every note's pulse decays from yellow back down toward grey only to jump
    to a third, unrelated color the instant the pulse class is removed,
    which is exactly the "orange AND yellow, can't tell what's going on"
@@ -886,7 +894,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
    above (body + 2 classes vs. 1 class) so it wins without needing
    !important; NEON on is unaffected (its own hold/fade classes already
    override background-color directly with !important regardless). */
-body:not(.vol-slider-neon) .track-vol-fill-solid { background: var(--neutral-top, #555); }
+body:not(.vol-slider-neon) .track-vol-fill-solid { background: #555555; } /* literal grey, not var(--neutral-top) — see the pulse comment above; --neutral-top is the WILD-randomized TOP ROW COLOR, not a fixed grey */
 .track-vol-tip { display: none; position: absolute; pointer-events: none; } /* base rule so this never disrupts .track-vol-bar's normal-flow layout — display:none unless SIMPLE FADER's own rule below turns it on */
 /* JUST TRACK (SETTINGS toggle, on by default — see body's class list) —
    "the track" here means the thin ruler line itself (--vol-scale-
@@ -1521,7 +1529,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 15:49:41 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 15:53:01 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1669,7 +1677,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 15:49:41 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 15:53:01 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
