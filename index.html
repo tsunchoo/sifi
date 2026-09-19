@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 17:11:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 17:21:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -103,9 +103,9 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 2.0671rem; line-heigh
 body.eight-bit-mode #siFiTitle { letter-spacing: 1px; text-shadow: 2px 2px 0 #00ff41, -1px -1px 0 #00ff41; }
 body.eight-bit-mode #siFiTitle span { color: #00ff41 !important; }
 /* Same 8-BIT treatment extended to the tape spools, per direct request —
-   same filter-based recolor trick the reel's own recording/hiss/compress
-   states already use (see .reel-wrap.recording/.hiss-on/.compress-on
-   above), just tuned to land on the same #00ff41 green. */
+   same filter-based recolor trick the reel's own recording/compress
+   states already use (see .reel-wrap.recording/.compress-on above), just
+   tuned to land on the same #00ff41 green. */
 /* Redesigned to match the logo's own treatment exactly, per direct
    request: the reel keeps its normal appearance (whatever --reel-filter
    currently has it set to) and just gets the same green shadow behind it
@@ -325,7 +325,6 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 .reel { width: 40px; height: 40px; display: block; transition: filter 0.3s; filter: var(--reel-filter, brightness(0)); -webkit-tap-highlight-color: transparent; }
 .reel-wrap { position: relative; display: inline-block; }
 .reel-wrap.recording .reel { filter: brightness(0) saturate(100%) invert(16%) sepia(90%) saturate(7000%) hue-rotate(355deg) brightness(100%) !important; }
-.reel-wrap.hiss-on .reel { filter: brightness(0) sepia(1) saturate(3) hue-rotate(40deg) brightness(1.2); }
 .reel-wrap.compress-on .reel { filter: brightness(0) sepia(1) saturate(6) hue-rotate(20deg) brightness(1.4); }
 .reel-wrap.reel-beat-pulse { animation: reel-pulse 0.12s ease-out; }
 body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-out; }
@@ -584,6 +583,7 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
 #beatBtn.menu-open { background: var(--top-row-pressed-bg) !important; }
 #beatBtn.menu-open:active { opacity: 1; } /* same reasoning as the other two black-on-hold fixes above */
 #turboBtn.boost-on { animation: boost-red 0.5s infinite alternate; }
+#batterySaverBtn.saver-on { background: #2eb82e !important; } /* solid green, static — no need for an attention-grabbing pulse on a mode that's meant to be left on quietly */
 .rec-mode-btn { width:100%; background:#ddd; color:#111; border:none; font-family:'DM Sans',sans-serif; font-size:0.68rem; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:12px 0; cursor:pointer; }
 .rec-mode-btn.on { background:#111; color:#fff; }
 /* TAPES buttons only (not RECORDING or RANDOMIZE COLORS, which share the
@@ -654,9 +654,9 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
    visibly took even after the class was added everywhere. */
 input.master-vol-slider, input.master-vol-slider::-webkit-slider-runnable-track { -webkit-appearance: none !important; appearance: none !important; background: transparent !important; height: 5.76px !important; } /* +20% again (was 4.8px, before that 4px), per direct request */
 input.master-vol-slider::-webkit-slider-runnable-track { background: var(--neutral-top, #555) !important; border-radius: 2px !important; }
-input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 6px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; margin-top: -8.64px !important; cursor: pointer; } /* rectangular, solid black tip like the volume slider's own — height +20% again (was 19.2px, before that 16px), per direct request; width unchanged at 6px */
+input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 10px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; margin-top: -8.64px !important; cursor: pointer; } /* rectangular, solid black tip like the volume slider's own — width corrected back to 10px to actually match the volume fader's own width, as originally asked (was wrongly taken down to 6px on a later request) */
 input.master-vol-slider::-moz-range-track { background: var(--neutral-top, #555) !important; height: 5.76px !important; border-radius: 2px !important; } /* +20% again (was 4.8px, before that 4px) */
-input.master-vol-slider::-moz-range-thumb { width: 6px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; } /* height +20% again (was 19.2px, before that 16px), per direct request */
+input.master-vol-slider::-moz-range-thumb { width: 10px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; } /* width corrected back to 10px, matching the volume fader's own width */
 #bpmSettingsSlider.tempo-locked::-webkit-slider-thumb { background: #b0b0b0; }
 #bpmSettingsSlider.tempo-locked::-moz-range-thumb { background: #b0b0b0; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
@@ -1541,7 +1541,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 17:11:12 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 17:21:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1689,7 +1689,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 17:11:12 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 17:21:42 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -2026,6 +2026,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
       </div>
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
+      <button id="batterySaverBtn" onclick="toggleBatterySaver()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BATTERY SAVER</button>
 
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -5913,20 +5914,32 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   lp.frequency.linearRampToValueAtTime(freq * 2.8, time + durSec * 0.5); // darker peak
   lp.frequency.linearRampToValueAtTime(freq * 1.0, time + durSec + tail); // darker tail
 
-  // Sparse reverb-like diffusion via short noise IR for rainy ambience
-  const irLen = Math.floor(ctx.sampleRate * 1.2);
-  const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = irBuf.getChannelData(ch);
-    for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.8);
+  // Sparse reverb-like diffusion via short noise IR for rainy ambience. The
+  // IR buffer is cached and reused rather than regenerated on every note —
+  // same fix already applied to SOLAR PAD's own reverb below (see
+  // window._synthLegReverbBuf) — filling ~100k random samples per note was
+  // pure waste since the result is the same buffer every time anyway.
+  if (!window._cyberPadReverbBuf) {
+    const irLen = Math.floor(ctx.sampleRate * 1.2);
+    const irBuf = ctx.createBuffer(2, irLen, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = irBuf.getChannelData(ch);
+      for (let i = 0; i < irLen; i++) d[i] = (Math.random()*2-1) * Math.pow(1-i/irLen, 1.8);
+    }
+    window._cyberPadReverbBuf = irBuf;
   }
-  const rev = ctx.createConvolver(); rev.buffer = irBuf;
-  const revG = ctx.createGain(); revG.gain.value = 0.5;
   const dryG = ctx.createGain(); dryG.gain.value = 0.55;
-
   masterEnv.connect(lp);
   lp.connect(dryG); dryG.connect(dest);
-  lp.connect(rev); rev.connect(revG); revG.connect(dest);
+  // BATTERY SAVER — skip the convolver reverb send entirely (dry signal
+  // only) rather than just avoiding the buffer rebuild above; real-time
+  // convolution is the actual ongoing CPU cost, not just the buffer setup.
+  let rev = null, revG = null;
+  if (!window._batterySaverOn) {
+    rev = ctx.createConvolver(); rev.buffer = window._cyberPadReverbBuf;
+    revG = ctx.createGain(); revG.gain.value = 0.5;
+    lp.connect(rev); rev.connect(revG); revG.connect(dest);
+  }
 
   detunes.forEach((det, i) => {
     const osc = ctx.createOscillator(); osc.type = 'sine';
@@ -5955,7 +5968,7 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   shimEnv.gain.exponentialRampToValueAtTime(0.0005, time + durSec + tail);
   shimmer.connect(shimEnv); shimEnv.connect(dest);
   shimmer.start(time); shimmer.stop(time + durSec + tail);
-  shimmer.onended = () => { try { shimEnv.disconnect(); masterEnv.disconnect(); lp.disconnect(); rev.disconnect(); revG.disconnect(); dryG.disconnect(); } catch(e) {} };
+  shimmer.onended = () => { try { shimEnv.disconnect(); masterEnv.disconnect(); lp.disconnect(); if (rev) rev.disconnect(); if (revG) revG.disconnect(); dryG.disconnect(); } catch(e) {} };
 }
 
 // ── Strings: natural bowed string feel with strong attack and warm body ──
@@ -6035,16 +6048,24 @@ function playSynthLeg(freq, durSec, isAccent, time, tr, extLevelMul) {
     }
     window._synthLegReverbBuf = irBuf;
   }
-  const rev = ctx.createConvolver(); rev.buffer = window._synthLegReverbBuf;
   const dryG = ctx.createGain(); dryG.gain.value = 0.5; dryG.connect(dest);
-  const revG = ctx.createGain(); revG.gain.value = 0.6; revG.connect(dest);
+  // BATTERY SAVER — skip the convolver reverb send entirely (dry only);
+  // the buffer above was already cached, but running real-time convolution
+  // on every note is still the actual ongoing CPU cost, not just building
+  // the buffer.
+  let rev = null, revG = null;
+  if (!window._batterySaverOn) {
+    rev = ctx.createConvolver(); rev.buffer = window._synthLegReverbBuf;
+    revG = ctx.createGain(); revG.gain.value = 0.6; revG.connect(dest);
+  }
 
   masterEnv.connect(lp); lp.connect(hp);
-  hp.connect(dryG); hp.connect(rev); rev.connect(revG);
+  hp.connect(dryG);
+  if (rev) { hp.connect(rev); rev.connect(revG); }
 
   // Shared chain cleanup, timed to the longest-running layer (detune/octave voices, durSec+tail)
   setTimeout(() => {
-    try { masterEnv.disconnect(); lp.disconnect(); hp.disconnect(); rev.disconnect(); dryG.disconnect(); revG.disconnect(); } catch(e) {}
+    try { masterEnv.disconnect(); lp.disconnect(); hp.disconnect(); if (rev) rev.disconnect(); dryG.disconnect(); if (revG) revG.disconnect(); } catch(e) {}
   }, (durSec + tail + 0.2) * 1000);
 }
 
@@ -17415,6 +17436,7 @@ function _cleanupNodes(nodes, stopTime) {
 // browser if the tab goes to background, so re-request it when it comes back.
 let _wakeLock = null;
 async function requestWakeLock() {
+  if (window._batterySaverOn) return; // BATTERY SAVER — let the screen sleep normally; background audio continues on its own via the silent _bgKeepAlive element/mediaSession, independent of this
   try {
     if ('wakeLock' in navigator) {
       _wakeLock = await navigator.wakeLock.request('screen');
@@ -17422,7 +17444,7 @@ async function requestWakeLock() {
   } catch (e) { /* not fatal — app still works without it */ }
 }
 document.addEventListener('visibilitychange', () => {
-  if (_wakeLock !== null && document.visibilityState === 'visible') {
+  if (_wakeLock !== null && document.visibilityState === 'visible' && !window._batterySaverOn) {
     requestWakeLock();
   }
   if (document.visibilityState === 'visible') {
@@ -18201,91 +18223,12 @@ function stopRecallLoop() {
 })();
 
 
-// ── Tape hiss — toggled by tapping either reel ──
-let _hissNode = null, _hissGain = null, _hissOn = false;
-
-function startHiss() {
-  if (!ctx || _hissNode) return;
-  const sr = ctx.sampleRate;
-
-  // ── Hiss: shaped white noise (pink-ish, high shelf) ──
-  const hissBuf = ctx.createBuffer(2, sr * 4, sr);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = hissBuf.getChannelData(ch);
-    let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
-    for (let i = 0; i < d.length; i++) {
-      const w = Math.random() * 2 - 1;
-      // Paul Kellet pink noise approximation
-      b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759;
-      b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856;
-      b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980;
-      d[i] = (b0+b1+b2+b3+b4+b5+b6+w*0.5362) * 0.11;
-      b6 = w * 0.115926;
-    }
-  }
-  _hissNode = ctx.createBufferSource(); _hissNode.buffer = hissBuf; _hissNode.loop = true;
-  const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2000;
-  const peak = ctx.createBiquadFilter(); peak.type = 'peaking';
-  peak.frequency.value = 6000; peak.Q.value = 0.8; peak.gain.value = 6;
-  _hissGain = ctx.createGain(); _hissGain.gain.value = 0.0032;
-  _hissNode.connect(hp); hp.connect(peak); peak.connect(_hissGain);
-
-  // ── Crackle: sparse random impulses ──
-  const crackleLen = sr * 8;
-  const crackBuf = ctx.createBuffer(2, crackleLen, sr);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = crackBuf.getChannelData(ch);
-    for (let i = 0; i < crackleLen; i++) {
-      // Sparse spikes — approx 40 per second
-      d[i] = Math.random() < (40 / sr) ? (Math.random() * 2 - 1) * (Math.random() < 0.3 ? 1 : 0.3) : 0;
-    }
-  }
-  const crackNode = ctx.createBufferSource(); crackNode.buffer = crackBuf; crackNode.loop = true;
-  const crackLP = ctx.createBiquadFilter(); crackLP.type = 'lowpass'; crackLP.frequency.value = 8000;
-  const crackGain = ctx.createGain(); crackGain.gain.value = 0.0107;
-  crackNode.connect(crackLP); crackLP.connect(crackGain);
-
-  // ── Rumble: very low frequency wobble ──
-  const rumble = ctx.createOscillator(); rumble.type = 'sine'; rumble.frequency.value = 30;
-  const rumbleLFO = ctx.createOscillator(); rumbleLFO.type = 'sine'; rumbleLFO.frequency.value = 0.3;
-  const rumbleLFOGain = ctx.createGain(); rumbleLFOGain.gain.value = 5;
-  rumbleLFO.connect(rumbleLFOGain); rumbleLFOGain.connect(rumble.frequency);
-  const rumbleGain = ctx.createGain(); rumbleGain.gain.value = 0.0014;
-  rumble.connect(rumbleGain);
-
-  // Connect noise directly to destination (bypasses master limiter)
-  // Use a separate gain that we modulate based on master output level
-  const hissMix = ctx.createGain(); hissMix.gain.value = 1;
-  _hissGain.connect(hissMix);
-  crackGain.connect(hissMix);
-  rumbleGain.connect(hissMix);
-  hissMix.connect(ctx.destination);
-  _hissNode._hissMix = hissMix;
-
-  // Analyser to follow master output and duck hiss gain
-  const analyser = ctx.createAnalyser(); analyser.fftSize = 256;
-  masterGain.connect(analyser);
-  const rmsBuffer = new Float32Array(analyser.frequencyBinCount);
-  const _hissInterval = setInterval(() => {
-    if (!_hissOn || !_hissMix) { clearInterval(_hissInterval); return; }
-    analyser.getFloatTimeDomainData(rmsBuffer);
-    let rms = 0;
-    for (let i = 0; i < rmsBuffer.length; i++) rms += rmsBuffer[i] * rmsBuffer[i];
-    rms = Math.sqrt(rms / rmsBuffer.length);
-    // Scale hiss: loud signal (rms>0.1) ducks hiss to near zero
-    const hissLevel = Math.max(0, 1 - rms * 8);
-    hissMix.gain.setTargetAtTime(hissLevel, ctx.currentTime, 0.3);
-  }, 80);
-  _hissNode._hissInterval = _hissInterval;
-
-  _hissNode.start(); crackNode.start();
-  rumble.start(); rumbleLFO.start();
-
-  // Store all nodes for cleanup
-  _hissNode._extras = { crackNode, crackGain, rumble, rumbleLFO, rumbleGain };
-}
-
-
+// Tape hiss/crackle/rumble system removed — dead code (startHiss() was
+// never called from anywhere, _hissOn was never set true, .hiss-on was
+// never toggled), left over from an earlier version. Was also a genuine
+// battery cost when active: several always-on noise/oscillator nodes plus
+// its own 80ms analyser-polling duck loop, all independent of playback
+// state. Confirmed unreferenced before removal.
 
 // BEAT VOL — _beatVolRaw tracks the slider's own intended position;
 // the gain actually applied to the node also folds in a -1.5dB duck
@@ -18831,6 +18774,30 @@ function toggleBeatTypeLock() {
   refreshBeatMenuHighlight();
 }
 
+// ── Battery saver: releases the screen wake lock, mutes the shared reverb
+// send bus, and skips the per-note convolver reverb on CYBER PAD/SOLAR PAD
+// (dry signal only) — the heaviest ongoing/per-note costs found in an
+// audit, per direct request. Background audio keeps working with the
+// screen off/asleep either way, via the silent _bgKeepAlive element and
+// mediaSession — those are what actually keep iOS treating this as an
+// active background-audio session, not the wake lock, which only forces
+// the display to physically stay lit.
+window._batterySaverOn = false;
+function toggleBatterySaver() {
+  window._batterySaverOn = !window._batterySaverOn;
+  const btn = document.getElementById('batterySaverBtn');
+  if (btn) {
+    btn.classList.toggle('saver-on', window._batterySaverOn);
+    btn.style.background = window._batterySaverOn ? '' : '#555';
+  }
+  if (window._batterySaverOn && _wakeLock) {
+    try { _wakeLock.release(); } catch (e) {}
+    _wakeLock = null;
+  }
+  if (window._reverbSendBus) {
+    window._reverbSendBus.gain.setTargetAtTime(window._batterySaverOn ? 0 : 1, ctx ? ctx.currentTime : 0, 0.05);
+  }
+}
 // ── Boost: hard brickwall limiting ──
 let _turboOn = false;
 function toggleTurbo() {
