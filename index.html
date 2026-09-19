@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 06:32:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 06:36:32 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1488,7 +1488,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 06:32:24 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 06:36:32 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1636,7 +1636,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(300px,90vw);max-width:min(360px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 06:32:24 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 06:36:32 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -16609,7 +16609,12 @@ function setTonalPercBalance(v) {
   // SETTINGS-only, but this tap turns it back OFF if it's currently on
   // (see below) — per direct request, one-directional only.
   const _LOGO_COLOR_MODE_CYCLE = ['jump', 'smooth', 'static', 'flash'];
-  title.addEventListener('click', () => {
+  // Single-tap action — cycles the logo color mode, and clears 8-BIT MODE
+  // if it's currently on. Pulled out into its own function so it can be
+  // called from both the desktop 'click' listener AND, separately, from
+  // the manual touch handling below (see BUGFIX comment) — the two paths
+  // no longer share a single 'click' event the way they used to.
+  function _titleSingleTapAction() {
     // 8-BIT MIX — a tap resets it back to 0 (fully clean) if it's
     // currently above 0, alongside the color-mode cycle below.
     // Deliberately one-directional: raising the mix stays exclusively a
@@ -16640,7 +16645,7 @@ function setTonalPercBalance(v) {
       title.classList.remove('press-pulse');
       title.removeEventListener('animationend', _onLogoPulseEnd);
     });
-  });
+  }
   // 8-BIT MODE — the opposite gesture, per direct request: a single tap
   // above only ever turns it off (if already on) alongside the color-mode
   // cycle; a double-tap/double-click turns it fully ON (100% mix) instead.
@@ -16653,37 +16658,42 @@ function setTonalPercBalance(v) {
       title.removeEventListener('animationend', _onLogoPulseEnd2);
     });
   }
-  // BUGFIX: this used to rely solely on the native 'dblclick' event, on the
-  // (wrong) assumption that nothing here blocks it from synthesizing off a
-  // real double-tap. But #siFiTitle has its own inline touch-action:none
-  // (set further up, for the tap gesture itself) — with that set, mobile
-  // browsers stop recognizing the double-tap gesture at all and never fire
-  // a synthetic 'dblclick' from touch input, only two separate 'click'
-  // events. So on an actual phone this never fired, ever — dblclick only
-  // ever worked from a real desktop mouse. Same underlying issue nameBar's
-  // double-tap-to-save already had to work around below with raw touchend
-  // timing instead of native dblclick; doing the same here.
-  let _titleLastTapTime = 0;
-  title.addEventListener('touchend', e => {
-    const now = Date.now();
-    if (now - _titleLastTapTime < 350) {
-      _titleLastTapTime = 0;
-      // preventDefault so the synthetic 'click' this touchend would
-      // otherwise still fire doesn't immediately follow and undo this —
-      // that click handler above turns 8-BIT MODE back OFF if it's on,
-      // which it now is.
-      e.preventDefault();
-      _turnEightBitOnViaDoubleTap();
-    } else {
-      _titleLastTapTime = now;
-    }
-  }, { passive: false });
-  // Desktop mouse fallback — real mouse dblclick isn't affected by
-  // touch-action at all, so the native event still works fine there.
+  // Desktop mouse path — unchanged, still a plain 'click' + native
+  // 'dblclick' pair.
+  title.addEventListener('click', _titleSingleTapAction);
   title.addEventListener('dblclick', e => {
     e.preventDefault();
     _turnEightBitOnViaDoubleTap();
   });
+  // BUGFIX (round 2): the previous fix added manual touchend timing for the
+  // DOUBLE-tap only, and still left the SINGLE-tap action (color cycle,
+  // clear 8-BIT) to fire off the browser's own synthetic 'click' from
+  // touch, on the assumption it fires immediately after each touchend.
+  // On at least some mobile browsers it doesn't — the first tap's 'click'
+  // can land AFTER our touchend has already fired _turnEightBitOnViaDoubleTap,
+  // and since that click sees 8-BIT now on, it immediately clears it right
+  // back off again. That's exactly the "still not working" symptom: it
+  // flickers on for an instant, then a stray delayed click undoes it.
+  // Fix: stop depending on native click/dblclick from touch input at all.
+  // touchstart now calls preventDefault(), which — same mechanism nameBar's
+  // own double-tap-to-save already relies on below — stops the browser
+  // from ever synthesizing 'click'/'dblclick' from touch on this element,
+  // so there's no longer a delayed, out-of-order click to race against.
+  // Both single-tap and double-tap are now driven entirely, and
+  // deterministically, from touchend itself.
+  let _titleLastTapTime = 0;
+  title.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+  title.addEventListener('touchend', e => {
+    e.preventDefault();
+    _titleSingleTapAction();
+    const now = Date.now();
+    if (now - _titleLastTapTime < 350) {
+      _titleLastTapTime = 0;
+      _turnEightBitOnViaDoubleTap(); // runs after the single-tap action above, so this is always what's left standing
+    } else {
+      _titleLastTapTime = now;
+    }
+  }, { passive: false });
 })();
 
 // ── Name bar → star map hold, plus swipe left/right for RECALL / next slot,
