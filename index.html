@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 07:09:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 07:14:18 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -180,7 +180,7 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    reverts straight back to the track's own normal fill color (no
    forwards/hold, unlike NEON, since this should snap back to "the track
    contents" rather than sit at the flash color until the next hit). */
-@keyframes flash-vol-pulse { from { background-color: var(--simple-fader-tip-color, #000); } to { background-color: var(--play-flash-color, #f8ff00); } }
+@keyframes flash-vol-pulse { from { background-color: var(--neutral-top, #555); } to { background-color: var(--play-flash-color, #f8ff00); } } /* was --simple-fader-tip-color (the fader tip's own black), per direct request — now starts from the dark track color itself (--neutral-top, the same background .track-vol-bar's own unfilled right-hand portion uses) instead */
 .track-vol-fill-solid.flash-pulse { animation: flash-vol-pulse 0.08s ease-out forwards; }
 @keyframes song-name-scroll-left  { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes song-name-scroll-right { from { transform: translateX(100%);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -1488,7 +1488,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:09:07 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:14:18 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1636,7 +1636,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:09:07 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:14:18 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4674,8 +4674,9 @@ function updatePlayhead(step) {
         } else {
           // Non-NEON note-driven pulse — per direct request, was a random
           // jump-var color flash (_LOGO_JUMP_VARS), now flashes from the
-          // vol slider's own tip color (--simple-fader-tip-color) to PLAY
-          // FLASH's picked color (see .track-vol-fill-solid.flash-pulse
+          // volume track's own dark background color (--neutral-top, the
+          // same color the unfilled right-hand part of the bar sits at) to
+          // PLAY FLASH's picked color (see .track-vol-fill-solid.flash-pulse
           // above), then snaps back to the track's own normal fill color —
           // same restart-the-class trick NEON uses just above, same
           // quick revert timing this branch already had.
