@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 15:53:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 16:06:55 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -640,11 +640,23 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
    version this app targets, so the slider is also fully re-skinned by
    hand below as a guaranteed fallback — same var(--neutral-top) color
    either way, whichever one the browser actually renders. */
-.master-vol-slider, .master-vol-slider::-webkit-slider-runnable-track { -webkit-appearance: none; appearance: none; background: transparent; height: 4px; }
-.master-vol-slider::-webkit-slider-runnable-track { background: var(--neutral-top, #555); border-radius: 2px; }
-.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 6px; height: 16px; border-radius: 0; background: #000; margin-top: -6px; cursor: pointer; } /* rectangular, solid black tip like the volume slider's own — width hardcoded to 6px per direct request (was 10px, matching the fader's own width) */
-.master-vol-slider::-moz-range-track { background: var(--neutral-top, #555); height: 4px; border-radius: 2px; }
-.master-vol-slider::-moz-range-thumb { width: 6px; height: 16px; border-radius: 0; background: #000; border: none; cursor: pointer; } /* width hardcoded to 6px per direct request — see the -webkit- version above for details */
+/* BUGFIX: every rule below now repeats "input" in the selector
+   (input.master-vol-slider::-webkit-slider-thumb, not just
+   .master-vol-slider::-webkit-slider-thumb) and carries !important. The
+   generic input[type=range]::-webkit-slider-thumb rule two lines up has
+   HIGHER specificity than a plain class + pseudo-element selector (the
+   type-selector-plus-attribute combo out-weighs a single class in that
+   third specificity bucket), so it was silently winning on every single
+   slider carrying the master-vol-slider class — meaning none of them were
+   ever actually getting the thin black tip/thin colored track below, still
+   the big generic 28x28 grey square thumb the whole time despite the class
+   being present and correct. This is why "match the volume slider" never
+   visibly took even after the class was added everywhere. */
+input.master-vol-slider, input.master-vol-slider::-webkit-slider-runnable-track { -webkit-appearance: none !important; appearance: none !important; background: transparent !important; height: 4px !important; }
+input.master-vol-slider::-webkit-slider-runnable-track { background: var(--neutral-top, #555) !important; border-radius: 2px !important; }
+input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 6px !important; height: 16px !important; border-radius: 0 !important; background: #000 !important; margin-top: -6px !important; cursor: pointer; } /* rectangular, solid black tip like the volume slider's own — width hardcoded to 6px per direct request (was 10px, matching the fader's own width) */
+input.master-vol-slider::-moz-range-track { background: var(--neutral-top, #555) !important; height: 4px !important; border-radius: 2px !important; }
+input.master-vol-slider::-moz-range-thumb { width: 6px !important; height: 16px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; } /* width hardcoded to 6px per direct request — see the -webkit- version above for details */
 #bpmSettingsSlider.tempo-locked::-webkit-slider-thumb { background: #b0b0b0; }
 #bpmSettingsSlider.tempo-locked::-moz-range-thumb { background: #b0b0b0; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
@@ -1529,7 +1541,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 15:53:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 16:06:55 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1677,7 +1689,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 15:53:01 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 16:06:55 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -1864,8 +1876,8 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
           </label>
         </div>
       </div>
-      <div style="border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;margin-top:2px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">MARKERS / MISC</div>
+      <div style="border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;margin-top:2px;display:flex;flex-direction:column;gap:12px;"> <!-- BUGFIX: this whole section's children (the 3 checkboxes plus 12 slider groups below) had no flex/gap layout at all, just plain stacked block divs with zero spacing between them — everything from MARKERS/MISC down read as bunched-up compared to the rest of this menu, which is all built from gapped flex containers like this one now is -->
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MARKERS / MISC</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
           <input type="checkbox" id="noteMarkersAsteriskToggle" onchange="setNoteMarkersAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS = ASTERISKS
         </label>
@@ -5286,7 +5298,16 @@ const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','
 function buildScaleFromRoot(root, scaleOverride, tr) {
   const scaleArr = scaleOverride || PENTA_MINOR;
   const scale = [];
-  for (let oct = 0; oct < 2; oct++)
+  // SLUDGE BASS: only 1 octave, not the usual 2 — it's meant to sit in the
+  // low, dark register, and unlike JAMES BASS/PUNK BASS/DOUBLE BASS/PULSE
+  // BASS (which wander but are capped to a sane ceiling, see
+  // randomizeBassTrack), SLUDGE has no wander of its own at all, so the
+  // ordinary top of the usual 2-octave span (root * ~3.5, well above 200Hz)
+  // was reachable on every single note, not just an occasional wander —
+  // "still playing super high notes, sounds nothing like a bass" per
+  // direct report.
+  const _maxOct = (tr !== undefined && trackInstruments[tr] === 'sludge') ? 1 : 2;
+  for (let oct = 0; oct < _maxOct; oct++)
     scaleArr.forEach(s => scale.push(root * Math.pow(2, (s + oct * 12) / 12)));
   // TALK BOX gets a few extra notes tacked onto the top — it shares
   // BASS_ROOTS with the actual bass instruments, so without this its
@@ -5482,6 +5503,7 @@ function randomizeBassTrack(tr, level) {
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
+  if (_bassKeysNow.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // BOOBOO — with fewer notes now, connect most of its onsets into short
@@ -6757,7 +6779,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.1545 : 0.107; // +1.5dB more (was 0.130/0.090), per direct request
+  const vel = isAccent ? 0.1459 : 0.1010; // -0.5dB, per direct request (was 0.1545/0.107)
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
