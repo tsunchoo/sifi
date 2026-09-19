@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 07:27:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-19 07:38:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -181,7 +181,7 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
    forwards/hold, unlike NEON, since this should snap back to "the track
    contents" rather than sit at the flash color until the next hit). */
 @keyframes flash-vol-pulse { from { background-color: var(--neutral-top, #555); } to { background-color: var(--play-flash-color, #f8ff00); } } /* was --simple-fader-tip-color (the fader tip's own black), per direct request — now starts from the dark track color itself (--neutral-top, the same background .track-vol-bar's own unfilled right-hand portion uses) instead */
-.track-vol-fill-solid.flash-pulse { animation: flash-vol-pulse 0.08s ease-out forwards; }
+.track-vol-fill-solid.flash-pulse { animation: flash-vol-pulse 0.18s ease-out forwards; filter: saturate(1) !important; } /* was 0.08s — too fast to actually read as a color pulse (dark to PLAY FLASH), looked like nothing happening; matches the 180ms revert timing below. filter override added — the base saturate(20) (line ~854/898, meant for the resting fill color) was slamming every in-between blended color of this dark-to-bright sweep to near-full saturation almost immediately, so the pulse looked like an instant jump rather than an actual fade, same complaint NEON had before its own saturate(1) override */
 @keyframes song-name-scroll-left  { from { transform: translateX(-100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes song-name-scroll-right { from { transform: translateX(100%);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 @keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -491,8 +491,14 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
 
 #beatBtn.active:not(.beat-auto-active) { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 #beatBtn.active:not(.beat-auto-active):active { opacity: 1; } /* same reasoning as #clearBtn.active:active above — the generic .btn:active opacity:0.7 was washing the intended pure black out to grey while actually held */
-#beatBtn.active.btn-beat-pulse #beatBtnText { animation: beat-text-pulse 0.44s ease-out; }
-@keyframes beat-text-pulse { 0% { opacity: 0.55; } 30% { opacity: 1; } 100% { opacity: 0.55; } }
+/* DRUMS button text — was a generic opacity pulse on every quarter note
+   (beat-text-pulse, removed); now a real color flash matching the VOL
+   faders' own flash-vol-pulse (dark track color -> PLAY FLASH color),
+   triggered directly off actual BEAT-engine kick/snare/hihat hits (see
+   _flashDrumsText(), called from fireBeatKick/playSnare/playSynthHihat)
+   rather than a generic clock, per direct request. */
+@keyframes drums-text-flash-pulse { from { color: var(--top-row-pressed-text-color, #fff); } to { color: var(--play-flash-color, #f8ff00); } }
+#beatBtnText.drums-hit-flash { animation: drums-text-flash-pulse 0.18s ease-out forwards; }
 /* RECORD button's hold-menu — a small floating dropdown, not a full-screen
    overlay like the beat-type menu below. Position (top/left) is set in JS
    right before it opens, anchored under wherever the RECORD button
@@ -1488,7 +1494,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:27:49 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 07:38:16 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1636,7 +1642,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:27:49 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 07:38:16 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4712,7 +4718,7 @@ function updatePlayhead(step) {
             fillEl.classList.remove('flash-pulse', 'neon-pulse-bright-hold', 'neon-pulse-dark-hold', 'neon-pulse-bright-fade', 'neon-pulse-dark-fade');
             void fillEl.offsetWidth;
             fillEl.classList.add('flash-pulse');
-            setTimeout(() => { fillEl.classList.remove('flash-pulse'); }, 80);
+            setTimeout(() => { fillEl.classList.remove('flash-pulse'); }, 180);
           }
         }
       }
@@ -4758,6 +4764,23 @@ function updatePlayhead(step) {
   }
 }
 
+// DRUMS button text flash — fires on every actual BEAT-engine kick/snare/
+// hihat hit (called from fireBeatKick/playSnare/playSynthHihat below),
+// gated on beatPlaying (the "engaged" half of "engaged and in playback
+// mode" — the "in playback mode" half is automatic, since those functions
+// only ever get called from inside fireStepAudio, itself only ever called
+// from the scheduler while actually playing). Same immediate-timing
+// convention updatePlayhead already uses for every other lookahead-scheduled
+// visual in this file (fired in the same scheduler pass as the audio, not
+// delayed to match the audio's own lookahead-scheduled time t).
+function _flashDrumsText() {
+  if (!beatPlaying) return;
+  const bt = document.getElementById('beatBtnText');
+  if (!bt) return;
+  clearTimeout(bt._drumsFlashTimer);
+  bt.classList.remove('drums-hit-flash'); void bt.offsetWidth; bt.classList.add('drums-hit-flash');
+  bt._drumsFlashTimer = setTimeout(() => bt.classList.remove('drums-hit-flash'), 180);
+}
 function updateBeatPulse() {
   // The old continuous unsynced flash is gone — BEAT's text now pulses on
   // the actual beat via the shared .btn-beat-pulse mechanism (same as PLAY),
@@ -4953,6 +4976,7 @@ function playSynthSnare(isAccent, time, tr) {
 function playSynthHihat(isAccent, time, tr, volMult) {
   if (!ctx) return;
   if (tr === -1 ? !_renderTapBeat : (_renderTapTracks && !_renderTapTracks.has(tr))) return;
+  if (tr === -1) _flashDrumsText(); // BEAT-engine hihat only — a real track using this same synth sound (tr !== -1) isn't a DRUMS hit
   const dest = (tr === -1) ? (window._beatGain || masterGain) : getSynthConnectNode(tr);
   const dur = isAccent ? 0.12 : 0.06, vol = (isAccent ? 0.1968 : 0.1238) * (volMult !== undefined ? volMult : 1); // -3dB more (was -2dB). volMult (new, optional, default 1) — lets a caller reduce this specific hit when it's about to land on top of another voice at the same instant, e.g. SAMBA's hihat/snare overlap
   const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
@@ -8369,6 +8393,7 @@ function duckEchoTrack(t) {
 }
 function fireBeatKick(t, velMult) {
   playKick(t, velMult);
+  if (_renderTapBeat) _flashDrumsText();
   if (window._duckGain) {
     const dg = window._duckGain.gain;
     dg.cancelScheduledValues(t); dg.setValueAtTime(1, t);
@@ -8492,6 +8517,7 @@ function playBeatSidestick(t) {
 function playSnare(t) {
   duckPumpTracks(t);
   if (!_renderTapBeat) return;
+  _flashDrumsText();
   const dur = 0.22;
   const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
   const d = buf.getChannelData(0);
@@ -8585,6 +8611,7 @@ function playBeatSidestickSample(t) {
   if (!ctx || !buffers['sidestick']) return;
   const buf = buffers['sidestick']['accent'] || buffers['sidestick']['soft'];
   if (!buf) return;
+  _flashDrumsText();
   const src = ctx.createBufferSource();
   src.buffer = buf;
   const g = ctx.createGain();
@@ -8601,6 +8628,7 @@ function playBeatSnareSample(t) {
   if (!ctx || !buffers['ssnare']) return;
   const buf = buffers['ssnare']['accent'] || buffers['ssnare']['soft'];
   if (!buf) return;
+  _flashDrumsText();
   const src = ctx.createBufferSource();
   src.buffer = buf;
   const g = ctx.createGain();
