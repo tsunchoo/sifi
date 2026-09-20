@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-20 20:22:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-20 20:35:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1616,7 +1616,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 20:22:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 20:35:40 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1767,7 +1767,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 20:22:00 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 20:35:40 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4428,8 +4428,12 @@ function fireStepAudio(step, t) {
             // STRINGS+ (dronePlus) which is always contiguous by design (the
             // RAND-time pass below writes its true distance-to-next-note into
             // this same array) and needs the much larger NUM_STEPS cap instead
-            // of the normal short LEGATO_CAP_STEPS ceiling to actually reach it.
-            const _legatoCap = (key === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS;
+            // of the normal short LEGATO_CAP_STEPS ceiling to actually reach it;
+            // BASS instruments get their own raised ceiling too (see
+            // _legatoCapForKey) so their longer RAND-generated phrases
+            // actually sustain for their full written length instead of
+            // getting cut back down to 6 steps at playback time.
+            const _legatoCap = _legatoCapForKey(key);
             dur = stepDuration() * Math.min(trackLegatoLen[tr][gs], _legatoCap);
           }
           // else: a plain manually-placed note — stays a single short step,
@@ -5769,15 +5773,23 @@ function randomizeBassTrack(tr, level) {
     }
   }
 
-  // BASSES: bias toward legato phrases — some notes sustain 2-3 steps
-  // (occasionally the full 4-step cap), giving a more played-in, connected
-  // feel instead of every note being a short staccato hit.
+  // BASSES: bias toward legato phrases — some notes sustain multiple
+  // steps, giving a more played-in, connected feel instead of every note
+  // being a short staccato hit. Both how often a note gets a phrase and
+  // how long that phrase can run now scale with INTENSITY, per direct
+  // request: chance interpolates from 75% at the very bottom down to 45%
+  // at the top (that top end matches the old flat 45% exactly, so nothing
+  // changes there at max INTENSITY); length interpolates from a 2-8 step
+  // range at the bottom (the new "up to 8 at a time" ceiling — see
+  // BASS_LEGATO_CAP_STEPS) down to the original 2-3 range at the top.
+  const _bassLegatoChance = 0.75 - (_intensitySliderVal / 100) * 0.30;
+  const _bassLegatoWidth = Math.round(7 - (_intensitySliderVal / 100) * 5);
   if ((key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'sludge') && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.45) {
+      if (grid[tr][s] > 0 && Math.random() < _bassLegatoChance) {
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 2 + Math.floor(Math.random() * 2); // 2-3, occasionally capped up to 4
+        const wantLen = 2 + Math.floor(Math.random() * _bassLegatoWidth);
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
@@ -5787,7 +5799,10 @@ function randomizeBassTrack(tr, level) {
   // exceptions — its own envelope decay stays short and punchy regardless,
   // but the rhythmic note length shouldn't read as a stray 16th blip. Any
   // note landing right next to the one before it gets removed instead of
-  // shortening its neighbor below 2 steps.
+  // shortening its neighbor below 2 steps. The minimum floor (2) stays
+  // fixed, but the upper end it can randomly reach now scales with
+  // INTENSITY the same way the other BASS instruments do, per direct
+  // request — was a flat 2-3 regardless of INTENSITY.
   if (key === 'pbass' && trackBassScale[tr]) {
     const _onsets = [];
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) _onsets.push(s);
@@ -5801,7 +5816,8 @@ function randomizeBassTrack(tr, level) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     _onsets.forEach(s => {
       const maxLen = _legatoMaxLen(tr, s);
-      trackLegatoLen[tr][s] = Math.max(2, Math.min(3, maxLen));
+      const wantLen = 2 + Math.floor(Math.random() * _bassLegatoWidth);
+      trackLegatoLen[tr][s] = Math.max(2, Math.min(wantLen, maxLen));
     });
     redrawTrackCells(tr);
   }
@@ -10121,11 +10137,21 @@ function _gatherTick() {
 const trackLegatoLen = {}; // tr -> { gs: intended sustain length in steps }, set explicitly by drag-legato
 const trackPitchOverride = {}; // tr -> { gs: frequency } — pitch is normally derived live from grid position, so a downbeat-reset rotation would otherwise scramble tonal melodies; this pins the exact frequency each rotated note had before the shift
 const LEGATO_CAP_STEPS = 6; // the single hard limit on legato phrase length, shared by write, playback, and display
+// All 6 BASS instruments (every INSTRUMENTS entry whose display name ends
+// in "BASS") get a higher ceiling than the general LEGATO_CAP_STEPS, per
+// direct request ("up to 8 at a time") — used everywhere the cap itself
+// is looked up (RAND generation, playback duration, manual drag trim/
+// extend, and display), same pattern as the existing dronePlus exception.
+const BASS_LEGATO_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
+const BASS_LEGATO_CAP_STEPS = 8;
+function _legatoCapForKey(key) {
+  return (key === 'dronePlus') ? NUM_STEPS : BASS_LEGATO_KEYS.has(key) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS;
+}
 
 // How long a note at ownerGs would sustain if it just ran until the next
 // note (or the end of the bar) — the ceiling a trim/extend drag can't pass.
 function _legatoMaxLen(tr, ownerGs) {
-  const CAP = (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS; // STRINGS+ gets the same NUM_STEPS exception the playback scheduler and updateLegatoVisuals() both have — was flat at LEGATO_CAP_STEPS here too, so a manual drag on this instrument couldn't reach the length it's actually designed to sustain
+  const CAP = _legatoCapForKey(trackInstruments[tr]); // STRINGS+ (NUM_STEPS) and BASS (8) both get a higher ceiling than the general LEGATO_CAP_STEPS here — was flat at LEGATO_CAP_STEPS for everything but STRINGS+, so a manual drag on a BASS track couldn't reach the longer length RAND can now generate for it
   for (let ld = 1; ld < NUM_STEPS; ld++) {
     if (grid[tr][(ownerGs + ld) % NUM_STEPS] > 0) return Math.min(ld, CAP);
   }
@@ -10173,7 +10199,7 @@ function _applyDragStep(tr, s, cellEl, erase, isFirst) {
     grid[tr][gs] = isFirst ? 1 : 0;
     const startGs = (dragStartStep - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
-    const newLegatoLen = Math.min(dragWrittenSteps.size, (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS); // STRINGS+ exception, same reasoning as _legatoMaxLen() and updateLegatoVisuals()
+    const newLegatoLen = Math.min(dragWrittenSteps.size, _legatoCapForKey(trackInstruments[tr])); // STRINGS+/BASS exceptions, same reasoning as _legatoMaxLen() and updateLegatoVisuals()
     trackLegatoLen[tr][startGs] = newLegatoLen;
     // Once the drag actually becomes a legato phrase (more than one step),
     // the note is accented by default — a plain single-step tap stays
@@ -13980,18 +14006,39 @@ function randAll(mode, opts) {
   // whole measure — thin any extras beyond the first back down to 8ths.
   // Below halfway on INTENSITY, thin ALL of them, including the first —
   // no track should be able to land on solid 16ths at all down there.
-  const full16thTracks = [];
-  for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    if (grid[tr].every(v => v > 0)) full16thTracks.push(tr);
-  }
-  const _full16thStartIdx = _intensitySliderVal < 35 ? 0 : 1;
-  for (let i = _full16thStartIdx; i < full16thTracks.length; i++) {
-    const tr = full16thTracks[i];
-    for (let s = 0; s < NUM_STEPS; s++) {
-      if (s % 2 !== 0) grid[tr][s] = 0; // drop every other step — falls back to straight 8ths
+  // SHUFFLE (boogie) never gets a full-16th track at all, per direct
+  // request — its swing/triplet-feel timing (see the _boogieOffsets used
+  // throughout playback) reads as broken/off-grid against a straight
+  // full-16th pattern in a way the other beat types don't, so unlike
+  // everything else here it doesn't even get the usual "first one is
+  // fine" allowance.
+  // BUGFIX: this used to run synchronously right here, immediately after
+  // the per-track loop above — but that loop only ever SCHEDULES each
+  // track's actual note generation via the staggered `_tid` setTimeout a
+  // little further up (30ms apart, per NUM_TRACKS), it doesn't write the
+  // notes itself. So this was scanning grid[] before almost any of those
+  // callbacks had actually fired, catching only whatever full-16th
+  // pattern happened to be leftover from the PREVIOUS pattern (if that
+  // track hadn't been touched yet) rather than the real, freshly
+  // generated one — the thinning (and SHUFFLE's own guarantee) was
+  // silently checking stale data on every single RAND press. Moved into
+  // the same "wait for every staggered per-track call to genuinely
+  // finish first" pass the legato-visuals/MOZAMBIQUE/JAZZ safety nets
+  // below already use, so it now runs against the actual final grid.
+  setTimeout(() => {
+    const full16thTracks = [];
+    for (let tr = 0; tr < NUM_TRACKS; tr++) {
+      if (grid[tr].every(v => v > 0)) full16thTracks.push(tr);
     }
-    redrawTrackCells(tr);
-  }
+    const _full16thStartIdx = (_intensitySliderVal < 35 || _beatType === 'boogie') ? 0 : 1;
+    for (let i = _full16thStartIdx; i < full16thTracks.length; i++) {
+      const tr = full16thTracks[i];
+      for (let s = 0; s < NUM_STEPS; s++) {
+        if (s % 2 !== 0) grid[tr][s] = 0; // drop every other step — falls back to straight 8ths
+      }
+      redrawTrackCells(tr);
+    }
+  }, NUM_TRACKS * 30 + 40); // just before the legato-visuals pass at +50, so that pass' own redraw already reflects any thinning done here
   // INTENSITY also caps how many tracks can end up with FX or REVERB on
   // at once — each track above still rolled its own independent chance,
   // this just trims the excess back off afterward if too many landed on
@@ -14492,15 +14539,44 @@ function updateLegatoVisuals() {
       if (trackLegatoLen[tr] && trackLegatoLen[tr][gs]) {
         span = trackLegatoLen[tr][gs];
       }
-      span = Math.min(span, (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS); // never draw longer than playback allows — STRINGS+ (dronePlus) gets the same NUM_STEPS exception the playback scheduler already has (see _legatoCap in the scheduler), since it's always fully contiguous by design; this display cap was still flat at LEGATO_CAP_STEPS, so a STRINGS+ note sustaining past step 6 had its tail visually truncated even though it kept playing correctly
+      span = Math.min(span, _legatoCapForKey(trackInstruments[tr])); // never draw longer than playback allows — STRINGS+ (dronePlus) and BASS both get a higher ceiling than the general LEGATO_CAP_STEPS here, same as the playback scheduler (see _legatoCapForKey)
       if (span > 1) {
         startFlags[gs] = true;
         endFlags[(gs + span - 1) % NUM_STEPS] = true;
       }
-      const isSoftOrigin = grid[tr][gs] === 1;
+      let isSoftOrigin = grid[tr][gs] === 1;
       for (let k = 1; k < span; k++) {
         const ts = (gs + k) % NUM_STEPS;
-        if (grid[tr][ts] > 0) break; // a note manually dropped partway through this phrase's own sustain interrupts it right there — same as a real retrigger would in playback — so this note stops claiming any further cells as its own tail. Without this, cells PAST that manual note (which the original span math still thought belonged to this phrase) kept rendering as a floating, disconnected legato-tail segment with a flat, unrounded edge on its own left/start side where it butted up against the interrupting note, per direct report ("leaves the note before and after with 90 degree edges")
+        if (grid[tr][ts] > 0) {
+          // A note manually dropped partway through this phrase's own
+          // sustain interrupts it right here, same as a real retrigger
+          // would in playback — the segment leading up to it gets capped
+          // off (handled below, since tailFlags stops being contiguous
+          // into this occupied cell). But the REST of the original
+          // sustain length past this point is still real, meaningful
+          // data, not something to just throw away — per direct report,
+          // simply stopping here (an earlier version of this fix) left
+          // the note before properly capped but silently discarded
+          // everything after it. Instead, re-anchor the remaining walk to
+          // this note: reshape it into the same full-width joined box a
+          // phrase-owner gets (.legato-start) so it reads as the start of
+          // its own clean, properly-capped segment rather than a bare
+          // circle sitting in a gap, and keep going — any further tail
+          // cells still get filled in and dimmed to THIS note's own
+          // accent level, exactly as if it had been the one originally
+          // dragged out to that same length.
+          // Only reshape it into a full-width joined box if there's
+          // actually at least one more tail cell left to continue into —
+          // if the original sustain happened to end EXACTLY on this
+          // manually-placed note (no remaining span past it), there's
+          // nothing for it to visually join with, and giving it a
+          // flush-right full-width box anyway would just recreate the
+          // same "abrupt uncapped edge" problem on its own outward side
+          // instead. In that case it's simply left as an ordinary note.
+          if (k < span - 1) startFlags[ts] = true;
+          isSoftOrigin = grid[tr][ts] === 1;
+          continue;
+        }
         tailFlags[ts] = true;
         tailSoftFlags[ts] = isSoftOrigin;
       }
@@ -15091,15 +15167,24 @@ function randomizeTrack(tr) {
     }
   }
 
-  // BASSES: bias toward legato phrases — some notes sustain 2-3 steps
-  // (occasionally the full 4-step cap), giving a more played-in, connected
-  // feel instead of every note being a short staccato hit.
-  if ((key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'sludge') && trackBassScale[tr]) {
+  // BASSES: bias toward legato phrases — some notes sustain multiple
+  // steps, giving a more played-in, connected feel instead of every note
+  // being a short staccato hit. Covers all 6 BASS instruments (PULSE BASS
+  // was previously left out). Both how often a note gets a phrase and how
+  // long that phrase can run now scale with INTENSITY, per direct
+  // request: chance interpolates from 75% at the very bottom down to 45%
+  // at the top (that top end matches the old flat 45% exactly, so nothing
+  // changes there); length interpolates from a 2-8 step range at the
+  // bottom (the new "up to 8 at a time" ceiling — see BASS_LEGATO_CAP_STEPS)
+  // down to the original 2-3 range at the top.
+  if (BASS_LEGATO_KEYS.has(key) && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    const _bassLegatoChance = 0.75 - (_intensitySliderVal / 100) * 0.30;
+    const _bassLegatoWidth = Math.round(7 - (_intensitySliderVal / 100) * 5);
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.45) {
+      if (grid[tr][s] > 0 && Math.random() < _bassLegatoChance) {
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 2 + Math.floor(Math.random() * 2); // 2-3, occasionally capped up to 4
+        const wantLen = 2 + Math.floor(Math.random() * _bassLegatoWidth);
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
