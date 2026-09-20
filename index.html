@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-20 17:31:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-20 17:43:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1278,6 +1278,7 @@ body:not(.note-markers-circle) .step-cell.playing { background: transparent; } /
 .step-cell.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(0.1875 * var(--empty-marker-opacity, 0.8)); } /* was var(--playhead-color) — a different variable from the PLAY FLASH picker entirely, so changing PLAY FLASH's color never affected empty cells, only .on/.soft ones; now uses --play-flash-color like those. Opacity: was a flat hardcoded 0.15, completely ignoring EMPTY MARKER OPACITY — so whichever empty cell the playhead happened to be sweeping over stayed visible even with that slider at 0%, while every other empty cell correctly went invisible; looked like two different classes of empty marker. Now scaled by that same variable (0.1875 chosen so the default 80% setting reproduces the original 0.15 exactly — 0.1875*0.8=0.15 — and 0% now genuinely means invisible everywhere, including under the playhead) */
 .step-cell.on.playing::after   { background: var(--play-flash-color, #f8ff00); opacity: var(--note-marker-opacity, 1); } /* PLAY FLASH (SETTINGS color picker) — actual notes only, not empty cells (the generic .step-cell.playing::after rule above still handles those, unchanged) */
 .step-cell.soft.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(var(--note-marker-opacity, 1) * 0.7); }
+.step-cell.legato-tail.playing::after { background: var(--play-flash-color, #f8ff00); opacity: var(--note-marker-opacity, 1); } /* was falling through to the dim generic empty-cell playhead rule above (equal specificity, declared earlier, so .legato-tail's own resting color/opacity — declared later — silently won instead), so the tail segments never actually flashed the PLAY FLASH color as the playhead swept through a dragged legato phrase, only its head did. Same full opacity as .on.playing above, per direct request that head/tail already match at rest. */
 /* In circles mode, the playhead darkens the circle marker itself instead
    of highlighting the whole cell as a square — per direct request. No
    cell-background tint for empty cells. Actual notes (.on/.soft) now use
@@ -1292,7 +1293,8 @@ body.note-markers-circle .step-cell.playing::after {
   opacity: calc(0.1875 * var(--empty-marker-opacity-circle, 0.2)); /* was inheriting the square-mode formula (based on --empty-marker-opacity) — now that empty opacity is split per mode, this uses circle's own value instead, for a genuinely empty cell the playhead is sweeping over */
 }
 body.note-markers-circle .step-cell.on.playing::after,
-body.note-markers-circle .step-cell.soft.playing::after {
+body.note-markers-circle .step-cell.soft.playing::after,
+body.note-markers-circle .step-cell.legato-tail.playing::after {
   background: var(--play-flash-color, #f8ff00) !important;
   filter: none;
 }
@@ -1302,7 +1304,7 @@ body.note-markers-circle .step-cell.soft.playing::after {
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
-  opacity: 0.5;
+  opacity: var(--note-marker-opacity, 1); /* was a flat 0.5 — now matches the accented head's own opacity exactly, per direct request, so the whole joined phrase (head + tail) reads as one consistent shape rather than a bright head fading into a dimmer tail */
   left: 0; right: 0; top: 25%; bottom: 25%; height: auto; aspect-ratio: auto; transform: none; border-radius: 0; /* squares mode, per direct request: full cell width (0 inset, not the accent's own narrower width), exactly 50% cell height (25%/25% top/bottom insets), vertically centered, sharp corners (no rounding, per direct request). aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
 }
 /* The note that OWNS a dragged/multi-cell legato phrase (its accent — see
@@ -1361,6 +1363,7 @@ body.note-markers-circle .step-cell.legato-tail::after {
   left: 0; right: 0; /* full cell width, not the accent circle's own narrower inset — otherwise adjacent tail cells never actually touch, leaving a visible break between every step of a dragged phrase */
   top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — height from the empty circle's own inset */
   border-radius: 0; /* sharp on both sides by default — a "middle" cell of the phrase, meant to butt flush against its neighbors on both sides. Only the very first (.legato-start) and very last (.legato-end) cell of the whole dragged run get rounded, and only on their own outward-facing side — see both below — so independent per-cell pseudo-elements still read as one seamless capsule instead of a row of pinched pills each rounded on every side */
+  opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732)); /* matches the accented head's own circle-mode opacity exactly (same compensated formula as .on::after below), per direct request — was a flat 0.5 that made the tail visibly dimmer than the head */
 }
 body.note-markers-circle .step-cell.legato-tail.legato-end::after {
   border-top-right-radius: 9999px; border-bottom-right-radius: 9999px; /* the far end of the phrase — round its own right (outward) side only; left stays flush against the previous cell */
@@ -1463,7 +1466,8 @@ body.note-markers-asterisk .step-cell.split32::after {
    on specificity (one more class than those rules) without needing
    !important. */
 body.note-markers-asterisk .step-cell.on.playing::after,
-body.note-markers-asterisk .step-cell.soft.playing::after {
+body.note-markers-asterisk .step-cell.soft.playing::after,
+body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   background-color: var(--play-flash-color, #f8ff00);
 }
 /* PLAY FLASH — forced to full opacity and full saturation, overriding
@@ -1490,7 +1494,8 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
    regardless of source order, not just via !important (which those
    other rules also use, so specificity still decides between them). */
 .step-cell.step-cell.on.on.playing::after,
-.step-cell.step-cell.soft.soft.playing::after {
+.step-cell.step-cell.soft.soft.playing::after,
+.step-cell.step-cell.legato-tail.legato-tail.playing::after {
   background: var(--play-flash-color, #f8ff00) !important;
   opacity: 1 !important;
   filter: saturate(20) !important;
@@ -1584,7 +1589,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 17:31:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 17:43:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1735,7 +1740,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 17:31:13 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 17:43:05 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
