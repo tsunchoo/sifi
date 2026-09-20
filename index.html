@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-20 17:49:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-20 17:51:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1307,6 +1307,18 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
   opacity: var(--note-marker-opacity, 1); /* was a flat 0.5 — now matches the accented head's own opacity exactly, per direct request, so the whole joined phrase (head + tail) reads as one consistent shape rather than a bright head fading into a dimmer tail */
   left: 0; right: 0; top: 25%; bottom: 25%; height: auto; aspect-ratio: auto; transform: none; border-radius: 0; /* squares mode, per direct request: full cell width (0 inset, not the accent's own narrower width), exactly 50% cell height (25%/25% top/bottom insets), vertically centered, sharp corners (no rounding, per direct request). aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
 }
+/* .legato-tail-soft (set by updateLegatoVisuals whenever the phrase's OWNER
+   note was a soft/unaccented tap, grid val 1, rather than an accent, val 2)
+   — dims the tail back down to match that origin note's own .soft opacity
+   (0.4x) instead of always reading as a full-opacity accented phrase, per
+   direct request. Higher specificity (extra class) than the base rule
+   above so it wins regardless of mode; the asterisk-mode legato-tail rule
+   further down never sets its own opacity, so this also governs asterisk
+   mode. Circle mode gets its own version below since its opacity formula
+   includes the 1.2732 compensation term. */
+.step-cell.legato-tail.legato-tail-soft::after {
+  opacity: calc(var(--note-marker-opacity, 1) * 0.4);
+}
 /* The note that OWNS a dragged/multi-cell legato phrase (its accent — see
    .legato-start, set by updateLegatoVisuals whenever that note's own span
    is more than 1 step) gets reshaped to the exact same box as the tail
@@ -1364,6 +1376,9 @@ body.note-markers-circle .step-cell.legato-tail::after {
   top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — height from the empty circle's own inset */
   border-radius: 0; /* sharp on both sides by default — a "middle" cell of the phrase, meant to butt flush against its neighbors on both sides. Only the very first (.legato-start) and very last (.legato-end) cell of the whole dragged run get rounded, and only on their own outward-facing side — see both below — so independent per-cell pseudo-elements still read as one seamless capsule instead of a row of pinched pills each rounded on every side */
   opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732)); /* matches the accented head's own circle-mode opacity exactly (same compensated formula as .on::after below), per direct request — was a flat 0.5 that made the tail visibly dimmer than the head */
+}
+body.note-markers-circle .step-cell.legato-tail.legato-tail-soft::after {
+  opacity: calc(min(1, var(--note-marker-opacity, 1) * 0.4 * 1.2732)); /* circle mode's own version of the soft-origin dimming above — same 0.4x/1.2732 formula as .soft::after in this mode */
 }
 body.note-markers-circle .step-cell.legato-tail.legato-end::after {
   border-top-right-radius: 9999px; border-bottom-right-radius: 9999px; /* the far end of the phrase — round its own right (outward) side only; left stays flush against the previous cell */
@@ -1589,7 +1604,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 17:49:11 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 17:51:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1740,7 +1755,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 17:49:11 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 17:51:46 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -14434,7 +14449,7 @@ function updateLegatoVisuals() {
     if (!eligible) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const el = document.querySelector(`.step-cell[data-track="${tr}"][data-step="${s}"]`);
-        if (el) { el.classList.remove('legato-tail'); el.classList.remove('legato-start'); el.classList.remove('legato-end'); }
+        if (el) { el.classList.remove('legato-tail'); el.classList.remove('legato-start'); el.classList.remove('legato-end'); el.classList.remove('legato-tail-soft'); }
       }
       continue;
     }
@@ -14458,6 +14473,7 @@ function updateLegatoVisuals() {
     const tailFlags = new Array(NUM_STEPS).fill(false);
     const startFlags = new Array(NUM_STEPS).fill(false);
     const endFlags = new Array(NUM_STEPS).fill(false);
+    const tailSoftFlags = new Array(NUM_STEPS).fill(false); // true when the phrase's OWNER note (grid val 1) was a soft/unaccented tap rather than an accent (val 2) — lets the tail markers dim to match that origin note's own opacity instead of always reading as if it were an accented phrase
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       if (grid[tr][gs] === 0) continue;
       let span = 1; // a plain manually-placed note — just one step, matching playback
@@ -14469,16 +14485,22 @@ function updateLegatoVisuals() {
         startFlags[gs] = true;
         endFlags[(gs + span - 1) % NUM_STEPS] = true;
       }
-      for (let k = 1; k < span; k++) tailFlags[(gs + k) % NUM_STEPS] = true;
+      const isSoftOrigin = grid[tr][gs] === 1;
+      for (let k = 1; k < span; k++) {
+        const ts = (gs + k) % NUM_STEPS;
+        tailFlags[ts] = true;
+        tailSoftFlags[ts] = isSoftOrigin;
+      }
     }
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       const s = (gs + trackOffset[tr]) % NUM_STEPS;
       const el = document.querySelector(`.step-cell[data-track="${tr}"][data-step="${s}"]`);
       if (!el) continue;
-      if (grid[tr][gs] > 0) { el.classList.remove('legato-tail'); el.classList.remove('legato-end'); el.classList.toggle('legato-start', startFlags[gs]); continue; }
+      if (grid[tr][gs] > 0) { el.classList.remove('legato-tail'); el.classList.remove('legato-end'); el.classList.remove('legato-tail-soft'); el.classList.toggle('legato-start', startFlags[gs]); continue; }
       el.classList.remove('legato-start');
       el.classList.toggle('legato-tail', tailFlags[gs]);
       el.classList.toggle('legato-end', tailFlags[gs] && endFlags[gs]);
+      el.classList.toggle('legato-tail-soft', tailFlags[gs] && tailSoftFlags[gs]);
     }
   }
 }
