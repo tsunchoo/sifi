@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-19 19:51:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-20 17:31:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1303,8 +1303,18 @@ body.note-markers-circle .step-cell.soft.playing::after {
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
   opacity: 0.5;
-  left: 0; right: 0; top: 25%; bottom: 25%; height: auto; aspect-ratio: auto; transform: none; /* squares mode, per direct request: full cell width (0 inset, not the accent's own narrower width) and exactly 50% cell height (25%/25% top/bottom insets), vertically centered. aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
-  border-radius: 9999px; /* pill/capsule shape, per direct request — a plain border-radius:50% on a non-square box draws an ellipse (scales x/y radius independently off the box's own width/height, the "egg" look); a fixed radius this much bigger than the box gets clamped down to exactly half the box's shorter side (its height here), which is what actually produces two true semicircular end-caps joined by straight edges instead of a stretched oval */
+  left: 0; right: 0; top: 25%; bottom: 25%; height: auto; aspect-ratio: auto; transform: none; border-radius: 0; /* squares mode, per direct request: full cell width (0 inset, not the accent's own narrower width), exactly 50% cell height (25%/25% top/bottom insets), vertically centered, sharp corners (no rounding, per direct request). aspect-ratio/transform explicitly reset since the square-mode base rule this overrides sets both */
+}
+/* The note that OWNS a dragged/multi-cell legato phrase (its accent — see
+   .legato-start, set by updateLegatoVisuals whenever that note's own span
+   is more than 1 step) gets reshaped to the exact same box as the tail
+   markers that follow it, per direct request — otherwise the narrower,
+   centered accent square left a visible gap before the first full-width
+   tail segment, breaking what should read as one continuous joined bar
+   across every cell the drag covered. Higher specificity than the plain
+   .on/.soft rules (extra .legato-start class) so it wins outright. */
+.step-cell.legato-start.on::after, .step-cell.legato-start.soft::after {
+  left: 0; right: 0; top: 25%; bottom: 25%; height: auto; aspect-ratio: auto; transform: none; border-radius: 0;
 }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
@@ -1348,10 +1358,28 @@ body.marker-left-justify-circles.note-markers-circle .step-cell.soft::after {
   right: calc(2 * var(--marker-soft-inset-circle, 27.2%) - var(--note-marker-circle-inset, 12%));
 }
 body.note-markers-circle .step-cell.legato-tail::after {
-  left: var(--note-marker-circle-inset, 12%);
-  right: var(--note-marker-circle-inset, 12%);
-  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — width from the accent circle's own inset, height from the empty circle's */
-  border-radius: 9999px; /* pill/capsule, not an ellipse — see the square-mode tail rule above for why a huge fixed radius (clamped down to half the box's own height) beats border-radius:50% here */
+  left: 0; right: 0; /* full cell width, not the accent circle's own narrower inset — otherwise adjacent tail cells never actually touch, leaving a visible break between every step of a dragged phrase */
+  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none; /* elongated horizontally, same reasoning as the square-mode tail above — height from the empty circle's own inset */
+  border-radius: 0; /* sharp on both sides by default — a "middle" cell of the phrase, meant to butt flush against its neighbors on both sides. Only the very first (.legato-start) and very last (.legato-end) cell of the whole dragged run get rounded, and only on their own outward-facing side — see both below — so independent per-cell pseudo-elements still read as one seamless capsule instead of a row of pinched pills each rounded on every side */
+}
+body.note-markers-circle .step-cell.legato-tail.legato-end::after {
+  border-top-right-radius: 9999px; border-bottom-right-radius: 9999px; /* the far end of the phrase — round its own right (outward) side only; left stays flush against the previous cell */
+}
+/* Circle mode's own version of the square-mode .legato-start rule above —
+   same reasoning: the phrase's owner note gets reshaped to the exact same
+   full-width box as its own tail markers so the whole dragged phrase
+   joins into one continuous pill/strip instead of a circle with a gap
+   before the tail — per direct request ("no breaks between the start and
+   end if it's dragged or goes across multiple cells"). Rounded on its own
+   left (outward) side only — right stays flush against the next cell,
+   same reasoning as .legato-end above but mirrored. A plain single-step
+   note (no .legato-start class) is untouched and stays the normal
+   narrower circle. */
+body.note-markers-circle .step-cell.legato-start.on::after,
+body.note-markers-circle .step-cell.legato-start.soft::after {
+  left: 0; right: 0;
+  top: var(--marker-empty-inset-circle, 42.4%); bottom: var(--marker-empty-inset-circle, 42.4%); height: auto; aspect-ratio: auto; transform: none;
+  border-top-left-radius: 9999px; border-bottom-left-radius: 9999px; border-top-right-radius: 0; border-bottom-right-radius: 0;
 }
 /* Split32 (32nd notes) — two mini-circles side by side, each half the
    base circle's diameter, per direct request. Uses two radial-gradients
@@ -1556,7 +1584,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-19 19:51:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-20 17:31:13 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1707,7 +1735,7 @@ body.note-markers-asterisk .step-cell.soft.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-19 19:51:20 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-20 17:31:13 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -14401,7 +14429,7 @@ function updateLegatoVisuals() {
     if (!eligible) {
       for (let s = 0; s < NUM_STEPS; s++) {
         const el = document.querySelector(`.step-cell[data-track="${tr}"][data-step="${s}"]`);
-        if (el) el.classList.remove('legato-tail');
+        if (el) { el.classList.remove('legato-tail'); el.classList.remove('legato-start'); el.classList.remove('legato-end'); }
       }
       continue;
     }
@@ -14409,7 +14437,22 @@ function updateLegatoVisuals() {
     // (explicit drag-recorded length when present, else the original
     // inference), then mark only those cells as tails — this keeps
     // overlapping notes correct and matches what will actually be heard.
+    // startFlags marks the owner note's own cell whenever that span is
+    // more than 1 step — a real dragged/multi-cell legato phrase, not a
+    // plain single-step tap — so its own marker can be widened/reshaped
+    // to butt up against the tail markers that follow it (see
+    // .legato-start CSS) instead of leaving a visible gap between a
+    // narrow centered accent square and the full-width tail that starts
+    // right after it, joining the whole phrase into one continuous shape.
+    // endFlags marks the very LAST cell of a dragged phrase (the far end
+    // of its sustain) separately from the other, "middle" tail cells —
+    // circle mode only rounds the far corners of .legato-start (its left
+    // end) and .legato-end (its right end); every cell in between renders
+    // sharp-edged, so the whole run of touching, full-width cells reads
+    // as one seamless capsule instead of a row of separate pinched pills.
     const tailFlags = new Array(NUM_STEPS).fill(false);
+    const startFlags = new Array(NUM_STEPS).fill(false);
+    const endFlags = new Array(NUM_STEPS).fill(false);
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       if (grid[tr][gs] === 0) continue;
       let span = 1; // a plain manually-placed note — just one step, matching playback
@@ -14417,14 +14460,20 @@ function updateLegatoVisuals() {
         span = trackLegatoLen[tr][gs];
       }
       span = Math.min(span, (trackInstruments[tr] === 'dronePlus') ? NUM_STEPS : LEGATO_CAP_STEPS); // never draw longer than playback allows — STRINGS+ (dronePlus) gets the same NUM_STEPS exception the playback scheduler already has (see _legatoCap in the scheduler), since it's always fully contiguous by design; this display cap was still flat at LEGATO_CAP_STEPS, so a STRINGS+ note sustaining past step 6 had its tail visually truncated even though it kept playing correctly
+      if (span > 1) {
+        startFlags[gs] = true;
+        endFlags[(gs + span - 1) % NUM_STEPS] = true;
+      }
       for (let k = 1; k < span; k++) tailFlags[(gs + k) % NUM_STEPS] = true;
     }
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       const s = (gs + trackOffset[tr]) % NUM_STEPS;
       const el = document.querySelector(`.step-cell[data-track="${tr}"][data-step="${s}"]`);
       if (!el) continue;
-      if (grid[tr][gs] > 0) { el.classList.remove('legato-tail'); continue; }
+      if (grid[tr][gs] > 0) { el.classList.remove('legato-tail'); el.classList.remove('legato-end'); el.classList.toggle('legato-start', startFlags[gs]); continue; }
+      el.classList.remove('legato-start');
       el.classList.toggle('legato-tail', tailFlags[gs]);
+      el.classList.toggle('legato-end', tailFlags[gs] && endFlags[gs]);
     }
   }
 }
