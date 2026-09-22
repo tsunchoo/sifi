@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-22 19:48:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-22 20:06:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1634,7 +1634,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-22 19:48:17 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-22 20:06:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1785,7 +1785,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-22 19:48:17 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-22 20:06:39 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4119,6 +4119,17 @@ function _applyDoubleBassVolBoost(tr) {
   if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
   updateVolFillDisplay(tr);
 }
+// RYTM GTR (stab) comes in too hot by default — pull its vol slider position
+// down ~35% (same slider-position-nudge mechanism as DOUBLE BASS's boost
+// above, just the other direction), once, whenever a track newly becomes
+// RYTM GTR — guarded by prevKey so re-picking it or RAND landing on it again
+// on an already-stab track never stacks the cut.
+function _applyRytmGtrVolCut(tr) {
+  const pos = Math.max(0, volGainToPos(trackVolume[tr]) - 0.35);
+  trackVolume[tr] = volPosToGain(pos);
+  if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
+  updateVolFillDisplay(tr);
+}
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackDelay = new Array(NUM_TRACKS).fill(false);
 // Pump/sustain/crunch — repurposed offset ("<") button. Chain order per
@@ -5500,12 +5511,20 @@ function _writeArpeggioPattern(tr, scale) {
   redrawTrackCells(tr); markModified();
 }
 
-function randomizeBassTrack(tr, level) {
-  window._lastNoteMaxUsed = null;
-  if (level === undefined) level = 0;
+// Builds (or rebuilds) trackBassScale[tr]/trackScaleMode[tr] for whichever
+// instrument is CURRENTLY on this track — root selection (the shared global
+// root transposed into this instrument's own range, a locked track's own
+// pinned root, or a fresh root if none has been picked yet), octave
+// separation from other same-range tonal tracks so this one doesn't land on
+// top of them, MIDEAST scale-mode selection, and the limited-palette quirk
+// for STAB/CHUG/MARIO PIANO/DENIECE. Shared by randomizeBassTrack() (full
+// re-randomization) and selectSound() (switching a track's instrument) —
+// either way, any note's pitch is derived live from this scale at playback
+// time, so it has to actually match the instrument now on the track rather
+// than whatever a previous instrument left behind, whether that note was
+// RAND-generated or placed by hand.
+function _rebuildTonalScale(tr) {
   const key = trackInstruments[tr];
-  if (trackLegatoLen[tr]) trackLegatoLen[tr] = {};
-
   let root;
   if (trackSweep[tr] && trackLockedRoot[tr]) {
     // Locked track, individually re-randomized via its own + — use the
@@ -5567,7 +5586,16 @@ function randomizeBassTrack(tr, level) {
     delete trackScaleMode[tr];
   }
   trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
-  if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
+  if (key === 'stab' || key === 'chug' || key === 'bashp' || key === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
+}
+
+function randomizeBassTrack(tr, level) {
+  window._lastNoteMaxUsed = null;
+  if (level === undefined) level = 0;
+  const key = trackInstruments[tr];
+  if (trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+
+  _rebuildTonalScale(tr);
 
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
   if (ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
@@ -5618,7 +5646,7 @@ function randomizeBassTrack(tr, level) {
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
-  if (_bassKeysNow.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
+  if (BASS_LEGATO_KEYS.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // Shared legato chance/width — interpolates from generous at low INTENSITY
@@ -9491,6 +9519,15 @@ function selectSound(tr, k) {
     try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
   }
   trackInstruments[tr] = k;
+  // Manually-placed notes get their pitch live from trackBassScale[tr] at
+  // playback time (same as RAND-generated ones), so switching a track's
+  // instrument has to rebuild that scale right away — otherwise any note
+  // clicked in before the next RAND would still play from whatever scale
+  // (and octave range/mode/limited-palette quirks) the PREVIOUS instrument
+  // left behind. Keeps the track's existing notes/rhythm untouched — only
+  // the scale they're read from changes — and stays silent for non-tonal
+  // instruments (kit/perc), which don't use a scale at all.
+  if (TONAL_KEYS.has(k)) _rebuildTonalScale(tr);
   if (k === 'ngate' && ctx) initNoiseGate(tr);
   // CHUG comes with FX on as standard — only forcing it the moment it's
   // picked (prevKey check), so a player who deliberately switches FX back
@@ -9500,6 +9537,7 @@ function selectSound(tr, k) {
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.add('on');
   }
   if (k === 'dbass' && prevKey !== 'dbass') _applyDoubleBassVolBoost(tr);
+  if (k === 'stab' && prevKey !== 'stab') _applyRytmGtrVolCut(tr);
   if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
   setTrackNameColor(tr, k);
@@ -13589,6 +13627,7 @@ function randAll(mode, opts) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
     if (k === 'dbass' && trackInstruments[tr] !== 'dbass') _applyDoubleBassVolBoost(tr);
+    if (k === 'stab' && trackInstruments[tr] !== 'stab') _applyRytmGtrVolCut(tr);
     trackInstruments[tr] = k;
     if (k === 'ngate' && typeof initNoiseGate === 'function' && ctx) initNoiseGate(tr);
     // A new RAND pattern clears any Delay/FX/BLAST this (unlocked) track was
