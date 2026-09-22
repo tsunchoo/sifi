@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-22 19:34:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-22 19:48:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1549,6 +1549,24 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   width: 100%; max-width: 960px; display: flex;
   gap: 4px; margin-top: 4px; margin-bottom: 0;
 }
+/* PERFORMANCE MODE (COLOR MENU toggle, under WILD) — removes the save
+   slot row entirely and hands its exact height straight to the top row
+   buttons instead, per direct request: "get rid of the save slot
+   buttons... and adding their height value to the top row buttons".
+   Both rows already share the one --top-row-btn-height variable (see its
+   own comment above), so doubling it for .btn here keeps the added
+   amount exactly equal to what the slot row itself was contributing —
+   no separate constant to keep in sync. .transport (the top row's own
+   flex container) has no fixed height of its own, so growing .btn
+   naturally grows it too and pushes every normal-flow element below (the
+   sequencer grid, this now-hidden slot row, the footer) down by that
+   same amount — ordinary block/flex reflow, nothing to reposition by
+   hand. Each button's own glyph stays centered exactly as it already
+   was at the normal height (flex-centered ones like #randBtn, or the
+   browser's own default button text centering) since only the box
+   height changes here, never how its content is aligned within it. */
+body.performance-mode .slot-bar { display: none; }
+body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 .slot-btn {
   flex: 1; min-width: 0;
   background: transparent; border: 2px solid #555; color: #b0b0b0;
@@ -1616,7 +1634,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-22 19:34:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-22 19:48:17 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1648,7 +1666,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 
 <header>
   <h1 id="siFiTitle" style="touch-action:none;-webkit-user-select:none;user-select:none;">Si•Fi</h1>
-  <button id="markerStyleIconBtn" onclick="_pressPulse('markerStyleIconBtn'); setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle'));" style="position:absolute;top:2px;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Toggle note marker style (squares/circles)">
+  <button id="markerStyleIconBtn" onclick="_pressPulse('markerStyleIconBtn'); setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle'));" style="position:absolute;top:0px;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Toggle note marker style (squares/circles)">
     <span id="markerStyleIcon"></span>
   </button>
   <button id="randomizeReverbIconBtn" onclick="_pressPulse('randomizeReverbIconBtn'); _randomizeReverbSettings();" style="position:absolute;top:1px;right:36px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Randomize reverb settings">
@@ -1767,12 +1785,19 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-22 19:34:28 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-22 19:48:17 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
       <label class="wild-toggle">
         <input type="checkbox" id="wildColorsToggle" checked>
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PERFORMANCE MODE</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="performanceModeToggle" onchange="setPerformanceMode(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -5596,6 +5621,15 @@ function randomizeBassTrack(tr, level) {
   if (_bassKeysNow.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
+  // Shared legato chance/width — interpolates from generous at low INTENSITY
+  // down to sparse at high INTENSITY. Originally built for the BASS
+  // instruments only; now also drives the PADS/legato-friendly tonal set
+  // below (CYBER PAD, SOLAR PAD, STRINGS, TEXTURE, BUCK, DREAM PIANO, plus
+  // DAMASK/YAMASK's own long-phrase variant further down), per direct
+  // request — "just like we did to BASS instruments".
+  const _bassLegatoChance = 0.75 - (_intensitySliderVal / 100) * 0.30;
+  const _bassLegatoWidth = Math.round(7 - (_intensitySliderVal / 100) * 5);
+
   // BOOBOO — with fewer notes now, connect most of its onsets into short
   // legato runs instead — legato phrases are the main character now, not
   // an occasional extra on top of density.
@@ -5782,8 +5816,8 @@ function randomizeBassTrack(tr, level) {
   // changes there at max INTENSITY); length interpolates from a 2-8 step
   // range at the bottom (the new "up to 8 at a time" ceiling — see
   // BASS_LEGATO_CAP_STEPS) down to the original 2-3 range at the top.
-  const _bassLegatoChance = 0.75 - (_intensitySliderVal / 100) * 0.30;
-  const _bassLegatoWidth = Math.round(7 - (_intensitySliderVal / 100) * 5);
+  // (_bassLegatoChance/_bassLegatoWidth now computed once, up near
+  // placeNotes(), so the PADS block further down can reuse them too.)
   if ((key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'sludge') && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
@@ -5820,6 +5854,23 @@ function randomizeBassTrack(tr, level) {
       trackLegatoLen[tr][s] = Math.max(2, Math.min(wantLen, maxLen));
     });
     redrawTrackCells(tr);
+  }
+
+  // PADS + other legato-friendly tonal instruments (CYBER PAD, SOLAR PAD,
+  // STRINGS, TEXTURE, BUCK, DREAM PIANO): same intensity-scaled legato bias
+  // as the BASS instruments above — more/longer phrases at low INTENSITY,
+  // tapering to short, mostly-unconnected notes at high INTENSITY — per
+  // direct request ("just like we did to BASS instruments").
+  const _padLegatoKeysNow = new Set(['sstring', 'sleg', 'drone', 'amlgm', 'denial', 'boog']);
+  if (_padLegatoKeysNow.has(key) && trackBassScale[tr]) {
+    if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] > 0 && Math.random() < _bassLegatoChance) {
+        const maxLen = _legatoMaxLen(tr, s);
+        const wantLen = 2 + Math.floor(Math.random() * _bassLegatoWidth);
+        trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
+      }
+    }
   }
 
   // JINX: melodic contour with one deliberate large jump partway through —
@@ -5867,25 +5918,28 @@ function randomizeBassTrack(tr, level) {
 
   // DAMASK: long, held, breathy phrases most of the time — a plaintive reed
   // line rarely plays short stabs, it sustains and bends between notes.
+  // Chance and width now scale with INTENSITY like the BASS/PADS instruments
+  // (more/longer at low INTENSITY, less at high), but keeps its own longer
+  // baseline (min length 3, not 2) so its breathy character stays intact.
   if (key === 'damask' && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.7) {
+      if (grid[tr][s] > 0 && Math.random() < _bassLegatoChance) {
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 3 + Math.floor(Math.random() * 4); // 3-6, biased long
+        const wantLen = 3 + Math.floor(Math.random() * _bassLegatoWidth); // 3+ steps, biased long, width tapers with INTENSITY
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
   }
 
   // YAMASK: same long-phrase bias as DAMASK — a breathy blown line sustains
-  // rather than stabbing.
+  // rather than stabbing. Same INTENSITY scaling as DAMASK.
   if (key === 'yamask' && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.7) {
+      if (grid[tr][s] > 0 && Math.random() < _bassLegatoChance) {
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 3 + Math.floor(Math.random() * 4); // 3-6, biased long
+        const wantLen = 3 + Math.floor(Math.random() * _bassLegatoWidth); // 3+ steps, biased long, width tapers with INTENSITY
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
@@ -10144,8 +10198,13 @@ const LEGATO_CAP_STEPS = 6; // the single hard limit on legato phrase length, sh
 // extend, and display), same pattern as the existing dronePlus exception.
 const BASS_LEGATO_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
 const BASS_LEGATO_CAP_STEPS = 8;
+// Same raised ceiling extended to the PADS + other legato-biased tonal
+// instruments (CYBER PAD, SOLAR PAD, STRINGS, DAMASK, YAMASK, TEXTURE,
+// BUCK, DREAM PIANO), per direct request — "just like we did to BASS
+// instruments".
+const PAD_LEGATO_KEYS = new Set(['sstring', 'sleg', 'drone', 'damask', 'yamask', 'amlgm', 'denial', 'boog']);
 function _legatoCapForKey(key) {
-  return (key === 'dronePlus') ? NUM_STEPS : BASS_LEGATO_KEYS.has(key) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS;
+  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key)) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS;
 }
 
 // How long a note at ownerGs would sustain if it just ran until the next
@@ -16819,6 +16878,15 @@ function setDevNotesGrayscale(on) {
   document.body.classList.toggle('notes-grayscale', on);
   const otherCb = document.getElementById('notesGrayscaleEnable');
   if (otherCb) otherCb.checked = on;
+}
+// PERFORMANCE MODE (COLOR MENU toggle, right under WILD) — hides the save
+// slot row and hands its exact height to the top row buttons instead,
+// making them bigger/easier to hit live at the cost of the save slots.
+// See the body.performance-mode CSS rules (by .slot-bar) for the actual
+// layout mechanics; this just flips the one body class that drives both.
+function setPerformanceMode(on) {
+  document.body.classList.toggle('performance-mode', !!on);
+  const cb = document.getElementById('performanceModeToggle'); if (cb) cb.checked = !!on;
 }
 // MARKER STYLE — two controls drive this same body class now: the pill
 // switch in the COLOR MENU (right under WILD, id="markerStyleToggle" — see
