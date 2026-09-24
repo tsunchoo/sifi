@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-24 04:44:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-24 05:00:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -734,7 +734,8 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
    FLASH's own picked color — was a generic brightness/saturate filter
    boost on the button's existing background, unrelated to PLAY FLASH
    entirely. */
-body.track-pulse-a .track-name-btn.playing { color: var(--play-flash-color, #f8ff00) !important; background: #000 !important; opacity: 1; }
+body.track-pulse-a .track-name-btn.playing { color: var(--play-flash-color, #f8ff00) !important; opacity: 1; }
+body.track-pulse-a .track-name-btn.note-pulse { animation: top-row-pulse 0.44s ease-out; }
 /* Independent of the background pulse above — same .playing trigger
    (updatePlayhead, one flash per actual note hit), separate setting,
    both can be on/off independently of each other. */
@@ -854,6 +855,12 @@ body.battery-saver-mode .shift-btn.right { opacity: 0.3 !important; pointer-even
    */
 .shift-btn:not(.right) { font-size: calc(1rem + 0.5em); }
 .shift-btn .glyph { display: inline-block; transform: translateY(-1.25px); }
+/* BEAT menu OFFSET ("<") button — doubled per direct request (was 24px,
+   the calc(1rem + 0.5em) above). line-height:1 + inline-block on its own
+   span, independent of the button's flex centering, keeps it dead-center
+   in the button box at the larger size instead of sitting low/offset the
+   way the plain text node did. */
+.beat-offset-glyph { display: inline-block; font-size: 48px; line-height: 1; }
 /* The re-introduced track-offset "<" button's own glyph — moved up 2px
    within the button, per direct request. Separate from .glyph above
    (which sits at -1.25px) so this doesn't disturb that button's existing
@@ -1634,7 +1641,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 04:44:57 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 05:00:51 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1752,7 +1759,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
     </div>
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
-      <button class="shift-btn" id="beatCtrlShift">&lt;</button>
+      <button class="shift-btn" id="beatCtrlShift"><span class="beat-offset-glyph">&lt;</span></button>
       <button class="track-ctrl-icon-btn fx-btn" id="beatCtrlFx">FX</button>
       <button class="track-ctrl-icon-btn rand-btn" id="beatCtrlRand">N</button>
     </div>
@@ -1785,7 +1792,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 04:44:57 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 05:00:51 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4812,16 +4819,17 @@ function updatePlayhead(step) {
     const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     const tbtn = document.getElementById(`tbtn-${tr}`);
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
-      // Forced-reflow restart (same trick the volume-bar pulse already
-      // uses) — guarantees the flash retriggers even when this same track
-      // fires again before the previous flash's timeout has cleared it
-      // (dense/fast patterns), instead of silently staying in the
-      // already-"playing" state with no new transition to show. Hold time
-      // bumped from 80ms to 180ms — 80ms is under two video frames and was
-      // genuinely too brief to reliably register as a visible pulse.
-      tbtn.classList.remove('playing'); void tbtn.offsetWidth; tbtn.classList.add('playing');
-      clearTimeout(tbtn._pulseTimer);
-      tbtn._pulseTimer = setTimeout(() => tbtn.classList.remove('playing'), 180);
+      // TRACK BUTTON PULSE — same scale-pulse mechanism the top-row
+      // transport buttons use (top-row-pulse keyframe, reflow-restarted
+      // each hit, same as #playBtn/#beatBtn's .btn-beat-pulse), plus the
+      // original short text-color flash. These are two separate classes:
+      // note-pulse (scale, self-resets when the 0.44s animation ends, no
+      // timer needed — matches the top-row buttons exactly) and playing
+      // (color, CSS transition-based, so it still needs its class removed
+      // on a timer to transition back).
+      tbtn.classList.remove('note-pulse'); void tbtn.offsetWidth; tbtn.classList.add('note-pulse');
+      tbtn.classList.add('playing');
+      setTimeout(() => tbtn.classList.remove('playing'), 80);
       // VOLUME SLIDER pulse — driven by this track's own notes, not a
       // generic time loop: fires every time a note actually sounds on
       // this specific track, regardless of which logo color mode is
