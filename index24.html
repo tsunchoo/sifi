@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-24 23:02:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-24 23:29:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1671,7 +1671,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 23:02:54 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 23:29:12 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1832,7 +1832,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 23:02:54 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 23:29:12 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -10182,7 +10182,7 @@ function shiftTrack(tr, dir) {
   trackOffset[tr] = (trackOffset[tr] + dir * _devOffsetStepSize + NUM_STEPS) % NUM_STEPS;
   redrawTrackCells(tr); markModified();
 }
-function redrawTrackCells(tr) {
+function redrawTrackCells(tr, skipReorder) {
   for (let s = 0; s < NUM_STEPS; s++) {
     const el = document.querySelector(`[data-track="${tr}"][data-step="${s}"]`); if (!el) continue;
     const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS, val = grid[tr][gs];
@@ -10201,7 +10201,11 @@ function redrawTrackCells(tr) {
     // notes are added again.
     tbtn.textContent = hasNotes ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'EMPTY';
   }
-  _updateEmptyTrackVisuals();
+  // skipReorder: used mid-drag (see _applyDragStep) so the track being
+  // actively dragged on doesn't relocate out from under the finger the
+  // instant it stops being "empty" — the real reorder still runs once,
+  // at drag end, via the touchend/mouseup handlers below.
+  _updateEmptyTrackVisuals(skipReorder);
 }
 // Empty tracks always sort to the bottom, and everything but their name
 // button hides (see .track-wrap.track-empty in the stylesheet). Checks
@@ -10443,7 +10447,7 @@ function _applyDragStep(tr, s, cellEl, erase, isFirst) {
     // unaccented as before.
     if (newLegatoLen > 1 && grid[tr][startGs] !== 2) {
       grid[tr][startGs] = 2;
-      redrawTrackCells(tr);
+      redrawTrackCells(tr, true); // skip the empty-track reorder mid-drag — see redrawTrackCells' own comment
     }
   } else {
     grid[tr][gs] = 1;
@@ -10530,6 +10534,10 @@ document.addEventListener('touchend', () => {
     if (val > 0) previewNote(tr, val === 2 || val === 3);
     markModified();
   }
+  // Apply the real empty-track reorder now that the gesture is over — it
+  // was deliberately skipped mid-drag (see redrawTrackCells' skipReorder
+  // param) so the track being dragged on doesn't relocate under the finger.
+  if (dragWriteTrack >= 0) _updateEmptyTrackVisuals();
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
   _stopGathering();
 });
@@ -10600,6 +10608,7 @@ document.addEventListener('mouseup', () => {
     if (val > 0) previewNote(tr, val === 2 || val === 3);
     markModified();
   }
+  if (dragWriteTrack >= 0) _updateEmptyTrackVisuals();
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
   _stopGathering();
 });
@@ -13688,22 +13697,19 @@ function randAll(mode, opts) {
     else _bossaSidestickTr = trackInstruments.findIndex((k, tr) => k === 'sidestick' && trackSweep[tr]); // already-locked case
   }
 
-  // At the top intensity tier (level 4 of 0-4, i.e. the top 90%+ of the
-  // range), it's fine — good, even — to leave one track completely silent
-  // rather than cramming an instrument into every single slot. Combined
-  // with _poolShortfall — whatever's still short after both top-ups
-  // above (only possible right at the slider's own extremes, where
-  // crossing over into the other side is deliberately refused).
-  // Separately, the INTENSITY SLIDER itself (not the random 0-4 'level'
-  // above — a different axis) below its own halfway point (<50) can thin
-  // the pattern down much further than that single-track ceiling: as few
-  // as 3 active tracks survive (track 0 is never a candidate, so up to 3
-  // of the other 5 can go empty), rather than always just 0 or 1.
+  // The INTENSITY SLIDER (not the random 0-4 'level' above — a different
+  // axis) is the only thing allowed to leave tracks silent, and only
+  // below its own halfway point (<50): as few as 3 active tracks survive
+  // (track 0 is never a candidate, so up to 3 of the other 5 can go
+  // empty). At 50 and above — including the top 'level 4' tier and any
+  // _poolShortfall — every unlocked track must come back with real notes
+  // on it, full stop, or the slider stops meaning anything past halfway.
+  // Above 50, a pool shortfall just repeats the pool's last instrument
+  // into the extra tracks instead (see the k = pool[poolIdx++] || ...
+  // fallback below) rather than leaving any of them empty.
   const _emptyTrackIndices = new Set();
-  {
-    const _emptyNeeded = _intensitySliderVal < 50
-      ? Math.floor(Math.random() * 4) + _poolShortfall // 0-3 empty tracks — can go as low as 3 active
-      : (level === 4 ? 1 : 0) + _poolShortfall;
+  if (_intensitySliderVal < 50) {
+    const _emptyNeeded = Math.floor(Math.random() * 4) + _poolShortfall; // 0-3 empty tracks — can go as low as 3 active
     if (_emptyNeeded > 0) {
       const _emptyCandidates = [];
       for (let tr = 1; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && tr !== _bossaSidestickTr) _emptyCandidates.push(tr); // BOSSA's sidestick track must never be silenced — see above
