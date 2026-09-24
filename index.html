@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-24 05:41:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-24 21:45:33 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -93,6 +93,25 @@ header h1 { font-family: 'DM Sans', sans-serif; font-size: 2.0671rem; line-heigh
    state color cycle (CSS animation) and note-jump mode (inline JS color)
    both still correctly take over once playing starts, regardless of this. */
 #siFiTitle { color: #000; }
+/* LOAD meter — LCD-style segmented bargraph under the logo, per direct
+   request ("doesn't have to be super accurate or fast"). 5 segments:
+   2 green (low), 1 yellow (mid), 2 red (high) — same 3-zone idiom as a
+   VU meter. Unlit segments stay dimly visible (classic LCD "ghost"
+   segment look) rather than disappearing entirely; .lit fills in from
+   the left, cumulative. .peak is the separate bright white "needle"
+   marker — jumps to the current level instantly, then eases back down
+   over a few samples, the classic VU peak-hold bounce, layered on top
+   of whichever segment it currently sits at regardless of that
+   segment's own lit/zone color. */
+.load-meter-label { font-family: 'DM Sans', sans-serif; font-size: 0.5rem; font-weight: 700; letter-spacing: 1px; color: var(--dim, #888); text-transform: uppercase; }
+.load-meter-lcd { display: flex; gap: 2px; background: #0a0a0a; padding: 3px 4px; border-radius: 2px; box-shadow: inset 0 0 2px rgba(0,0,0,0.7); }
+.load-meter-seg { width: 6px; height: 10px; border-radius: 1px; background: rgba(0,255,65,0.12); transition: background 0.2s, box-shadow 0.2s; }
+.load-meter-seg[data-zone="mid"] { background: rgba(240,180,41,0.12); }
+.load-meter-seg[data-zone="high"] { background: rgba(224,82,77,0.12); }
+.load-meter-seg.lit[data-zone="low"] { background: #00ff41; box-shadow: 0 0 3px #00ff41; }
+.load-meter-seg.lit[data-zone="mid"] { background: #f0b429; box-shadow: 0 0 3px #f0b429; }
+.load-meter-seg.lit[data-zone="high"] { background: #e0524d; box-shadow: 0 0 4px #e0524d; }
+.load-meter-seg.peak { background: #fff !important; box-shadow: 0 0 5px #fff !important; }
 /* 8-BIT MIX indicator — this class is on whenever the mix is above 0 at
    all (see setEightBitMix()), not just at 100%, so the logo marks the
    crushed sound's presence in the blend rather than only a full switch.
@@ -1645,7 +1664,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 05:41:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-24 21:45:33 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1677,6 +1696,16 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 
 <header>
   <h1 id="siFiTitle" style="touch-action:none;-webkit-user-select:none;user-select:none;">Si•Fi</h1>
+  <div id="loadMeter" style="position:absolute;left:8px;top:36px;display:flex;align-items:center;gap:4px;pointer-events:none;z-index:2;">
+    <span class="load-meter-label">LOAD</span>
+    <div class="load-meter-lcd">
+      <div class="load-meter-seg" data-zone="low"></div>
+      <div class="load-meter-seg" data-zone="low"></div>
+      <div class="load-meter-seg" data-zone="mid"></div>
+      <div class="load-meter-seg" data-zone="high"></div>
+      <div class="load-meter-seg" data-zone="high"></div>
+    </div>
+  </div>
   <button id="markerStyleIconBtn" onclick="_pressPulse('markerStyleIconBtn'); setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle'));" style="position:absolute;top:0px;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Toggle note marker style (squares/circles)">
     <span id="markerStyleIcon"></span>
   </button>
@@ -1796,7 +1825,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 05:41:40 UTC</div>
+    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-24 21:45:33 UTC</div>
     <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -4425,7 +4454,19 @@ function scheduler() {
     // flourish is heard.
     const _muteForTransition = _randTransitionWindow && t >= _randTransitionWindow.start && t < _randTransitionWindow.end;
     if (!_muteForTransition) {
+    // LOAD METER — cheap proxy for "how hard the app is working", not a
+    // real CPU reading (browsers don't expose one to JS at all). Timing
+    // fireStepAudio's own dispatch cost directly is the one signal that's
+    // actually free (two performance.now() calls per 16th note, nothing
+    // extra scheduled) and scales with real polyphony/complexity — dense
+    // patterns and heavy legato tracks genuinely take longer to dispatch
+    // than sparse ones. Smoothed with a simple EMA so one slow step
+    // doesn't spike the meter; read/decayed by _updateLoadMeter() below,
+    // sampled on its own slow interval, not every step.
+    const _loadT0 = performance.now();
     fireStepAudio(step, t);
+    const _loadDt = performance.now() - _loadT0;
+    window._fireDurEMA = (window._fireDurEMA === undefined) ? _loadDt : (window._fireDurEMA * 0.85 + _loadDt * 0.15);
     // LOGO NOTE JUMP — decoupled from fireStepAudio's own (already
     // complex) internals; just re-checks the same grid data it uses to
     // decide whether anything actually played this step.
@@ -4975,6 +5016,45 @@ function updatePlayhead(step) {
     }
   }
 }
+
+// LOAD METER — reads the fireStepAudio-dispatch EMA the scheduler keeps
+// updating (see window._fireDurEMA in scheduler()) and turns it into the
+// 5-segment LCD bargraph under the logo, plus a bright "peak" segment that
+// jumps up instantly and eases back down over a couple of samples (the
+// classic VU peak-hold bounce). Sampled on its own slow interval — not
+// every step, not every animation frame — since this only needs to be a
+// rough, calm indicator, never a precise or fast one, and shouldn't add
+// any real cost of its own.
+window._loadPeakLevel = 0;
+window._loadPeakHoldUntil = 0;
+// Calibration: empirically, a light pattern's fireStepAudio call takes a
+// small fraction of a ms; a dense multi-track pattern with heavy
+// legato/reverb tracks active runs noticeably longer. 4ms is picked as the
+// top of the meter (5th segment) from that spread — doesn't need to be
+// exact, just needs busy patterns to visibly read higher than sparse ones.
+const LOAD_METER_CEILING_MS = 4;
+function _updateLoadMeter() {
+  const lcd = document.getElementById('loadMeter');
+  if (!lcd) return;
+  const segs = lcd.querySelectorAll('.load-meter-seg');
+  const raw = playing ? (window._fireDurEMA || 0) : 0;
+  const frac = Math.max(0, Math.min(1, raw / LOAD_METER_CEILING_MS));
+  const level = Math.round(frac * segs.length); // 0..5 segments lit
+  const now = performance.now();
+  if (level > window._loadPeakLevel) {
+    window._loadPeakLevel = level;
+    window._loadPeakHoldUntil = now + 900;
+  } else if (now > window._loadPeakHoldUntil && window._loadPeakLevel > level) {
+    window._loadPeakLevel -= 1;
+    window._loadPeakHoldUntil = now + 220; // step back down one segment at a time, not all at once
+  }
+  const peakIdx = window._loadPeakLevel - 1; // segment index the peak marker currently sits on
+  segs.forEach((seg, i) => {
+    seg.classList.toggle('lit', i < level);
+    seg.classList.toggle('peak', i === peakIdx);
+  });
+}
+setInterval(_updateLoadMeter, 450);
 
 // DRUMS button text flash — fires on every actual BEAT-engine kick/snare/
 // hihat hit (called from fireBeatKick/playSnare/playSynthHihat below),
