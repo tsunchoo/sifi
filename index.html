@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 05:30:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 05:46:34 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:30:59 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:46:34 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17087,60 +17087,68 @@ function setPerformanceMode(on) {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
   const DRAG_DOWN_PX = 30;
-  let downY = null, dragFired = false, activeId = null;
-  // BUGFIX: after one full drag-down gesture, the very next one sometimes
-  // stopped registering at all (reported as "works once, then needs
-  // re-doing"). Root cause — this never explicitly released pointer
-  // capture, and only reset the downY/dragFired state on THIS element's
-  // own pointerup/pointercancel; if a real device's browser ever delivered
-  // capture-loss any other way (losing focus, a second touch, etc.)
-  // without one of those two firing on this exact element, the button was
-  // left thinking a pointer was still down, and the next real pointerdown
-  // came in in the middle of a "gesture" that was already stuck open, so
-  // its own downY/activeId reset then got immediately confused by stray
-  // events still tagged with the OLD pointerId. Fixed by: explicitly
-  // releasing capture on every up/cancel instead of just letting the
-  // browser handle it, tagging state with the specific pointerId that
-  // started the gesture so a mismatched stray event can't touch it, and
-  // adding 'lostpointercapture' as an unconditional safety-net reset — that
-  // event fires no matter how capture ends, so the state can never get
-  // stuck open again even if some other path is what's actually happening
-  // on the device this was reported from.
-  function reset() { downY = null; dragFired = false; activeId = null; }
-  btn.addEventListener('pointerdown', e => {
-    downY = e.clientY; dragFired = false; activeId = e.pointerId;
+  let downY = null, dragFired = false;
+  function reset() { downY = null; dragFired = false; }
+
+  // BUGFIX: the previous version of this used Pointer Events with
+  // setPointerCapture(), and reliably worked once per page load in every
+  // test here (mouse AND simulated real touch via CDP, repeated 5x in a
+  // row) but was reported as still only firing once on a real device.
+  // Pointer capture on real touchscreens (iOS Safari in particular) is a
+  // known trouble spot — the capture/lostpointercapture lifecycle doesn't
+  // always behave the way the spec (or Chromium's own devtools touch
+  // emulation) says it should, which is exactly the kind of gap no amount
+  // of simulated testing here would ever surface. Rewritten to not use
+  // Pointer Events or capture AT ALL: plain touch events for touch (a
+  // touchmove/touchend keeps firing on the element that started it
+  // regardless of where the finger physically is, with no capture concept
+  // needed), and plain mouse events + temporary document-level listeners
+  // for desktop mouse (so movement past the tiny icon's own bounds is
+  // still tracked, again with nothing needing to be "released"). Simpler,
+  // and removes the entire class of bug the pointer-capture version could
+  // have been hitting.
+  let touchJustHandled = 0;
+  btn.addEventListener('touchstart', e => {
+    downY = e.touches[0].clientY; dragFired = false; touchJustHandled = Date.now();
     e.preventDefault();
-    try { btn.setPointerCapture(e.pointerId); } catch (err) {} // without this, pointermove stops firing the instant the cursor/finger leaves this tiny icon's own bounds, which happens almost immediately on a downward drag — capture keeps delivering move events to this element regardless of where the pointer physically is until release
-  });
-  btn.addEventListener('pointermove', e => {
-    if (downY === null || dragFired || e.pointerId !== activeId) return;
+  }, { passive: false });
+  btn.addEventListener('touchmove', e => {
+    if (downY === null || dragFired) return;
     e.preventDefault();
-    if (e.clientY - downY > DRAG_DOWN_PX) {
+    if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
       setPerformanceMode(false);
     }
-  });
-  btn.addEventListener('pointerup', e => {
-    if (e.pointerId !== activeId) return;
-    e.preventDefault(); // otherwise touch input synthesizes a trailing compatibility 'click' a few ms later, hit-tested against the DOM as it looks AT THAT LATER MOMENT — by then showDevMenu() below has already opened the full-screen overlay over this same spot, so the synthetic click lands on the overlay itself instead of this button, and the overlay's own "click outside closes it" handler immediately closes what was just opened
-    try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
+  }, { passive: false });
+  btn.addEventListener('touchend', e => {
+    e.preventDefault(); // also kills the trailing synthetic compatibility 'click' some browsers fire a few ms after touchend — see the long-form explanation this comment used to carry: without this, that synthetic click can land on the COLOR MENU overlay (already open by then) instead of this button, and the overlay's own "click outside closes it" handler slams it shut again instantly
     if (!dragFired) showDevMenu();
     reset();
+  }, { passive: false });
+  btn.addEventListener('touchcancel', reset);
+
+  // Desktop mouse path — skipped if a touch on this button was just
+  // handled (some browsers still fire a trailing synthetic mousedown even
+  // after touchend's preventDefault above).
+  btn.addEventListener('mousedown', e => {
+    if (Date.now() - touchJustHandled < 1000) return;
+    downY = e.clientY; dragFired = false;
+    const onMove = me => {
+      if (downY === null || dragFired) return;
+      if (me.clientY - downY > DRAG_DOWN_PX) {
+        dragFired = true;
+        setPerformanceMode(false);
+      }
+    };
+    const onUp = () => {
+      if (!dragFired) showDevMenu();
+      reset();
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   });
-  btn.addEventListener('pointercancel', e => {
-    if (e.pointerId !== activeId) return;
-    try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
-    reset();
-  });
-  btn.addEventListener('lostpointercapture', reset); // unconditional safety net — see BUGFIX comment above
-  // preventDefault() on the pointer events above turned out not to be
-  // enough on its own to stop this: Chromium still synthesized a trailing
-  // compatibility 'click' from the touch a few ms after pointerup, and by
-  // then it hit-tested against the overlay this handler had just opened
-  // rather than the button, closing it again instantly (see the pointerup
-  // comment above). The old, reliably-effective way to kill that synthetic
-  // click at the source is preventDefault() directly on touchend itself.
-  btn.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 })();
 // MARKER STYLE — two controls drive this same body class now: the pill
 // switch in the COLOR MENU (right under WILD, id="markerStyleToggle" — see
