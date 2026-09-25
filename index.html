@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 21:24:18 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 21:38:06 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1228,7 +1228,7 @@ body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32
 body.time-ruler-on.note-markers-circle .step-cell.on::after,
 body.time-ruler-on.note-markers-circle .step-cell.soft::after,
 body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  top: 71.04%;
+  top: calc(71.04% - 6px); /* per direct request, all markers nudged back up 6px off the ruler-flush position above */
 }
 body.time-ruler-on .step-cell::after { left: calc(var(--note-marker-square-inset, 12%) + 0.5px); right: calc(var(--note-marker-square-inset, 12%) - 0.5px); }
 body.time-ruler-on .step-cell.soft::after { left: calc(var(--marker-soft-inset, 19.6%) + 0.5px); right: calc(var(--marker-soft-inset, 19.6%) - 0.5px); }
@@ -1236,6 +1236,27 @@ body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32
 body.time-ruler-on.note-markers-circle .step-cell.on::after { left: calc(var(--note-marker-circle-inset, 12%) + 0.5px); right: calc(var(--note-marker-circle-inset, 12%) - 0.5px); }
 body.time-ruler-on.note-markers-circle .step-cell.soft::after { left: calc(var(--marker-soft-inset-circle, 27.2%) + 0.5px); right: calc(var(--marker-soft-inset-circle, 27.2%) - 0.5px); }
 body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset-circle, 42.4%) + 0.5px); right: calc(var(--marker-empty-inset-circle, 42.4%) - 0.5px); }
+/* CIRCLE MODE LEGATO — the phrase bar (.legato-tail / the owning
+   .legato-start) was deliberately left out of the repositioning above
+   (it's a different shape with its own edge-flush rules), but that
+   means in circle mode specifically it never followed the on/soft/empty
+   markers down to their new ruler-adjusted vertical position, per direct
+   report ("no difference with the legato notes vertical position").
+   Square mode's legato bar is untouched — it's pinned to the top of the
+   cell by design, not something meant to track the other markers, and
+   was never reported as mismatched. The bar is defined by symmetric
+   top/bottom insets (equal values = vertically centered at 50%, however
+   thick the bar is), so shifting its CENTER to match the on/soft/empty
+   markers' new center just means adding the same delta to top and
+   subtracting it from bottom: delta = (71.04% - 6px) - 50% = 21.04% - 6px.
+   Referencing --marker-empty-inset-circle (not a hardcoded 42.4%) keeps
+   this correct even if CIRCLE EMPTY MARKER SIZE is adjusted. */
+body.time-ruler-on.note-markers-circle .step-cell.legato-tail::after,
+body.time-ruler-on.note-markers-circle .step-cell.legato-start.on::after,
+body.time-ruler-on.note-markers-circle .step-cell.legato-start.soft::after {
+  top: calc(var(--marker-empty-inset-circle, 42.4%) + 21.04% - 6px);
+  bottom: calc(var(--marker-empty-inset-circle, 42.4%) - 21.04% + 6px);
+}
 /* TIME RULER stays completely inert to playback, per direct request — no
    color flash and no size pulse. The earlier attempt at this counter-
    animated the tick's own scale to cancel out .step-cell's pop, but that
@@ -1760,7 +1781,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 21:24:18 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 21:38:06 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1935,6 +1956,15 @@ body.performance-mode header { padding-bottom: 10px; }
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
+    <!-- SATURATION CEILING — moved up here right after PERFORMANCE MODE,
+         per direct request (was further down inside the DEV sub-panel). -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
+        <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">40%</div>
+      </div>
+      <input type="range" id="satCeilingSlider" min="0" max="100" value="40" oninput="_previewSatCeilingReadout(this.value)" onchange="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
     <!-- MARKER STYLE row removed from here per direct request — now a
          standalone header icon (see #markerStyleIconBtn, to the right of the
          reverb room icon) instead of living in this menu. setNoteMarkersCircle
@@ -2001,13 +2031,6 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
-          <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">40%</div>
-        </div>
-        <input type="range" id="satCeilingSlider" min="0" max="100" value="40" oninput="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
     </div>
 
     <div id="devMorePanel2" style="display:none;flex-direction:column;gap:10px;">
@@ -3064,6 +3087,17 @@ function setColorSaturationCeiling(v) {
   window._colorSaturationCeiling = v / 100;
   const out = document.getElementById('satCeilingVal'); if (out) out.textContent = v + '%';
   _reapplySaturationCeilingLive();
+}
+// Dragging the slider used to call setColorSaturationCeiling() (and
+// therefore _reapplySaturationCeilingLive(), which recomputes and
+// reapplies ~7 different colors plus re-runs every "auto" color picker)
+// on every single 'input' tick — reported as heavy on the processor while
+// dragging. Per direct request, the live recolor now only runs once, on
+// release ('change', which fires for both mouse and touch), while the
+// readout number still updates on every tick via this cheap text-only
+// handler so the slider still feels responsive while dragging.
+function _previewSatCeilingReadout(v) {
+  const out = document.getElementById('satCeilingVal'); if (out) out.textContent = v + '%';
 }
 function _reapplySaturationCeilingLive() {
   const base = window._colorBaseSat;
