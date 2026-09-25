@@ -1527,13 +1527,15 @@ body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-tail.legato-end::
    their height on every hit. */
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on::after,
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft::after, /* un-accented notes too — same top-to-ruler vertical extent as accents so they line up, per direct request (width stays their own smaller size) */
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.on::after,
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.soft::after {
   top: 0; bottom: 0; height: auto; aspect-ratio: auto; transform: none;
 }
 @keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } 40% { transform: scale(1.72); } 100% { transform: scale(1); } }
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on.playing::after,
-body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.playing::after { animation-name: step-cell-pop-marker-top; }
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.playing::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft.playing::after { animation-name: step-cell-pop-marker-top; }
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.playing::after { animation: none; }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
@@ -2044,16 +2046,16 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER OPACITY</div>
-        <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">35%</div>
+        <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">20%</div>
       </div>
-      <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="35" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="20" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER THICKNESS</div>
-        <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">3px</div>
+        <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1px</div>
       </div>
-      <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="3" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
+      <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="1" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <!-- FADER TIP = TOP ROW COLOR removed from the UI per direct request
          — the tip color is hardcoded to #000 now (see .track-vol-tip),
@@ -3328,7 +3330,7 @@ function setTopRowColorFromHue(hue) {
   // matching the old fixed color-mix amount) is the only thing that
   // varies, so it reads as a plain ruler line rather than a themed accent.
   window._timeRulerEnabled = false;
-  window._timeRulerOpacity = 0.35;
+  window._timeRulerOpacity = 0.20; // default 20%, per direct request (was 35%)
   function _applyTimeRulerColor() {
     document.documentElement.style.setProperty('--track-line-color', window._timeRulerEnabled ? `rgba(0,0,0,${window._timeRulerOpacity})` : 'transparent');
   }
@@ -3401,6 +3403,7 @@ function setTopRowColorFromHue(hue) {
     const readout = document.getElementById('timeRulerOpacityVal'); if (readout) readout.textContent = Math.round(window._timeRulerOpacity * 100) + '%';
     const slider = document.getElementById('timeRulerOpacitySlider'); if (slider) slider.value = Math.round(window._timeRulerOpacity * 100);
   };
+  setTimeRulerThickness(1); // default 1px, per direct request
   setTimeRuler(false);
   // Empty note marker color — tinted from the page BACKGROUND's hue at a
   // fixed, subtle 16% saturation, offset a guaranteed distance from the
@@ -17513,6 +17516,22 @@ function setPerformanceMode(on) {
 // DRAG_DOWN_PX; now "none" here), and calling preventDefault() on
 // touchstart/touchmove so no default touch behavior competes with the
 // gesture at all.
+// RAINBOW SWIPE-DOWN now cycles through 4 modes, per direct request
+// (was a plain PERFORMANCE MODE toggle):
+//   1. normal            2. PERFORMANCE MODE
+//   3. normal + TIME RULER   4. PERFORMANCE MODE + TIME RULER
+// then back round to 1. The current mode is read straight from the two
+// real states (performance-mode body class + _timeRulerEnabled) rather
+// than a separate counter, so it always steps on correctly even if either
+// was changed from the COLOR MENU in between swipes.
+function _cycleRainbowMode() {
+  const perf = document.body.classList.contains('performance-mode');
+  const ruler = !!window._timeRulerEnabled;
+  const next = ((perf ? 1 : 0) + (ruler ? 2 : 0) + 1) % 4;
+  const wantPerf = (next & 1) === 1, wantRuler = (next & 2) === 2;
+  if (wantPerf !== perf) setPerformanceMode(wantPerf);
+  if (wantRuler !== ruler && typeof setTimeRuler === 'function') setTimeRuler(wantRuler);
+}
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -17548,7 +17567,7 @@ function setPerformanceMode(on) {
     e.preventDefault();
     if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
-      setPerformanceMode(!document.body.classList.contains('performance-mode')); // true toggle now, per direct request — was exit-only (drag down only ever turned it off); same gesture now flips it either way
+      _cycleRainbowMode(); // true toggle now, per direct request — was exit-only (drag down only ever turned it off); same gesture now flips it either way
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
@@ -17568,7 +17587,7 @@ function setPerformanceMode(on) {
       if (downY === null || dragFired) return;
       if (me.clientY - downY > DRAG_DOWN_PX) {
         dragFired = true;
-        setPerformanceMode(!document.body.classList.contains('performance-mode')); // true toggle now, per direct request — see the matching touchmove comment above
+        _cycleRainbowMode(); // true toggle now, per direct request — see the matching touchmove comment above
       }
     };
     const onUp = () => {
