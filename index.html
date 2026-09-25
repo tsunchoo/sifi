@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 07:55:27 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 19:03:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 07:55:27 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 19:03:16 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1862,6 +1862,9 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
       <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+      <input type="checkbox" id="timeRulerToggle" onchange="setTimeRuler(this.checked)" style="width:14px;height:14px;cursor:pointer;">TIME RULER
     </label>
     <!-- FADER TIP = TOP ROW COLOR removed from the UI per direct request
          — the tip color is hardcoded to #000 now (see .track-vol-tip),
@@ -3124,8 +3127,19 @@ function setTopRowColorFromHue(hue) {
     }
     return rgbToHex(r * 255, g * 255, b * 255);
   }
-  // Track lines always stay transparent now — no picker, no toggle.
-  document.documentElement.style.setProperty('--track-line-color', 'transparent');
+  // TIME RULER (COLOR MENU toggle) — the old track-marker-line "ruler"
+  // look, brought back per direct request as an actual toggle instead of
+  // permanently hardcoded off. Off by default, matching how it's shipped
+  // for a while now; on, it uses the same theme-adaptive neutral the rest
+  // of the UI chrome uses (--neutral-top) so it doesn't need its own color
+  // picker and stays legible across every WILD/randomized palette.
+  window._timeRulerEnabled = false;
+  window.setTimeRuler = function(on) {
+    window._timeRulerEnabled = !!on;
+    document.documentElement.style.setProperty('--track-line-color', on ? 'color-mix(in srgb, var(--neutral-top, #555) 35%, transparent)' : 'transparent');
+    const cb = document.getElementById('timeRulerToggle'); if (cb) cb.checked = !!on;
+  };
+  setTimeRuler(false);
   // Empty note marker color — tinted from the page BACKGROUND's hue at a
   // fixed, subtle 16% saturation, offset a guaranteed distance from the
   // background's own actual lightness (not a fixed constant independent
@@ -17825,7 +17839,7 @@ function fullReset() {
   document.body.style.background = '';
   document.body.classList.remove('notes-grayscale', 'bg-beat-pulse');
   document.body.style.removeProperty('--bg-pulse-color');
-  document.body.style.removeProperty('--track-line-color');
+  if (typeof setTimeRuler === 'function') setTimeRuler(false); else document.body.style.removeProperty('--track-line-color');
   document.body.style.removeProperty('--header-text-color');
   document.body.style.removeProperty('--header-text-dim');
   document.body.style.removeProperty('--reel-filter');
