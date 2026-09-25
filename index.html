@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 20:24:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 20:41:32 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1181,15 +1181,41 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
 .step-cell[data-step="4"]::before,
 .step-cell[data-step="8"]::before,
 .step-cell[data-step="12"]::before { height: calc(100% + 3px); }
-/* TIME RULER (when on) makes room for its own tick and nudges every note
-   marker to compensate, per direct request: the tick's own thickness
-   (3px — must match .step-cell::before's width above) is added as left
-   padding, and every marker also drops 2px. margin (not left/top) so
-   this applies uniformly on top of whatever each marker variant already
-   does for its own positioning (square/circle, empty/soft/on, split32,
-   legato-tail's top-anchored box, left-justify mode, etc.) without
-   needing a matching override duplicated for each one. */
-body.time-ruler-on .step-cell::after { margin-left: 3px; margin-top: 2px; }
+/* TIME RULER (when on): treat the ruler like a left+bottom border on the
+   cell (that's genuinely what it visually is — the tick occupies
+   left:-1px to left+3px=2px, i.e. 2px of the cell's own left edge, and
+   the short non-beat-marker tick's top edge sits at exactly 30% of the
+   cell's height — see .step-cell::before above), and re-center the
+   square/circle note markers in the middle of the REMAINING space
+   inside that border, per direct request — not flush against it (an
+   earlier attempt that pinned the marker straight to the ruler's own
+   edge, no gap; too far). Concretely: shifting the marker's own center
+   by exactly HALF the reserved space on each axis re-centers it in the
+   reduced box while leaving its size untouched — width via left/right
+   insets, both nudged 1px in opposite directions (half of the 2px
+   reserved on the left) so their sum, and thus the box's width, doesn't
+   change; height via `top`, moved from 50% to 35% (half of the 30%
+   reserved along the bottom, i.e. new center sits at 65% from the
+   bottom = 35% from the top), `transform:translateY(-50%)` untouched so
+   it still centers on that new anchor point exactly like it did on the
+   old one. Deliberately scoped to just the plain square/circle on/soft/
+   empty markers (matching what was actually asked for) — split32's
+   stripes and the legato phrase bar are their own distinct shapes with
+   their own edge-flush rules already and are left untouched here. */
+body.time-ruler-on .step-cell::after,
+body.time-ruler-on .step-cell.soft::after,
+body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after,
+body.time-ruler-on.note-markers-circle .step-cell.on::after,
+body.time-ruler-on.note-markers-circle .step-cell.soft::after,
+body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
+  top: 35%;
+}
+body.time-ruler-on .step-cell::after { left: calc(var(--note-marker-square-inset, 12%) + 1px); right: calc(var(--note-marker-square-inset, 12%) - 1px); }
+body.time-ruler-on .step-cell.soft::after { left: calc(var(--marker-soft-inset, 19.6%) + 1px); right: calc(var(--marker-soft-inset, 19.6%) - 1px); }
+body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset, 42.4%) + 1px); right: calc(var(--marker-empty-inset, 42.4%) - 1px); }
+body.time-ruler-on.note-markers-circle .step-cell.on::after { left: calc(var(--note-marker-circle-inset, 12%) + 1px); right: calc(var(--note-marker-circle-inset, 12%) - 1px); }
+body.time-ruler-on.note-markers-circle .step-cell.soft::after { left: calc(var(--marker-soft-inset-circle, 27.2%) + 1px); right: calc(var(--marker-soft-inset-circle, 27.2%) - 1px); }
+body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset-circle, 42.4%) + 1px); right: calc(var(--marker-empty-inset-circle, 42.4%) - 1px); }
 /* TIME RULER stays completely inert to playback, per direct request — no
    color flash and no size pulse. The earlier attempt at this counter-
    animated the tick's own scale to cancel out .step-cell's pop, but that
@@ -1714,7 +1740,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 20:24:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 20:41:32 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
