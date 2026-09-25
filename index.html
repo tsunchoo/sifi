@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 06:01:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 06:10:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -902,7 +902,6 @@ body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-c
   align-self: center; /* stays vertically centered in the row */
 }
 body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) — re-added to the UI, on by default (matching how it's been sitting) */
-body.performance-mode .track-vol-bar { flex: 0 0 6px; width: 6px; } /* PERFORMANCE MODE — per direct request, the vol slider shrinks to a thin 6px strip instead of filling the row (flex:1 above); flex-basis + flex-grow:0 override that fill behavior, width:6px as a plain fallback/belt-and-braces */
 /* Ruler behind the fill — one horizontal line straight through the
    middle, crossed by 10 evenly-spaced vertical ticks. Two background
    layers on one element rather than a separate line + 10 separate tick
@@ -1675,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:01:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:10:24 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17049,11 +17048,14 @@ function setPerformanceMode(on) {
     if (jtCb) jtCb.checked = false;
     if (_perfModeVisualsBefore === null) {
       _perfModeVisualsBefore = {
-        satCeiling: (window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 0.5) * 100
+        satCeiling: (window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 0.5) * 100,
+        faderWidth: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--simple-fader-width')) || 10 // FADER WIDTH — stashed so it can be put back exactly on exit, same pattern as satCeiling just above
       };
     }
     setColorSaturationCeiling(10);
     const scSl = document.getElementById('satCeilingSlider'); if (scSl) scSl.value = 10;
+    setSimpleFaderWidth(6); // FADER WIDTH — per direct request, thinner (6px) while in PERFORMANCE MODE
+    const fwSl = document.getElementById('simpleFaderWidthSlider'); if (fwSl) fwSl.value = 6;
   } else {
     if (_justTrackBeforePerfMode !== null) {
       setJustTrack(_justTrackBeforePerfMode);
@@ -17061,9 +17063,11 @@ function setPerformanceMode(on) {
       _justTrackBeforePerfMode = null;
     }
     if (_perfModeVisualsBefore !== null) {
-      const { satCeiling } = _perfModeVisualsBefore;
+      const { satCeiling, faderWidth } = _perfModeVisualsBefore;
       setColorSaturationCeiling(satCeiling);
       const scSl = document.getElementById('satCeilingSlider'); if (scSl) scSl.value = satCeiling;
+      setSimpleFaderWidth(faderWidth);
+      const fwSl = document.getElementById('simpleFaderWidthSlider'); if (fwSl) fwSl.value = faderWidth;
       _perfModeVisualsBefore = null;
     }
   }
@@ -17072,18 +17076,21 @@ function setPerformanceMode(on) {
 // (was a plain onclick="showDevMenu()" on the button itself, moved into
 // this gesture handling so a drag can be distinguished from a tap before
 // deciding which one to do). Per direct request: click-and-drag DOWN on
-// the icon exits PERFORMANCE MODE back to normal instead of opening the
-// menu. Pointer events cover mouse and touch in one handler. A genuine
-// downward drag past DRAG_DOWN_PX commits to the exit and suppresses the
-// menu from opening on release; anything under that threshold is treated
-// as a normal tap. Two things were needed to make this actually work on a
-// real touchscreen (mouse-only testing hid both): the button's own CSS
-// touch-action (see its style attr — was the generic button rule's
-// "manipulation", which still lets the browser hijack a vertical drag as
-// a page scroll after a few px, firing pointercancel and killing the
-// gesture before it ever reaches DRAG_DOWN_PX; now "none" here), and
-// calling preventDefault() on pointerdown/pointermove so no default touch
-// behavior competes with the gesture at all.
+// the icon toggles PERFORMANCE MODE — on if it's currently off, off if
+// it's currently on — instead of opening the menu. (Was exit-only at
+// first, matching the original request that only asked for a way back OUT
+// of PERFORMANCE MODE; broadened to a true toggle on a later direct
+// request.) A genuine downward drag past DRAG_DOWN_PX commits to the
+// toggle and suppresses the menu from opening on release; anything under
+// that threshold is treated as a normal tap. Two things were needed to
+// make this actually work on a real touchscreen (mouse-only testing hid
+// both): the button's own CSS touch-action (see its style attr — was the
+// generic button rule's "manipulation", which still lets the browser
+// hijack a vertical drag as a page scroll after a few px, firing
+// pointercancel and killing the gesture before it ever reaches
+// DRAG_DOWN_PX; now "none" here), and calling preventDefault() on
+// touchstart/touchmove so no default touch behavior competes with the
+// gesture at all.
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -17119,7 +17126,7 @@ function setPerformanceMode(on) {
     e.preventDefault();
     if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
-      setPerformanceMode(false);
+      setPerformanceMode(!document.body.classList.contains('performance-mode')); // true toggle now, per direct request — was exit-only (drag down only ever turned it off); same gesture now flips it either way
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
@@ -17139,7 +17146,7 @@ function setPerformanceMode(on) {
       if (downY === null || dragFired) return;
       if (me.clientY - downY > DRAG_DOWN_PX) {
         dragFired = true;
-        setPerformanceMode(false);
+        setPerformanceMode(!document.body.classList.contains('performance-mode')); // true toggle now, per direct request — see the matching touchmove comment above
       }
     };
     const onUp = () => {
