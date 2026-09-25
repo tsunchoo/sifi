@@ -17541,7 +17541,21 @@ function _cycleRainbowMode() {
   if (!btn) return;
   const DRAG_DOWN_PX = 30;
   let downY = null, dragFired = false;
-  function reset() { downY = null; dragFired = false; }
+  // Visual drag feedback, per direct request: the icon follows the finger
+  // down (capped at DRAG_VISUAL_MAX_PX, ~30px) while swiping, then springs
+  // back to its resting spot on release. Pure transform, so nothing else in
+  // the header moves. No transition while dragging (tracks the finger 1:1);
+  // a short ease-out transition only for the snap back.
+  const DRAG_VISUAL_MAX_PX = 30;
+  function _dragVisual(dy) {
+    btn.style.transition = 'none';
+    btn.style.transform = `translateY(${Math.max(0, Math.min(DRAG_VISUAL_MAX_PX, dy))}px)`;
+  }
+  function _snapBack() {
+    btn.style.transition = 'transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)';
+    btn.style.transform = 'translateY(0px)';
+  }
+  function reset() { downY = null; dragFired = false; _snapBack(); }
 
   // BUGFIX: the previous version of this used Pointer Events with
   // setPointerCapture(), and reliably worked once per page load in every
@@ -17567,8 +17581,10 @@ function _cycleRainbowMode() {
     e.preventDefault();
   }, { passive: false });
   btn.addEventListener('touchmove', e => {
-    if (downY === null || dragFired) return;
+    if (downY === null) return;
     e.preventDefault();
+    _dragVisual(e.touches[0].clientY - downY); // keeps following after the mode has fired too, up to the cap
+    if (dragFired) return;
     if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
       _cycleRainbowMode(); // true toggle now, per direct request — was exit-only (drag down only ever turned it off); same gesture now flips it either way
@@ -17588,7 +17604,9 @@ function _cycleRainbowMode() {
     if (Date.now() - touchJustHandled < 1000) return;
     downY = e.clientY; dragFired = false;
     const onMove = me => {
-      if (downY === null || dragFired) return;
+      if (downY === null) return;
+      _dragVisual(me.clientY - downY);
+      if (dragFired) return;
       if (me.clientY - downY > DRAG_DOWN_PX) {
         dragFired = true;
         _cycleRainbowMode(); // true toggle now, per direct request — see the matching touchmove comment above
