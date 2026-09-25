@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 19:31:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 20:24:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1181,24 +1181,31 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
 .step-cell[data-step="4"]::before,
 .step-cell[data-step="8"]::before,
 .step-cell[data-step="12"]::before { height: calc(100% + 3px); }
+/* TIME RULER (when on) makes room for its own tick and nudges every note
+   marker to compensate, per direct request: the tick's own thickness
+   (3px — must match .step-cell::before's width above) is added as left
+   padding, and every marker also drops 2px. margin (not left/top) so
+   this applies uniformly on top of whatever each marker variant already
+   does for its own positioning (square/circle, empty/soft/on, split32,
+   legato-tail's top-anchored box, left-justify mode, etc.) without
+   needing a matching override duplicated for each one. */
+body.time-ruler-on .step-cell::after { margin-left: 3px; margin-top: 2px; }
 /* TIME RULER stays completely inert to playback, per direct request — no
-   color flash (the brief PLAY FLASH experiment above was reverted; "it
-   doesn't make sense" for a fixed reference line to react to playback)
-   and no size pulse either. The tick is a child of .step-cell, which
-   pops via a scale() animation while playing (see step-cell-pop below,
-   for the note markers) — since a parent's transform visually scales
-   its whole rendered subtree, the tick would otherwise balloon right
-   along with it. This counter-animation applies the exact inverse scale
-   on the tick itself so the two cancel out and it renders at a constant
-   size throughout, i.e. it just sits there like an actual ruler line. */
-.step-cell.playing::before { animation: step-cell-pop-counter 180ms ease-out; }
-@keyframes step-cell-pop-counter { 0% { transform: scale(1); } 40% { transform: scale(0.5814); } 100% { transform: scale(1); } }
+   color flash and no size pulse. The earlier attempt at this counter-
+   animated the tick's own scale to cancel out .step-cell's pop, but that
+   still left a small positional drift (the tick isn't at the cell's own
+   center, so scaling the PARENT still visibly nudged it) — "still being
+   pulsed" per direct report. Properly fixed now at the source: the pop
+   animation moved from the whole .step-cell onto the marker (::after)
+   alone (see step-cell-pop-marker below), so ::before/the tick is simply
+   never part of anything that transforms during playback any more. */
 /* step 0 uses the lane's left border */
 /* step 0 marker now visible like all others */
 
 .step-cell::after {
   content: '';
   position: absolute;
+  z-index: 2; /* above the TIME RULER tick (::before, z-index:1), per direct request — note markers always paint in front of the ruler line, not behind it */
   background: var(--empty-cell-color, #DCD7D0);
   opacity: var(--empty-marker-opacity, 0.8); /* SETTINGS slider — .on/.soft override this separately with their own opacity, so this only ever affects the empty-cell case */
   pointer-events: none;
@@ -1310,22 +1317,31 @@ body.notes-grayscale .step-cell.split32::after {
   filter: none;
 }
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
-@keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(1.72); } 100% { transform: scale(1); } } /* was a COLOR MENU slider (0-100 -> 1.18x-1.72x) — hard-coded to its max (1.72x, "100%") per direct request, slider removed */
-.step-cell.playing { background: rgba(192,57,43,0.07); animation: step-cell-pop 180ms ease-out; transform-origin: center; position: relative; z-index: 3; }
+/* The pop now animates the NOTE MARKER (::after) directly instead of
+   scaling the whole .step-cell — per direct request, scaling the whole
+   cell was dragging the TIME RULER tick (::before, a sibling pseudo-
+   element, unavoidably swept along by any transform on their shared
+   parent) into an unwanted pulse right along with it. Baking the
+   marker's own resting translateY(-50%) into the keyframe (rather than
+   compositing a separate scale transform on the parent) keeps the tick
+   completely untouched — it's simply never part of what's being
+   transformed any more — while the marker itself still grows from its
+   own center exactly as before. */
+@keyframes step-cell-pop-marker { 0% { transform: translateY(-50%) scale(1); } 40% { transform: translateY(-50%) scale(1.72); } 100% { transform: translateY(-50%) scale(1); } } /* was a COLOR MENU slider (0-100 -> 1.18x-1.72x) — hard-coded to its max (1.72x, "100%") per direct request, slider removed */
+.step-cell.playing { background: rgba(192,57,43,0.07); position: relative; z-index: 3; }
+.step-cell.playing::after { animation: step-cell-pop-marker 180ms ease-out; }
 /* Legato markers (.legato-tail/.legato-end and the phrase-owner's own
    .legato-start) are positioned top:0/bottom:50% instead of vertically
    centered (see .legato-tail::after and .legato-start below) — a
    deliberate top-anchored box so consecutive cells butt together into
-   one seamless bar. Scaling the WHOLE .step-cell from its center (the
-   pop animation above) drags that top-anchored box up and out of
-   alignment with its neighbors as the scale grows, since it sits above
-   the cell's own vertical center to begin with. Higher specificity
-   (extra class) than the base .step-cell.playing rule, so this wins and
-   simply skips the pop animation on any cell touched by a legato phrase
-   — the PLAY FLASH color highlight above still applies, just no size
-   pop, which also reads better for a continuous dragged bar than having
-   each 1-step segment of it independently balloon in size anyway. */
-.step-cell.legato-tail.playing, .step-cell.legato-start.playing { animation: none; }
+   one seamless bar, with transform:none at rest (not the translateY(-50%)
+   baked into the pop keyframe above). Higher specificity (extra class)
+   than the base .step-cell.playing::after rule, so this wins and simply
+   skips the pop animation on any cell touched by a legato phrase — the
+   PLAY FLASH color highlight above still applies, just no size pop,
+   which also reads better for a continuous dragged bar than having each
+   1-step segment of it independently balloon in size anyway. */
+.step-cell.legato-tail.playing::after, .step-cell.legato-start.playing::after { animation: none; }
 body:not(.note-markers-circle) .step-cell.playing { background: transparent; } /* was highlighting the whole cell regardless of the empty marker's own (now much smaller) size, unlike circle mode which already turns this off and relies on the ::after marker alone — matched here so square/asterisk behave the same way */
 .step-cell.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(0.1875 * var(--empty-marker-opacity, 0.8)); } /* was var(--playhead-color) — a different variable from the PLAY FLASH picker entirely, so changing PLAY FLASH's color never affected empty cells, only .on/.soft ones; now uses --play-flash-color like those. Opacity: was a flat hardcoded 0.15, completely ignoring EMPTY MARKER OPACITY — so whichever empty cell the playhead happened to be sweeping over stayed visible even with that slider at 0%, while every other empty cell correctly went invisible; looked like two different classes of empty marker. Now scaled by that same variable (0.1875 chosen so the default 80% setting reproduces the original 0.15 exactly — 0.1875*0.8=0.15 — and 0% now genuinely means invisible everywhere, including under the playhead) */
 .step-cell.on.playing::after   { background: var(--play-flash-color, #f8ff00); opacity: var(--note-marker-opacity, 1); } /* PLAY FLASH (SETTINGS color picker) — actual notes only, not empty cells (the generic .step-cell.playing::after rule above still handles those, unchanged) */
@@ -1698,7 +1714,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 19:31:14 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 20:24:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3173,6 +3189,7 @@ function setTopRowColorFromHue(hue) {
   window.setTimeRuler = function(on) {
     window._timeRulerEnabled = !!on;
     _applyTimeRulerColor();
+    document.body.classList.toggle('time-ruler-on', !!on); // gates the note-marker offset rule (margin-left/margin-top) below — see .step-cell::before for why 3px specifically
     const cb = document.getElementById('timeRulerToggle'); if (cb) cb.checked = !!on;
   };
   window.setTimeRulerOpacity = function(v) {
@@ -7962,7 +7979,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1; // -2.5dB when BLAST is on this track, same convention as UNDERPASS
-  const levelAtten = 0.004465; // -47dB overall now (-52dB, then up 5dB), per direct request
+  const levelAtten = 0.005953; // -44.5dB overall now (-47dB, then up 2.5dB), per direct request
   const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten * levelAtten;
   const sustain = Math.max(durSec || 0.35, 0.35); // the actual held length — this is the legato-friendliness fix; UNDERPASS ignores durSec entirely
   const release = 0.45; // tail after sustain ends
