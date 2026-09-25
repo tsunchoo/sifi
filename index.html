@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:42:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:48:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1300,6 +1300,20 @@ body.notes-grayscale .step-cell.split32::after {
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
 @keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(var(--step-cell-pop-peak, 1.18)); } 100% { transform: scale(1); } }
 .step-cell.playing { background: rgba(192,57,43,0.07); animation: step-cell-pop 180ms ease-out; transform-origin: center; position: relative; z-index: 3; }
+/* Legato markers (.legato-tail/.legato-end and the phrase-owner's own
+   .legato-start) are positioned top:0/bottom:50% instead of vertically
+   centered (see .legato-tail::after and .legato-start below) — a
+   deliberate top-anchored box so consecutive cells butt together into
+   one seamless bar. Scaling the WHOLE .step-cell from its center (the
+   pop animation above) drags that top-anchored box up and out of
+   alignment with its neighbors as the scale grows, since it sits above
+   the cell's own vertical center to begin with. Higher specificity
+   (extra class) than the base .step-cell.playing rule, so this wins and
+   simply skips the pop animation on any cell touched by a legato phrase
+   — the PLAY FLASH color highlight above still applies, just no size
+   pop, which also reads better for a continuous dragged bar than having
+   each 1-step segment of it independently balloon in size anyway. */
+.step-cell.legato-tail.playing, .step-cell.legato-start.playing { animation: none; }
 body:not(.note-markers-circle) .step-cell.playing { background: transparent; } /* was highlighting the whole cell regardless of the empty marker's own (now much smaller) size, unlike circle mode which already turns this off and relies on the ::after marker alone — matched here so square/asterisk behave the same way */
 .step-cell.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(0.1875 * var(--empty-marker-opacity, 0.8)); } /* was var(--playhead-color) — a different variable from the PLAY FLASH picker entirely, so changing PLAY FLASH's color never affected empty cells, only .on/.soft ones; now uses --play-flash-color like those. Opacity: was a flat hardcoded 0.15, completely ignoring EMPTY MARKER OPACITY — so whichever empty cell the playhead happened to be sweeping over stayed visible even with that slider at 0%, while every other empty cell correctly went invisible; looked like two different classes of empty marker. Now scaled by that same variable (0.1875 chosen so the default 80% setting reproduces the original 0.15 exactly — 0.1875*0.8=0.15 — and 0% now genuinely means invisible everywhere, including under the playhead) */
 .step-cell.on.playing::after   { background: var(--play-flash-color, #f8ff00); opacity: var(--note-marker-opacity, 1); } /* PLAY FLASH (SETTINGS color picker) — actual notes only, not empty cells (the generic .step-cell.playing::after rule above still handles those, unchanged) */
@@ -1344,7 +1358,28 @@ body.note-trail-enabled .step-cell.soft.trail-next::after,
 body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
   background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
   opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
+}
+body.note-trail-enabled .step-cell.on.trail-next::after,
+body.note-trail-enabled .step-cell.soft.trail-next::after {
   transform: translateY(-50%) scale(var(--trail-scale, 1.3));
+}
+/* legato-tail's own base box (.step-cell.legato-tail::after below) is
+   already positioned via top/bottom insets, not centered with
+   translateY — its own base rule explicitly sets transform:none. Adding
+   the same translateY(-50%) the .on/.soft markers need would shift this
+   one up out of alignment with its neighbors (the exact "pushed up"
+   misalignment reported), so it only gets the scale, applied around its
+   own box's center same as any other transform. */
+body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
+  transform: scale(var(--trail-scale, 1.3));
+}
+/* The phrase-owner cell (.legato-start, combined with .on/.soft) has the
+   exact same top:0/bottom:50% transform:none base as .legato-tail above
+   — same fix, same reasoning, just a different combination of classes to
+   out-specificity the plain .on/.soft transform rule above. */
+body.note-trail-enabled .step-cell.legato-start.on.trail-next::after,
+body.note-trail-enabled .step-cell.legato-start.soft.trail-next::after {
+  transform: scale(var(--trail-scale, 1.3));
 }
 /* Circle mode — higher specificity than the base circle .on/.soft/
    .legato-tail opacity rules above (extra .trail-next + .note-trail-
@@ -1355,7 +1390,17 @@ body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::a
   background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
   filter: none;
   opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
+}
+body.note-trail-enabled.note-markers-circle .step-cell.on.trail-next::after,
+body.note-trail-enabled.note-markers-circle .step-cell.soft.trail-next::after {
   transform: translateY(-50%) scale(var(--trail-scale, 1.3));
+}
+body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::after {
+  transform: scale(var(--trail-scale, 1.3)); /* circle mode's own legato-tail base is also transform:none (see body.note-markers-circle .step-cell.legato-tail::after) — same reasoning as square mode above */
+}
+body.note-trail-enabled.note-markers-circle .step-cell.legato-start.on.trail-next::after,
+body.note-trail-enabled.note-markers-circle .step-cell.legato-start.soft.trail-next::after {
+  transform: scale(var(--trail-scale, 1.3)); /* circle mode's own legato-start base is also transform:none — same reasoning */
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
@@ -1689,7 +1734,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:42:29 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:48:59 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
