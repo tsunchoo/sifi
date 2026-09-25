@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:33:19 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:42:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1157,23 +1157,6 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   border: none;
   border-bottom: 3px solid var(--track-line-color, transparent);
   overflow: visible;
-  position: relative;
-}
-/* INVERT NOTE ROW BG (COLOR MENU toggle) — tints each track's note-marker
-   row (the 16-step lane) with the app's own TOP ROW color (--neutral-top,
-   the same color the transport buttons sit on — was the inverse of --bg,
-   switched per direct request). Reads the live variable directly rather
-   than a baked-in color, so it stays correct automatically however
-   --neutral-top itself changes (WILD colors, manual pick, etc.). Painted
-   as the lane's own ::before, so it sits behind the actual note markers
-   (::before is always the first painted child) without needing an
-   explicit z-index. */
-body.invert-note-row-bg .step-lane::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--neutral-top, #555);
-  pointer-events: none;
 }
 .step-lane-cells {
   display: grid; grid-template-columns: repeat(16, 1fr);
@@ -1345,19 +1328,21 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: var(--note-marker-opacity, 1); /* was hardcoded to 1, unlike .on which uses this variable (0.9) — split32 sat visibly more opaque than an accented note despite representing the same accent-level hit */
 }
-/* TRAIL — the note the playhead just passed, at a fraction of the size
-   and full independent color (--trail-color, its own picker — not tied
-   to PLAY FLASH), so it fades out behind the sweep like a comet tail.
+/* TRAIL — the note the playhead just passed, at a fraction of the size,
+   colored an even 50/50 mix of PLAY FLASH's color and that note's own
+   normal marker color (--track-color) — was a fixed independent pink
+   picker, switched to this computed mix per direct request. Uses the
+   native CSS color-mix() function directly on the two live variables, so
+   it stays correct automatically as either one changes (PLAY FLASH
+   picker, WILD colors, track color, etc.) with no JS recompute needed.
    --trail-scale/--trail-opacity-mult are driven by the NOTE TRAIL toggle
-   + intensity slider (COLOR MENU); --trail-color by the TRAIL COLOR
-   picker there. Fallbacks here only matter before those controls' own
-   init calls run once at startup. Gated on body.note-trail-enabled so
+   + intensity slider (COLOR MENU). Gated on body.note-trail-enabled so
    the toggle can switch it off entirely, not just turn intensity down to
    zero. Square/rect mode: */
 body.note-trail-enabled .step-cell.on.trail-next::after,
 body.note-trail-enabled .step-cell.soft.trail-next::after,
 body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
-  background: var(--trail-color, #ff2d78);
+  background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
   opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
   transform: translateY(-50%) scale(var(--trail-scale, 1.3));
 }
@@ -1367,7 +1352,7 @@ body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
 body.note-trail-enabled.note-markers-circle .step-cell.on.trail-next::after,
 body.note-trail-enabled.note-markers-circle .step-cell.soft.trail-next::after,
 body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::after {
-  background: var(--trail-color, #ff2d78);
+  background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
   filter: none;
   opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
   transform: translateY(-50%) scale(var(--trail-scale, 1.3));
@@ -1704,7 +1689,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:33:19 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:42:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1865,13 +1850,6 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE ROW BG = TOP ROW COLOR</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="invertNoteRowBgToggle" onchange="setInvertNoteRowBg(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYHEAD POP</div>
@@ -1885,10 +1863,6 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
         <input type="checkbox" id="noteTrailToggle" checked onchange="setNoteTrailEnabled(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRAIL COLOR</div>
-      <input type="color" id="trailColorPicker" value="#ff2d78" oninput="setTrailColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -11361,10 +11335,6 @@ function setFaderTipTopRowColor(on) {
 // TRACK ROW BG (COLOR MENU toggle + darkness slider) — see the CSS rule
 // on .track-ctrl-row for what this actually does.
 function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
-// INVERT NOTE ROW BG (COLOR MENU toggle) — see the CSS rule (body.invert-
-// note-row-bg .step-lane::before) for how the color itself stays in sync
-// with --neutral-top (TOP ROW color) automatically.
-function setInvertNoteRowBg(on) { document.body.classList.toggle('invert-note-row-bg', !!on); }
 function setTrackRowBgDarken(v) {
   document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
   const readout = document.getElementById('trackRowBgDarkenReadout');
@@ -16961,19 +16931,17 @@ function setStepCellPopIntensity(v) {
   const disp = document.getElementById('stepCellPopVal');
   if (disp) disp.textContent = mult.toFixed(1) + 'x';
 }
-// NOTE TRAIL (COLOR MENU toggle + color picker + slider) — the echo
-// marker on the note the playhead just passed (see updatePlayhead's
-// .trail-next handling and the CSS rules gated on body.note-trail-
-// enabled). Toggle switches it off entirely. TRAIL COLOR is fully
-// independent of PLAY FLASH, so it can be picked to contrast against
-// whatever else is on screen (defaults to a hot pink, #ff2d78, nothing
-// else in the app uses by default). Intensity slider runs 0-100 mapping
-// linearly to a 0-1.3 scale / 0-1.0 opacity range (~4x the old capped
-// 0.5-0.9 range) — default 100 (max: scale 1.3, opacity 1.0), per direct
-// request that the old fixed-low version "just looks kinda shitty" and
-// was hard to see at all.
+// NOTE TRAIL (COLOR MENU toggle + slider) — the echo marker on the note
+// the playhead just passed (see updatePlayhead's .trail-next handling
+// and the CSS rules gated on body.note-trail-enabled). Toggle switches
+// it off entirely. Color is computed in CSS directly (color-mix() of
+// --play-flash-color and --track-color, see the rule) — no JS color
+// picker involved, was removed per direct request in favor of that
+// computed 50/50 mix. Intensity slider runs 0-100 mapping linearly to a
+// 0-1.3 scale / 0-1.0 opacity range (~4x the old capped 0.5-0.9 range) —
+// default 100 (max: scale 1.3, opacity 1.0), per direct request that the
+// old fixed-low version "just looks kinda shitty" and was hard to see.
 function setNoteTrailEnabled(on) { document.body.classList.toggle('note-trail-enabled', !!on); }
-function setTrailColor(hex) { document.documentElement.style.setProperty('--trail-color', hex); }
 function setNoteTrailIntensity(v) {
   const scale = (v / 100) * 1.3; // 0 .. 1.3
   const op = (v / 100) * 1.0; // 0 .. 1.0
@@ -16982,7 +16950,6 @@ function setNoteTrailIntensity(v) {
   const disp = document.getElementById('noteTrailIntensityVal');
   if (disp) disp.textContent = Math.round(v) + '%';
 }
-setTrailColor('#ff2d78'); // startup default, applied immediately since color pickers don't fire their own oninput on page load
 setNoteTrailIntensity(100); // startup default, per direct request ("make the intensity 4x") — applied immediately since sliders don't fire their own oninput on page load
 // FORCE UPDATE (COLOR MENU button) — the service worker (sw.js) normally
 // serves cache-first with a background network update, so a fresh deploy
