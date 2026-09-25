@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 05:17:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 05:30:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:17:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:30:59 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2166,9 +2166,9 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
-          <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10%</div>
+          <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
         </div>
-        <input type="range" id="eightBitMixSlider" min="0" max="100" value="10" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="randomize8BitMixToggle" onchange="setRandomize8BitMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">RANDOMIZE 8-BIT MIX
@@ -3481,10 +3481,8 @@ function setGlobalDelayMix(v) {
 // re-balances between it and the clean signal rather than hard-switching.
 // A ScriptProcessorNode (not AudioWorklet) keeps this self-contained in a
 // single inline script with no separate module file to load.
-window._eightBitEnabled = true; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"; matches the mix's own new 10% default below
-document.body.classList.add('eight-bit-mode'); // normally only set inside setEightBitMix() itself, which only runs on user interaction — needed here too since the mix now starts nonzero by default
-{ const _tcm = document.querySelector('meta[name="theme-color"]'); if (_tcm) _tcm.content = '#00ff41'; } // same reasoning — the theme-color meta tag normally only updates inside setEightBitMix() too
-window._eightBitMix = 0.1; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position; defaults to 10%, per direct request (was 0)
+window._eightBitEnabled = false; // derived: true whenever the mix is above 0 — kept for the body class / logo indicator / anything else checking "is this on at all"; OFF by default per direct request (the mix used to start nonzero — now it starts clean, and only jumps to 10% the first time it's turned ON, see _eightBitPrevMix below)
+window._eightBitMix = 0; // 0 (fully clean) - 1 (fully crushed) — the actual crossfade position; starts clean/OFF, per direct request
 window._randomizeReverbEnabled = false; // RANDOMIZE REVERB toggle in Settings — off by default; see the block near the top of randAll()
 function setRandomizeReverb(on) {
   window._randomizeReverbEnabled = !!on;
@@ -17089,14 +17087,33 @@ function setPerformanceMode(on) {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
   const DRAG_DOWN_PX = 30;
-  let downY = null, dragFired = false;
+  let downY = null, dragFired = false, activeId = null;
+  // BUGFIX: after one full drag-down gesture, the very next one sometimes
+  // stopped registering at all (reported as "works once, then needs
+  // re-doing"). Root cause — this never explicitly released pointer
+  // capture, and only reset the downY/dragFired state on THIS element's
+  // own pointerup/pointercancel; if a real device's browser ever delivered
+  // capture-loss any other way (losing focus, a second touch, etc.)
+  // without one of those two firing on this exact element, the button was
+  // left thinking a pointer was still down, and the next real pointerdown
+  // came in in the middle of a "gesture" that was already stuck open, so
+  // its own downY/activeId reset then got immediately confused by stray
+  // events still tagged with the OLD pointerId. Fixed by: explicitly
+  // releasing capture on every up/cancel instead of just letting the
+  // browser handle it, tagging state with the specific pointerId that
+  // started the gesture so a mismatched stray event can't touch it, and
+  // adding 'lostpointercapture' as an unconditional safety-net reset — that
+  // event fires no matter how capture ends, so the state can never get
+  // stuck open again even if some other path is what's actually happening
+  // on the device this was reported from.
+  function reset() { downY = null; dragFired = false; activeId = null; }
   btn.addEventListener('pointerdown', e => {
-    downY = e.clientY; dragFired = false;
+    downY = e.clientY; dragFired = false; activeId = e.pointerId;
     e.preventDefault();
     try { btn.setPointerCapture(e.pointerId); } catch (err) {} // without this, pointermove stops firing the instant the cursor/finger leaves this tiny icon's own bounds, which happens almost immediately on a downward drag — capture keeps delivering move events to this element regardless of where the pointer physically is until release
   });
   btn.addEventListener('pointermove', e => {
-    if (downY === null || dragFired) return;
+    if (downY === null || dragFired || e.pointerId !== activeId) return;
     e.preventDefault();
     if (e.clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
@@ -17104,11 +17121,18 @@ function setPerformanceMode(on) {
     }
   });
   btn.addEventListener('pointerup', e => {
+    if (e.pointerId !== activeId) return;
     e.preventDefault(); // otherwise touch input synthesizes a trailing compatibility 'click' a few ms later, hit-tested against the DOM as it looks AT THAT LATER MOMENT — by then showDevMenu() below has already opened the full-screen overlay over this same spot, so the synthetic click lands on the overlay itself instead of this button, and the overlay's own "click outside closes it" handler immediately closes what was just opened
+    try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
     if (!dragFired) showDevMenu();
-    downY = null;
+    reset();
   });
-  btn.addEventListener('pointercancel', () => { downY = null; dragFired = false; });
+  btn.addEventListener('pointercancel', e => {
+    if (e.pointerId !== activeId) return;
+    try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
+    reset();
+  });
+  btn.addEventListener('lostpointercapture', reset); // unconditional safety net — see BUGFIX comment above
   // preventDefault() on the pointer events above turned out not to be
   // enough on its own to stop this: Chromium still synthesized a trailing
   // compatibility 'click' from the touch a few ms after pointerup, and by
@@ -17435,8 +17459,10 @@ function setTonalPercBalance(v) {
   // single-tap, a separate double-tap gesture to raise it back up, native
   // dblclick that doesn't even fire from touch...). A tap is just a switch:
   // if 8-BIT is on, remember its current mix and turn it off; if it's off,
-  // put that remembered mix back (100 the first time there's nothing
-  // remembered yet). One event, one handler, no timing games.
+  // put that remembered mix back (10% the very first time it's turned on,
+  // since nothing's been remembered yet — 8-BIT now starts OFF by default,
+  // per direct request, rather than starting pre-enabled at 10%). One
+  // event, one handler, no timing games.
   // BUGFIX: window._eightBitMix is the 0-1 fraction, but setEightBitMix(v)
   // takes a 0-100 PERCENTAGE — _eightBitPrevMix was being stashed straight
   // from the fraction and then fed right back into setEightBitMix() as if
@@ -17444,13 +17470,13 @@ function setTonalPercBalance(v) {
   // as 0.7%, which reads as "went back to basically zero"). Stored as a
   // percentage consistently now, matching what setEightBitMix actually
   // expects both times it's used below.
-  window._eightBitPrevMix = (window._eightBitMix > 0) ? window._eightBitMix * 100 : 100;
+  window._eightBitPrevMix = (window._eightBitMix > 0) ? window._eightBitMix * 100 : 10;
   function _toggleEightBitFromLogo() {
     if (window._eightBitEnabled) {
       window._eightBitPrevMix = window._eightBitMix * 100; // remember exactly where it was, as a percentage
       setEightBitMix(0);
     } else {
-      setEightBitMix(window._eightBitPrevMix || 100);
+      setEightBitMix(window._eightBitPrevMix || 10);
     }
   }
   title.addEventListener('click', () => {
