@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 06:10:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 06:36:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:10:24 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:36:51 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1719,7 +1719,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
   <button id="markerStyleIconBtn" onclick="_pressPulse('markerStyleIconBtn'); setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle'));" style="position:absolute;top:0px;right:2px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Toggle note marker style (squares/circles)">
     <span id="markerStyleIcon"></span>
   </button>
-  <button id="randomizeReverbIconBtn" onclick="_pressPulse('randomizeReverbIconBtn'); _randomizeReverbSettings();" style="position:absolute;top:1px;right:36px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Randomize reverb settings">
+  <button id="randomizeReverbIconBtn" style="position:absolute;top:1px;right:36px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;" title="Click and drag down to randomize reverb settings">
     <svg width="24" height="16" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect x="1" y="1" width="20" height="12" stroke="#555" stroke-width="1.3"/>
       <rect x="7" y="4" width="8" height="6" stroke="#555" stroke-width="1.3"/>
@@ -2032,9 +2032,9 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
-            <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.00X</div>
+            <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.50X</div>
           </div>
-          <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="0" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
+          <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="50" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
@@ -2385,7 +2385,7 @@ const INSTRUMENTS = {
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'HASSELL',      soft: null, accent: null, group: 'tonal' },
   sprkls: { name: 'SPARKLES',    soft: null, accent: null, group: 'tonal' },
-  sflute: { name: 'XYLOPHONE',   soft: null, accent: null, group: 'tonal' },
+  sflute: { name: 'CLUNG',   soft: null, accent: null, group: 'tonal' }, // was XYLOPHONE — replaced in place per direct request: same internal key/slot ('sflute'), new engine (a legato-friendly clone of UNDERPASS's struck-tube tone, with added evolving modulation) and the same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
   yamask: { name: 'YAMASK',      soft: null, accent: null, group: 'tonal' },
   dulc:   { name: 'BOOBOO',      soft: null, accent: null, group: 'tonal' },
@@ -4555,7 +4555,7 @@ function fireStepAudio(step, t) {
           if (key === 'clar')    playSteelGuitar(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
-          if (key === 'sflute')  playXylophone(freq, dur, val === 2, t, tr);
+          if (key === 'sflute')  playClung(freq, dur, val === 2, t, tr);
           if (key === 'underpass') playUnderpass(freq, dur, val === 2, t, tr);
           if (key === 'spiano')  playSchoolPiano(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -4650,7 +4650,7 @@ function fireStepAudio(step, t) {
             if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'dulc')    playBooboo(freq2, dur2, false, t2, tr);
-            if (key === 'sflute')  playXylophone(freq2, dur2, false, t2, tr);
+            if (key === 'sflute')  playClung(freq2, dur2, false, t2, tr);
             if (key === 'underpass') playUnderpass(freq2, dur2, false, t2, tr);
             if (key === 'spiano')  playSchoolPiano(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -5253,8 +5253,9 @@ function playSynthHihat(isAccent, time, tr, volMult) {
 //      a bell-like or metallic ring.
 // durSec (the note's slot length from the melody line) isn't used to
 // stretch the sound — like a real struck pipe, it always rings out on its
-// own fixed decay regardless of how long the note "slot" is, the same way
-// playXylophone's mallet decay ignores durSec too.
+// own fixed decay regardless of how long the note "slot" is. (CLUNG,
+// playClung below, is a legato-friendly variant of this same tone that
+// DOES stretch across durSec — see its own comment.)
 function playUnderpass(freq, durSec, isAccent, time, tr, _isSecondHit) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
@@ -5505,19 +5506,19 @@ function transposeRootToRange(root, roots) {
 }
 function getRangeRoots(key) {
   if (key === 'sparkle') return SPARKLE_ROOTS;
-  if (key === 'sflute' || key === 'boog' || key === 'fflute' || key === 'magic') return HIGH_ROOTS;
+  if (key === 'boog' || key === 'fflute' || key === 'magic') return HIGH_ROOTS;
   if (key === 'blunt') return MID_ROOTS;
   if (key === 'chug') return CHUG_ROOTS;
   if (key === 'stab' || key === 'bashp') return MID_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'clar' || key === 'jcmgtr' || key === 'denial' || key === 'damask' || key === 'yamask' || key === 'opening' || key === 'spiano' || key === 'dulc' || key === 'drone' || key === 'dronePlus') return MELODY_ROOTS;
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'clar' || key === 'jcmgtr' || key === 'denial' || key === 'damask' || key === 'yamask' || key === 'opening' || key === 'spiano' || key === 'dulc' || key === 'drone' || key === 'dronePlus' || key === 'sflute') return MELODY_ROOTS; // sflute (CLUNG) moved here from HIGH_ROOTS above — same root pool as STRINGS+, per direct request to match its auto-generation criteria
   return BASS_ROOTS;
 }
 
-// DX PIANO / SPACE KOTO / XYLOPHONE / DREAM PIANO — occasionally, instead of
+// DX PIANO / SPACE KOTO / DREAM PIANO — occasionally, instead of
 // the usual scattered notes, walk straight up/down/up-down/down-up through
 // the scale on every 8th note. Standalone helper so it's easy to call from
 // both randomizeBassTrack() and anywhere else that might want it later.
-const ARPEGGIO_KEYS = new Set(['rhodes2', 'rhodes', 'sflute', 'spiano']); // DX PIANO, SPACE KOTO, XYLOPHONE, SCHOOL PIANO (DREAM PIANO removed)
+const ARPEGGIO_KEYS = new Set(['rhodes2', 'rhodes', 'spiano']); // DX PIANO, SPACE KOTO, SCHOOL PIANO (DREAM PIANO removed; XYLOPHONE's old slot, sflute, removed too — it's CLUNG now and matches STRINGS+'s criteria instead, not this XYLOPHONE-specific arpeggio quirk)
 const BASS_ARPEGGIO_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']); // rarer — 1 in 8, not 1 in 4
 function _writeArpeggioPattern(tr, scale) {
   // Below 100bpm there's room for it to breathe, so sometimes go 16th notes
@@ -5675,6 +5676,7 @@ function randomizeBassTrack(tr, level) {
     dulc:    [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // BOOBOO — fewer notes now, legato phrases fill in the rest instead of density
     drone:   [[2,5,0.25],[4,7,0.40],[6,10,0.55]],  // STRINGS — a normal tonal instrument now, same rules as any other
     dronePlus: [[2,5,0.25],[4,7,0.40],[6,10,0.55]], // STRINGS+ — same note-count table as STRINGS; duration is overridden separately (see the contiguous-legato pass) so this only governs how many notes/onsets it gets
+    sflute:  [[2,5,0.25],[4,7,0.40],[6,10,0.55]],  // CLUNG (was XYLOPHONE's slot) — same table as STRINGS+, per direct request to match its auto-generation criteria; was falling through to the generic default before
     opening: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // OPENING — capped at 3 max, sustained pad chords
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
     denial:  [[1,3,0.15],[2,4,0.30],[3,5,0.40]],  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
@@ -5732,7 +5734,13 @@ function randomizeBassTrack(tr, level) {
   // it didn't, so every STRINGS+ note was silently falling through to the
   // single-step "plain note" case instead of sustaining/gliding, which is
   // exactly what made it sound like it was racing through the bar.
-  if (key === 'dronePlus') {
+  // CLUNG (sflute, XYLOPHONE's old slot) shares this same always-contiguous
+  // treatment now too, per direct request to match STRINGS+'s
+  // auto-generation criteria — its own synth (playClung) was specifically
+  // reworked to sustain across a held/legato duration instead of always
+  // ringing out on a short fixed decay, so it needs this pass to actually
+  // ever get a held duration to sustain across.
+  if (key === 'dronePlus' || key === 'sflute') {
     const onsets = [];
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
@@ -5852,10 +5860,10 @@ function randomizeBassTrack(tr, level) {
 
   // RAND-time only: chance to promote a soft hit to a 32nd-split for select instruments.
   // This is the ONLY place split-32 notes are ever assigned — never during live playback.
-  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','sflute','spiano','jcmgtr']);
+  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','spiano','jcmgtr']); // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
   if (split32Keys.has(key)) {
     let splitCount = 0;
-    const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'sflute' || key === 'spiano') ? 3 : 99;
+    const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'spiano') ? 3 : 99;
     const splitChance = (key === 'jcmgtr') ? 0.15 : (key === 'dulc') ? 0.28 : 0.18; // JINX back down near the general default — rapid 32nds constantly was part of what made it feel unnaturally busy; BOOBOO gets some, more moderate
     for (let s = 0; s < NUM_STEPS; s++) {
       if (grid[tr][s] === 1 && splitCount < maxSplits && Math.random() < splitChance) {
@@ -7869,11 +7877,107 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
   carrier.onended = () => { try { carrier.disconnect(); env.disconnect(); pitchLfoGain.disconnect(); reedBP.disconnect(); reedEnv.disconnect(); nbp.disconnect(); nGain.disconnect(); modGain.disconnect(); } catch(e) {} };
   noise.start(time);
 }
-// ── XYLOPHONE: wooden mallet — dry, quick bright click transient, sustained
-// wood-bar tone built from the fundamental plus the characteristic
-// inharmonic ~3.93x overtone of a free-free wooden bar, lowpassed for warmth
-// rather than metallic shimmer. Longer sustain than a real xylophone for a
-// more stylized, ringing character. ──
+// ── CLUNG — replaces XYLOPHONE in this exact slot (same internal key,
+// 'sflute', per direct request), a legato-friendly duplicate of UNDERPASS's
+// struck-tube additive tone (same knock transient + odd-harmonic partials,
+// same "hollow pipe" character — see playUnderpass), reworked in two ways
+// UNDERPASS itself deliberately isn't:
+//   1. Actually sustains across durSec instead of always ringing out on its
+//      own short fixed decay regardless of note length — a legato-held
+//      CLUNG note holds at a steady level for its full duration instead of
+//      decaying to silence partway through and leaving the rest of the
+//      held note silent.
+//   2. A slow evolving modulation is layered on top — the same
+//      detune-drift-LFO + duration-synced-lowpass-sweep idiom STRINGS+
+//      uses in _playDronePhantomNote (gentler here — this is a struck tone,
+//      not a pad). A short CLUNG still reads as a clean mallet knock (the
+//      sweep/drift barely completes any of a cycle in that time), but a
+//      long held/legato one audibly evolves in tone the whole time it
+//      rings — the part the user specifically wants to be able to hear on
+//      longer notes.
+// No fast double-pitch retrigger trick (that's UNDERPASS's own quirk, not
+// carried over) — this needs to read as ONE sustained note, not risk a
+// second overlapping attack colliding with its own sustain/sweep.
+// Auto-generation criteria matches STRINGS+ (dronePlus) throughout the
+// rest of the file now too, per direct request — see every place
+// 'sflute'/'dronePlus' are now paired (TONAL root pool, the always-
+// contiguous legato pass, _legatoCapForKey, delay/reverb guarantees).
+function playClung(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1; // -2.5dB when BLAST is on this track, same convention as UNDERPASS
+  const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten;
+  const sustain = Math.max(durSec || 0.35, 0.35); // the actual held length — this is the legato-friendliness fix; UNDERPASS ignores durSec entirely
+  const release = 0.45; // tail after sustain ends
+  const stopAt = time + sustain + release + 0.1;
+
+  // 1. Knock transient — identical to UNDERPASS's own mallet/strike attack.
+  const knockDur = 0.012;
+  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
+  const kd = kbuf.getChannelData(0);
+  for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
+  const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
+  const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
+  const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.4 : 0.28) * blastAtten;
+  knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(dest);
+  knockSrc.start(time);
+  knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
+
+  // 2. The tube's resonant partials (odd harmonics only, same "hollow pipe"
+  // character as UNDERPASS) — held at a sustain level for the note's real
+  // duration instead of decaying out on their own short fixed clock, then
+  // released at the end.
+  const detune = (Math.random() * 2 - 1) * 3; // ±3 cents hit-to-hit wobble, same as UNDERPASS
+  const bodyMix = ctx.createGain(); bodyMix.gain.value = 1;
+  const createdOscs = [];
+  const driftLfo = ctx.createOscillator(); driftLfo.type = 'sine'; driftLfo.frequency.value = 0.15 + Math.random() * 0.12;
+  const driftGain = ctx.createGain(); driftGain.gain.value = 10; // cents — gentler than STRINGS+'s 22, this is a struck tone, not a pad
+  driftLfo.connect(driftGain);
+  driftLfo.start(time); driftLfo.stop(stopAt);
+
+  [
+    { ratio: 1, amp: peakVol },
+    { ratio: 3, amp: peakVol * 0.32 },
+    { ratio: 5, amp: peakVol * 0.14 },
+  ].forEach(p => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = freq * p.ratio;
+    osc.detune.value = detune;
+    driftGain.connect(osc.detune); // the slow evolving pitch wobble, on top of the fixed hit-to-hit detune above
+    const g = ctx.createGain(); g.gain.value = p.amp;
+    osc.connect(g); g.connect(bodyMix);
+    osc.start(time); osc.stop(stopAt);
+    createdOscs.push({ osc, g });
+  });
+
+  // Evolving lowpass sweep — one slow cycle spans roughly the note's own
+  // length (same idiom as STRINGS+'s _playDronePhantomNote), tied to
+  // sustain so a short CLUNG barely moves and a held/legato one audibly
+  // opens and closes in tone across its whole ring.
+  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.7;
+  filter.frequency.value = freq * 5;
+  const sweepLfo = ctx.createOscillator(); sweepLfo.type = 'sine';
+  sweepLfo.frequency.value = Math.max(0.1, 1 / (sustain * (1.3 + Math.random() * 0.5)));
+  const sweepDepth = ctx.createGain(); sweepDepth.gain.value = freq * 2.2;
+  sweepLfo.connect(sweepDepth); sweepDepth.connect(filter.frequency);
+  sweepLfo.start(time); sweepLfo.stop(stopAt);
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(1, time + 0.003); // fast attack, matches UNDERPASS's mallet strike
+  env.gain.setValueAtTime(1, time + Math.max(sustain - 0.05, 0.01)); // hold at full level across the note's actual duration — the legato fix
+  env.gain.exponentialRampToValueAtTime(0.0005, time + sustain + release);
+
+  bodyMix.connect(filter); filter.connect(env); env.connect(dest);
+
+  const cleanupMs = Math.max(0, (stopAt + 0.05 - ctx.currentTime)) * 1000;
+  setTimeout(() => {
+    try {
+      bodyMix.disconnect(); filter.disconnect(); env.disconnect(); sweepDepth.disconnect(); driftGain.disconnect();
+      createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
+    } catch(e) {}
+  }, cleanupMs);
+}
 // SCHOOL PIANO — an upright, slightly worn, close-mic'd piano: real
 // timbre, not too wet on its own (that's what the reverb send is for).
 // Inharmonic partials (real strings run sharp of exact integer multiples),
@@ -7947,45 +8051,6 @@ function playSchoolPiano(freq, durSec, isAccent, time, tr) {
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
   }, cleanupMs);
-}
-function playXylophone(freq, durSec, isAccent, time, tr) {
-  if (!ctx || !freq) return;
-  const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.075 : 0.05;
-  const decay = 1.8; // plenty of sustain
-
-  // Mallet click — short, dry, bright transient (no reverb/wash, just the hit)
-  const clickLen = Math.ceil(ctx.sampleRate * 0.008);
-  const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / clickLen, 2);
-  const click = ctx.createBufferSource(); click.buffer = cBuf;
-  const cHP = ctx.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = freq * 2;
-  const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.5;
-  click.connect(cHP); cHP.connect(cEnv); cEnv.connect(dest);
-  click.start(time);
-  click.onended = () => { try { cHP.disconnect(); cEnv.disconnect(); } catch(e) {} };
-
-  // Wood-bar body — fundamental + the ~3.93x inharmonic partial real wooden
-  // bars ring at, lowpassed to keep it warm rather than bright/metallic.
-  const partials = [
-    { ratio: 1,    ampMul: 1.0,  decayMul: 1.0 },
-    { ratio: 3.93, ampMul: 0.28, decayMul: 0.35 },
-  ];
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = freq * 6; lp.Q.value = 0.6;
-  const mix = ctx.createGain(); mix.gain.value = 1;
-  mix.connect(lp); lp.connect(dest);
-  partials.forEach(p => {
-    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = freq * p.ratio;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, time);
-    g.gain.linearRampToValueAtTime(vel * p.ampMul, time + 0.004); // fast dry attack, no swell
-    g.gain.exponentialRampToValueAtTime(0.0001, time + decay * p.decayMul);
-    o.connect(g); g.connect(mix);
-    o.start(time); o.stop(time + decay + 0.2);
-    o.onended = () => { try { g.disconnect(); } catch(e) {} };
-  });
-  setTimeout(() => { try { lp.disconnect(); mix.disconnect(); } catch(e) {} }, (decay + 0.3) * 1000);
 }
 // BOOBOO — a short, pulsey analog lead. Two detuned square-wave oscillators
 // for a fat unison lead tone, a classic analog filter envelope (fast open
@@ -10199,7 +10264,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'clar')    playSteelGuitar(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
-    else if (key === 'sflute')  playXylophone(freq, dur, isAccent, t, tr);
+    else if (key === 'sflute')  playClung(freq, dur, isAccent, t, tr);
     else if (key === 'underpass') playUnderpass(freq, dur, isAccent, t, tr);
     else if (key === 'spiano')  playSchoolPiano(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
@@ -10224,7 +10289,7 @@ function previewNote(tr, isAccent) {
 // instruments — kick, tambourine, handclap, any pad, or any bass — per
 // direct request. Shared by tapStep and the drag-paint start handlers
 // below, all three of which cycle a step's value the same way.
-const _SPLIT32_EXCLUDED_KEYS = new Set(['skick', 'tamb', 'clap', 'sstring', 'sleg', 'drone', 'dronePlus', 'magic', 'sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
+const _SPLIT32_EXCLUDED_KEYS = new Set(['skick', 'tamb', 'clap', 'sstring', 'sleg', 'drone', 'dronePlus', 'sflute', 'magic', 'sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']); // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 function _stepCycleMax(tr) { return _SPLIT32_EXCLUDED_KEYS.has(trackInstruments[tr]) ? 3 : 4; }
 function tapStep(tr, s, cell) {
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
@@ -10340,7 +10405,7 @@ const BASS_LEGATO_CAP_STEPS = 8;
 // instruments".
 const PAD_LEGATO_KEYS = new Set(['sstring', 'sleg', 'drone', 'damask', 'yamask', 'amlgm', 'denial', 'boog']);
 function _legatoCapForKey(key) {
-  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key)) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS;
+  return (key === 'dronePlus' || key === 'sflute') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key)) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 }
 
 // How long a note at ownerGs would sustain if it just ran until the next
@@ -13118,7 +13183,7 @@ function randAll(mode, opts) {
   const soloUniqueKeys = new Set(['jcmgtr','clar','boog']); // max one of these — JCX GUITAR / JENNY / BOOG
   const soloHatKeys = new Set(['shihat','tamb','shak']); // max one of these — hihat/shaker/tambourine never together
   const snareKeys = new Set(['ssnare']); // just the one snare now
-  const soloRareLeadKeys = new Set(['jcmgtr','sflute','rhodes','sprkls','boog','dulc']); // max one of these — JINX/XYLOPHONE/SPACE KOTO/SPARKLES/DREAM PIANO/BOOBOO
+  const soloRareLeadKeys = new Set(['jcmgtr','rhodes','sprkls','boog','dulc']); // max one of these — JINX/SPACE KOTO/SPARKLES/DREAM PIANO/BOOBOO (XYLOPHONE's old slot, sflute, removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era solo restriction)
   const jinxClashKeys = new Set(['jcmgtr', 'damask', 'yamask']); // JINX never coexists with DAMASK or YAMASK specifically
   const padKeys = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic']); // max one PAD-classified instrument per pattern — HASSELL/STRINGS/etc. never together
   // Exclude instruments already locked on other tracks
@@ -13878,7 +13943,7 @@ function randAll(mode, opts) {
       // and their patterns are naturally busy/dense enough to trip these
       // checks often, which was silently undoing that fixed/guaranteed
       // chance right after it was set.
-      const _congaBongoTr = ['congHi', 'congLo', 'bongHi', 'bongLo', 'tomHi', 'tomMid', 'tomLo', 'toms', 'dronePlus'].includes(trackInstruments[_tr]);
+      const _congaBongoTr = ['congHi', 'congLo', 'bongHi', 'bongLo', 'tomHi', 'tomMid', 'tomLo', 'toms', 'dronePlus', 'sflute'].includes(trackInstruments[_tr]); // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
       const _full16th = grid[_tr].every(v => v > 0);
       const _full8thRelevant = ['shihat','shak','tamb','ride'].includes(trackInstruments[_tr]) &&
         [0,2,4,6,8,10,12,14].every(s => grid[_tr][s] > 0);
@@ -14180,7 +14245,7 @@ function randAll(mode, opts) {
     }
     const _tooDense = _maxConsec > 3 || (_onsets.length > 1 && _minGap < 4);
     const _isFull16th = grid[tr].every(v => v > 0);
-    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? (_jinxComboRoll[tr] ? 1 : 0) : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW and STRINGS+ always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
+    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? (_jinxComboRoll[tr] ? 1 : 0) : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
     const delayOn = Math.random() < delayChance;
     _setTrackReverb(tr, delayOn);
     const db = document.getElementById(`delaybtn-${tr}`);
@@ -14266,7 +14331,7 @@ function randAll(mode, opts) {
   const _reverbOnTracks = [];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (!trackDelay[tr]) continue;
-    if (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus') { _reverbProtectedTracks.push(tr); continue; }
+    if (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') { _reverbProtectedTracks.push(tr); continue; } // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
     _reverbOnTracks.push(tr);
   }
   const _reverbRemovableQuota = Math.max(0, _reverbQuota - _reverbProtectedTracks.length);
@@ -15360,10 +15425,10 @@ function randomizeTrack(tr) {
 
   // RAND-time only: chance to promote a soft hit to a 32nd-split for select instruments.
   // This is the ONLY place split-32 notes are ever assigned — never during live playback.
-  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','sflute','spiano','jcmgtr']);
+  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','spiano','jcmgtr']); // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
   if (split32Keys.has(key)) {
     let splitCount = 0;
-    const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'sflute' || key === 'spiano') ? 3 : 99;
+    const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'spiano') ? 3 : 99;
     const splitChance = (key === 'jcmgtr') ? 0.15 : (key === 'dulc') ? 0.28 : 0.18; // JINX back down near the general default — rapid 32nds constantly was part of what made it feel unnaturally busy; BOOBOO gets some, more moderate
     for (let s = 0; s < NUM_STEPS; s++) {
       if (grid[tr][s] === 1 && splitCount < maxSplits && Math.random() < splitChance) {
@@ -17345,7 +17410,7 @@ setLockBtnDarkness(20); // startup default, per direct request
 // SWEEP DECAY SPEED (SETTINGS slider, 0-200) — multiplies the fade-out
 // length stopSweep() uses after SWEEP reaches the downbeat. 100 = the
 // original fixed length (1x), 200 = twice as slow, 0 = instant cutoff.
-window._sweepDecayMult = 0; // hardcoded default per direct request (was 1, i.e. slider 100) — instant cutoff
+window._sweepDecayMult = 0.5; // hardcoded default per direct request (was 0/instant cutoff before that, 1/slider 100 before that)
 function setSweepDecaySpeed(v) {
   window._sweepDecayMult = (+v) / 100;
   const readout = document.getElementById('sweepDecaySpeedReadout');
@@ -17814,16 +17879,21 @@ function fullReset() {
   const exportStemsBtn = document.getElementById('recordMenuExportStems');
   if (exportStemsBtn) exportStemsBtn.addEventListener('click', () => { closeMenu(); bounceLoopStems(); });
 })();
-// REVERB icon hold-menu — holding it (rather than a quick tap, which still
-// does its normal _randomizeReverbSettings() behavior) opens the REVERB
-// menu: overall mix, size, beat's own mix, and the RANDOMIZE REVERB WITH +
-// toggle — same hold-to-open pattern as the RECORD button's menu above.
+// REVERB icon — holding it opens the REVERB menu (overall mix, size,
+// beat's own mix, and the RANDOMIZE REVERB WITH + toggle), same
+// hold-to-open pattern as the RECORD button's menu above. A plain quick
+// tap used to also randomize the reverb settings on its own (the button's
+// old onclick) — per direct request, that's gone: randomizing now needs a
+// click-and-drag DOWN on the icon, same gesture/threshold as the rainbow
+// COLOR MENU icon's PERFORMANCE MODE toggle. A tap that's neither a hold
+// nor a drag now does nothing.
 (function() {
   const btn = document.getElementById('randomizeReverbIconBtn');
   const menu = document.getElementById('reverbMenu');
   if (!btn || !menu) return;
   const HOLD_MS = 400;
-  let holdTimer = null, holdFired = false;
+  const DRAG_DOWN_PX = 30;
+  let holdTimer = null, holdFired = false, dragFired = false, downY = null;
 
   function openMenu() {
     holdFired = true;
@@ -17834,17 +17904,41 @@ function fullReset() {
     menu.classList.add('visible');
   }
   function closeMenu() { menu.classList.remove('visible'); }
+  function doRandomize() {
+    dragFired = true;
+    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
+    _pressPulse('randomizeReverbIconBtn');
+    _randomizeReverbSettings();
+  }
 
-  const startHold = () => { holdFired = false; if (holdTimer) clearTimeout(holdTimer); holdTimer = setTimeout(openMenu, HOLD_MS); };
+  const startHold = y => {
+    holdFired = false; dragFired = false; downY = y;
+    if (holdTimer) clearTimeout(holdTimer);
+    holdTimer = setTimeout(openMenu, HOLD_MS);
+  };
+  const moveCheck = y => {
+    if (downY === null || holdFired || dragFired) return false;
+    if (y - downY > DRAG_DOWN_PX) { doRandomize(); return true; }
+    return false;
+  };
   const endHold = e => {
     if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if (holdFired && e && e.cancelable) e.preventDefault(); // suppress the click _randomizeReverbSettings() would otherwise get from this same touch
+    if ((holdFired || dragFired) && e && e.cancelable) e.preventDefault(); // suppress any trailing synthetic click from this same touch
+    downY = null;
   };
-  btn.addEventListener('touchstart', startHold, { passive: true });
+
+  btn.addEventListener('touchstart', e => { startHold(e.touches[0].clientY); }, { passive: true });
+  btn.addEventListener('touchmove', e => { if (moveCheck(e.touches[0].clientY) && e.cancelable) e.preventDefault(); }, { passive: false });
   btn.addEventListener('touchend', endHold, { passive: false });
-  btn.addEventListener('touchcancel', endHold);
-  btn.addEventListener('mousedown', startHold);
-  document.addEventListener('mouseup', endHold);
+  btn.addEventListener('touchcancel', () => { holdFired = false; dragFired = false; downY = null; if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } });
+
+  btn.addEventListener('mousedown', e => {
+    startHold(e.clientY);
+    const onMove = me => { moveCheck(me.clientY); };
+    const onUp = e2 => { endHold(e2); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 
   // #reverbMenu is now the full-screen dimmed overlay itself (like the
   // COLOR MENU/SETTINGS), so "outside the menu" means outside the actual
