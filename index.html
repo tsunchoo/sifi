@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 06:36:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 06:45:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:36:51 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:45:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7906,7 +7906,8 @@ function playClung(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1; // -2.5dB when BLAST is on this track, same convention as UNDERPASS
-  const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten;
+  const levelAtten = 0.5623; // -5dB overall, per direct request
+  const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten * levelAtten;
   const sustain = Math.max(durSec || 0.35, 0.35); // the actual held length — this is the legato-friendliness fix; UNDERPASS ignores durSec entirely
   const release = 0.45; // tail after sustain ends
   const stopAt = time + sustain + release + 0.1;
@@ -7918,7 +7919,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
   const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
   const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
-  const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.4 : 0.28) * blastAtten;
+  const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.4 : 0.28) * blastAtten * levelAtten;
   knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(dest);
   knockSrc.start(time);
   knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
@@ -7962,6 +7963,21 @@ function playClung(freq, durSec, isAccent, time, tr) {
   sweepLfo.connect(sweepDepth); sweepDepth.connect(filter.frequency);
   sweepLfo.start(time); sweepLfo.stop(stopAt);
 
+  // Hollow character, per direct request — a short feedforward comb: the
+  // body signal summed with a tiny delayed, inverted copy of itself. That
+  // combination cancels a set of evenly-spaced harmonics (the delay time
+  // sets their spacing) rather than reinforcing them, which is exactly
+  // what an actual hollow tube/pipe does to the sound passing through it —
+  // the same principle as a flanger/phaser's "hollow" quality, here fixed
+  // rather than swept so it reads as a timbre, not an effect. Delay time
+  // tied to the note's own pitch (a few evenly-spaced notches per octave)
+  // and kept short and the inverted copy kept well under the dry signal —
+  // "a LITTLE hollow part", not a full flange.
+  const hollowDelay = ctx.createDelay(0.02);
+  hollowDelay.delayTime.value = Math.min(0.006, Math.max(0.0004, 1 / (freq * 3)));
+  const hollowInvert = ctx.createGain(); hollowInvert.gain.value = -0.35;
+  bodyMix.connect(hollowDelay); hollowDelay.connect(hollowInvert); hollowInvert.connect(filter);
+
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
   env.gain.linearRampToValueAtTime(1, time + 0.003); // fast attack, matches UNDERPASS's mallet strike
@@ -7974,6 +7990,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   setTimeout(() => {
     try {
       bodyMix.disconnect(); filter.disconnect(); env.disconnect(); sweepDepth.disconnect(); driftGain.disconnect();
+      hollowDelay.disconnect(); hollowInvert.disconnect();
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
   }, cleanupMs);
