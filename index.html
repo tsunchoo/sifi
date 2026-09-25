@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 03:39:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:14:33 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -664,16 +664,15 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; background: var
    visibly took even after the class was added everywhere. */
 input.master-vol-slider, input.master-vol-slider::-webkit-slider-runnable-track { -webkit-appearance: none !important; appearance: none !important; background: transparent !important; height: 5.76px !important; } /* +20% again (was 4.8px, before that 4px), per direct request */
 input.master-vol-slider::-webkit-slider-runnable-track { background: var(--neutral-top, #555) !important; border-radius: 2px !important; }
-/* Hit area 3x wider than the visible tip, centered on it — these are hard
-   to grab with a finger since the visible black tip is only 10px wide.
-   The actual thumb box (what the browser hit-tests against) is widened to
-   30px, but a small no-repeat/center-positioned background paints only
-   the original 10px-wide rectangle, so nothing looks any different, it's
-   just easier to catch. Height untouched — only width was reported as
-   hard to hit. */
-input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: linear-gradient(#000, #000) no-repeat center / 10px 23.04px !important; margin-top: -8.64px !important; cursor: pointer; }
+/* Hit area 3x wider than the original visible tip, centered on it — these
+   were hard to grab with a finger when only the 10px tip was painted black.
+   Per direct request, the whole 30px hit area is now solid black too, so
+   what you see matches exactly what you can grab — no more invisible
+   catch zone around a thin bar. Height untouched — only width was ever
+   reported as hard to hit. */
+input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; margin-top: -8.64px !important; cursor: pointer; }
 input.master-vol-slider::-moz-range-track { background: var(--neutral-top, #555) !important; height: 5.76px !important; border-radius: 2px !important; } /* +20% again (was 4.8px, before that 4px) */
-input.master-vol-slider::-moz-range-thumb { width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: linear-gradient(#000, #000) no-repeat center / 10px 23.04px !important; border: none !important; cursor: pointer; }
+input.master-vol-slider::-moz-range-thumb { width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; }
 #bpmSettingsSlider.tempo-locked::-webkit-slider-thumb { background: #b0b0b0; }
 #bpmSettingsSlider.tempo-locked::-moz-range-thumb { background: #b0b0b0; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
@@ -1158,6 +1157,23 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   border: none;
   border-bottom: 3px solid var(--track-line-color, transparent);
   overflow: visible;
+  position: relative;
+}
+/* INVERT NOTE ROW BG (COLOR MENU toggle) — tints each track's note-marker
+   row (the 16-step lane) with the inverse of the app's own background
+   color. Done via a filter:invert(1) on a plain copy of --bg rather than
+   computing an inverted color in JS, so it stays correct automatically
+   however --bg itself changes (WILD colors, manual pick, etc.) without
+   needing to recompute anything here. Painted as the lane's own ::before,
+   so it sits behind the actual note markers (::before is always the
+   first painted child) without needing an explicit z-index. */
+body.invert-note-row-bg .step-lane::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  filter: invert(1);
+  pointer-events: none;
 }
 .step-lane-cells {
   display: grid; grid-template-columns: repeat(16, 1fr);
@@ -1328,6 +1344,27 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
 .step-cell.split32::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: var(--note-marker-opacity, 1); /* was hardcoded to 1, unlike .on which uses this variable (0.9) — split32 sat visibly more opaque than an accented note despite representing the same accent-level hit */
+}
+/* TRAIL — the note directly after the playhead, at half size and half
+   opacity of PLAY FLASH's own color, so a faint "echo" of what's about to
+   hit trails just ahead of the sweep. Square/rect mode: */
+.step-cell.on.trail-next::after,
+.step-cell.soft.trail-next::after,
+.step-cell.legato-tail.trail-next::after {
+  background: var(--play-flash-color, #f8ff00);
+  opacity: calc(var(--note-marker-opacity, 1) * 0.5);
+  transform: translateY(-50%) scale(0.5);
+}
+/* Circle mode — higher specificity than the base circle .on/.soft/
+   .legato-tail opacity rules above (extra .trail-next class), so this
+   wins outright without !important. */
+body.note-markers-circle .step-cell.on.trail-next::after,
+body.note-markers-circle .step-cell.soft.trail-next::after,
+body.note-markers-circle .step-cell.legato-tail.trail-next::after {
+  background: var(--play-flash-color, #f8ff00);
+  filter: none;
+  opacity: calc(var(--note-marker-opacity, 1) * 0.5);
+  transform: translateY(-50%) scale(0.5);
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
@@ -1661,7 +1698,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 03:39:07 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:14:33 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1822,6 +1859,13 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">INVERT NOTE ROW BG</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="invertNoteRowBgToggle" onchange="setInvertNoteRowBg(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
     <div style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYHEAD POP</div>
@@ -4849,11 +4893,17 @@ function fireStepAudio(step, t) {
 }
 
 function updatePlayhead(step) {
-  document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
+  document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing', 'trail-next'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
+  const _trailStep = (step + 1) % NUM_STEPS; // TRAIL — the note directly after the playhead, half size/opacity of PLAY FLASH's color, per direct request
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const el = document.querySelector(`[data-track="${tr}"][data-step="${step}"]`);
     if (el) el.classList.add('playing');
+    const trailGs = (_trailStep - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+    if (grid[tr][trailGs] > 0) {
+      const trailEl = document.querySelector(`[data-track="${tr}"][data-step="${_trailStep}"]`);
+      if (trailEl) trailEl.classList.add('trail-next');
+    }
     const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     const tbtn = document.getElementById(`tbtn-${tr}`);
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
@@ -5106,7 +5156,7 @@ function togglePlay() {
     // Stop and deactivate beat
     // Beat stays armed when stop is pressed — will re-engage on next play
     _beatPending = false;
-    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
+    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing', 'trail-next'));
     stopRecallLoop();
     // Pause auto-rand intervals (keep visual state, restart on next play)
     Object.keys(autoShiftStops).forEach(tr => {
@@ -11287,6 +11337,10 @@ function setFaderTipTopRowColor(on) {
 // TRACK ROW BG (COLOR MENU toggle + darkness slider) — see the CSS rule
 // on .track-ctrl-row for what this actually does.
 function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
+// INVERT NOTE ROW BG (COLOR MENU toggle) — see the CSS rule (body.invert-
+// note-row-bg .step-lane::before) for how the color itself stays in sync
+// with --bg automatically.
+function setInvertNoteRowBg(on) { document.body.classList.toggle('invert-note-row-bg', !!on); }
 function setTrackRowBgDarken(v) {
   document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
   const readout = document.getElementById('trackRowBgDarkenReadout');
