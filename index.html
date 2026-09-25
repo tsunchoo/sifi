@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:58:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 05:09:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:58:57 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:09:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1729,7 +1729,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
       <line x1="21" y1="13" x2="15" y2="10" stroke="#555" stroke-width="1.3"/>
     </svg>
   </button>
-  <button id="devMenuBtn" style="position:absolute;top:0;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;">
+  <button id="devMenuBtn" style="position:absolute;top:0;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;">
     <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M1 13a10 10 0 0 1 20 0" stroke="#e0524d" stroke-width="2.6" stroke-linecap="round"/>
       <path d="M3.6 13a7.4 7.4 0 0 1 14.8 0" stroke="#f0b429" stroke-width="2.6" stroke-linecap="round"/>
@@ -17080,7 +17080,14 @@ function setPerformanceMode(on) {
 // menu. Pointer events cover mouse and touch in one handler. A genuine
 // downward drag past DRAG_DOWN_PX commits to the exit and suppresses the
 // menu from opening on release; anything under that threshold is treated
-// as a normal tap.
+// as a normal tap. Two things were needed to make this actually work on a
+// real touchscreen (mouse-only testing hid both): the button's own CSS
+// touch-action (see its style attr — was the generic button rule's
+// "manipulation", which still lets the browser hijack a vertical drag as
+// a page scroll after a few px, firing pointercancel and killing the
+// gesture before it ever reaches DRAG_DOWN_PX; now "none" here), and
+// calling preventDefault() on pointerdown/pointermove so no default touch
+// behavior competes with the gesture at all.
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -17088,20 +17095,31 @@ function setPerformanceMode(on) {
   let downY = null, dragFired = false;
   btn.addEventListener('pointerdown', e => {
     downY = e.clientY; dragFired = false;
+    e.preventDefault();
     try { btn.setPointerCapture(e.pointerId); } catch (err) {} // without this, pointermove stops firing the instant the cursor/finger leaves this tiny icon's own bounds, which happens almost immediately on a downward drag — capture keeps delivering move events to this element regardless of where the pointer physically is until release
   });
   btn.addEventListener('pointermove', e => {
     if (downY === null || dragFired) return;
+    e.preventDefault();
     if (e.clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
       setPerformanceMode(false);
     }
   });
-  btn.addEventListener('pointerup', () => {
+  btn.addEventListener('pointerup', e => {
+    e.preventDefault(); // otherwise touch input synthesizes a trailing compatibility 'click' a few ms later, hit-tested against the DOM as it looks AT THAT LATER MOMENT — by then showDevMenu() below has already opened the full-screen overlay over this same spot, so the synthetic click lands on the overlay itself instead of this button, and the overlay's own "click outside closes it" handler immediately closes what was just opened
     if (!dragFired) showDevMenu();
     downY = null;
   });
   btn.addEventListener('pointercancel', () => { downY = null; dragFired = false; });
+  // preventDefault() on the pointer events above turned out not to be
+  // enough on its own to stop this: Chromium still synthesized a trailing
+  // compatibility 'click' from the touch a few ms after pointerup, and by
+  // then it hit-tested against the overlay this handler had just opened
+  // rather than the button, closing it again instantly (see the pointerup
+  // comment above). The old, reliably-effective way to kill that synthetic
+  // click at the source is preventDefault() directly on touchend itself.
+  btn.addEventListener('touchend', e => e.preventDefault(), { passive: false });
 })();
 // MARKER STYLE — two controls drive this same body class now: the pill
 // switch in the COLOR MENU (right under WILD, id="markerStyleToggle" — see
