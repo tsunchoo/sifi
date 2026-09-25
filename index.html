@@ -1155,7 +1155,7 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
 .step-lane {
   flex: 1; display: flex; flex-direction: column;
   border: none;
-  border-bottom: 3px solid var(--track-line-color, transparent);
+  border-bottom: var(--ruler-w, 3px) solid var(--track-line-color, transparent); /* TIME RULER THICKNESS slider */
   overflow: visible;
   /* Squared-off ruler corner, per direct request: the step-0 tick sits at
      left:-1px (3px wide), so it started 1px left of where this border
@@ -1163,7 +1163,7 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
      left and padding it back 1px extends the border under the tick
      without moving any cells, and without overlapping two translucent
      layers (which would show a darker spot at the corner). */
-  margin-left: -1px; padding-left: 1px;
+  margin-left: calc(-1 * var(--ruler-off, 1px)); padding-left: var(--ruler-off, 1px); /* = the tick's own left overhang, so this tracks TIME RULER THICKNESS */
 }
 .step-lane-cells {
   display: grid; grid-template-columns: repeat(16, 1fr);
@@ -1184,8 +1184,8 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
    height:calc(30%+3px), which pushed the tick 3px below the cell and
    thus 3px into the border's own 3px band). */
 .step-cell::before {
-  content: ''; position: absolute; bottom: 0; left: -1px;
-  width: 3px; background: var(--track-line-color, transparent); height: 30%; pointer-events: none;
+  content: ''; position: absolute; bottom: 0; left: calc(-1 * var(--ruler-off, 1px));
+  width: var(--ruler-w, 3px); background: var(--track-line-color, transparent); height: 30%; pointer-events: none; /* width/offset driven by TIME RULER THICKNESS (--ruler-w, --ruler-off = floor(w/2)) */
   z-index: 1;
 }
 /* TIME RULER ticks are suppressed on any cell touched by a legato phrase
@@ -1237,12 +1237,12 @@ body.time-ruler-on.note-markers-circle .step-cell.soft::after,
 body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   top: calc(71.04% - 6px); /* per direct request, all markers nudged back up 6px off the ruler-flush position above */
 }
-body.time-ruler-on .step-cell::after { left: calc(var(--note-marker-square-inset, 12%) + 0.5px); right: calc(var(--note-marker-square-inset, 12%) - 0.5px); }
-body.time-ruler-on .step-cell.soft::after { left: calc(var(--marker-soft-inset, 19.6%) + 0.5px); right: calc(var(--marker-soft-inset, 19.6%) - 0.5px); }
-body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset, 42.4%) + 0.5px); right: calc(var(--marker-empty-inset, 42.4%) - 0.5px); }
-body.time-ruler-on.note-markers-circle .step-cell.on::after { left: calc(var(--note-marker-circle-inset, 12%) + 0.5px); right: calc(var(--note-marker-circle-inset, 12%) - 0.5px); }
-body.time-ruler-on.note-markers-circle .step-cell.soft::after { left: calc(var(--marker-soft-inset-circle, 27.2%) + 0.5px); right: calc(var(--marker-soft-inset-circle, 27.2%) - 0.5px); }
-body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset-circle, 42.4%) + 0.5px); right: calc(var(--marker-empty-inset-circle, 42.4%) - 0.5px); }
+body.time-ruler-on .step-cell::after { left: calc(var(--note-marker-square-inset, 12%) + var(--ruler-nudge, 0.5px)); right: calc(var(--note-marker-square-inset, 12%) - var(--ruler-nudge, 0.5px)); }
+body.time-ruler-on .step-cell.soft::after { left: calc(var(--marker-soft-inset, 19.6%) + var(--ruler-nudge, 0.5px)); right: calc(var(--marker-soft-inset, 19.6%) - var(--ruler-nudge, 0.5px)); }
+body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset, 42.4%) + var(--ruler-nudge, 0.5px)); right: calc(var(--marker-empty-inset, 42.4%) - var(--ruler-nudge, 0.5px)); }
+body.time-ruler-on.note-markers-circle .step-cell.on::after { left: calc(var(--note-marker-circle-inset, 12%) + var(--ruler-nudge, 0.5px)); right: calc(var(--note-marker-circle-inset, 12%) - var(--ruler-nudge, 0.5px)); }
+body.time-ruler-on.note-markers-circle .step-cell.soft::after { left: calc(var(--marker-soft-inset-circle, 27.2%) + var(--ruler-nudge, 0.5px)); right: calc(var(--marker-soft-inset-circle, 27.2%) - var(--ruler-nudge, 0.5px)); }
+body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset-circle, 42.4%) + var(--ruler-nudge, 0.5px)); right: calc(var(--marker-empty-inset-circle, 42.4%) - var(--ruler-nudge, 0.5px)); }
 /* SQUARE MODE — markers sit flush on the ruler's horizontal line (no light
    gap underneath), per direct request. Cells are square (aspect-ratio 1),
    so a marker with inset I is (100% - 2I) tall; with translateY(-50%) its
@@ -1510,10 +1510,31 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
 body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-start.on::after,
 body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-start.soft::after {
   top: calc(50% + var(--note-marker-square-inset, 12%));
-  left: calc(var(--note-marker-square-inset, 12%) + 0.5px); right: calc(var(--note-marker-square-inset, 12%) - 0.5px);
+  left: calc(var(--note-marker-square-inset, 12%) + var(--ruler-nudge, 0.5px)); right: calc(var(--note-marker-square-inset, 12%) - var(--ruler-nudge, 0.5px));
 }
 body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-tail::after { top: 0; bottom: 50%; left: 0; right: 0; }
 body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-tail.legato-end::after { right: 3px; }
+/* ACCENTED NOTES pinned to the TOP of the cell with the ruler on, per
+   direct request — the legato tail bar is top-stuck (top:0) while the
+   accent square was bottom-aligned to the ruler, so their top edges
+   didn't line up across a phrase (a visible step where head and tail
+   meet). Accents (plain, legato head, split32) now run from the cell's
+   top edge straight down to the ruler line (bottom:0 — the cell's bottom
+   edge is exactly the ruler's top edge, so no gap and no overlap), width
+   unchanged. Soft/empty squares keep their own bottom-aligned size. The
+   pop animation normally includes translateY(-50%) for the centred
+   markers, so these get a scale-only version to avoid jumping up by half
+   their height on every hit. */
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.on::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.soft::after {
+  top: 0; bottom: 0; height: auto; aspect-ratio: auto; transform: none;
+}
+@keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } 40% { transform: scale(1.72); } 100% { transform: scale(1); } }
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on.playing::after,
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.playing::after { animation-name: step-cell-pop-marker-top; }
+body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.playing::after { animation: none; }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
    smaller circle. Per direct request, accented notes (.on) get that full
@@ -2026,6 +2047,13 @@ body.performance-mode header { padding-bottom: 10px; }
         <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">35%</div>
       </div>
       <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="35" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER THICKNESS</div>
+        <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">3px</div>
+      </div>
+      <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="3" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <!-- FADER TIP = TOP ROW COLOR removed from the UI per direct request
          — the tip color is hardcoded to #000 now (see .track-vol-tip),
@@ -3322,13 +3350,50 @@ function setTopRowColorFromHue(hue) {
       if (window._circleSizeBeforeRuler === null) {
         window._circleSizeBeforeRuler = circleSlider ? +circleSlider.value : 60;
       }
-      if (typeof setNoteMarkerCircleSize === 'function') setNoteMarkerCircleSize(30);
-      if (circleSlider) circleSlider.value = 30;
+      if (typeof setNoteMarkerCircleSize === 'function') setNoteMarkerCircleSize(60); // was 30 — hard-coded to 60% per direct request
+      if (circleSlider) circleSlider.value = 60;
     } else if (window._circleSizeBeforeRuler !== null) {
       if (typeof setNoteMarkerCircleSize === 'function') setNoteMarkerCircleSize(window._circleSizeBeforeRuler);
       if (circleSlider) circleSlider.value = window._circleSizeBeforeRuler;
       window._circleSizeBeforeRuler = null;
     }
+    _applyCircleRulerOpacity();
+  };
+  // CIRCLE MODE + TIME RULER — TIME RULER OPACITY is hard-coded to 50%
+  // whenever both are on, per direct request. Same save/restore pattern as
+  // the circle size above: whatever opacity was set beforehand is put back
+  // the moment either the ruler or circle mode is turned off. Also called
+  // from setNoteMarkersCircle so switching marker style while the ruler is
+  // on applies/restores it too.
+  window._rulerOpacityBeforeCircle = null;
+  window._applyCircleRulerOpacity = function() {
+    const both = window._timeRulerEnabled && document.body.classList.contains('note-markers-circle');
+    if (both) {
+      if (window._rulerOpacityBeforeCircle === null) window._rulerOpacityBeforeCircle = Math.round(window._timeRulerOpacity * 100);
+      if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(50);
+    } else if (window._rulerOpacityBeforeCircle !== null) {
+      const prev = window._rulerOpacityBeforeCircle;
+      window._rulerOpacityBeforeCircle = null;
+      if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(prev);
+    }
+  };
+  // TIME RULER THICKNESS (COLOR MENU slider, 1-8px) — one value drives
+  // every part of the ruler: the horizontal line (lane border-bottom) and
+  // the vertical ticks (width). Derived values keep the existing geometry
+  // correct at any thickness: --ruler-off is how far each tick overhangs
+  // into the cell on its left (floor(w/2) — 1px at the original 3px), which
+  // the lane's squared-off corner also uses; --ruler-nudge re-centres the
+  // markers between two ticks: (own tick's intrusion w-off − next tick's
+  // intrusion off) / 2 — 0.5px at 3px, same as the old hard-coded value.
+  window.setTimeRulerThickness = function(v) {
+    const w = Math.max(1, Math.min(8, Math.round(+v) || 3));
+    const off = Math.floor(w / 2);
+    const root = document.documentElement.style;
+    root.setProperty('--ruler-w', w + 'px');
+    root.setProperty('--ruler-off', off + 'px');
+    root.setProperty('--ruler-nudge', ((w - 2 * off) / 2) + 'px');
+    const readout = document.getElementById('timeRulerThicknessVal'); if (readout) readout.textContent = w + 'px';
+    const slider = document.getElementById('timeRulerThicknessSlider'); if (slider) slider.value = w;
   };
   window.setTimeRulerOpacity = function(v) {
     window._timeRulerOpacity = Math.max(0, Math.min(100, +v)) / 100;
@@ -17528,6 +17593,7 @@ function setNoteMarkersCircle(on) {
   document.body.classList.toggle('note-markers-circle', !!on);
   const pill = document.getElementById('markerStyleToggle'); if (pill) pill.checked = !!on;
   const devCb = document.getElementById('noteMarkersCircleToggle'); if (devCb) devCb.checked = !!on;
+  if (typeof _applyCircleRulerOpacity === 'function') _applyCircleRulerOpacity(); // TIME RULER OPACITY 50% in circle mode while the ruler is on — see setTimeRuler
 }
 // DEV (SETTINGS tab, bottom of panel) — collapses every marker-tuning
 // slider/toggle (plus a few unrelated settings that happened to sit below
