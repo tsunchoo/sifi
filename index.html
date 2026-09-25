@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 20:41:32 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 21:05:48 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1170,17 +1170,33 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   min-height: 0; box-sizing: border-box;
   overflow: visible;
 }
-/* teeth — positioned so bottom edge sits exactly on the lane border */
+/* teeth — shortened by exactly the lane border's own thickness (3px) so
+   the tick's bottom edge sits flush on TOP of the horizontal border
+   line instead of extending down into/through it, per direct request
+   ("vertical lines overlap the horizontal line" — was bottom:-3px,
+   height:calc(30%+3px), which pushed the tick 3px below the cell and
+   thus 3px into the border's own 3px band). */
 .step-cell::before {
-  content: ''; position: absolute; bottom: -3px; left: -1px;
-  width: 3px; background: var(--track-line-color, transparent); height: calc(30% + 3px); pointer-events: none;
+  content: ''; position: absolute; bottom: 0; left: -1px;
+  width: 3px; background: var(--track-line-color, transparent); height: 30%; pointer-events: none;
   z-index: 1;
 }
+/* TIME RULER ticks are suppressed on any cell touched by a legato phrase
+   (the head/.legato-start and every tail/.legato-tail segment), per
+   direct request — "segmenting legato notes and doesn't look good". The
+   phrase's marker bar only covers the cell's own top half (see
+   .step-cell.legato-tail::after below), so the short non-beat tick,
+   sitting lower down, was never actually covered/obscured by it even
+   after the marker was moved in front (z-index above) — it just poked
+   out underneath at every cell boundary along the bar's length, reading
+   as a series of breaks in what's supposed to look like one continuous
+   bar. Simplest fix: don't draw the tick there at all. */
+.step-cell.legato-tail::before, .step-cell.legato-start::before { display: none; }
 /* beat markers taller */
 .step-cell[data-step="0"]::before,
 .step-cell[data-step="4"]::before,
 .step-cell[data-step="8"]::before,
-.step-cell[data-step="12"]::before { height: calc(100% + 3px); }
+.step-cell[data-step="12"]::before { height: 100%; }
 /* TIME RULER (when on): treat the ruler like a left+bottom border on the
    cell (that's genuinely what it visually is — the tick occupies
    left:-1px to left+3px=2px, i.e. 2px of the cell's own left edge, and
@@ -1740,7 +1756,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 20:41:32 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 21:05:48 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3212,11 +3228,31 @@ function setTopRowColorFromHue(hue) {
   function _applyTimeRulerColor() {
     document.documentElement.style.setProperty('--track-line-color', window._timeRulerEnabled ? `rgba(0,0,0,${window._timeRulerOpacity})` : 'transparent');
   }
+  // Circle markers shrink to a fixed 30% (via the same CIRCLE MARKER SIZE
+  // slider/function the DEV panel uses) whenever the ruler is on, per
+  // direct request — they read as too large next to the ruler ticks.
+  // Remembers whatever the slider was actually set to right before the
+  // ruler turned on, and restores that exact value when it turns back
+  // off, so this is a temporary visual override, not a change to the
+  // user's own slider setting.
+  window._circleSizeBeforeRuler = null;
   window.setTimeRuler = function(on) {
     window._timeRulerEnabled = !!on;
     _applyTimeRulerColor();
     document.body.classList.toggle('time-ruler-on', !!on); // gates the note-marker offset rule (margin-left/margin-top) below — see .step-cell::before for why 3px specifically
     const cb = document.getElementById('timeRulerToggle'); if (cb) cb.checked = !!on;
+    const circleSlider = document.getElementById('noteMarkerCircleSizeSlider');
+    if (on) {
+      if (window._circleSizeBeforeRuler === null) {
+        window._circleSizeBeforeRuler = circleSlider ? +circleSlider.value : 60;
+      }
+      if (typeof setNoteMarkerCircleSize === 'function') setNoteMarkerCircleSize(30);
+      if (circleSlider) circleSlider.value = 30;
+    } else if (window._circleSizeBeforeRuler !== null) {
+      if (typeof setNoteMarkerCircleSize === 'function') setNoteMarkerCircleSize(window._circleSizeBeforeRuler);
+      if (circleSlider) circleSlider.value = window._circleSizeBeforeRuler;
+      window._circleSizeBeforeRuler = null;
+    }
   };
   window.setTimeRulerOpacity = function(v) {
     window._timeRulerOpacity = Math.max(0, Math.min(100, +v)) / 100;
@@ -10502,7 +10538,17 @@ function _applyPendingEmptyTrackTap(tr) {
   }
   if (val > 0) previewNote(tr, val === 2 || val === 3);
   markModified();
-  redrawTrackCells(tr); // picks the track's name/has-notes label back up off the grid now that it's no longer empty
+  // skipReorder: this fires from inside selectSound() (the tap that opened
+  // the instrument picker gets applied once an instrument is chosen), and
+  // selectSound() already deliberately calls _updateEmptyTrackVisuals(true)
+  // itself right after — per direct request, picking an instrument must
+  // never relocate the track. Without this, THIS call ran first (with
+  // reorder allowed) and had already moved the track by the time
+  // selectSound()'s own skip-reorder call ran, so that protection came
+  // one step too late to undo it — this was the actual source of "choosing
+  // an instrument for a track changes its position the minute you leave
+  // the menu".
+  redrawTrackCells(tr, true); // picks the track's name/has-notes label back up off the grid now that it's no longer empty
 }
 
 // Press-and-hold on an existing note gathers every other note on that
