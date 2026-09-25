@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:14:33 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:20:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1160,19 +1160,19 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   position: relative;
 }
 /* INVERT NOTE ROW BG (COLOR MENU toggle) — tints each track's note-marker
-   row (the 16-step lane) with the inverse of the app's own background
-   color. Done via a filter:invert(1) on a plain copy of --bg rather than
-   computing an inverted color in JS, so it stays correct automatically
-   however --bg itself changes (WILD colors, manual pick, etc.) without
-   needing to recompute anything here. Painted as the lane's own ::before,
-   so it sits behind the actual note markers (::before is always the
-   first painted child) without needing an explicit z-index. */
+   row (the 16-step lane) with the app's own TOP ROW color (--neutral-top,
+   the same color the transport buttons sit on — was the inverse of --bg,
+   switched per direct request). Reads the live variable directly rather
+   than a baked-in color, so it stays correct automatically however
+   --neutral-top itself changes (WILD colors, manual pick, etc.). Painted
+   as the lane's own ::before, so it sits behind the actual note markers
+   (::before is always the first painted child) without needing an
+   explicit z-index. */
 body.invert-note-row-bg .step-lane::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--bg);
-  filter: invert(1);
+  background: var(--neutral-top, #555);
   pointer-events: none;
 }
 .step-lane-cells {
@@ -1698,7 +1698,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:14:33 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:20:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1860,7 +1860,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">INVERT NOTE ROW BG</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE ROW BG = TOP ROW COLOR</div>
       <label class="wild-toggle">
         <input type="checkbox" id="invertNoteRowBgToggle" onchange="setInvertNoteRowBg(this.checked)">
         <span class="wild-toggle-slider"></span>
@@ -11339,7 +11339,7 @@ function setFaderTipTopRowColor(on) {
 function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
 // INVERT NOTE ROW BG (COLOR MENU toggle) — see the CSS rule (body.invert-
 // note-row-bg .step-lane::before) for how the color itself stays in sync
-// with --bg automatically.
+// with --neutral-top (TOP ROW color) automatically.
 function setInvertNoteRowBg(on) { document.body.classList.toggle('invert-note-row-bg', !!on); }
 function setTrackRowBgDarken(v) {
   document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
