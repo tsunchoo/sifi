@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:48:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:58:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1298,7 +1298,7 @@ body.notes-grayscale .step-cell.split32::after {
   filter: none;
 }
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
-@keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(var(--step-cell-pop-peak, 1.18)); } 100% { transform: scale(1); } }
+@keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(1.72); } 100% { transform: scale(1); } } /* was a COLOR MENU slider (0-100 -> 1.18x-1.72x) — hard-coded to its max (1.72x, "100%") per direct request, slider removed */
 .step-cell.playing { background: rgba(192,57,43,0.07); animation: step-cell-pop 180ms ease-out; transform-origin: center; position: relative; z-index: 3; }
 /* Legato markers (.legato-tail/.legato-end and the phrase-owner's own
    .legato-start) are positioned top:0/bottom:50% instead of vertically
@@ -1341,66 +1341,6 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
 .step-cell.split32::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: var(--note-marker-opacity, 1); /* was hardcoded to 1, unlike .on which uses this variable (0.9) — split32 sat visibly more opaque than an accented note despite representing the same accent-level hit */
-}
-/* TRAIL — the note the playhead just passed, at a fraction of the size,
-   colored an even 50/50 mix of PLAY FLASH's color and that note's own
-   normal marker color (--track-color) — was a fixed independent pink
-   picker, switched to this computed mix per direct request. Uses the
-   native CSS color-mix() function directly on the two live variables, so
-   it stays correct automatically as either one changes (PLAY FLASH
-   picker, WILD colors, track color, etc.) with no JS recompute needed.
-   --trail-scale/--trail-opacity-mult are driven by the NOTE TRAIL toggle
-   + intensity slider (COLOR MENU). Gated on body.note-trail-enabled so
-   the toggle can switch it off entirely, not just turn intensity down to
-   zero. Square/rect mode: */
-body.note-trail-enabled .step-cell.on.trail-next::after,
-body.note-trail-enabled .step-cell.soft.trail-next::after,
-body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
-  background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
-  opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
-}
-body.note-trail-enabled .step-cell.on.trail-next::after,
-body.note-trail-enabled .step-cell.soft.trail-next::after {
-  transform: translateY(-50%) scale(var(--trail-scale, 1.3));
-}
-/* legato-tail's own base box (.step-cell.legato-tail::after below) is
-   already positioned via top/bottom insets, not centered with
-   translateY — its own base rule explicitly sets transform:none. Adding
-   the same translateY(-50%) the .on/.soft markers need would shift this
-   one up out of alignment with its neighbors (the exact "pushed up"
-   misalignment reported), so it only gets the scale, applied around its
-   own box's center same as any other transform. */
-body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
-  transform: scale(var(--trail-scale, 1.3));
-}
-/* The phrase-owner cell (.legato-start, combined with .on/.soft) has the
-   exact same top:0/bottom:50% transform:none base as .legato-tail above
-   — same fix, same reasoning, just a different combination of classes to
-   out-specificity the plain .on/.soft transform rule above. */
-body.note-trail-enabled .step-cell.legato-start.on.trail-next::after,
-body.note-trail-enabled .step-cell.legato-start.soft.trail-next::after {
-  transform: scale(var(--trail-scale, 1.3));
-}
-/* Circle mode — higher specificity than the base circle .on/.soft/
-   .legato-tail opacity rules above (extra .trail-next + .note-trail-
-   enabled classes), so this wins outright without !important. */
-body.note-trail-enabled.note-markers-circle .step-cell.on.trail-next::after,
-body.note-trail-enabled.note-markers-circle .step-cell.soft.trail-next::after,
-body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::after {
-  background: color-mix(in srgb, var(--play-flash-color, #f8ff00) 50%, var(--track-color, var(--text)) 50%);
-  filter: none;
-  opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 1));
-}
-body.note-trail-enabled.note-markers-circle .step-cell.on.trail-next::after,
-body.note-trail-enabled.note-markers-circle .step-cell.soft.trail-next::after {
-  transform: translateY(-50%) scale(var(--trail-scale, 1.3));
-}
-body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::after {
-  transform: scale(var(--trail-scale, 1.3)); /* circle mode's own legato-tail base is also transform:none (see body.note-markers-circle .step-cell.legato-tail::after) — same reasoning as square mode above */
-}
-body.note-trail-enabled.note-markers-circle .step-cell.legato-start.on.trail-next::after,
-body.note-trail-enabled.note-markers-circle .step-cell.legato-start.soft.trail-next::after {
-  transform: scale(var(--trail-scale, 1.3)); /* circle mode's own legato-start base is also transform:none — same reasoning */
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
@@ -1701,7 +1641,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle note-trail-enabled">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1734,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:48:59 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:58:57 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1789,7 +1729,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
       <line x1="21" y1="13" x2="15" y2="10" stroke="#555" stroke-width="1.3"/>
     </svg>
   </button>
-  <button id="devMenuBtn" onclick="showDevMenu()" style="position:absolute;top:0;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;">
+  <button id="devMenuBtn" style="position:absolute;top:0;right:74px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;">
     <svg width="22" height="14" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M1 13a10 10 0 0 1 20 0" stroke="#e0524d" stroke-width="2.6" stroke-linecap="round"/>
       <path d="M3.6 13a7.4 7.4 0 0 1 14.8 0" stroke="#f0b429" stroke-width="2.6" stroke-linecap="round"/>
@@ -1895,28 +1835,6 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYHEAD POP</div>
-        <div id="stepCellPopVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1.0x</div>
-      </div>
-      <input type="range" id="stepCellPopSlider" min="0" max="100" value="0" oninput="setStepCellPopIntensity(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE TRAIL</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="noteTrailToggle" checked onchange="setNoteTrailEnabled(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRAIL INTENSITY</div>
-        <div id="noteTrailIntensityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-      </div>
-      <input type="range" id="noteTrailIntensitySlider" min="0" max="100" value="100" oninput="setNoteTrailIntensity(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-    <button id="forceUpdateBtn" class="rec-mode-btn" onclick="forceUpdate()" style="margin-top:-4px;">FORCE UPDATE</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
       <label class="wild-toggle">
@@ -4936,17 +4854,11 @@ function fireStepAudio(step, t) {
 }
 
 function updatePlayhead(step) {
-  document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing', 'trail-next'));
+  document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
-  const _trailStep = (step - 1 + NUM_STEPS) % NUM_STEPS; // TRAIL — the note the playhead just passed, sized/colored per the NOTE TRAIL controls (COLOR MENU). Was step+1 (the note coming UP next) — switched to step-1 per direct request: a "trail" reads as trailing BEHIND the moving playhead, not anticipating ahead of it.
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const el = document.querySelector(`[data-track="${tr}"][data-step="${step}"]`);
     if (el) el.classList.add('playing');
-    const trailGs = (_trailStep - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
-    if (grid[tr][trailGs] > 0) {
-      const trailEl = document.querySelector(`[data-track="${tr}"][data-step="${_trailStep}"]`);
-      if (trailEl) trailEl.classList.add('trail-next');
-    }
     const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     const tbtn = document.getElementById(`tbtn-${tr}`);
     if (tbtn && grid[tr][gs] > 0 && !trackMuted[tr]) {
@@ -5199,7 +5111,7 @@ function togglePlay() {
     // Stop and deactivate beat
     // Beat stays armed when stop is pressed — will re-engage on next play
     _beatPending = false;
-    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing', 'trail-next'));
+    document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     stopRecallLoop();
     // Pause auto-rand intervals (keep visual state, restart on next play)
     Object.keys(autoShiftStops).forEach(tr => {
@@ -16963,67 +16875,6 @@ function hideDevMenu() {
   const el = document.getElementById('devMenuOverlay');
   if (el) el.style.display = 'none';
 }
-// PLAYHEAD POP (COLOR MENU slider) — scales the step-cell-pop keyframe's
-// peak transform. Base boost is 0.18 (i.e. 1.18x scale, the original
-// hand-tuned amount); the slider runs 0-100 mapping linearly to a 1x-4x
-// multiplier on that boost, so the peak scale ranges from 1.18x (slider at
-// 0, i.e. "where it is now") up to 1.72x (slider at 100, "x4 bigger").
-const STEP_CELL_POP_BASE_BOOST = 0.18;
-function setStepCellPopIntensity(v) {
-  const mult = 1 + (v / 100) * 3; // 1x .. 4x
-  const peak = 1 + STEP_CELL_POP_BASE_BOOST * mult;
-  document.documentElement.style.setProperty('--step-cell-pop-peak', peak);
-  const disp = document.getElementById('stepCellPopVal');
-  if (disp) disp.textContent = mult.toFixed(1) + 'x';
-}
-// NOTE TRAIL (COLOR MENU toggle + slider) — the echo marker on the note
-// the playhead just passed (see updatePlayhead's .trail-next handling
-// and the CSS rules gated on body.note-trail-enabled). Toggle switches
-// it off entirely. Color is computed in CSS directly (color-mix() of
-// --play-flash-color and --track-color, see the rule) — no JS color
-// picker involved, was removed per direct request in favor of that
-// computed 50/50 mix. Intensity slider runs 0-100 mapping linearly to a
-// 0-1.3 scale / 0-1.0 opacity range (~4x the old capped 0.5-0.9 range) —
-// default 100 (max: scale 1.3, opacity 1.0), per direct request that the
-// old fixed-low version "just looks kinda shitty" and was hard to see.
-function setNoteTrailEnabled(on) { document.body.classList.toggle('note-trail-enabled', !!on); }
-function setNoteTrailIntensity(v) {
-  const scale = (v / 100) * 1.3; // 0 .. 1.3
-  const op = (v / 100) * 1.0; // 0 .. 1.0
-  document.documentElement.style.setProperty('--trail-scale', scale);
-  document.documentElement.style.setProperty('--trail-opacity-mult', op);
-  const disp = document.getElementById('noteTrailIntensityVal');
-  if (disp) disp.textContent = Math.round(v) + '%';
-}
-setNoteTrailIntensity(100); // startup default, per direct request ("make the intensity 4x") — applied immediately since sliders don't fire their own oninput on page load
-// FORCE UPDATE (COLOR MENU button) — the service worker (sw.js) normally
-// serves cache-first with a background network update, so a fresh deploy
-// only actually shows up on the LAUNCH AFTER this one (the update lands in
-// the cache silently in the background, but the page already loaded is
-// still the old cached copy). This button skips that whole lag: unregister
-// every service worker registration for this scope, delete every named
-// cache it made, then hard-reload straight from the network. The next
-// registration (right after reload) starts completely fresh, so there's no
-// stale cache left over to accidentally serve again.
-async function forceUpdate() {
-  const btn = document.getElementById('forceUpdateBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'UPDATING...'; }
-  try {
-    if ('serviceWorker' in navigator) {
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-    if ('caches' in window) {
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-  } catch (e) {
-    // Best-effort — even if unregister/delete partially fails, the
-    // cache-busting reload below still forces a real network fetch of
-    // this page itself, which is the part that actually matters.
-  }
-  location.href = location.pathname + '?fu=' + Date.now(); // cache-busting query string, since a plain reload() can still be served by whatever cache entry survived above
-}
 function toggleDevMore() {
   const p1 = document.getElementById('devMorePanel');
   const p2 = document.getElementById('devMorePanel2');
@@ -17221,6 +17072,37 @@ function setPerformanceMode(on) {
     }
   }
 }
+// RAINBOW ICON (#devMenuBtn) — a plain tap still opens the COLOR MENU
+// (was a plain onclick="showDevMenu()" on the button itself, moved into
+// this gesture handling so a drag can be distinguished from a tap before
+// deciding which one to do). Per direct request: click-and-drag DOWN on
+// the icon exits PERFORMANCE MODE back to normal instead of opening the
+// menu. Pointer events cover mouse and touch in one handler. A genuine
+// downward drag past DRAG_DOWN_PX commits to the exit and suppresses the
+// menu from opening on release; anything under that threshold is treated
+// as a normal tap.
+(function() {
+  const btn = document.getElementById('devMenuBtn');
+  if (!btn) return;
+  const DRAG_DOWN_PX = 30;
+  let downY = null, dragFired = false;
+  btn.addEventListener('pointerdown', e => {
+    downY = e.clientY; dragFired = false;
+    try { btn.setPointerCapture(e.pointerId); } catch (err) {} // without this, pointermove stops firing the instant the cursor/finger leaves this tiny icon's own bounds, which happens almost immediately on a downward drag — capture keeps delivering move events to this element regardless of where the pointer physically is until release
+  });
+  btn.addEventListener('pointermove', e => {
+    if (downY === null || dragFired) return;
+    if (e.clientY - downY > DRAG_DOWN_PX) {
+      dragFired = true;
+      setPerformanceMode(false);
+    }
+  });
+  btn.addEventListener('pointerup', () => {
+    if (!dragFired) showDevMenu();
+    downY = null;
+  });
+  btn.addEventListener('pointercancel', () => { downY = null; dragFired = false; });
+})();
 // MARKER STYLE — two controls drive this same body class now: the pill
 // switch in the COLOR MENU (right under WILD, id="markerStyleToggle" — see
 // its own onchange, which calls this then mirrors the result onto the DEV
