@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 02:01:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 02:05:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1660,7 +1660,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 02:01:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 02:05:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -18343,8 +18343,12 @@ async function hardResetAudioEngine() {
 
     // Continuously sample master output level and duck the sweep inversely.
     // Both how reactive it is and how deep it cuts intensify over the
-    // course of the measure — a mild pump at the start, an extreme,
-    // hair-trigger, near-total-silence-at-peaks pump by the end.
+    // course of the measure — essentially no duck at all right when it's
+    // pressed (depth starts at 0, so targetGain === 1 regardless of how
+    // loud the mix is), building up to a 50% duck at peaks by the time
+    // it's been held a full measure. Per direct request — was 0.95→0.995
+    // (near-total silence at peaks almost immediately), much more
+    // aggressive than "starts low, builds up to half."
     let _lastDuckTarget = 1;
     const measureLen = _sweepPlannedDuration || stepDuration() * 20; // one full bar plus one more quarter note, so it never ends early — matches startSweepTakeover's own duration, decided once at press time
     const duckLoop = () => {
@@ -18358,7 +18362,7 @@ async function hardResetAudioEngine() {
       const rms = Math.sqrt(sumSq / _sweepAnalyserData.length); // 0-1ish
       const progress = Math.min(1, (ctx.currentTime - window._sweepPressStartT) / measureLen);
       const sensitivity = 6.5 + progress * 9;   // 6.5 → 15.5: increasingly hair-trigger
-      const depth = 0.95 + progress * 0.045;    // 0.95 → 0.995: near-total silence at peaks by the end
+      const depth = progress * 0.5;             // 0 → 0.5: mixed really low (no duck) at the start, building to a 50% duck at peaks by the time it's fully held, per direct request
       const duckAmount = Math.min(1, rms * sensitivity);
       const targetGain = 1 - duckAmount * depth;
       // Only restart the ramp when the target actually moves meaningfully —
