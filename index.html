@@ -1490,9 +1490,30 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
    tail segment, breaking what should read as one continuous joined bar
    across every cell the drag covered. Higher specificity than the plain
    .on/.soft rules (extra .legato-start class) so it wins outright. */
+/* SQUARE MODE — the phrase's owner note is drawn as a full accented note
+   (accent-size square, accent opacity, even if the note itself was a soft
+   tap), and only the trailing .legato-tail segments are the top-stuck
+   half-height bar, per direct request. Circle mode has its own
+   higher-specificity rule below that sets its full geometry itself. */
 .step-cell.legato-start.on::after, .step-cell.legato-start.soft::after {
-  left: 3px; right: 0; top: 0; bottom: 50%; height: auto; aspect-ratio: auto; transform: none; border-radius: 0; /* left pulled back 3px — the phrase's own outer (start) edge, per direct request; right stays flush (0) against its own tail. top/bottom matches the tail markers' own top-stuck 50%-height box exactly (see .legato-tail above), so head and tail still read as one continuous shape */
+  left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%);
+  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); border-radius: 0;
+  opacity: var(--note-marker-opacity, 1);
 }
+/* With TIME RULER on: head sits flush on the ruler line like every other
+   square (same centre formula + 0.5px horizontal nudge as the accent rule
+   up top), and the tails are restored to their top-stuck full-width bar —
+   the generic ruler rule (body.time-ruler-on .step-cell::after) out-ranks
+   .step-cell.legato-tail::after, so it was pushing the tails' top down to
+   the marker centre and pulling in their left/right insets, collapsing
+   them into thin lines. */
+body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-start.on::after,
+body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-start.soft::after {
+  top: calc(50% + var(--note-marker-square-inset, 12%));
+  left: calc(var(--note-marker-square-inset, 12%) + 0.5px); right: calc(var(--note-marker-square-inset, 12%) - 0.5px);
+}
+body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-tail::after { top: 0; bottom: 50%; left: 0; right: 0; }
+body.time-ruler-on:not(.note-markers-circle) .step-cell.legato-tail.legato-end::after { right: 3px; }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
    smaller circle. Per direct request, accented notes (.on) get that full
@@ -1729,7 +1750,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2 - 10px);
    the header's own top edge, not affected by either of these, so they
    stay put exactly as asked. */
 body.performance-mode .tape-reels,
-body.performance-mode #topTempoReadout { margin-top: calc(2.0671rem + 24px + 15px) !important; } /* !important needed for #topTempoReadout — its margin-top is also set as an inline style attribute in the HTML, which otherwise wins over any plain stylesheet rule regardless of selector specificity */
+body.performance-mode #topTempoReadout { margin-top: calc(2.0671rem + 24px + 15px - 20px) !important; } /* -20px per direct request — tightens the gap between the main logo/icons and everything below it in PERFORMANCE MODE */ /* !important needed for #topTempoReadout — its margin-top is also set as an inline style attribute in the HTML, which otherwise wins over any plain stylesheet rule regardless of selector specificity */
 body.performance-mode header { padding-bottom: 10px; }
 .slot-btn {
   flex: 1; min-width: 0;
