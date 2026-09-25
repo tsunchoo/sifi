@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 01:44:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 01:51:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1679,7 +1679,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 01:44:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 01:51:24 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1840,8 +1840,6 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
-    <div style="font-size:0.55rem;color:#999;text-align:center;margin-top:-12px;">BUILD 2026-09-25 01:44:01 UTC</div>
-    <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">COLOR</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
       <label class="wild-toggle">
@@ -4852,8 +4850,12 @@ function fireStepAudio(step, t) {
         // (2,6,10,14) and snare/sidestick (3,5,9,11,13) are three fully
         // disjoint sets of steps, so there is nothing left to stack or
         // compensate for.
+        // Sidestick is a real track now (see _applySambaTracksToCurrentPattern
+        // and the samba branch in randAll()'s fixed-pattern dispatch), not a
+        // BEAT-menu synth/sample hit fired from here — only the SNARE 2
+        // variant still plays direct from the beat engine.
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
-        if (bstep === 3 || bstep === 5 || bstep === 9 || bstep === 11 || bstep === 13) { if (_sambaSnareVariant === 'sidestick') playBeatSidestickSample(t); else playBeatSnareSample(t); }
+        if (_sambaSnareVariant !== 'sidestick' && (bstep === 3 || bstep === 5 || bstep === 9 || bstep === 11 || bstep === 13)) playBeatSnareSample(t);
       } else if (_beatType === 'swagger') {
         if (bstep === 15 || bstep === 7) fireBeatKick(t); // single kick leading into each snare — was paired with an "anticipating" kick a few steps later, which doubled up right at the start of the bar
         if (bstep === 4 || bstep === 12) playSnare(t);     // snare lands exactly on 2 & 4
@@ -13701,6 +13703,26 @@ function randAll(mode, opts) {
     _bossaWantsSidestick = true;
   }
 
+  // SAMBA beat type — when its own random 50/50 snare-voice roll landed on
+  // SIDESTICK (see _sambaSnareVariant), that voice is now a real track too,
+  // same reasoning as BOSSA just above. The other roll (SNARE 2) stays
+  // BEAT-menu-only synthesis, so this only fires half the time SAMBA itself
+  // is picked.
+  let _sambaWantsSidestick = false; // resolved to an actual track index AFTER pool sorting below — see _emptyTrackIndices
+  if (_beatType === 'samba' && _sambaSnareVariant === 'sidestick') {
+    const bassKeysLocal6 = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
+    const _alreadyLocked = trackInstruments.some((k, tr) => k === 'sidestick' && trackSweep[tr]);
+    if (!_alreadyLocked && !pool.includes('sidestick')) {
+      let replaceIdx = -1;
+      for (let i = pool.length - 1; i >= 0; i--) {
+        if (!bassKeysLocal6.has(pool[i]) && pool[i] !== 'skick' && pool[i] !== 'shihat') { replaceIdx = i; break; }
+      }
+      if (replaceIdx === -1) replaceIdx = pool.length - 1;
+      pool[replaceIdx] = 'sidestick';
+    }
+    _sambaWantsSidestick = true;
+  }
+
   // Sort pool into fixed visual order: top=hihat, perc, tonal, kick, bass=bottom.
   // BASS now always owns the very bottom slot — per direct request, this
   // overrides every other rule in here, kick included. Kick used to BE the
@@ -13755,6 +13777,15 @@ function randAll(mode, opts) {
     if (_sidestickPoolIdx !== -1) _bossaSidestickTr = _unlockedInOrder[_sidestickPoolIdx];
     else _bossaSidestickTr = trackInstruments.findIndex((k, tr) => k === 'sidestick' && trackSweep[tr]); // already-locked case
   }
+  // SAMBA's sidestick — same resolution as BOSSA's just above, for the same reason.
+  let _sambaSidestickTr = -1;
+  if (_sambaWantsSidestick) {
+    const _unlockedInOrder2 = [];
+    for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlockedInOrder2.push(tr);
+    const _sidestickPoolIdx2 = pool.indexOf('sidestick');
+    if (_sidestickPoolIdx2 !== -1) _sambaSidestickTr = _unlockedInOrder2[_sidestickPoolIdx2];
+    else _sambaSidestickTr = trackInstruments.findIndex((k, tr) => k === 'sidestick' && trackSweep[tr]); // already-locked case
+  }
 
   // The INTENSITY SLIDER (not the random 0-4 'level' above — a different
   // axis) is the only thing allowed to leave tracks silent, and only
@@ -13771,7 +13802,7 @@ function randAll(mode, opts) {
     const _emptyNeeded = Math.floor(Math.random() * 4) + _poolShortfall; // 0-3 empty tracks — can go as low as 3 active
     if (_emptyNeeded > 0) {
       const _emptyCandidates = [];
-      for (let tr = 1; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && tr !== _bossaSidestickTr) _emptyCandidates.push(tr); // BOSSA's sidestick track must never be silenced — see above
+      for (let tr = 1; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && tr !== _bossaSidestickTr && tr !== _sambaSidestickTr) _emptyCandidates.push(tr); // BOSSA/SAMBA's sidestick track must never be silenced — see above
       for (let i = 0; i < _emptyNeeded && _emptyCandidates.length > 0; i++) {
         const idx = Math.floor(Math.random() * _emptyCandidates.length);
         _emptyTrackIndices.add(_emptyCandidates[idx]);
@@ -13877,7 +13908,8 @@ function randAll(mode, opts) {
       (_beatType === 'disco' && k === 'shihat') ||
       (_beatType === 'jazz' && (k === 'ride' || k === 'sidestick' || k === 'ssnare')) ||
       (_beatType === 'mozambique' && (k === 'ride' || k === 'sidestick' || k === 'toms')) ||
-      (_beatType === 'bossa' && k === 'sidestick')
+      (_beatType === 'bossa' && k === 'sidestick') ||
+      (_beatType === 'samba' && k === 'sidestick')
     );
     const _maxForThisTrack = Math.min(NUM_STEPS, Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft))));
     if (!_hasFixedBeatPattern) _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
@@ -13956,6 +13988,15 @@ function randAll(mode, opts) {
         // comment for why.
         grid[_tr].fill(0);
         grid[_tr][1] = 2; grid[_tr][2] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2;
+        redrawTrackCells(_tr); markModified();
+      } else if (_beatType === 'samba' && trackInstruments[_tr] === 'sidestick') {
+        // Fixed pattern (3,5,9,11,13) — the exact same steps the beat
+        // engine's own fixed dispatch used to fire this voice from
+        // directly, now written into a real track instead. No step-shift
+        // needed the way BOSSA's clave needed one — SAMBA's kick (0,4,8,12)
+        // and hihat (2,6,10,14) never touch these steps at all.
+        grid[_tr].fill(0);
+        grid[_tr][3] = 2; grid[_tr][5] = 2; grid[_tr][9] = 2; grid[_tr][11] = 2; grid[_tr][13] = 2;
         redrawTrackCells(_tr); markModified();
       } else {
         randomizeTrack(_tr);
@@ -19088,6 +19129,7 @@ function setBeatType(type) {
   const _wasDisco = _beatType === 'disco';
   const _wasMozambique = _beatType === 'mozambique';
   const _wasBossa = _beatType === 'bossa';
+  const _wasSamba = _beatType === 'samba';
   _beatType = type;
   // Every beat type now uses the one lower-pitched/mid-EQ DMX-style snare
   // (playDmxSnareLow) consistently — the old fresh-50/50-per-selection
@@ -19123,6 +19165,11 @@ function setBeatType(type) {
   // BOSSA gets its SIDE STICK track the same way, the moment it's
   // actually picked, not just on the next RAND.
   if (type === 'bossa' && !_wasBossa) _applyBossaTracksToCurrentPattern();
+  // SAMBA gets a real SIDE STICK track too, the moment it's picked — but
+  // only when the fresh 50/50 snare-voice roll just above landed on
+  // SIDESTICK; the SNARE 2 variant stays BEAT-menu-only synthesis, same as
+  // it always has.
+  if (type === 'samba' && !_wasSamba) _applySambaTracksToCurrentPattern();
 }
 // Forces RIDE and SIDESTICK onto 2 of the current pattern's tracks,
 // overwriting whichever percussion tracks it can use — skips locked (L)
@@ -19428,6 +19475,50 @@ function _applyBossaTracksToCurrentPattern() {
   // pattern coincides with a kick hit; 6/10/13 only ever land alongside the
   // much quieter synth hihat foot-close, left as-is.
   grid[targetTr][1] = 2; grid[targetTr][2] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2;
+  redrawTrackCells(targetTr);
+  _dedupeBeatOwnedTracks(['sidestick']);
+  markModified();
+}
+// Same idea again, for SAMBA's sidestick voice — used to be fired straight
+// from the beat engine off a fixed sample-playback function
+// (playBeatSidestickSample), same as SNARE 2 still is; that bypassed the
+// normal per-track pipeline entirely (no reverb bus, no fader, no pan —
+// direct to the beat bus) and was the actual source of the reported glitch.
+// Now, whenever the 50/50 snare-voice roll (_sambaSnareVariant, re-rolled
+// fresh every time SAMBA is selected) lands on SIDESTICK, it becomes a real
+// track instead, going through the exact same instrument pipeline every
+// other SIDESTICK hit anywhere in the app already uses. The SNARE 2 variant
+// is untouched — still BEAT-menu-only synthesis, since only sidestick was
+// ever reported as glitchy.
+function _applySambaTracksToCurrentPattern() {
+  if (_sambaSnareVariant !== 'sidestick') return;
+  const _existingSidestickTr = trackInstruments.findIndex(k => k === 'sidestick');
+  const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo', 'ride', 'toms', 'ssnare']);
+  const _unlocked = [];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
+  if (_unlocked.length < 1) return; // nothing safe to overwrite
+  let targetTr = (_existingSidestickTr !== -1 && !trackSweep[_existingSidestickTr]) ? _existingSidestickTr : -1;
+  if (targetTr === -1) {
+    const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
+    targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
+  }
+  trackInstruments[targetTr] = 'sidestick';
+  trackMuted[targetTr] = false; updateTrackMute(targetTr); // a beat type's own fixed tracks must always be audible when they're forced in, not silently sitting muted from before
+  trackOffset[targetTr] = 0; // any leftover per-track shift would misalign this fixed pattern against the beat engine's own kick
+  if (autoShiftStops[targetTr]) autoShiftStops[targetTr](); // fixed pattern — must never be left in auto-random mode from whatever instrument the track held before, or it'd get overwritten every bar
+  const tb = document.getElementById(`tbtn-${targetTr}`); if (tb) tb.textContent = INSTRUMENTS['sidestick']?.name || 'SIDE STICK';
+  setTrackNameColor(targetTr, 'sidestick');
+  _setTrackReverb(targetTr, false);
+  const db = document.getElementById(`delaybtn-${targetTr}`); if (db) db.classList.toggle('on', false);
+  trackFx[targetTr] = { x: 0, y: 0 };
+  trackPump[targetTr] = false;
+  if (ctx) setFxActive(targetTr, trackFx[targetTr]);
+  const fb = document.getElementById(`fxbtn-${targetTr}`); if (fb) { fb.classList.remove('on'); fb.classList.remove('blast-on'); }
+  grid[targetTr].fill(0);
+  // Same 5 steps (3,5,9,11,13) the beat engine's own fixed dispatch used to
+  // fire this voice from directly — no step-shift needed, unlike BOSSA's
+  // clave: SAMBA's kick (0,4,8,12) and hihat (2,6,10,14) never touch these.
+  grid[targetTr][3] = 2; grid[targetTr][5] = 2; grid[targetTr][9] = 2; grid[targetTr][11] = 2; grid[targetTr][13] = 2;
   redrawTrackCells(targetTr);
   _dedupeBeatOwnedTracks(['sidestick']);
   markModified();
