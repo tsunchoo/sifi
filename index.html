@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 05:52:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 06:01:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -902,6 +902,7 @@ body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-c
   align-self: center; /* stays vertically centered in the row */
 }
 body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) — re-added to the UI, on by default (matching how it's been sitting) */
+body.performance-mode .track-vol-bar { flex: 0 0 6px; width: 6px; } /* PERFORMANCE MODE — per direct request, the vol slider shrinks to a thin 6px strip instead of filling the row (flex:1 above); flex-basis + flex-grow:0 override that fill behavior, width:6px as a plain fallback/belt-and-braces */
 /* Ruler behind the fill — one horizontal line straight through the
    middle, crossed by 10 evenly-spaced vertical ticks. Two background
    layers on one element rather than a separate line + 10 separate tick
@@ -1674,7 +1675,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:52:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:01:44 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17104,47 +17105,29 @@ function setPerformanceMode(on) {
   // regardless of where the finger physically is, with no capture concept
   // needed), and plain mouse events + temporary document-level listeners
   // for desktop mouse (so movement past the tiny icon's own bounds is
-  // still tracked, again with nothing needing to be "released"). Simpler,
-  // and removes the entire class of bug the pointer-capture version could
-  // have been hitting.
+  // still tracked, again with nothing needing to be "released"). Confirmed
+  // fixed on a real iPhone/Safari device (repeatable, not just once) via a
+  // temporary on-screen debug readout that traced the gesture live — since
+  // removed now that it's confirmed working.
   let touchJustHandled = 0;
-
-  // TEMPORARY DIAGNOSTIC — a tiny on-screen readout of exactly what this
-  // gesture sees, so a real-device report can say what the numbers were
-  // instead of just "still doesn't work". Remove once the real-device bug
-  // is actually found; harmless to leave visible in the meantime.
-  const _dbg = document.createElement('div');
-  _dbg.id = 'rainbowDragDebug';
-  _dbg.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;border-radius:4px;max-width:70vw;white-space:pre-wrap;pointer-events:none;';
-  _dbg.textContent = 'drag-debug: waiting for touch on rainbow icon...';
-  document.body.appendChild(_dbg);
-  function _dbgLog(msg) { _dbg.textContent = msg; }
-
   btn.addEventListener('touchstart', e => {
     downY = e.touches[0].clientY; dragFired = false; touchJustHandled = Date.now();
     e.preventDefault();
-    _dbgLog(`touchstart y=${downY.toFixed(0)} touches=${e.touches.length}`);
   }, { passive: false });
   btn.addEventListener('touchmove', e => {
-    const y = e.touches[0].clientY;
-    const delta = downY === null ? NaN : (y - downY);
-    _dbgLog(`touchmove y=${y.toFixed(0)} delta=${delta.toFixed ? delta.toFixed(0) : delta} fired=${dragFired} downYnull=${downY === null}`);
     if (downY === null || dragFired) return;
     e.preventDefault();
-    if (y - downY > DRAG_DOWN_PX) {
+    if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
       dragFired = true;
-      _dbgLog(`>>> THRESHOLD HIT — calling setPerformanceMode(false), was on=${document.body.classList.contains('performance-mode')}`);
       setPerformanceMode(false);
-      _dbgLog(`>>> setPerformanceMode(false) done, now on=${document.body.classList.contains('performance-mode')}`);
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault(); // also kills the trailing synthetic compatibility 'click' some browsers fire a few ms after touchend — see the long-form explanation this comment used to carry: without this, that synthetic click can land on the COLOR MENU overlay (already open by then) instead of this button, and the overlay's own "click outside closes it" handler slams it shut again instantly
-    _dbgLog(`touchend dragFired=${dragFired} -> ${dragFired ? 'suppressing menu' : 'opening menu (tap)'}`);
     if (!dragFired) showDevMenu();
     reset();
   }, { passive: false });
-  btn.addEventListener('touchcancel', () => { _dbgLog('touchcancel — gesture aborted by the browser'); reset(); });
+  btn.addEventListener('touchcancel', reset);
 
   // Desktop mouse path — skipped if a touch on this button was just
   // handled (some browsers still fire a trailing synthetic mousedown even
