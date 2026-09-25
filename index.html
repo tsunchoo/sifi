@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 06:55:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 07:06:02 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 06:55:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 07:06:02 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7906,7 +7906,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1; // -2.5dB when BLAST is on this track, same convention as UNDERPASS
-  const levelAtten = 0.4467; // -7dB overall now (-5dB, then another -2dB), per direct request
+  const levelAtten = 0.3163; // -10dB overall now (-7dB, then another -3dB), per direct request — "still too loud"
   const peakVol = (isAccent ? 0.4207 : 0.3029) * blastAtten * levelAtten;
   const sustain = Math.max(durSec || 0.35, 0.35); // the actual held length — this is the legato-friendliness fix; UNDERPASS ignores durSec entirely
   const release = 0.45; // tail after sustain ends
@@ -7936,6 +7936,20 @@ function playClung(freq, durSec, isAccent, time, tr) {
   driftLfo.connect(driftGain);
   driftLfo.start(time); driftLfo.stop(stopAt);
 
+  // Constant warble, per direct request: the pitch continuously swings up
+  // to a major 6th (9 semitones = 900 cents) above the root and back, for
+  // the note's ENTIRE length — not tied to sustain/legato like the sweep
+  // filter below, always running. A sine LFO on detune centered at +450
+  // cents with ±450 cents depth traces 0 -> 900 -> 0 cents continuously,
+  // i.e. warbling between the root note and the note a 6th above it.
+  const warbleLfo = ctx.createOscillator(); warbleLfo.type = 'sine';
+  warbleLfo.frequency.value = 5.4 + Math.random() * 1.6; // ~5.4-7Hz, trill-like, constant regardless of note length
+  const warbleGain = ctx.createGain(); warbleGain.gain.value = 450; // cents depth (± around the 450-cent center)
+  const warbleOffset = ctx.createConstantSource(); warbleOffset.offset.value = 450; // cents center — biases the swing up into [0,900]
+  warbleLfo.connect(warbleGain);
+  warbleLfo.start(time); warbleLfo.stop(stopAt);
+  warbleOffset.start(time); warbleOffset.stop(stopAt);
+
   [
     { ratio: 1, amp: peakVol },
     { ratio: 3, amp: peakVol * 0.32 },
@@ -7945,6 +7959,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
     osc.frequency.value = freq * p.ratio;
     osc.detune.value = detune;
     driftGain.connect(osc.detune); // the slow evolving pitch wobble, on top of the fixed hit-to-hit detune above
+    warbleGain.connect(osc.detune); warbleOffset.connect(osc.detune); // the constant root<->6th-above warble
     const g = ctx.createGain(); g.gain.value = p.amp;
     osc.connect(g); g.connect(bodyMix);
     osc.start(time); osc.stop(stopAt);
@@ -7955,8 +7970,8 @@ function playClung(freq, durSec, isAccent, time, tr) {
   // length (same idiom as STRINGS+'s _playDronePhantomNote), tied to
   // sustain so a short CLUNG barely moves and a held/legato one audibly
   // opens and closes in tone across its whole ring.
-  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 0.7;
-  filter.frequency.value = freq * 5;
+  const filter = ctx.createBiquadFilter(); filter.type = 'lowpass'; filter.Q.value = 3.2; // more resonant per direct request — reads clearly as a filtered tone, not just a tone-color EQ
+  filter.frequency.value = freq * 4;
   const sweepLfo = ctx.createOscillator(); sweepLfo.type = 'sine';
   sweepLfo.frequency.value = Math.max(0.1, 1 / (sustain * (1.3 + Math.random() * 0.5)));
   const sweepDepth = ctx.createGain(); sweepDepth.gain.value = freq * 2.2;
@@ -7969,7 +7984,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   // to the tone (more odd-order harmonic content on top of the 1/3/5
   // partials above, i.e. more "timbre") rather than reading as obvious
   // distortion.
-  const grit = ctx.createWaveShaper(); grit.oversample = '2x'; grit.curve = makeDistCurve(0.14);
+  const grit = ctx.createWaveShaper(); grit.oversample = '2x'; grit.curve = makeDistCurve(0.26); // more timbre/grain, per direct request — was 0.14
   bodyMix.connect(grit);
 
   // Hollow character — a short feedforward comb: the (now gritty) body
@@ -7984,7 +7999,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
   // "a LITTLE hollow part", not a full flange.
   const hollowDelay = ctx.createDelay(0.02);
   hollowDelay.delayTime.value = Math.min(0.006, Math.max(0.0004, 1 / (freq * 3)));
-  const hollowInvert = ctx.createGain(); hollowInvert.gain.value = -0.35;
+  const hollowInvert = ctx.createGain(); hollowInvert.gain.value = -0.55; // hollowed out further per direct request — was -0.35
   grit.connect(hollowDelay); hollowDelay.connect(hollowInvert); hollowInvert.connect(filter);
 
   const env = ctx.createGain();
@@ -8003,8 +8018,8 @@ function playClung(freq, durSec, isAccent, time, tr) {
   // of the material itself rather than just the strike. Reuses the same
   // cached noise buffer STRINGS/STRINGS+'s air layer uses.
   const grainNoise = ctx.createBufferSource(); grainNoise.buffer = _getDroneAirNoiseBuffer(); grainNoise.loop = true;
-  const grainBP = ctx.createBiquadFilter(); grainBP.type = 'bandpass'; grainBP.frequency.value = freq * 2.5; grainBP.Q.value = 1.4;
-  const grainGain = ctx.createGain(); grainGain.gain.value = 0.05;
+  const grainBP = ctx.createBiquadFilter(); grainBP.type = 'bandpass'; grainBP.frequency.value = freq * 3.2; grainBP.Q.value = 2.6; // narrower/higher, more "grain", per direct request
+  const grainGain = ctx.createGain(); grainGain.gain.value = 0.09; // was 0.05
   grainNoise.connect(grainBP); grainBP.connect(grainGain); grainGain.connect(env);
   grainNoise.start(time); grainNoise.stop(stopAt);
   grainNoise.onended = () => { try { grainBP.disconnect(); grainGain.disconnect(); } catch(e) {} };
@@ -8014,6 +8029,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
     try {
       bodyMix.disconnect(); filter.disconnect(); env.disconnect(); sweepDepth.disconnect(); driftGain.disconnect();
       grit.disconnect(); hollowDelay.disconnect(); hollowInvert.disconnect();
+      warbleGain.disconnect(); warbleOffset.disconnect();
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
   }, cleanupMs);
