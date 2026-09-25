@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 02:05:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 02:52:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1660,7 +1660,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 02:05:03 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 02:52:24 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1821,6 +1821,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
+    <button id="forceUpdateBtn" class="rec-mode-btn" onclick="forceUpdate()" style="margin-top:-4px;">FORCE UPDATE</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
       <label class="wild-toggle">
@@ -16861,6 +16862,34 @@ function hideDevMenu() {
   const el = document.getElementById('devMenuOverlay');
   if (el) el.style.display = 'none';
 }
+// FORCE UPDATE (COLOR MENU button) — the service worker (sw.js) normally
+// serves cache-first with a background network update, so a fresh deploy
+// only actually shows up on the LAUNCH AFTER this one (the update lands in
+// the cache silently in the background, but the page already loaded is
+// still the old cached copy). This button skips that whole lag: unregister
+// every service worker registration for this scope, delete every named
+// cache it made, then hard-reload straight from the network. The next
+// registration (right after reload) starts completely fresh, so there's no
+// stale cache left over to accidentally serve again.
+async function forceUpdate() {
+  const btn = document.getElementById('forceUpdateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'UPDATING...'; }
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch (e) {
+    // Best-effort — even if unregister/delete partially fails, the
+    // cache-busting reload below still forces a real network fetch of
+    // this page itself, which is the part that actually matters.
+  }
+  location.href = location.pathname + '?fu=' + Date.now(); // cache-busting query string, since a plain reload() can still be served by whatever cache entry survived above
+}
 function toggleDevMore() {
   const p1 = document.getElementById('devMorePanel');
   const p2 = document.getElementById('devMorePanel2');
@@ -18294,21 +18323,15 @@ async function hardResetAudioEngine() {
     return Math.max(0.05, barStartTime - ctx.currentTime); // floor so a press landing right on the boundary itself still gets a real (if brief) run instead of ~0s
   }
 
-  // Sidechain analyser on master output — reads current mix level to duck the sweep
-  let _sweepAnalyser = null, _sweepAnalyserData = null, _sweepDuckLoop = null;
-  function ensureSweepAnalyser() {
-    if (_sweepAnalyser || !ctx || !masterGain) return;
-    _sweepAnalyser = ctx.createAnalyser();
-    _sweepAnalyser.fftSize = 256;
-    _sweepAnalyser.smoothingTimeConstant = 0.85; // calmer RMS readings — less frame-to-frame jitter feeding the duck
-    masterGain.connect(_sweepAnalyser);
-    _sweepAnalyserData = new Uint8Array(_sweepAnalyser.frequencyBinCount);
-  }
-
+  // SWEEP's own RMS-driven sidechain duck (analyser reading the master mix
+  // level and pulling SWEEP's gain down inversely) removed per direct
+  // request — it was producing an ugly, abrupt jump in volume. SWEEP still
+  // rides along with the rest of the mix's normal kick-triggered sidechain
+  // duck (see the masterGain routing below), just not this second,
+  // SWEEP-specific one on top of it.
   function startSweep() {
     if (!ctx || sweepNodes) return;
     ctx.resume();
-    ensureSweepAnalyser();
     window._sweepStartMs = Date.now();
     const bufDur = 12; // generous buffer length so long holds never run out
     const riseDur = _sweepPlannedDuration || stepDuration() * 4; // now spans the whole run (decided once at press time in beginPress) instead of a fixed quarter note — pitch reaches its peak exactly at the next downbeat, in sync with the gain takeover below, instead of maxing out early and then just sitting there
@@ -18324,75 +18347,30 @@ async function hardResetAudioEngine() {
     // below), not an automatic time-based rise.
     bp.frequency.setValueAtTime(SWEEP_FLOOR_FREQ, t);
 
-    // baseGain holds the "intended" envelope level; duckGain applies sidechain ducking on top
+    // baseGain holds the "intended" envelope level — no separate duckGain
+    // stage any more, see the removal note above.
     const baseGain = ctx.createGain();
     const attackDur = stepDuration() * 4; // fades in from silence over a quarter note, instead of snapping on
     baseGain.gain.setValueAtTime(0, t);
     baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL, t + attackDur);
-    const duckGain = ctx.createGain();
-    duckGain.gain.value = 1;
-    window._sweepPressStartT = t; // pump intensity ramps up relative to this, over the same measure as the crossfade
+    window._sweepPressStartT = t; // still used for reference elsewhere
 
     // Back through masterGain (and its kick-triggered sidechain duck stage),
-    // not straight to the limiter — reintroducing the full mix-reactive
-    // modulation on top of SWEEP's own ducking below.
-    noise.connect(bp); bp.connect(baseGain); baseGain.connect(duckGain); duckGain.connect(masterGain);
+    // not straight to the limiter — SWEEP still rides that duck along with
+    // everything else.
+    noise.connect(bp); bp.connect(baseGain); baseGain.connect(masterGain);
     noise.start(t);
-    sweepNodes = { noise, bp, gain: baseGain, duckGain };
+    sweepNodes = { noise, bp, gain: baseGain };
     btn.classList.add('active');
-
-    // Continuously sample master output level and duck the sweep inversely.
-    // Both how reactive it is and how deep it cuts intensify over the
-    // course of the measure — essentially no duck at all right when it's
-    // pressed (depth starts at 0, so targetGain === 1 regardless of how
-    // loud the mix is), building up to a 50% duck at peaks by the time
-    // it's been held a full measure. Per direct request — was 0.95→0.995
-    // (near-total silence at peaks almost immediately), much more
-    // aggressive than "starts low, builds up to half."
-    let _lastDuckTarget = 1;
-    const measureLen = _sweepPlannedDuration || stepDuration() * 20; // one full bar plus one more quarter note, so it never ends early — matches startSweepTakeover's own duration, decided once at press time
-    const duckLoop = () => {
-      if (!sweepNodes || !_sweepAnalyser) return;
-      _sweepAnalyser.getByteTimeDomainData(_sweepAnalyserData);
-      let sumSq = 0;
-      for (let i = 0; i < _sweepAnalyserData.length; i++) {
-        const v = (_sweepAnalyserData[i] - 128) / 128;
-        sumSq += v * v;
-      }
-      const rms = Math.sqrt(sumSq / _sweepAnalyserData.length); // 0-1ish
-      const progress = Math.min(1, (ctx.currentTime - window._sweepPressStartT) / measureLen);
-      const sensitivity = 6.5 + progress * 9;   // 6.5 → 15.5: increasingly hair-trigger
-      const depth = progress * 0.5;             // 0 → 0.5: mixed really low (no duck) at the start, building to a 50% duck at peaks by the time it's fully held, per direct request
-      const duckAmount = Math.min(1, rms * sensitivity);
-      const targetGain = 1 - duckAmount * depth;
-      // Only restart the ramp when the target actually moves meaningfully —
-      // re-issuing setTargetAtTime every frame for near-identical values is
-      // what caused the stutter/zipper artifact, since each call cuts off
-      // the in-flight ramp and begins a new one.
-      if (Math.abs(targetGain - _lastDuckTarget) > 0.03) {
-        duckGain.gain.setTargetAtTime(targetGain, ctx.currentTime, 0.045);
-        _lastDuckTarget = targetGain;
-      }
-      _sweepDuckLoop = requestAnimationFrame(duckLoop);
-    };
-    duckLoop();
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise, duckGain } = sweepNodes;
+    const { bp, gain, noise } = sweepNodes;
     sweepNodes = null;
-    if (_sweepDuckLoop) cancelAnimationFrame(_sweepDuckLoop); _sweepDuckLoop = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
     const quarterNote = stepDuration() * 4 * (window._sweepDecayMult !== undefined ? window._sweepDecayMult : 1); // fade-out length — longer now so it stays a bit before fading. Multiplier is the SWEEP DECAY SPEED slider (SETTINGS) — 1 = this original length, 2 = twice as slow, 0 = instant
-    // Ramp duckGain back to 1 smoothly rather than snapping it instantly —
-    // an instant jump from wherever it was (potentially deep in a duck dip,
-    // near-silent) straight up to 1, at the same moment the boosted presence
-    // level is still high, was creating a loud, abrupt transient spike.
-    duckGain.gain.cancelScheduledValues(t);
-    duckGain.gain.setValueAtTime(duckGain.gain.value, t);
-    duckGain.gain.linearRampToValueAtTime(1, t + 0.08);
     bp.frequency.cancelScheduledValues(t);
     bp.frequency.exponentialRampToValueAtTime(200, t + quarterNote);
     gain.gain.cancelScheduledValues(t);
