@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 05:46:34 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 05:52:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:46:34 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:52:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17108,24 +17108,43 @@ function setPerformanceMode(on) {
   // and removes the entire class of bug the pointer-capture version could
   // have been hitting.
   let touchJustHandled = 0;
+
+  // TEMPORARY DIAGNOSTIC — a tiny on-screen readout of exactly what this
+  // gesture sees, so a real-device report can say what the numbers were
+  // instead of just "still doesn't work". Remove once the real-device bug
+  // is actually found; harmless to leave visible in the meantime.
+  const _dbg = document.createElement('div');
+  _dbg.id = 'rainbowDragDebug';
+  _dbg.style.cssText = 'position:fixed;left:6px;bottom:6px;z-index:99999;background:rgba(0,0,0,0.85);color:#0f0;font:10px/1.4 monospace;padding:6px 8px;border-radius:4px;max-width:70vw;white-space:pre-wrap;pointer-events:none;';
+  _dbg.textContent = 'drag-debug: waiting for touch on rainbow icon...';
+  document.body.appendChild(_dbg);
+  function _dbgLog(msg) { _dbg.textContent = msg; }
+
   btn.addEventListener('touchstart', e => {
     downY = e.touches[0].clientY; dragFired = false; touchJustHandled = Date.now();
     e.preventDefault();
+    _dbgLog(`touchstart y=${downY.toFixed(0)} touches=${e.touches.length}`);
   }, { passive: false });
   btn.addEventListener('touchmove', e => {
+    const y = e.touches[0].clientY;
+    const delta = downY === null ? NaN : (y - downY);
+    _dbgLog(`touchmove y=${y.toFixed(0)} delta=${delta.toFixed ? delta.toFixed(0) : delta} fired=${dragFired} downYnull=${downY === null}`);
     if (downY === null || dragFired) return;
     e.preventDefault();
-    if (e.touches[0].clientY - downY > DRAG_DOWN_PX) {
+    if (y - downY > DRAG_DOWN_PX) {
       dragFired = true;
+      _dbgLog(`>>> THRESHOLD HIT — calling setPerformanceMode(false), was on=${document.body.classList.contains('performance-mode')}`);
       setPerformanceMode(false);
+      _dbgLog(`>>> setPerformanceMode(false) done, now on=${document.body.classList.contains('performance-mode')}`);
     }
   }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault(); // also kills the trailing synthetic compatibility 'click' some browsers fire a few ms after touchend — see the long-form explanation this comment used to carry: without this, that synthetic click can land on the COLOR MENU overlay (already open by then) instead of this button, and the overlay's own "click outside closes it" handler slams it shut again instantly
+    _dbgLog(`touchend dragFired=${dragFired} -> ${dragFired ? 'suppressing menu' : 'opening menu (tap)'}`);
     if (!dragFired) showDevMenu();
     reset();
   }, { passive: false });
-  btn.addEventListener('touchcancel', reset);
+  btn.addEventListener('touchcancel', () => { _dbgLog('touchcancel — gesture aborted by the browser'); reset(); });
 
   // Desktop mouse path — skipped if a touch on this button was just
   // handled (some browsers still fire a trailing synthetic mousedown even
