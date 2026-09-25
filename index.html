@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 05:09:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 05:17:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1674,7 +1674,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:09:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 05:17:25 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9728,7 +9728,7 @@ function buildUI() {
     // Name button (click=mute, hold=sound picker) — now first in the row
     const nameBtn = document.createElement('button'); nameBtn.className = 'track-name-btn'; nameBtn.id = `tbtn-${tr}`;
     nameBtn.dataset.tr = tr;
-    nameBtn.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'EMPTY';
+    nameBtn.textContent = INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1); // always the instrument name now, even with zero notes on the track — the EMPTY label is gone per direct request
     setTrackNameColor(tr, trackInstruments[tr]);
     nameBtn.classList.toggle('muted', trackMuted[tr]);
     ctrlRow.appendChild(nameBtn);
@@ -10131,14 +10131,10 @@ function redrawTrackCells(tr, skipReorder) {
   const hasNotes = grid[tr].some(v => v > 0);
   if (tbtn) {
     tbtn.classList.toggle('has-notes', hasNotes);
-    // BUGFIX: this used to always show the instrument name regardless of
-    // hasNotes, despite the comment's own stated intent — every other
-    // place that sets this label (track creation, updateTrackMute, the
-    // RAND-emptied-track path) shows 'EMPTY' for a note-free track
-    // instead, so this was the one inconsistent spot, recomputed from
-    // trackInstruments each time so it comes back correctly the moment
-    // notes are added again.
-    tbtn.textContent = hasNotes ? (INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1)) : 'EMPTY';
+    // Always shows the instrument name now, note-free or not — the EMPTY
+    // label was removed per direct request; recomputed from
+    // trackInstruments each time so it stays correct as notes come and go.
+    tbtn.textContent = INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1);
   }
   // skipReorder: used mid-drag (see _applyDragStep) so the track being
   // actively dragged on doesn't relocate out from under the finger the
@@ -12820,7 +12816,7 @@ function fullClear() {
     }
     const tb = document.getElementById(`tbtn-${tr}`);
     _trackInstrumentTouched[tr] = false; // back to pristine, matching the fresh grid[tr].fill(0) above — same reasoning as fullReset()
-    if (tb) { tb.textContent = 'EMPTY'; tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
+    if (tb) { tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name ?? (tr + 1); tb.classList.remove('muted','has-notes','shifting'); setTrackNameColor(tr, trackInstruments[tr]); }
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.remove('on');
     const sb = document.getElementById(`swpbtn-${tr}`);
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.remove('sweep-on'); }
@@ -13701,8 +13697,9 @@ function randAll(mode, opts) {
       // _updateEmptyTrackVisuals() below (which drives the dimmed/hidden
       // .track-empty look and the bottom-of-list sort) can't tell this
       // apart from a genuinely untouched track, and greys it out exactly
-      // the same way. It should just read EMPTY in the name button (which
-      // it already does, off the empty grid) and otherwise look normal.
+      // the same way. It should just show its instrument name normally in
+      // the name button (the EMPTY label was removed) and otherwise look
+      // normal.
       _trackInstrumentTouched[tr] = true;
       setTrackNameColor(tr, kEmpty);
       grid[tr].fill(0);
@@ -14614,7 +14611,7 @@ function restoreState(snap, opts) {
     if (sb) { sb.innerHTML = LOCK_ICON_SVG; sb.classList.toggle('sweep-on', !!trackSweep[tr]); }
     const tb=document.getElementById(`tbtn-${tr}`);
     if(tb) {
-      tb.textContent = grid[tr].some(v => v > 0) ? (INSTRUMENTS[trackInstruments[tr]]?.name||(tr+1)) : 'EMPTY';
+      tb.textContent = INSTRUMENTS[trackInstruments[tr]]?.name || (tr+1);
       tb.classList.toggle('muted', trackMuted[tr]);
       setTrackNameColor(tr, trackInstruments[tr]);
     }
