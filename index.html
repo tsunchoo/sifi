@@ -1157,6 +1157,13 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
   border: none;
   border-bottom: 3px solid var(--track-line-color, transparent);
   overflow: visible;
+  /* Squared-off ruler corner, per direct request: the step-0 tick sits at
+     left:-1px (3px wide), so it started 1px left of where this border
+     began, leaving a notch at the bottom-left. Pulling the lane's box 1px
+     left and padding it back 1px extends the border under the tick
+     without moving any cells, and without overlapping two translucent
+     layers (which would show a darker spot at the corner). */
+  margin-left: -1px; padding-left: 1px;
 }
 .step-lane-cells {
   display: grid; grid-template-columns: repeat(16, 1fr);
@@ -1236,6 +1243,16 @@ body.time-ruler-on .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32
 body.time-ruler-on.note-markers-circle .step-cell.on::after { left: calc(var(--note-marker-circle-inset, 12%) + 0.5px); right: calc(var(--note-marker-circle-inset, 12%) - 0.5px); }
 body.time-ruler-on.note-markers-circle .step-cell.soft::after { left: calc(var(--marker-soft-inset-circle, 27.2%) + 0.5px); right: calc(var(--marker-soft-inset-circle, 27.2%) - 0.5px); }
 body.time-ruler-on.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { left: calc(var(--marker-empty-inset-circle, 42.4%) + 0.5px); right: calc(var(--marker-empty-inset-circle, 42.4%) - 0.5px); }
+/* SQUARE MODE — markers sit flush on the ruler's horizontal line (no light
+   gap underneath), per direct request. Cells are square (aspect-ratio 1),
+   so a marker with inset I is (100% - 2I) tall; with translateY(-50%) its
+   bottom lands exactly on the cell's bottom edge (= top of the lane's
+   ruler border) when its center is at 100% - (100% - 2I)/2 = 50% + I.
+   Each tier uses its own inset so every square size sits on the line.
+   Circle mode keeps its shared-center positioning above untouched. */
+body.time-ruler-on:not(.note-markers-circle) .step-cell.on:not(.legato-start)::after, body.time-ruler-on:not(.note-markers-circle) .step-cell.split32::after { top: calc(50% + var(--note-marker-square-inset, 12%)); }
+body.time-ruler-on:not(.note-markers-circle) .step-cell.soft:not(.legato-start)::after { top: calc(50% + var(--marker-soft-inset, 19.6%)); }
+body.time-ruler-on:not(.note-markers-circle) .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { top: calc(50% + var(--marker-empty-inset, 42.4%)); }
 /* CIRCLE MODE LEGATO — the phrase bar (.legato-tail / the owning
    .legato-start) was deliberately left out of the repositioning above
    (it's a different shape with its own edge-flush rules), but that
