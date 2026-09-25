@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 04:20:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 04:28:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1345,26 +1345,31 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
   background: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%);
   opacity: var(--note-marker-opacity, 1); /* was hardcoded to 1, unlike .on which uses this variable (0.9) — split32 sat visibly more opaque than an accented note despite representing the same accent-level hit */
 }
-/* TRAIL — the note directly after the playhead, at half size and half
-   opacity of PLAY FLASH's own color, so a faint "echo" of what's about to
-   hit trails just ahead of the sweep. Square/rect mode: */
-.step-cell.on.trail-next::after,
-.step-cell.soft.trail-next::after,
-.step-cell.legato-tail.trail-next::after {
+/* TRAIL — the note directly after the playhead, at a fraction of the size
+   and opacity of PLAY FLASH's own color, so a faint "echo" of what's
+   about to hit trails just ahead of the sweep. --trail-scale/--trail-
+   opacity-mult are driven by the NOTE TRAIL toggle + intensity slider
+   (COLOR MENU) — fallback here (0.5/0.5, i.e. "half size, half opacity")
+   only matters before that slider's own init call runs once at startup.
+   Gated on body.note-trail-enabled so the toggle can switch it off
+   entirely, not just turn intensity down to zero. Square/rect mode: */
+body.note-trail-enabled .step-cell.on.trail-next::after,
+body.note-trail-enabled .step-cell.soft.trail-next::after,
+body.note-trail-enabled .step-cell.legato-tail.trail-next::after {
   background: var(--play-flash-color, #f8ff00);
-  opacity: calc(var(--note-marker-opacity, 1) * 0.5);
-  transform: translateY(-50%) scale(0.5);
+  opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 0.5));
+  transform: translateY(-50%) scale(var(--trail-scale, 0.5));
 }
 /* Circle mode — higher specificity than the base circle .on/.soft/
-   .legato-tail opacity rules above (extra .trail-next class), so this
-   wins outright without !important. */
-body.note-markers-circle .step-cell.on.trail-next::after,
-body.note-markers-circle .step-cell.soft.trail-next::after,
-body.note-markers-circle .step-cell.legato-tail.trail-next::after {
+   .legato-tail opacity rules above (extra .trail-next + .note-trail-
+   enabled classes), so this wins outright without !important. */
+body.note-trail-enabled.note-markers-circle .step-cell.on.trail-next::after,
+body.note-trail-enabled.note-markers-circle .step-cell.soft.trail-next::after,
+body.note-trail-enabled.note-markers-circle .step-cell.legato-tail.trail-next::after {
   background: var(--play-flash-color, #f8ff00);
   filter: none;
-  opacity: calc(var(--note-marker-opacity, 1) * 0.5);
-  transform: translateY(-50%) scale(0.5);
+  opacity: calc(var(--note-marker-opacity, 1) * var(--trail-opacity-mult, 0.5));
+  transform: translateY(-50%) scale(var(--trail-scale, 0.5));
 }
 .step-cell.legato-tail::after {
   background: var(--track-color, var(--text));
@@ -1665,7 +1670,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle note-trail-enabled">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1698,7 +1703,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:20:30 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 04:28:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1872,6 +1877,20 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
         <div id="stepCellPopVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1.0x</div>
       </div>
       <input type="range" id="stepCellPopSlider" min="0" max="100" value="0" oninput="setStepCellPopIntensity(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE TRAIL</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="noteTrailToggle" checked onchange="setNoteTrailEnabled(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRAIL INTENSITY</div>
+        <div id="noteTrailIntensityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">60%</div>
+      </div>
+      <input type="range" id="noteTrailIntensitySlider" min="0" max="100" value="60" oninput="setNoteTrailIntensity(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <button id="forceUpdateBtn" class="rec-mode-btn" onclick="forceUpdate()" style="margin-top:-4px;">FORCE UPDATE</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -16937,6 +16956,24 @@ function setStepCellPopIntensity(v) {
   const disp = document.getElementById('stepCellPopVal');
   if (disp) disp.textContent = mult.toFixed(1) + 'x';
 }
+// NOTE TRAIL (COLOR MENU toggle + slider) — the echo marker on the note
+// directly after the playhead (see updatePlayhead's .trail-next handling
+// and the CSS rules gated on body.note-trail-enabled). Toggle switches it
+// off entirely; the slider runs 0-100 mapping to a size/opacity range of
+// 0.5 (the original "half size, half opacity" spec, barely visible) up to
+// 0.9 (large and nearly fully opaque) for both properties together —
+// default 60 lands solidly in the visible range out of the box, per
+// direct request that it wasn't showing up clearly enough at the
+// original fixed 0.5/0.5.
+function setNoteTrailEnabled(on) { document.body.classList.toggle('note-trail-enabled', !!on); }
+function setNoteTrailIntensity(v) {
+  const amt = 0.5 + (v / 100) * 0.4; // 0.5 .. 0.9
+  document.documentElement.style.setProperty('--trail-scale', amt);
+  document.documentElement.style.setProperty('--trail-opacity-mult', amt);
+  const disp = document.getElementById('noteTrailIntensityVal');
+  if (disp) disp.textContent = Math.round(v) + '%';
+}
+setNoteTrailIntensity(60); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
 // FORCE UPDATE (COLOR MENU button) — the service worker (sw.js) normally
 // serves cache-first with a background network update, so a fresh deploy
 // only actually shows up on the LAUNCH AFTER this one (the update lands in
