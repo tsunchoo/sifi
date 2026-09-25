@@ -1884,7 +1884,7 @@ body.performance-mode header { padding-bottom: 10px; }
       <div class="load-meter-seg" data-zone="high"></div>
     </div>
   </div>
-  <button id="markerStyleIconBtn" onclick="_pressPulse('markerStyleIconBtn'); setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle'));" style="position:absolute;top:0px;right:2px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;" title="Toggle note marker style (squares/circles)">
+  <button id="markerStyleIconBtn" style="position:absolute;top:0px;right:2px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;" title="Click and drag down to toggle note marker style (squares/circles)">
     <span id="markerStyleIcon"></span>
   </button>
   <button id="randomizeReverbIconBtn" style="position:absolute;top:1px;right:36px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;" title="Click and drag down to randomize reverb settings">
@@ -17528,6 +17528,58 @@ function setPerformanceMode(on) {
 // real states (performance-mode body class + _timeRulerEnabled) rather
 // than a separate counter, so it always steps on correctly even if either
 // was changed from the COLOR MENU in between swipes.
+// SHARED SWIPE-DOWN ICON GESTURE — used by the REVERB and MARKER STYLE
+// header icons, per direct request, so they behave exactly like the
+// rainbow icon: click/touch and drag DOWN past 30px fires the action, the
+// icon follows the finger down (capped at 30px) and springs back on
+// release. A plain tap does nothing (optional onTap). Optional hold
+// (holdMs/onHold) — cancelled as soon as the finger starts moving, so a
+// slow swipe can never open the hold menu by accident. Same touch pattern
+// as the rainbow icon (non-passive touchstart + preventDefault, no pointer
+// capture), which is the version confirmed working on a real iPhone.
+function _makeSwipeIcon(btn, opts) {
+  const TRIGGER_PX = 30, MAX_PX = 30, MOVE_CANCEL_HOLD_PX = 6;
+  let downY = null, fired = false, holdFired = false, holdTimer = null, touchJustHandled = 0;
+  const visual = dy => { btn.style.transition = 'none'; btn.style.transform = `translateY(${Math.max(0, Math.min(MAX_PX, dy))}px)`; };
+  const snapBack = () => { btn.style.transition = 'transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; btn.style.transform = 'translateY(0px)'; };
+  const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+  const start = y => {
+    downY = y; fired = false; holdFired = false; clearHold();
+    if (opts.onHold) holdTimer = setTimeout(() => { holdTimer = null; if (!fired) { holdFired = true; opts.onHold(); } }, opts.holdMs || 400);
+  };
+  const move = y => {
+    if (downY === null || holdFired) return;
+    const dy = y - downY;
+    if (Math.abs(dy) > MOVE_CANCEL_HOLD_PX) clearHold();
+    visual(dy);
+    if (!fired && dy > TRIGGER_PX) { fired = true; clearHold(); opts.onSwipe(); }
+  };
+  const end = () => {
+    clearHold();
+    if (downY !== null && !fired && !holdFired && opts.onTap) opts.onTap();
+    downY = null; snapBack();
+  };
+  btn.addEventListener('touchstart', e => { touchJustHandled = Date.now(); start(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+  btn.addEventListener('touchmove', e => { e.preventDefault(); move(e.touches[0].clientY); }, { passive: false });
+  btn.addEventListener('touchend', e => { e.preventDefault(); end(); }, { passive: false });
+  btn.addEventListener('touchcancel', () => { clearHold(); downY = null; snapBack(); });
+  btn.addEventListener('mousedown', e => {
+    if (Date.now() - touchJustHandled < 1000) return;
+    start(e.clientY);
+    const onMove = me => move(me.clientY);
+    const onUp = () => { end(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+}
+// MARKER STYLE icon — squares/circles toggle now needs a swipe down (no
+// more tap), per direct request.
+(function bindMarkerSwipe() {
+  const b = document.getElementById('markerStyleIconBtn');
+  if (!b) { document.addEventListener('DOMContentLoaded', bindMarkerSwipe, { once: true }); return; }
+  if (b._swipeBound) return; b._swipeBound = true;
+  _makeSwipeIcon(b, { onSwipe: () => setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle')) });
+})();
 function _cycleRainbowMode() {
   const perf = document.body.classList.contains('performance-mode');
   const ruler = !!window._timeRulerEnabled;
@@ -18311,33 +18363,14 @@ function fullReset() {
     _randomizeReverbSettings();
   }
 
-  const startHold = y => {
-    holdFired = false; dragFired = false; downY = y;
-    if (holdTimer) clearTimeout(holdTimer);
-    holdTimer = setTimeout(openMenu, HOLD_MS);
-  };
-  const moveCheck = y => {
-    if (downY === null || holdFired || dragFired) return false;
-    if (y - downY > DRAG_DOWN_PX) { doRandomize(); return true; }
-    return false;
-  };
-  const endHold = e => {
-    if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; }
-    if ((holdFired || dragFired) && e && e.cancelable) e.preventDefault(); // suppress any trailing synthetic click from this same touch
-    downY = null;
-  };
-
-  btn.addEventListener('touchstart', e => { startHold(e.touches[0].clientY); }, { passive: true });
-  btn.addEventListener('touchmove', e => { if (moveCheck(e.touches[0].clientY) && e.cancelable) e.preventDefault(); }, { passive: false });
-  btn.addEventListener('touchend', endHold, { passive: false });
-  btn.addEventListener('touchcancel', () => { holdFired = false; dragFired = false; downY = null; if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } });
-
-  btn.addEventListener('mousedown', e => {
-    startHold(e.clientY);
-    const onMove = me => { moveCheck(me.clientY); };
-    const onUp = e2 => { endHold(e2); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+  // Gesture now handled by the shared _makeSwipeIcon helper (same
+  // swipe-down + follow-the-finger + snap-back as the rainbow icon), per
+  // direct request. Hold still opens the REVERB menu; a plain tap does
+  // nothing.
+  _makeSwipeIcon(btn, {
+    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); },
+    holdMs: HOLD_MS,
+    onHold: openMenu,
   });
 
   // #reverbMenu is now the full-screen dimmed overlay itself (like the
