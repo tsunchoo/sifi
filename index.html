@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 03:16:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 03:39:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1299,7 +1299,7 @@ body.notes-grayscale .step-cell.split32::after {
   filter: none;
 }
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
-@keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes step-cell-pop { 0% { transform: scale(1); } 40% { transform: scale(var(--step-cell-pop-peak, 1.18)); } 100% { transform: scale(1); } }
 .step-cell.playing { background: rgba(192,57,43,0.07); animation: step-cell-pop 180ms ease-out; transform-origin: center; position: relative; z-index: 3; }
 body:not(.note-markers-circle) .step-cell.playing { background: transparent; } /* was highlighting the whole cell regardless of the empty marker's own (now much smaller) size, unlike circle mode which already turns this off and relies on the ::after marker alone — matched here so square/asterisk behave the same way */
 .step-cell.playing::after { background: var(--play-flash-color, #f8ff00); opacity: calc(0.1875 * var(--empty-marker-opacity, 0.8)); } /* was var(--playhead-color) — a different variable from the PLAY FLASH picker entirely, so changing PLAY FLASH's color never affected empty cells, only .on/.soft ones; now uses --play-flash-color like those. Opacity: was a flat hardcoded 0.15, completely ignoring EMPTY MARKER OPACITY — so whichever empty cell the playhead happened to be sweeping over stayed visible even with that slider at 0%, while every other empty cell correctly went invisible; looked like two different classes of empty marker. Now scaled by that same variable (0.1875 chosen so the default 80% setting reproduces the original 0.15 exactly — 0.1875*0.8=0.15 — and 0% now genuinely means invisible everywhere, including under the playhead) */
@@ -1661,7 +1661,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 03:16:21 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 03:39:07 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1822,6 +1822,13 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYHEAD POP</div>
+        <div id="stepCellPopVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1.0x</div>
+      </div>
+      <input type="range" id="stepCellPopSlider" min="0" max="100" value="0" oninput="setStepCellPopIntensity(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
     <button id="forceUpdateBtn" class="rec-mode-btn" onclick="forceUpdate()" style="margin-top:-4px;">FORCE UPDATE</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
@@ -16863,6 +16870,19 @@ function hideDevMenu() {
   const el = document.getElementById('devMenuOverlay');
   if (el) el.style.display = 'none';
 }
+// PLAYHEAD POP (COLOR MENU slider) — scales the step-cell-pop keyframe's
+// peak transform. Base boost is 0.18 (i.e. 1.18x scale, the original
+// hand-tuned amount); the slider runs 0-100 mapping linearly to a 1x-4x
+// multiplier on that boost, so the peak scale ranges from 1.18x (slider at
+// 0, i.e. "where it is now") up to 1.72x (slider at 100, "x4 bigger").
+const STEP_CELL_POP_BASE_BOOST = 0.18;
+function setStepCellPopIntensity(v) {
+  const mult = 1 + (v / 100) * 3; // 1x .. 4x
+  const peak = 1 + STEP_CELL_POP_BASE_BOOST * mult;
+  document.documentElement.style.setProperty('--step-cell-pop-peak', peak);
+  const disp = document.getElementById('stepCellPopVal');
+  if (disp) disp.textContent = mult.toFixed(1) + 'x';
+}
 // FORCE UPDATE (COLOR MENU button) — the service worker (sw.js) normally
 // serves cache-first with a background network update, so a fresh deploy
 // only actually shows up on the LAUNCH AFTER this one (the update lands in
@@ -18305,8 +18325,8 @@ async function hardResetAudioEngine() {
   // target at press, and where drag position 0 maps to) and the ceiling
   // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
   // maps drag position onto both this and the pitch range together.
-  const SWEEP_ATTACK_LEVEL = 0.0255; // -8dB more (was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.24; // -8dB more (was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.01434; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.13496; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
   // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
   // ramps toward the next downbeat) removed along with startSweepTakeover
   // and the RMS sidechain duck — nothing here is time-based any more, only
@@ -18363,13 +18383,13 @@ async function hardResetAudioEngine() {
     sweepNodes = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
-    const quarterNote = stepDuration() * 4 * (window._sweepDecayMult !== undefined ? window._sweepDecayMult : 1); // fade-out length — longer now so it stays a bit before fading. Multiplier is the SWEEP DECAY SPEED slider (SETTINGS) — 1 = this original length, 2 = twice as slow, 0 = instant
+    const halfNote = stepDuration() * 8 * (window._sweepDecayMult !== undefined ? window._sweepDecayMult : 1); // fade-out length — dies over one half note. Multiplier is the SWEEP DECAY SPEED slider (SETTINGS) — 1 = this original length, 2 = twice as slow, 0 = instant
     bp.frequency.cancelScheduledValues(t);
-    bp.frequency.exponentialRampToValueAtTime(200, t + quarterNote);
+    bp.frequency.exponentialRampToValueAtTime(200, t + halfNote);
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value * 0.355, t); // -9dB total on the release tail (-5dB then another -4dB)
-    gain.gain.linearRampToValueAtTime(0, t + quarterNote);
-    setTimeout(() => { try { noise.stop(); noise.disconnect(); } catch(e) {} }, quarterNote * 1000 + 100);
+    gain.gain.linearRampToValueAtTime(0, t + halfNote);
+    setTimeout(() => { try { noise.stop(); noise.disconnect(); } catch(e) {} }, halfNote * 1000 + 100);
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
