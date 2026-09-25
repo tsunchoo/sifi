@@ -10846,7 +10846,11 @@ document.addEventListener('touchstart', e => {
   // with a hidden instrument the person never actually chose. See
   // _applyPendingEmptyTrackTap — the note this tap wanted to place still
   // happens, the instant a real sound is picked.
-  if (!grid[tr].some(v => v > 0)) {
+  // ...but only if no instrument has been deliberately chosen for it yet
+  // (_trackInstrumentTouched — set by picking a sound or by RAND assigning
+  // one), per direct request: a chosen-but-still-empty track already has
+  // its instrument, so a tap just writes the note like any other track.
+  if (!grid[tr].some(v => v > 0) && !_trackInstrumentTouched[tr]) {
     _pendingEmptyTrackTap = { tr, s, cellEl: cell };
     openSoundPicker(tr);
     e.preventDefault();
@@ -10936,7 +10940,7 @@ document.addEventListener('mousedown', e => {
   const cell = e.target.closest('.step-cell');
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
-  if (!grid[tr].some(v => v > 0)) { // EMPTY track — see the matching touchstart guard above
+  if (!grid[tr].some(v => v > 0) && !_trackInstrumentTouched[tr]) { // EMPTY track with no instrument chosen yet — see the matching touchstart guard above
     _pendingEmptyTrackTap = { tr, s, cellEl: cell };
     openSoundPicker(tr);
     return;
