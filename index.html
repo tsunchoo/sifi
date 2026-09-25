@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 19:13:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 19:31:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1181,6 +1181,18 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: satu
 .step-cell[data-step="4"]::before,
 .step-cell[data-step="8"]::before,
 .step-cell[data-step="12"]::before { height: calc(100% + 3px); }
+/* TIME RULER stays completely inert to playback, per direct request — no
+   color flash (the brief PLAY FLASH experiment above was reverted; "it
+   doesn't make sense" for a fixed reference line to react to playback)
+   and no size pulse either. The tick is a child of .step-cell, which
+   pops via a scale() animation while playing (see step-cell-pop below,
+   for the note markers) — since a parent's transform visually scales
+   its whole rendered subtree, the tick would otherwise balloon right
+   along with it. This counter-animation applies the exact inverse scale
+   on the tick itself so the two cancel out and it renders at a constant
+   size throughout, i.e. it just sits there like an actual ruler line. */
+.step-cell.playing::before { animation: step-cell-pop-counter 180ms ease-out; }
+@keyframes step-cell-pop-counter { 0% { transform: scale(1); } 40% { transform: scale(0.5814); } 100% { transform: scale(1); } }
 /* step 0 uses the lane's left border */
 /* step 0 marker now visible like all others */
 
@@ -1606,7 +1618,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
    browser's own default button text centering) since only the box
    height changes here, never how its content is aligned within it. */
 body.performance-mode .slot-bar { display: none; }
-body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
+body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2 - 10px); } /* -10px per direct request — was sitting right on the browser navbar on an older iPhone */
 /* A more spread-out header in PERFORMANCE MODE, per direct request: +15px
    between the main logo and the tape graphics/tempo readout (both share
    the same margin-top, same as the base rule — see .tape-reels above for
@@ -1686,7 +1698,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 19:13:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 19:31:14 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -10042,7 +10054,7 @@ function buildUI() {
     soloBtn.addEventListener('touchstart', e => {
       if (!window._soloFlashMode) return; // classic mode: leave this to the generic drag-to-engage system entirely, unchanged
       e.preventDefault(); // still needed here (this listener isn't passive) so the drag gesture doesn't also pan/scroll the page
-      if (!window._soloDragActive) window._soloDragTouchId = e.changedTouches[0].identifier; // only capture on the touch that starts the gesture, not a later drag-across dispatch
+      window._soloDragTouchIds.add(e.changedTouches[0].identifier); // track EVERY finger holding a solo button, not just the first — fixes multiple SOLO buttons getting stuck on (see the touchend/touchcancel listeners below for why a single tracked id wasn't enough)
       _soloDragEngage(tr);
     }, { passive: false });
     ctrlRow.appendChild(soloBtn);
@@ -10119,6 +10131,7 @@ function _clearAllSolo() {
   // after the pattern had already cleared it.
   window._soloDragActive = false;
   window._soloDragTracks = new Set();
+  window._soloDragTouchIds = new Set();
   if (!trackSolo.some(x => x)) return; // nothing soloed, nothing else to do
   for (let t = 0; t < NUM_TRACKS; t++) trackSolo[t] = false;
   if (_preSoloMuteState) {
@@ -10155,7 +10168,24 @@ let _preSoloBeatState = null; // snapshot of {beatPlaying, beatPending} taken th
 // right below this.
 window._soloDragActive = false;
 window._soloDragTracks = new Set();
-window._soloDragTouchId = null; // the specific touch holding SOLO down — see the touchend/touchcancel listeners below
+// Every finger currently holding a solo button down, per direct bug
+// report: "multiple SOLO buttons being held down can lead to them
+// getting stuck on with no way of un-sticking them except loading the
+// page again." Root cause — this used to track only ONE touch id (the
+// first finger to engage), so pressing a second solo button with a
+// second finger while the first was still down would engage both, but
+// only the first finger's eventual release ended the gesture. If that
+// first finger's touchend was ever missed (dropped/merged multi-touch
+// events are a known real-device-only failure class — see the rainbow
+// icon fix earlier), or if the SECOND finger happened to lift first, the
+// remaining engaged track(s) could be left soloed with _soloDragActive
+// still true and that track already inside _soloDragTracks — meaning
+// every future tap on it hit the idempotent-guard early-return in
+// _soloDragEngage() and silently did nothing, forever, since nothing
+// else in the UI ever calls _soloDragRelease() directly. Now every
+// engaging touch's id is tracked, and the gesture only ends once none of
+// them are down any more (see the touchend/touchcancel listeners below).
+window._soloDragTouchIds = new Set();
 function _soloDragEngage(tr) {
   window._soloDragActive = true;
   if (window._soloDragTracks.has(tr)) return; // already engaged by this same gesture — idempotent, safe to call from multiple event sources for the same track
@@ -10165,7 +10195,7 @@ function _soloDragEngage(tr) {
 function _soloDragRelease() {
   if (!window._soloDragActive) return;
   window._soloDragActive = false;
-  window._soloDragTouchId = null;
+  window._soloDragTouchIds = new Set();
   const tracks = window._soloDragTracks;
   window._soloDragTracks = new Set();
   tracks.forEach(tr => toggleSolo(tr));
@@ -10177,17 +10207,24 @@ function _soloDragRelease() {
 // only a real release should end the gesture.
 document.addEventListener('mouseup', () => { if (window._soloFlashMode) _soloDragRelease(); });
 // touchend/touchcancel fire once per finger, document-wide, for ANY touch
-// ending anywhere — not just the one holding SOLO down. Without checking
-// changedTouches, tapping a completely unrelated button with a second
-// finger while SOLO is still held with the first would end this gesture
-// too (that finger's own touchend reaching the same listener), breaking
-// SOLO out the moment almost anything else was touched. Only release when
-// the touch that's actually ending is the one that engaged SOLO.
+// ending anywhere — not just the one(s) holding SOLO down. Remove any
+// ending touch id from the tracked set, and only end the whole gesture
+// once none of the fingers that engaged it are down any more. On top of
+// that identifier bookkeeping, e.touches.length === 0 (the browser's own
+// live count of fingers still on the glass) is checked as an unconditional
+// failsafe — if literally nothing is touching the screen any more, the
+// gesture cannot still be legitimately held, whatever this file's own id
+// tracking thinks, so it's released regardless. That failsafe is what
+// actually guarantees this can never get stuck again.
 document.addEventListener('touchend', e => {
-  if (window._soloFlashMode && window._soloDragActive && Array.from(e.changedTouches).some(t => t.identifier === window._soloDragTouchId)) _soloDragRelease();
+  if (!window._soloFlashMode || !window._soloDragActive) return;
+  Array.from(e.changedTouches).forEach(t => window._soloDragTouchIds.delete(t.identifier));
+  if (window._soloDragTouchIds.size === 0 || e.touches.length === 0) _soloDragRelease();
 });
 document.addEventListener('touchcancel', e => {
-  if (window._soloFlashMode && window._soloDragActive && Array.from(e.changedTouches).some(t => t.identifier === window._soloDragTouchId)) _soloDragRelease();
+  if (!window._soloFlashMode || !window._soloDragActive) return;
+  Array.from(e.changedTouches).forEach(t => window._soloDragTouchIds.delete(t.identifier));
+  if (window._soloDragTouchIds.size === 0 || e.touches.length === 0) _soloDragRelease();
 });
 function toggleSolo(tr) {
   const wasAnySoloed = trackSolo.some(x => x);
