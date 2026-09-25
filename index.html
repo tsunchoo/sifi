@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 02:52:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-25 03:00:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1660,7 +1660,7 @@ body.performance-mode .btn { height: calc(var(--top-row-btn-height) * 2); }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 02:52:24 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 03:00:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -18300,28 +18300,16 @@ async function hardResetAudioEngine() {
   const btn = document.getElementById('clearBtn');
   if (!btn) return;
   let sweepNodes = null;
-  // Shared level targets — attack level (where it fades in to and falls
-  // back toward while dragged over the left spool) and the full-hold
-  // ceiling (where it climbs to normally, and resumes climbing toward
-  // when dragged back off the spool onto SWEEP itself).
+  // Shared level targets — attack level (the floor: an anti-click fade-in
+  // target at press, and where drag position 0 maps to) and the ceiling
+  // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
+  // maps drag position onto both this and the pitch range together.
   const SWEEP_ATTACK_LEVEL = 0.064; // -4dB more (was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
   const SWEEP_CEILING_LEVEL = 0.6029; // -4dB more (was 0.9555, -2dB before that, was 1.2029)
-  // How long this run should last, decided once at press time (see
-  // beginPress) and read by both startSweep's own duck-intensity ramp and
-  // startSweepTakeover's gain/auto-release timing, so the two stay in sync
-  // with each other instead of each independently assuming a fixed bar.
-  let _sweepPlannedDuration = 0;
-  // Time (seconds, ctx.currentTime-relative) from right now until the next
-  // 1st downbeat (step 0) actually lands, based on the live scheduler
-  // state — same computation scheduleRandTransition() already uses to find
-  // the next bar boundary. Returns null while stopped, since there's no
-  // playhead position to measure from.
-  function _sweepTimeToNextDownbeat() {
-    if (!playing || !ctx) return null;
-    const nextStep = (currentStep + 1) % NUM_STEPS;
-    const barStartTime = (nextStep === 0) ? nextStepTime : nextStepTime + (NUM_STEPS - nextStep) * stepDuration();
-    return Math.max(0.05, barStartTime - ctx.currentTime); // floor so a press landing right on the boundary itself still gets a real (if brief) run instead of ~0s
-  }
+  // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
+  // ramps toward the next downbeat) removed along with startSweepTakeover
+  // and the RMS sidechain duck — nothing here is time-based any more, only
+  // drag position, per direct request.
 
   // SWEEP's own RMS-driven sidechain duck (analyser reading the master mix
   // level and pulling SWEEP's gain down inversely) removed per direct
@@ -18334,25 +18322,29 @@ async function hardResetAudioEngine() {
     ctx.resume();
     window._sweepStartMs = Date.now();
     const bufDur = 12; // generous buffer length so long holds never run out
-    const riseDur = _sweepPlannedDuration || stepDuration() * 4; // now spans the whole run (decided once at press time in beginPress) instead of a fixed quarter note — pitch reaches its peak exactly at the next downbeat, in sync with the gain takeover below, instead of maxing out early and then just sitting there
-    const capFreq = 4000; // reasonable ceiling — never rises past this no matter how long it's held
     const t = ctx.currentTime;
     const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bufDur), ctx.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < buf.length; i++) d[i] = Math.random() * 2 - 1;
     const noise = ctx.createBufferSource(); noise.buffer = buf;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
-    // Starts at the floor — the actual sweeping through the freq range is
-    // now driven directly by vertical drag position (see sweepMoveHandler
-    // below), not an automatic time-based rise.
+    // Starts at the floor — pitch is driven entirely by vertical drag
+    // position (see _sweepUpdateFreqFromY below), never an automatic
+    // time-based rise.
     bp.frequency.setValueAtTime(SWEEP_FLOOR_FREQ, t);
 
-    // baseGain holds the "intended" envelope level — no separate duckGain
-    // stage any more, see the removal note above.
+    // baseGain — same deal as pitch now, per direct request: no automatic
+    // time-based rise at all (that's what caused the "massive ugly jump in
+    // volume" — see the removed startSweepTakeover, and the removed
+    // RMS-sidechain duck before that). Volume is driven by the exact same
+    // drag position as pitch, in _sweepUpdateFreqFromY below — swipe down
+    // sweeps both up together, swipe back up sweeps both down, nothing
+    // else touches it. Only a genuinely tiny (20ms) fade up to the floor
+    // level here, purely to avoid an audible click at the instant of
+    // pressing — not a "rise," just anti-pop hygiene.
     const baseGain = ctx.createGain();
-    const attackDur = stepDuration() * 4; // fades in from silence over a quarter note, instead of snapping on
     baseGain.gain.setValueAtTime(0, t);
-    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL, t + attackDur);
+    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL, t + 0.02);
     window._sweepPressStartT = t; // still used for reference elsewhere
 
     // Back through masterGain (and its kick-triggered sidechain duck stage),
@@ -18379,35 +18371,15 @@ async function hardResetAudioEngine() {
     setTimeout(() => { try { noise.stop(); noise.disconnect(); } catch(e) {} }, quarterNote * 1000 + 100);
   }
 
-  // A single press is now the whole gesture: SWEEP's presence rises while
-  // the normal mix fades out under it, automatically, for however long it
-  // takes to reach the next 1st downbeat from wherever the playhead
-  // currently is (or one bar-plus-a-quarter if playback is stopped) — no
-  // need to keep holding. The pump motion keeps reading off masterGain
-  // directly (pre-fade), so it stays just as vigorous throughout even as
-  // the normal mix gets quiet. Release is now entirely finger-driven (see
-  // endPress below) rather than auto-completing at a fixed time, so this
-  // just keeps the presence level rising for as long as it's held — paced
-  // toward the next downbeat as a natural target, but harmless if held
-  // past it (the ramp simply plateaus at the ceiling).
-  function startSweepTakeover() {
-    if (!sweepNodes) return;
-    const { gain } = sweepNodes;
-    const t = ctx.currentTime;
-    // This used to ramp to the ceiling over the FULL time remaining until
-    // the next downbeat (_sweepPlannedDuration) — fine for pacing the pitch
-    // rise (which should peak right on the downbeat), but it meant the
-    // actual loudness on press was wildly inconsistent depending on where
-    // in the bar you happened to press: right after a downbeat, the ramp
-    // could take most of a bar to reach full presence (sounded quiet, even
-    // like it "didn't trigger" for a moment); right before one, it'd rocket
-    // to the ceiling almost instantly. Loudness now always climbs over a
-    // fixed, short two-quarter-note rise (same length as the 0→attack fade
-    // right before it in startSweep), so a press feels the same every time
-    // — only the PITCH sweep still paces itself against the downbeat.
-    const riseDur = stepDuration() * 4;
-    gain.gain.linearRampToValueAtTime(SWEEP_CEILING_LEVEL, t + riseDur); // boosted well past unity — the duck's own increasing depth was eating most of the rise otherwise; limiter downstream catches the peaks
-  }
+  // startSweepTakeover() — the automatic, time-based gain ramp toward
+  // SWEEP_CEILING_LEVEL — removed entirely per direct request. It was the
+  // source of the "massive ugly jump in volume" (its ramp target landed
+  // almost exactly on top of startSweep's own attack-ramp target instead
+  // of after it, so gain shot from ~0 to the ceiling in a fraction of the
+  // intended time). Rather than just fix the timing bug, volume is now
+  // driven the same way pitch already is — directly off drag position,
+  // nothing automatic at all. See _sweepUpdateFreqFromY below, which now
+  // updates both together.
 
   // Redirects the PITCH (not the level) toward whichever direction matches
   // where the finger currently is — continuing to rise toward the ceiling
@@ -18444,10 +18416,7 @@ async function hardResetAudioEngine() {
     const btnRect = btn.getBoundingClientRect();
     window._sweepDragStartY = startY ?? btnRect.bottom;
     window._sweepDragRange = Math.max(60, (window.innerHeight - btnRect.bottom) * (1 - SWEEP_DRAG_BUFFER));
-    const fallbackDuration = stepDuration() * 20; // one full bar plus one more quarter note — used only when playback is stopped and there's no downbeat to sync to
-    _sweepPlannedDuration = _sweepTimeToNextDownbeat() ?? fallbackDuration;
     startSweep();
-    startSweepTakeover();
     btn.classList.add('active');
   };
   // Releasing now stops it directly — the freq sweep is drag-driven while
@@ -18475,12 +18444,20 @@ async function hardResetAudioEngine() {
   // exponential, not linear, since that's how pitch/frequency actually
   // reads. Calibrated once per press in beginPress against the real screen
   // space below the button (see SWEEP_DRAG_BUFFER above).
+  // Volume now follows the exact same drag position as pitch, per direct
+  // request — no separate automatic/time-based gain ramp at all any more.
+  // progress 0 (no drag yet) maps to SWEEP_ATTACK_LEVEL, full drag distance
+  // maps to SWEEP_CEILING_LEVEL, linearly — swipe down sweeps both pitch
+  // and volume up together, swipe back up brings both back down, smoothly
+  // (same setTargetAtTime time constant as pitch already used).
   function _sweepUpdateFreqFromY(y) {
     if (!sweepNodes || !ctx) return;
     const dragDist = Math.max(0, y - window._sweepDragStartY);
     const progress = Math.min(1, dragDist / (window._sweepDragRange || 1));
     const freq = SWEEP_FLOOR_FREQ * Math.pow(SWEEP_CEIL_FREQ / SWEEP_FLOOR_FREQ, progress);
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.03);
+    const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
+    sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.03);
   }
   document.addEventListener('mousemove', e => { if (window._sweepGestureActive) _sweepUpdateFreqFromY(e.clientY); });
 
