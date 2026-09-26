@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:59:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 23:34:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2050,7 +2050,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
-:root { --play-flash-color: #f17d21; }
+:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 0.5; } /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
 /* ── Track lane label — now inside ctrl row, removed ── */
 
@@ -2137,7 +2137,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track flash-from-top vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2358,7 +2358,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:59:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 23:34:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2669,9 +2669,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRACK BUTTON GLOW</div>
-          <div id="trackGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+          <div id="trackGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
         </div>
-        <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -2683,9 +2683,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL FILL GLOW</div>
-          <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+          <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
         </div>
-        <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -2705,14 +2705,14 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#555;">TEST PARAMETERS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="volTestToggle" onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST
+          <input type="checkbox" id="volTestToggle" checked onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST
         </label>
         <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
           <span>TEST BG</span>
-          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="1" checked onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="1" onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="2" onchange="setVolTestBg(2)" style="width:14px;height:14px;cursor:pointer;">2</label>
           <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="3" onchange="setVolTestBg(3)" style="width:14px;height:14px;cursor:pointer;">3</label>
-          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="4" onchange="setVolTestBg(4)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="4" checked onchange="setVolTestBg(4)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
           <input type="checkbox" id="drumsPulseToggle" onchange="document.body.classList.toggle('drums-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST DRUMS PULSE
@@ -2855,8 +2855,11 @@ body.performance-mode header { padding-bottom: 10px; }
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH</div>
-        <input type="color" id="playFlashColorPicker" value="#f17d21" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
+        <input type="color" id="playFlashColorPicker" value="#f17d21" oninput="setFlashFromTop(false); setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="flashFromTopToggle" checked onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
+      </label>
 
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
            contrast) is the only mode reachable via that old system now.
@@ -3477,6 +3480,26 @@ function _applyTopColor(hex) {
   if (slider) { const [h] = _hexToHsl(hex); slider.value = Math.round(h); }
   const sw = document.getElementById('topColorSwatch'); if (sw) sw.style.background = hex;
   _deriveInstrumentColorsFromTop(hex);
+  _applyFlashFromTop();
+}
+// PLAY FLASH FROM TOP ROW (toggle, on by default), per direct request —
+// PLAY FLASH becomes the TOP ROW colour's hue turned 150° round the wheel
+// (an angle nothing else uses: UI roles sit at 60° steps, instrument
+// lanes at 36°+72° steps, so 150° is at least 30° from all of them), at
+// full saturation. Re-derived every time TOP ROW changes (incl. WILD).
+function _applyFlashFromTop() {
+  if (!document.body || !document.body.classList.contains('flash-from-top')) return;
+  const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(top) || typeof setPlayFlashColor !== 'function') return;
+  const [h] = _hexToHsl(top);
+  const hex = _hslToHex(h + 150, 1, 0.55);
+  setPlayFlashColor(hex);
+  const pk = document.getElementById('playFlashColorPicker'); if (pk) pk.value = hex;
+}
+function setFlashFromTop(on) {
+  document.body.classList.toggle('flash-from-top', !!on);
+  const cb = document.getElementById('flashFromTopToggle'); if (cb) cb.checked = !!on;
+  if (on) _applyFlashFromTop();
 }
 // Instrument lane colors (KIT/PERC/TONAL/BASS/PAD) — previously five
 // independent hardcoded hex constants, unrelated to the rest of the app's
@@ -19283,7 +19306,7 @@ function _updatePlayFlashHot(hex) {
   document.documentElement.style.setProperty('--play-flash-dark', _hslToHex(h0, s0 * 0.55, 0.13));
 }
 _updatePlayFlashHot('#f17d21');
-setTimeout(() => { try { _updatePlayHl(); } catch (e) {} }, 0);
+setTimeout(() => { try { _updatePlayHl(); _applyFlashFromTop(); } catch (e) {} }, 0);
 // SOLO + BEAT — whether BEAT stays in the mix regardless of any active
 // SOLO (on, default) or gets silenced by solo like every un-soloed track
 // unless explicitly clicked to include it (off — the original behavior).
