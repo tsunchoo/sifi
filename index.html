@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 17:13:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 16:56:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -824,24 +824,6 @@ html body.simple-fader .track-vol-bar .track-vol-tip {
   height: var(--vol-tip-h, 100%);
   transform: none;
 }
-/* Still leaving a thin black dash where the handle USED to be (bottom edge,
-   usually tracks 2 and 5) — the handle's left/top/height were all
-   fractional px, and WebKit didn't invalidate the half-covered bottom pixel
-   row when it moved. Two-part fix: (1) snap left/top/height to whole
-   pixels so there's no partially-covered row to leave behind, and (2) give
-   the handle its own compositing layer, so moving it is a composite, not a
-   repaint into the bar (no stale pixels possible). */
-html body.simple-fader .track-vol-bar .track-vol-tip {
-  will-change: transform; backface-visibility: hidden; -webkit-backface-visibility: hidden;
-  transform: translateZ(0);
-}
-@supports (width: round(1.5px, 1px)) {
-  html body.simple-fader .track-vol-bar .track-vol-tip {
-    left: round(calc((var(--fill-pct, 0) / 100) * (100% - var(--simple-fader-width, 10px))), 1px);
-    top: round(down, calc((100% - var(--vol-tip-h, 100%)) / 2), 1px);
-    height: round(var(--vol-tip-h, 100%), 1px);
-  }
-}
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -972,6 +954,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 body.track-btn-lights .track-ctrl-icon-btn.on,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on,
 body.track-btn-lights .track-ctrl-icon-btn.lock-btn.sweep-on,
+body.track-btn-lights .track-ctrl-icon-btn.solo-on,
 body.track-btn-lights .fx-btn.on,
 body.track-btn-lights .fx-btn.blast-on,
 body.track-btn-lights .shift-btn.on,
@@ -984,6 +967,7 @@ body.track-btn-lights .rand-btn.rand-auto {
 }
 body.track-btn-lights .track-ctrl-icon-btn.on svg,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on svg,
+body.track-btn-lights .track-ctrl-icon-btn.solo-on svg,
 body.track-btn-lights .fx-btn.on svg,
 body.track-btn-lights .fx-btn.blast-on svg,
 body.track-btn-lights .shift-btn.on svg,
@@ -1024,11 +1008,6 @@ html body.track-btn-lights .rand-btn.rand-auto {
   color: var(--auto-col) !important;
   text-shadow: 0 0 5px var(--auto-col), 0 0 12px color-mix(in srgb, var(--auto-col) 70%, transparent) !important;
 }
-/* SOLO is excluded from lights mode, per direct request — always canary
-   yellow with black text/glyph when active. */
-html body .track-ctrl-row .track-ctrl-icon-btn.solo-on { background: #ffe400 !important; color: #000 !important; text-shadow: none !important; }
-html body .track-ctrl-row .track-ctrl-icon-btn.solo-on svg { filter: none !important; }
-html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !important; }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
@@ -1112,7 +1091,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
 .track-vol-fill-solid {
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
-  filter: none; /* was saturate(20) — see the seq-playing rule; forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
+  filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
 /* NEON off: the fill's RESTING color is the same literal dark grey the
@@ -1170,7 +1149,7 @@ body.simple-fader .track-vol-tip {
   background: #000; /* hardcoded, per direct request — this was the original "almost black" color the user was actually asking to keep as the permanent tip color, not a placeholder to be replaced by a dynamic default */
   pointer-events: none;
 }
-body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: none !important; } /* was saturate(20): harmless on the old grey fill, but once the fill became the TOP ROW COLOR it blew muted hues out to neon green / royal blue, per direct report */ /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
+body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(20) !important; } /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
 .track-vol-bar.muted { background: #ccc; opacity: calc(var(--track-row-bg-opacity, 1) * 0.35); } /* now derived from the same TRACK ROW BG OPACITY slider as .track-ctrl-row's own muted/empty dimming, per direct request, rather than an independent hardcoded value that happened to also be 0.35 */
 .track-wrap.track-empty .track-vol-bar { opacity: calc(var(--track-row-bg-opacity, 1) * 0.35); } /* same reasoning as .track-vol-bar.muted above */
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
@@ -2043,7 +2022,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:13:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:56:13 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -14127,7 +14106,7 @@ function tempoNoteFactor() {
 // the shared reverb input bus, so the NEW room's size and tail ring out
 // clearly. The tail's loudness still follows the new REVERB MIX roll (the
 // return gain), so a near-zero MIX roll is honestly close to dry.
-const REVERB_PREVIEW_SEND = 0.9; // -5dB from 1.6, per direct request; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
+const REVERB_PREVIEW_SEND = 1.6; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
 function _previewReverb() {
   if (window._noButtonSounds || !ctx) return;
   playUiSound('tinyclick');
