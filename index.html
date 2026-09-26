@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 03:13:35 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 03:19:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -761,7 +761,21 @@ body.vol-banger .track-name-btn { position: relative; isolation: isolate; overfl
 body.vol-banger .track-name-btn::before {
   content: ''; position: absolute; left: 0; top: 0; bottom: 0; z-index: -1;
   width: calc(var(--vb, 0) * 100%); background: rgba(255,255,255,0.32); pointer-events: none;
+  opacity: var(--vb-opacity, 1); /* VOL BANGER OPACITY slider */
 }
+/* VOL BANGER = BUTTON COLOUR (DEV toggle), per direct request — the meter
+   IS the button's background: the button's own instrument colour only
+   fills the part the level reaches, left to right, the rest is empty.
+   Each colour class hands its colour to the fill via --vb-fill (custom
+   properties inherit into ::before). */
+body.vol-banger.vb-bg .track-name-btn { background: transparent !important; }
+body.vol-banger.vb-bg .track-name-btn::before { background: var(--vb-fill, var(--neutral-track, #b0b0b0)); }
+body.vol-banger.vb-bg .track-name-btn.inst-kit   { --vb-fill: var(--lane-color-kit, #0b5394); }
+body.vol-banger.vb-bg .track-name-btn.inst-perc  { --vb-fill: var(--lane-color-perc, #7baa17); }
+body.vol-banger.vb-bg .track-name-btn.inst-tonal { --vb-fill: var(--lane-color-tonal, #fd475d); }
+body.vol-banger.vb-bg .track-name-btn.inst-tonal.inst-bass { --vb-fill: var(--lane-color-bass, #8d3ba8); }
+body.vol-banger.vb-bg .track-name-btn.inst-tonal.inst-pad  { --vb-fill: var(--lane-color-pad, #FFFF39); }
+body.vol-banger.vb-bg .track-name-btn.names-uniform { --vb-fill: var(--neutral-top, #555); }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1871,7 +1885,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:13:35 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:19:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2187,6 +2201,16 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBangerToggle" onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="volBangerBgToggle" onchange="setVolBangerBg(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER = BUTTON COLOUR
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER OPACITY</div>
+          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -10044,6 +10068,16 @@ function setVolBanger(on) {
     for (let tr = 0; tr < NUM_TRACKS; tr++) { const b = document.getElementById(`tbtn-${tr}`); if (b) b.style.removeProperty('--vb'); }
   }
 }
+function setVolBangerBg(on) {
+  document.body.classList.toggle('vb-bg', !!on);
+  const cb = document.getElementById('volBangerBgToggle'); if (cb) cb.checked = !!on;
+}
+function setVolBangerOpacity(v) {
+  v = Math.max(0, Math.min(100, +v));
+  document.documentElement.style.setProperty('--vb-opacity', v / 100);
+  const r = document.getElementById('volBangerOpacityVal'); if (r) r.textContent = v + '%';
+  const sl = document.getElementById('volBangerOpacitySlider'); if (sl) sl.value = v;
+}
 function _volBangerLoop() {
   _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!ctx) return;
@@ -10060,12 +10094,18 @@ function _volBangerLoop() {
     if (a && !trackMuted[tr]) {
       if (!_vbBuf || _vbBuf.length !== a.node.fftSize) _vbBuf = new Float32Array(a.node.fftSize);
       a.node.getFloatTimeDomainData(_vbBuf);
-      let sum = 0; for (let i = 0; i < _vbBuf.length; i++) sum += _vbBuf[i] * _vbBuf[i];
+      // AC-coupled: subtract the window's mean first. Every track output
+      // carries a small constant DC offset (~-36dB) even in silence, which
+      // the plain RMS was reading as signal — why the meter never fell to
+      // zero (per direct report). Removing the mean ignores DC entirely.
+      let mean = 0; for (let i = 0; i < _vbBuf.length; i++) mean += _vbBuf[i]; mean /= _vbBuf.length;
+      let sum = 0; for (let i = 0; i < _vbBuf.length; i++) { const v = _vbBuf[i] - mean; sum += v * v; }
       const rms = Math.sqrt(sum / _vbBuf.length);
       const db = rms > 0 ? 20 * Math.log10(rms) : -100;
       lvl = Math.max(0, Math.min(1, (db + 48) / 42)); // -48dB .. -6dB RMS -> 0..1
     }
-    _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.88 + lvl * 0.12; // instant rise, eased fall
+    _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
+    if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
     const b = document.getElementById(`tbtn-${tr}`);
     if (b) b.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
   }
