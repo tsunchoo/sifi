@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 05:10:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 06:57:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1585,6 +1585,23 @@ body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-c
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.playing::after,
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft.playing::after { animation-name: step-cell-pop-marker-top; }
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.playing::after { animation: none; }
+/* SQUARE MODE, RULER OFF — accented and un-accented squares are pinned to
+   the TOP of the cell too (keeping their own square size), per direct
+   report of a misalignment in the bass lane: legato heads were already
+   top-pinned (so they line up with their top-stuck tail bars) but plain
+   notes were still vertically centred, so they sat a pixel or two lower
+   than the phrases around them. Now every note's top edge lines up with
+   every legato tail's top edge, same as with the ruler on. Scale-only pop
+   animation so hits don't jump by translateY(-50%). */
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on:not(.legato-start)::after,
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft:not(.legato-start)::after,
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32::after {
+  top: 0; bottom: auto; transform: none;
+}
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on.playing::after,
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.playing::after,
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft.playing::after { animation-name: step-cell-pop-marker-top; }
+body:not(.time-ruler-on):not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.playing::after { animation: none; }
 /* NOTE MARKERS = CIRCLES (SETTINGS toggle) — base size controlled by
    --note-marker-circle-inset (SETTINGS slider), a bigger inset means a
    smaller circle. Per direct request, accented notes (.on) get that full
@@ -1890,7 +1907,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:10:11 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 06:57:57 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
