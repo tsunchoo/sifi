@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 23:34:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 23:53:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -905,7 +905,7 @@ html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
 html body .track-vol-bar .track-vol-fill-solid { box-shadow: 0 0 calc(4px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 50%, transparent); }
 html body .track-vol-bar.muted .track-vol-fill-solid { box-shadow: none; }
 /* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
-html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--play-hl, var(--top-row-pressed-text-color, #fff)) !important; }
+html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-hl, var(--play-hl, #fff)) !important; }
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
@@ -2050,7 +2050,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
-:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 0.5; } /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
+:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 1.5; } /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
 /* ── Track lane label — now inside ctrl row, removed ── */
 
@@ -2358,7 +2358,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 23:34:30 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 23:53:59 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2683,9 +2683,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL FILL GLOW</div>
-          <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
+          <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">150%</div>
         </div>
-        <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -2734,9 +2734,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOLUME FILL HEIGHT</div>
-          <div id="volFillHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+          <div id="volFillHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">60%</div>
         </div>
-        <input type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="60" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -2748,9 +2748,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">8PX</div>
         </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="8" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
@@ -3624,17 +3624,29 @@ function restoreTopRowIcons() {
     }
   });
 }
+// HIGHLIGHT BOOST, per direct request — every highlight colour (HIGHLIGHT
+// 1/2/3) gets another +20% saturation on top of whatever produced it (the
+// saturation ceiling included). Applied at the point each is set, so it
+// never compounds — the random/ceiling logic always feeds in the raw pick.
+function _boostSat(hex, amt) {
+  if (!/^#[0-9a-f]{6}$/i.test(hex || '')) return hex;
+  const [h, sat, l] = _hexToHsl(hex);
+  return _hslToHex(h, Math.min(1, sat + amt), l);
+}
 function _applyHighlightColor(hex) {
+  hex = _boostSat(hex, 0.2);
   document.documentElement.style.setProperty('--playhead-color', hex);
   document.documentElement.style.setProperty('--highlight-text', _contrastText(hex));
   const el = document.getElementById('highlightColorPicker'); if (el) el.value = hex;
 }
 function _applyHighlight2Color(hex) {
+  hex = _boostSat(hex, 0.2);
   document.documentElement.style.setProperty('--highlight2-color', hex);
   document.documentElement.style.setProperty('--highlight2-text', _contrastText(hex));
   const el = document.getElementById('highlight2ColorPicker'); if (el) el.value = hex;
 }
 function _applyHighlight3Color(hex) {
+  hex = _boostSat(hex, 0.2);
   // No paired "-text" var here — HIGHLIGHT 3 IS the text color itself
   // (drawn against fixed dark backgrounds like #111), not a background
   // needing its own contrast-computed label color.
@@ -10697,7 +10709,7 @@ function setJustTrack(on) {
   document.body.classList.toggle('just-track', !!on);
   // VOLUME FILL HEIGHT follows JUST TRACK: thin track-line height when on,
   // full bar when off — the slider then fine-tunes either.
-  if (typeof setVolFillHeightPct === 'function') setVolFillHeightPct(on ? _thinVolFillPct() : 100);
+  if (typeof setVolFillHeightPct === 'function') setVolFillHeightPct(on ? _thinVolFillPct() : 60); // 60% default (was 100), per direct request
 }
 function _thinVolFillPct() {
   const bar = document.querySelector('.track-vol-bar');
@@ -12751,7 +12763,7 @@ setVolSliderColor(2); // applied immediately at load, matching the hardcoded def
 // removed entirely per direct request — never worked reliably. The
 // note-driven flash-pulse system (see updatePlayhead) is the only vol
 // slider pulse now.
-setSimpleFaderWidth(10); // hardcoded at 10px, per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
+setSimpleFaderWidth(8); // 8px default, per direct request (was 10px), per direct request — actually sets --simple-fader-width now rather than relying solely on the var() fallback
 setNoteMarkerCircleSize(60); // startup default, matches the slider's own default — was never called at init before, so --note-marker-circle-inset (which every circle-mode tier's own size derives from) was relying entirely on CSS/JS fallback values instead of actually being set; harmless when the fallback (12%) happens to agree with the slider default, but left the property genuinely unset going into the very first _recomputeMarkerTierInsets() call
 setSquareMarkerSize(95); // hardcoded, per direct request
 setNoteMarkerSizeRatioSquare(0); // hardcoded, per direct request
@@ -12949,6 +12961,8 @@ function _updatePlayHl() {
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.documentElement.style.setProperty('--play-hl', _hslToHex(h, Math.min(1, sat + 0.2), l));
+  // FADER TIP version: lighter and more saturated still, so the handle pops (per direct request).
+  document.documentElement.style.setProperty('--fader-hl', _hslToHex(h, Math.min(1, sat + 0.45), Math.min(0.78, l + 0.14)));
 }
 function _autoPickTopRowTextColor() {
   const cs = getComputedStyle(document.documentElement);
@@ -18730,8 +18744,8 @@ function setPerformanceMode(on) {
     }
     setColorSaturationCeiling(20); // was 10, up 10% per direct request
     const scSl = document.getElementById('satCeilingSlider'); if (scSl) scSl.value = 20;
-    setSimpleFaderWidth(6); // FADER WIDTH — per direct request, thinner (6px) while in PERFORMANCE MODE
-    const fwSl = document.getElementById('simpleFaderWidthSlider'); if (fwSl) fwSl.value = 6;
+    setSimpleFaderWidth(8); // FADER WIDTH — 8px in PERFORMANCE MODE too now, per direct request (was 6px)
+    const fwSl = document.getElementById('simpleFaderWidthSlider'); if (fwSl) fwSl.value = 8;
   } else {
     if (_justTrackBeforePerfMode !== null) {
       setJustTrack(_justTrackBeforePerfMode);
