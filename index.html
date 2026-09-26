@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 07:30:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 07:47:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -795,6 +795,10 @@ html body .track-vol-bar .track-vol-fill-bg {
   transform: translateY(-50%) !important;
 }
 html body.vol-banger .track-vol-bar .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; }
+/* VOL BANGER BG strip pulses too, per direct request — same bounce as the
+   fill (scaled from the left up to the fader position) but a quarter note
+   behind it (--vb2, see _volBangerLoop). */
+html body.vol-banger .track-vol-bar .track-vol-fill-bg { transform-origin: left center; transform: translateY(-50%) scaleX(var(--vb2, 0)) !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
@@ -1928,7 +1932,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:30:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:47:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2543,9 +2547,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">40%</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">15%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="40" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="15" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -10146,7 +10150,7 @@ function setVolBanger(on) {
   if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!on) {
     if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) vbar.style.removeProperty('--vb'); }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.style.removeProperty('--vb2'); } _vbHist.length = 0; }
   }
 }
 function setVolBangerOpacity(v) {
@@ -10207,9 +10211,22 @@ function _volBangerLoop(now) {
     _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
     if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
     const vbar = document.getElementById(`vbar-${tr}`);
-    if (vbar) vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
+    // Delayed echo for the VOL BANGER BG strip, per direct request: the
+    // same level, a quarter note later (60/bpm s, follows tempo). Each
+    // frame's level is logged with its timestamp; the strip reads back the
+    // newest entry that's at least a quarter note old.
+    const hist = _vbHist[tr] || (_vbHist[tr] = []);
+    hist.push([now, _vbLevels[tr]]);
+    const q = 60000 / (bpm || 110);
+    while (hist.length > 1 && hist[1][0] <= now - q) hist.shift();
+    const delayed = hist[0][0] <= now - q ? hist[0][1] : 0;
+    if (vbar) {
+      vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
+      vbar.style.setProperty('--vb2', delayed.toFixed(3));
+    }
   }
 }
+const _vbHist = [];
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
 // but harmless to set regardless (the CSS variable just sits unused if
@@ -12180,7 +12197,7 @@ function setTrackRowBgOpacity(v) {
   if (readout) readout.textContent = v + '%';
 }
 setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
-setTrackRowBgOpacity(40); // startup default — 40% (was 20%), per direct request
+setTrackRowBgOpacity(15); // startup default — hard-coded to 15%, per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -18176,10 +18193,10 @@ function _setRainbowBgZero(on) {
   if (on === !!window._rainbowBgZero) return;
   const sl = document.getElementById('trackRowBgOpacitySlider');
   if (on) {
-    _rainbowBgOpacityBefore = sl ? +sl.value : 40;
+    _rainbowBgOpacityBefore = sl ? +sl.value : 15;
     setTrackRowBgOpacity(0); if (sl) sl.value = 0;
   } else {
-    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 40;
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 15;
     setTrackRowBgOpacity(v); if (sl) sl.value = v;
     _rainbowBgOpacityBefore = null;
   }
