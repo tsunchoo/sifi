@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 06:24:27 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 05:45:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -714,11 +714,6 @@ input.master-vol-slider::-moz-range-thumb { width: 24px !important; height: 41.4
    layout height at all — the row's own background was stopping a little
    short of that. */
 body.track-row-bg .track-ctrl-row { position: relative; }
-/* TRACK ROW BG now sits ONLY behind the volume slider (the stretch
-   between the lock and offset buttons), per direct request — the old
-   full-width row band is switched off here, and the same colour/opacity
-   is drawn by .track-vol-bar::before instead (see below). */
-body.track-row-bg .track-ctrl-row::before { display: none !important; }
 body.track-row-bg .track-ctrl-row::before {
   content: '';
   position: absolute;
@@ -766,28 +761,11 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
    Done with scaleX from the left edge so the fader's own width/position
    logic (_setVolFillPct) is untouched; --vb (0-1) is set on each
    .track-vol-bar by _volBangerLoop() and inherited by the fill. */
-/* SEGMENT MASK, per direct request — the segment pattern is no longer a
-   visible strip; it's used purely as a MASK on the bouncing fill, so the
-   level itself shows up as segments. To keep the segments locked to the
-   full slider width (not stretching as the level moves), the fill now
-   spans the whole bar and is trimmed from the right with clip-path to
-   fader-position x level (instead of being scaled with scaleX, which
-   would have squashed the mask along with it). */
-body.vol-banger .track-vol-bar .track-vol-fill-solid { /* extra .track-vol-bar = higher specificity than JUST TRACK's own body.just-track .track-vol-fill-solid height rule, which sits later in the stylesheet and was winning (why VOL BANGER HEIGHT did nothing visible with JUST TRACK on) */
-  width: 100% !important;
-  clip-path: inset(0 calc(100% - var(--vb-reveal, 0) * 1%) 0 0); /* --vb-reveal = level snapped UP to whole segments (capped at the fader) — set per bar in _volBangerLoop, so the fill jumps a segment at a time, per direct request */
-  -webkit-mask-image: repeating-linear-gradient(to right, #000 0, #000 calc(100% / var(--vb-segs, 12) / 2), transparent calc(100% / var(--vb-segs, 12) / 2), transparent calc(100% / var(--vb-segs, 12)));
-          mask-image: repeating-linear-gradient(to right, #000 0, #000 calc(100% / var(--vb-segs, 12) / 2), transparent calc(100% / var(--vb-segs, 12) / 2), transparent calc(100% / var(--vb-segs, 12)));
-  /* VOL BANGER HEIGHT slider (5-100% of the bar, vertically centred) —
-     applies to the fill and therefore its segment mask too. JUST TRACK
-     still drives it: turning JUST TRACK on snaps this to the thin
-     track-line height, off snaps it to the full bar (see setJustTrack);
-     the slider fine-tunes from there. !important to win over JUST TRACK's
-     own fill-height rule. */
-  top: 50% !important; bottom: auto !important;
-  height: 100% !important; /* hard-coded to max, per direct request (was the VOL BANGER HEIGHT slider) */
-  transform: translateY(-50%) !important;
+body.vol-banger .track-vol-fill-solid {
+  transform-origin: left center;
+  transform: scaleX(var(--vb, 0));
 }
+body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; } /* keep JUST TRACK's vertical centring */
 /* VOL BANGER background, per direct request — a static strip behind the
    bouncing fill in the fill's quietest/resting colour (the same #555555
    the fill decays back to between hits), running from the left edge to
@@ -811,14 +789,14 @@ body.vol-banger .track-vol-scale::before { left: calc(var(--fill-pct, 0) * 1%); 
      clip-path cuts it off at the fader position. */
   z-index: 1;
   background: repeating-linear-gradient(to right,
-    #555555 0, #555555 calc(100% / var(--vb-segs, 12) / 2),
-    transparent calc(100% / var(--vb-segs, 12) / 2), transparent calc(100% / var(--vb-segs, 12)));
+    #555555 0, #555555 calc(100% / var(--vb-segs, 14) / 2),
+    transparent calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14)));
   clip-path: inset(0 calc(100% - var(--fill-pct, 0) * 1%) 0 0);
   pointer-events: none;
   opacity: var(--vb-opacity, 0.15); /* VOL BANGER BG OPACITY slider (default hard-coded to 15%, per direct request) */
 }
 .track-vol-tip { z-index: 2; } /* fader tip stays on top of the segmented VOL BANGER strip */
-body.vol-banger .track-vol-fill-bg { display: none; } /* no longer drawn — its segment pattern is now used only as the fill's mask (see above) */
+body.vol-banger .track-vol-fill-bg { display: block; }
 body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
 .track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
@@ -989,18 +967,7 @@ body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-c
   height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1)); /* hardcoded to its natural full height (the VOL SLIDER HEIGHT slider's 100% position) per direct request — the slider and --vol-bar-height-override are removed from use; setVolBarHeight() kept in the code but no longer wired to any UI */
   align-self: center; /* stays vertically centered in the row */
 }
-body.vol-bg-transparent .track-vol-bar { background: transparent; }
-/* TRACK ROW BG — behind the volume slider only (see the note by
-   .track-ctrl-row::before). Colour = TRACK ROW BG DARKNESS (light -> black,
-   built from the top-row colour: --trbg-white lightens it toward white,
-   --trbg-black darkens it toward black — set by setTrackRowBgDarken), at
-   TRACK ROW BG OPACITY. First child in paint order, so it sits behind the
-   vol track line, the fill and the fader. */
-body.track-row-bg .track-vol-bar::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555), white var(--trbg-white, 0%)), black var(--trbg-black, 75%));
-  opacity: var(--track-row-bg-opacity, 1);
-} /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) — re-added to the UI, on by default (matching how it's been sitting) */
+body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDER BG TRANSPARENT (SETTINGS toggle) — re-added to the UI, on by default (matching how it's been sitting) */
 /* Ruler behind the fill — one horizontal line straight through the
    middle, crossed by 10 evenly-spaced vertical ticks. Two background
    layers on one element rather than a separate line + 10 separate tick
@@ -1024,7 +991,7 @@ body.track-row-bg .track-vol-bar::before {
   position: absolute; left: 0; right: 0; top: 50%; pointer-events: none; /* was calc(2 * clamp(2px, 1vw, 5px)) each side on top of the parent's own now-removed inset — a total of 3x that clamp value eaten off each end. Flush with the true edges now, matching the fill and the parent above. */
   height: var(--vol-scale-thickness, 1px);
   transform: translateY(-50%);
-  background-color: color-mix(in srgb, color-mix(in srgb, var(--top-row-pressed-bg) 60%, black), white var(--vol-track-light, 0%)); /* VOL TRACK LIGHTNESS slider: 0% = this original colour, 100% = white. Darker still than #playBtn.playing's own pressed background — that alone wasn't reading as dark enough against the slider */
+  background-color: color-mix(in srgb, var(--top-row-pressed-bg) 60%, black); /* darker still than #playBtn.playing's own pressed background — that alone wasn't reading as dark enough against the slider */
 }
 .track-vol-fill-solid {
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
@@ -1941,7 +1908,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 06:24:27 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:45:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2262,12 +2229,18 @@ body.performance-mode header { padding-bottom: 10px; }
       </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL TRACK LIGHTNESS</div>
-          <div id="volTrackLightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
+          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">15%</div>
         </div>
-        <input type="range" id="volTrackLightSlider" min="0" max="100" value="0" oninput="setVolTrackLightness(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="15" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
-      <!-- VOL BANGER BG OPACITY removed — the segment strip is now an invisible mask on the fill, per direct request -->
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER SEGMENTS</div>
+          <div id="volBangerSegsVal" style="font-size:0.6rem;font-family:monospace;color:#333;">14</div>
+        </div>
+        <input type="range" id="volBangerSegsSlider" min="10" max="20" step="1" value="14" oninput="setVolBangerSegments(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -2535,10 +2508,10 @@ body.performance-mode header { padding-bottom: 10px; }
       <!-- TRACK ROW BG DARKNESS / OPACITY — moved here (bottom of DEV) from the main COLOR MENU, per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS (LIGHT → BLACK)</div>
-          <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">88%</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
+          <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">75%</div>
         </div>
-        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="88" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="75" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -10106,26 +10079,7 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // percentage, so the marker rides its right edge with no other JS
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
-function setJustTrack(on) {
-  document.body.classList.toggle('just-track', !!on);
-  // (VOL BANGER HEIGHT is hard-coded to full height now, per direct
-  // request — JUST TRACK no longer changes it; it only affects the normal,
-  // non-VOL-BANGER fill.)
-}
-// Thin-line height as a % of the bar — matches JUST TRACK's own
-// --vol-scale-thickness (4px default) against the bar's real height.
-function _vbThinHeightPct() {
-  const bar = document.querySelector('.track-vol-bar');
-  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
-  const h = bar ? bar.getBoundingClientRect().height : 29;
-  return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
-}
-function setVolBangerHeight(pct) {
-  pct = Math.max(5, Math.min(100, Math.round(+pct) || 100));
-  document.documentElement.style.setProperty('--vb-height', pct + '%');
-  const r = document.getElementById('volBangerHeightVal'); if (r) r.textContent = pct + '%';
-  const sl = document.getElementById('volBangerHeightSlider'); if (sl) sl.value = pct;
-}
+function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
 // VOL BANGER — see the body.vol-banger CSS. One AnalyserNode per track,
 // tapped (in parallel, no effect on the sound) off that track's own gain
 // node, i.e. post track-volume. Re-attached automatically if the graph gets
@@ -10134,7 +10088,6 @@ function setVolBangerHeight(pct) {
 const _vbAnalysers = [];
 const VB_RANGE_DB = 30, VB_GATE_DB = -80; // VOL BANGER: dB shown below each track's own recent peak / anything quieter than the gate reads as silence
 const _vbPeakDb = new Array(NUM_TRACKS).fill(-60);
-const VB_SEGMENTS = 12; // hard-coded, per direct request — must match --vb-segs
 let _vbLastT = 0;
 let _vbLevels = new Array(NUM_TRACKS).fill(0), _vbRaf = null, _vbBuf = null;
 function setVolBanger(on) {
@@ -10143,7 +10096,7 @@ function setVolBanger(on) {
   if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!on) {
     if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.style.removeProperty('--vb-reveal'); } }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) vbar.style.removeProperty('--vb'); }
   }
 }
 function setVolBangerSegments(n) {
@@ -10152,21 +10105,13 @@ function setVolBangerSegments(n) {
   const r = document.getElementById('volBangerSegsVal'); if (r) r.textContent = n;
   const sl = document.getElementById('volBangerSegsSlider'); if (sl) sl.value = n;
 }
-// VOL TRACK LIGHTNESS (DEV slider), per direct request — the volume
-// slider's track line, from its original colour (0%) to white (100%).
-function setVolTrackLightness(v) {
-  v = Math.max(0, Math.min(100, +v));
-  document.documentElement.style.setProperty('--vol-track-light', v + '%');
-  const r = document.getElementById('volTrackLightVal'); if (r) r.textContent = v + '%';
-}
 function setVolBangerOpacity(v) {
   v = Math.max(0, Math.min(100, +v));
   document.documentElement.style.setProperty('--vb-opacity', v / 100);
   const r = document.getElementById('volBangerOpacityVal'); if (r) r.textContent = v + '%';
   const sl = document.getElementById('volBangerOpacitySlider'); if (sl) sl.value = v;
 }
-// VOL BANGER on by default, per direct request. BG strip opacity defaults to 15%. Segments hard-coded to 12, per direct request.
-document.documentElement.style.setProperty('--vb-segs', 12);
+// VOL BANGER on by default, per direct request. BG strip opacity defaults to 15%.
 document.documentElement.style.setProperty('--vb-opacity', 0.15);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setVolBanger(true), { once: true });
 else setTimeout(() => setVolBanger(true), 0);
@@ -10219,18 +10164,7 @@ function _volBangerLoop(now) {
     _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
     if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
     const vbar = document.getElementById(`vbar-${tr}`);
-    if (vbar) {
-      vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
-      // Jump in whole-segment increments, per direct request: the level's
-      // reach (fader % x level) is rounded UP to the next segment boundary
-      // (segments = 12 equal slices of the full bar), then capped at the
-      // fader so it never shows past it. Any audible level lights at least
-      // one segment; silence lights none.
-      const fillPct = parseFloat(vbar.style.getPropertyValue('--fill-pct')) || 0;
-      const segW = 100 / VB_SEGMENTS;
-      const n = Math.ceil((fillPct * _vbLevels[tr]) / segW - 1e-6);
-      vbar.style.setProperty('--vb-reveal', Math.min(fillPct, n * segW).toFixed(3));
-    }
+    if (vbar) vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
   }
 }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
@@ -12188,14 +12122,6 @@ function setFaderTipTopRowColor(on) {
 // on .track-ctrl-row for what this actually does.
 function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
 function setTrackRowBgDarken(v) {
-  // TRACK ROW BG DARKNESS — light -> black, per direct request. 0 = a very
-  // light tint of the top-row colour (85% white), 50 = the top-row colour
-  // itself, 100 = black. Default 88 ~ the old 75%-toward-black look.
-  v = Math.max(0, Math.min(100, +v));
-  const white = v < 50 ? (50 - v) / 50 * 85 : 0;
-  const black = v > 50 ? (v - 50) * 2 : 0;
-  document.documentElement.style.setProperty('--trbg-white', white + '%');
-  document.documentElement.style.setProperty('--trbg-black', black + '%');
   document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
   const readout = document.getElementById('trackRowBgDarkenReadout');
   if (readout) readout.textContent = v + '%';
@@ -12210,7 +12136,7 @@ function setTrackRowBgOpacity(v) {
   const readout = document.getElementById('trackRowBgOpacityReadout');
   if (readout) readout.textContent = v + '%';
 }
-setTrackRowBgDarken(88); // startup default (new light->black scale; 88 ~ the old 75%-darkened look), per direct request — applied immediately since sliders don't fire their own oninput on page load
+setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
 setTrackRowBgOpacity(15); // startup default — hard-coded to 15% (was 40%, 20% before that), per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
