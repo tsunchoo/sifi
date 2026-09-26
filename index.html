@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 05:45:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 05:10:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -777,25 +777,7 @@ body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) s
    the right edge; everything left of the fader is left to the bouncing
    fill (and the optional BG strip, whose opacity slider can hide it). */
 body.vol-banger .track-vol-scale::before { left: calc(var(--fill-pct, 0) * 1%); }
-.track-vol-fill-bg {
-  display: none; position: absolute; left: 0; right: 0;
-  top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%);
-  /* SEGMENTED, IN FRONT OF THE FILL, per direct request: now painted ABOVE
-     the bouncing fill (but below the fader tip — see z-index on
-     .track-vol-tip) as alternating columns of colour and gaps, so the
-     moving level shows through the gaps from behind. The strip spans the
-     FULL bar width so the columns divide the whole slider into
-     --vb-segs equal sections (VOL BANGER SEGMENTS slider, 10-20), then
-     clip-path cuts it off at the fader position. */
-  z-index: 1;
-  background: repeating-linear-gradient(to right,
-    #555555 0, #555555 calc(100% / var(--vb-segs, 14) / 2),
-    transparent calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14)));
-  clip-path: inset(0 calc(100% - var(--fill-pct, 0) * 1%) 0 0);
-  pointer-events: none;
-  opacity: var(--vb-opacity, 0.15); /* VOL BANGER BG OPACITY slider (default hard-coded to 15%, per direct request) */
-}
-.track-vol-tip { z-index: 2; } /* fader tip stays on top of the segmented VOL BANGER strip */
+.track-vol-fill-bg { display: none; position: absolute; left: 0; top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%); width: calc(var(--fill-pct, 0) * 1%); background: #555555; pointer-events: none; opacity: var(--vb-opacity, 1); /* VOL BANGER BG OPACITY slider — moved here from the bouncing fill, per direct request */ }
 body.vol-banger .track-vol-fill-bg { display: block; }
 body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
 .track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
@@ -1908,7 +1890,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:45:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:10:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2230,16 +2212,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
-          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">15%</div>
+          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
-        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="15" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER SEGMENTS</div>
-          <div id="volBangerSegsVal" style="font-size:0.6rem;font-family:monospace;color:#333;">14</div>
-        </div>
-        <input type="range" id="volBangerSegsSlider" min="10" max="20" step="1" value="14" oninput="setVolBangerSegments(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
@@ -2516,9 +2491,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">15%</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">40%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="15" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="40" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -10099,20 +10074,13 @@ function setVolBanger(on) {
     for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) vbar.style.removeProperty('--vb'); }
   }
 }
-function setVolBangerSegments(n) {
-  n = Math.max(10, Math.min(20, Math.round(+n) || 14));
-  document.documentElement.style.setProperty('--vb-segs', n);
-  const r = document.getElementById('volBangerSegsVal'); if (r) r.textContent = n;
-  const sl = document.getElementById('volBangerSegsSlider'); if (sl) sl.value = n;
-}
 function setVolBangerOpacity(v) {
   v = Math.max(0, Math.min(100, +v));
   document.documentElement.style.setProperty('--vb-opacity', v / 100);
   const r = document.getElementById('volBangerOpacityVal'); if (r) r.textContent = v + '%';
   const sl = document.getElementById('volBangerOpacitySlider'); if (sl) sl.value = v;
 }
-// VOL BANGER on by default, per direct request. BG strip opacity defaults to 15%.
-document.documentElement.style.setProperty('--vb-opacity', 0.15);
+// VOL BANGER on by default, per direct request.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setVolBanger(true), { once: true });
 else setTimeout(() => setVolBanger(true), 0);
 function _volBangerLoop(now) {
@@ -12137,7 +12105,7 @@ function setTrackRowBgOpacity(v) {
   if (readout) readout.textContent = v + '%';
 }
 setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
-setTrackRowBgOpacity(15); // startup default — hard-coded to 15% (was 40%, 20% before that), per direct request
+setTrackRowBgOpacity(40); // startup default — 40% (was 20%), per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -18133,10 +18101,10 @@ function _setRainbowBgZero(on) {
   if (on === !!window._rainbowBgZero) return;
   const sl = document.getElementById('trackRowBgOpacitySlider');
   if (on) {
-    _rainbowBgOpacityBefore = sl ? +sl.value : 15;
+    _rainbowBgOpacityBefore = sl ? +sl.value : 40;
     setTrackRowBgOpacity(0); if (sl) sl.value = 0;
   } else {
-    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 15;
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 40;
     setTrackRowBgOpacity(v); if (sl) sl.value = v;
     _rainbowBgOpacityBefore = null;
   }
