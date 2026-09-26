@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:28:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:34:02 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -663,8 +663,8 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
    stays in the DOM (hidden) so the colour-recolour code that targets it
    keeps working. While recording the word goes red and pulses. */
 /* Circle glyph at rest; the word REC only while recording (per direct request). */
-#recBtnText { display: none; font-size: calc(0.72rem * 1.65); font-weight: 700; letter-spacing: 1px; line-height: 1; margin-right: -1px; /* cancel the trailing letter-spacing so the word sits truly centred */ }
-#saveBtn.rec-active #recBtnImg, #saveBtn.rec-active #recBtnMask { display: none !important; }
+#recBtnText { display: block; transform: translateX(var(--rec-text-x, 2px)); font-size: calc(0.72rem * 1.65); font-weight: 700; letter-spacing: 1px; line-height: 1; margin-right: -1px; /* cancel the trailing letter-spacing so the word sits truly centred */ }
+#recBtnImg, #saveBtn.rec-active #recBtnMask { display: none !important; } /* REC text is the default state again, per direct request (circle glyph hidden) */
 #saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, 2px)); } /* REC TEXT X (DEV slider) — default +2px, per direct request */
 #saveBtn.rec-active #recBtnText { color: #ff2a2a; animation: rec-text-pulse 0.5s infinite alternate; }
 @keyframes rec-text-pulse { from { opacity: 1; } to { opacity: 0.55; } }
@@ -1134,6 +1134,11 @@ html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !imp
    release by the listener next to wireShiftButton. */
 html body .shift-btn.glyph-pressed:not(.right), html body .shift-btn.glyph-pressed:not(.right) .track-offset-glyph,
 html body .rand-btn.glyph-pressed, html body .rand-btn.glyph-pressed .glyph { color: var(--play-flash-color, #f17d21) !important; }
+/* ...and their background takes the FX button's own engaged colour while
+   pressed, per direct request (lights mode: the top row's pressed shade;
+   otherwise the normal track-button ON colour). */
+html body .track-ctrl-row .shift-btn.glyph-pressed:not(.right), html body .track-ctrl-row .rand-btn.glyph-pressed { background: var(--track-btn-on-color, #0081FE) !important; }
+html body.track-btn-lights .track-ctrl-row .shift-btn.glyph-pressed:not(.right), html body.track-btn-lights .track-ctrl-row .rand-btn.glyph-pressed { background: var(--top-row-pressed-bg) !important; }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on:not(.lock-btn) .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
@@ -2336,7 +2341,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:28:49 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:34:02 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2676,14 +2681,14 @@ body.performance-mode header { padding-bottom: 10px; }
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRACK BUTTON GLOW</div>
           <div id="trackGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
-        <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="100" oninput="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW GLOW</div>
           <div id="topGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
-        <input type="range" id="topGlowSlider" min="0" max="300" step="5" value="100" oninput="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="topGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('topGlowVal').textContent=this.value+'%'" onchange="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -17292,7 +17297,7 @@ function wireRandomizeButton(btn, tr) {
     if (!window._nButtonClickCount) window._nButtonClickCount = {};
     window._nButtonClickCount[tr] = (window._nButtonClickCount[tr] || 0) + 1;
     doRand();
-    btn.style.background = _highlight2Color();
+    btn.style.background = document.body.classList.contains('track-btn-lights') ? 'var(--top-row-pressed-bg)' : 'var(--track-btn-on-color, #0081FE)'; // same as the FX button's engaged background, per direct request (was _highlight2Color())
     btn.style.color = 'var(--play-flash-color, #f17d21)'; // glyph in PLAY FLASH colour for the tap flash, per direct request (was #fff)
     setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
   };
