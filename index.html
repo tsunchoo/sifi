@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 03:11:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 03:13:35 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1871,7 +1871,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:11:14 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:13:35 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -13750,17 +13750,18 @@ function tempoNoteFactor() {
 // the shared reverb input bus, so the NEW room's size and tail ring out
 // clearly. The tail's loudness still follows the new REVERB MIX roll (the
 // return gain), so a near-zero MIX roll is honestly close to dry.
-const REVERB_PREVIEW_SEND = 8; // "crank it up" — about +18dB over the dry click, into the reverb only
+const REVERB_PREVIEW_SEND = 1.6; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
 function _previewReverb() {
   if (window._noButtonSounds || !ctx) return;
   playUiSound('tinyclick');
   const buf = window._uiSoundBufs && window._uiSoundBufs['tinyclick'];
   if (!buf || !window._reverbSendBus) return;
   const src = ctx.createBufferSource(); src.buffer = buf;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2500; lp.Q.value = 0.5; // soften the click's transient before it hits the reverb
   const wet = ctx.createGain(); wet.gain.value = REVERB_PREVIEW_SEND;
-  src.connect(wet); wet.connect(window._reverbSendBus);
+  src.connect(lp); lp.connect(wet); wet.connect(window._reverbSendBus);
   src.start();
-  src.onended = () => { try { wet.disconnect(); } catch(e) {} };
+  src.onended = () => { try { lp.disconnect(); wet.disconnect(); } catch(e) {} };
 }
 function _randomizeReverbSettings() {
   const _newReverbSize = Math.random();
