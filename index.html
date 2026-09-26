@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 17:24:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 17:52:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -777,10 +777,6 @@ body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) s
    the right edge; everything left of the fader is left to the bouncing
    fill (and the optional BG strip, whose opacity slider can hide it). */
 body.vol-banger .track-vol-scale::before { left: calc(var(--fill-pct, 0) * 1%); }
-.track-vol-fill-bg { display: none; position: absolute; left: 0; top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%); width: calc(var(--fill-pct, 0) * 1%); background: var(--neutral-top, #555555); pointer-events: none; opacity: var(--vb-opacity, 1); /* VOL BANGER BG OPACITY slider — moved here from the bouncing fill, per direct request */ }
-body.vol-banger .track-vol-fill-bg { display: block; }
-body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
-.track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
 /* VOLUME FILL HEIGHT (DEV slider, 5-100% of the volume bar, vertically
    centred), per direct request — sets the fill's height (and the VOL
    BANGER background strip's) whatever mode it's in. JUST TRACK still
@@ -788,8 +784,7 @@ body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-s
    bar (see setJustTrack) — the slider fine-tunes from there. The extra
    .track-vol-bar in these selectors + !important make them win over the
    older JUST TRACK / VOL BANGER height and transform rules. */
-html body .track-vol-bar .track-vol-fill-solid,
-html body .track-vol-bar .track-vol-fill-bg {
+html body .track-vol-bar .track-vol-fill-solid {
   /* Centred with plain positioning (not translateY(-50%)), per the
      artifact report — a fractional translate combined with the per-frame
      scaleX was leaving 1px slivers of old paint behind at the fill's
@@ -806,12 +801,6 @@ html body.vol-banger .track-vol-bar .track-vol-fill-solid {
    that some browsers still paint a hairline for. Class set per bar by
    _volBangerLoop. */
 html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility: hidden; }
-html body.vol-banger .track-vol-bar.vb2-silent .track-vol-fill-bg { visibility: hidden; }
-html body.no-second-level .track-vol-bar .track-vol-fill-bg { display: none !important; } /* SECOND LEVEL off (DEV) */
-/* VOL BANGER BG strip pulses too, per direct request — same bounce as the
-   fill (scaled from the left up to the fader position) but a quarter note
-   behind it (--vb2, see _volBangerLoop). */
-html body.vol-banger .track-vol-bar .track-vol-fill-bg { transform-origin: left center; transform: scaleX(var(--vb2, 0)) !important; will-change: transform; backface-visibility: hidden; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
@@ -1030,6 +1019,11 @@ html body.track-btn-lights .rand-btn.rand-auto {
 html body .track-ctrl-row .track-ctrl-icon-btn.solo-on { background: #ffe400 !important; color: #000 !important; text-shadow: none !important; }
 html body .track-ctrl-row .track-ctrl-icon-btn.solo-on svg { filter: none !important; }
 html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !important; }
+/* Offset (<) and + buttons: glyph goes PLAY FLASH colour while pressed,
+   per direct request. .glyph-pressed is added on pointerdown and cleared on
+   release by the listener next to wireShiftButton. */
+html body .shift-btn.glyph-pressed:not(.right), html body .shift-btn.glyph-pressed:not(.right) .track-offset-glyph,
+html body .rand-btn.glyph-pressed, html body .rand-btn.glyph-pressed .glyph { color: var(--play-flash-color, #f17d21) !important; }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
@@ -2206,7 +2200,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:24:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:52:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2539,23 +2533,6 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="volFillHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
         <input type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
-          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-        </div>
-        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="secondLevelToggle" checked onchange="setSecondLevel(this.checked)" style="width:14px;height:14px;cursor:pointer;">SECOND LEVEL
-      </label>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SECOND LEVEL DELAY</div>
-          <div id="secondLevelDelayVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0.50S</div>
-        </div>
-        <input type="range" id="secondLevelDelaySlider" min="0" max="0.5" step="0.01" value="0.5" oninput="setSecondLevelDelay(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -10559,14 +10536,8 @@ function setVolBanger(on) {
   if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!on) {
     if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.style.removeProperty('--vb2'); vbar.classList.remove('vb-silent','vb2-silent'); } _vbHist.length = 0; }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.classList.remove('vb-silent'); } }
   }
-}
-function setVolBangerOpacity(v) {
-  v = Math.max(0, Math.min(100, +v));
-  document.documentElement.style.setProperty('--vb-opacity', v / 100);
-  const r = document.getElementById('volBangerOpacityVal'); if (r) r.textContent = v + '%';
-  const sl = document.getElementById('volBangerOpacitySlider'); if (sl) sl.value = v;
 }
 // VOL BANGER on by default, per direct request.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setVolBanger(true), { once: true });
@@ -10620,45 +10591,11 @@ function _volBangerLoop(now) {
     _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
     if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
     const vbar = document.getElementById(`vbar-${tr}`);
-    // Delayed echo for the VOL BANGER BG strip, per direct request: the
-    // same level, a quarter note later (60/bpm s, follows tempo). Each
-    // frame's level is logged with its timestamp; the strip reads back the
-    // newest entry that's at least a quarter note old.
-    // SECOND LEVEL (DEV): delay is now a fixed 0-0.5s from the slider
-    // (was a tempo-following quarter note), and the whole thing can be
-    // switched off — then no history is kept and --vb2 isn't written.
-    let delayed = 0;
-    if (_secondLevelOn) {
-      const hist = _vbHist[tr] || (_vbHist[tr] = []);
-      hist.push([now, _vbLevels[tr]]);
-      const q = _secondLevelDelayMs;
-      while (hist.length > 1 && hist[1][0] <= now - q) hist.shift();
-      delayed = hist[0][0] <= now - q ? hist[0][1] : 0;
-    }
     if (vbar) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
-      if (_secondLevelOn) vbar.style.setProperty('--vb2', delayed.toFixed(3));
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
-      if (_secondLevelOn) vbar.classList.toggle('vb2-silent', delayed < 0.005);
     }
   }
-}
-const _vbHist = [];
-let _secondLevelOn = true, _secondLevelDelayMs = 500;
-function setSecondLevel(on) {
-  _secondLevelOn = !!on;
-  document.body.classList.toggle('no-second-level', !on);
-  const cb = document.getElementById('secondLevelToggle'); if (cb) cb.checked = !!on;
-  if (!on) {
-    _vbHist.length = 0;
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb2'); vbar.classList.add('vb2-silent'); } }
-  }
-}
-function setSecondLevelDelay(sec) {
-  sec = Math.max(0, Math.min(0.5, +sec));
-  _secondLevelDelayMs = sec * 1000;
-  const r = document.getElementById('secondLevelDelayVal'); if (r) r.textContent = sec.toFixed(2) + 'S';
-  const sl = document.getElementById('secondLevelDelaySlider'); if (sl) sl.value = sec;
 }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
@@ -11049,8 +10986,6 @@ function buildUI() {
     volBar.classList.toggle('muted', trackMuted[tr]);
     const volScale = document.createElement('div'); volScale.className = 'track-vol-scale'; // ruler behind the fill — one horizontal line through the middle (::before, in CSS), appended first so it paints behind everything else added below
     volBar.appendChild(volScale);
-    const volFillBg = document.createElement('div'); volFillBg.className = 'track-vol-fill-bg'; // VOL BANGER background strip (resting colour, to the fader position) — behind the bouncing fill
-    volBar.appendChild(volFillBg);
     const volFillSolid = document.createElement('div'); volFillSolid.className = 'track-vol-fill-solid'; // width-based fill, snapped to VOL_STEP_BOUNDARIES's 14 steps — always solid now, the old segmented (notched) alternative and its toggle were removed
     volBar.appendChild(volFillSolid);
     // SIMPLE FADER tip — a real sibling element of the fill (both direct
@@ -15318,6 +15253,14 @@ function randAll(mode, opts) {
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         const vb3 = document.getElementById(`vbar-${_tr}`); if (vb3) { _setVolFillPct(vb3, volGainToPos(trackVolume[_tr])); }
       }
+      // VOLUME JITTER, per direct request — every new pattern's faders get
+      // a random +/-3dB so they don't all sit level with each other.
+      if (trackVolume[_tr] > 0) {
+        const _jDb = (Math.random() * 2 - 1) * 3;
+        trackVolume[_tr] = Math.max(0.02, Math.min(1, trackVolume[_tr] * Math.pow(10, _jDb / 20)));
+        if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
+        updateVolFillDisplay(_tr);
+      }
     }, _tr * 30); // stagger 30ms per track
     _pendingRandTimeouts.push(_tid);
     trackVolume[tr] = 0.30;
@@ -16574,7 +16517,29 @@ function randomizeTrack(tr) {
   // results far more often than intended (and, for reasons never fully
   // pinned down, apparently never produced a random one at all for NOISE)
   // and was hard to reason about besides.
-  const _regularCycleKeys = new Set(['shihat', 'ride', 'shak', 'tamb', 'ngate']);
+  // HIHAT / SHAKER / TAMBOURINE — strict 3-step cycle per + press, per
+  // direct request, in this order: (1) straight quarter notes, either all
+  // downbeats or all upbeats (50/50), (2) every 16th, (3) random. RIDE and
+  // NOISE keep the older cycle below. With no manual-press history (e.g.
+  // called by RAND) one of the three is picked at random.
+  const _shakerCycleKeys = new Set(['shihat', 'shak', 'tamb']);
+  if (_shakerCycleKeys.has(key)) {
+    const _cc = window._nButtonClickCount && window._nButtonClickCount[tr];
+    const _pos = _cc ? ((_cc - 1) % 3) : Math.floor(Math.random() * 3);
+    if (_pos === 2) {
+      placeNotes(tr, Math.min(NUM_STEPS, Math.round((6 + Math.floor(Math.random() * 7)) * intensityMult())), 0.3, level);
+    } else {
+      const _up = Math.random() < 0.5;
+      for (let s = 0; s < NUM_STEPS; s++) {
+        const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+        if (_pos === 0) grid[tr][gs] = (s % 4 === (_up ? 2 : 0)) ? 2 : 0;   // quarters: downbeats or upbeats
+        else grid[tr][gs] = (s % 4 === 0) ? 2 : 1;                            // all 16ths, beats accented
+      }
+      if (trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    }
+    redrawTrackCells(tr); markModified(); return;
+  }
+  const _regularCycleKeys = new Set(['ride', 'ngate']);
   if (_regularCycleKeys.has(key)) {
     const _clickCount = window._nButtonClickCount && window._nButtonClickCount[tr];
     const _cyclePos = _clickCount ? ((_clickCount - 1) % 3) : Math.floor(Math.random() * 3); // no manual-tap history at all (e.g. this call came from RAND) — just roll one of the 3 slots fresh
@@ -17023,6 +16988,19 @@ function wireShiftButton(btn, tr, dir) {
   btn.addEventListener('touchcancel', stop);
 }
 
+// PRESSED GLYPH for the offset (<) and + buttons — pointer events fire
+// even where the buttons' own touch handlers preventDefault.
+(function() {
+  let pressed = null;
+  const release = () => { if (pressed) { pressed.classList.remove('glyph-pressed'); pressed = null; } };
+  document.addEventListener('pointerdown', e => {
+    const b = e.target.closest && e.target.closest('.shift-btn:not(.right), .rand-btn');
+    if (!b) return;
+    release(); pressed = b; b.classList.add('glyph-pressed');
+  }, true);
+  document.addEventListener('pointerup', release, true);
+  document.addEventListener('pointercancel', release, true);
+})();
 // Global registry so clearAll can stop all active auto-shifts
 const autoShiftStops = {};
 
@@ -17106,7 +17084,7 @@ function wireRandomizeButton(btn, tr) {
     window._nButtonClickCount[tr] = (window._nButtonClickCount[tr] || 0) + 1;
     doRand();
     btn.style.background = _highlight2Color();
-    btn.style.color = '#fff';
+    btn.style.color = 'var(--play-flash-color, #f17d21)'; // glyph in PLAY FLASH colour for the tap flash, per direct request (was #fff)
     setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
   };
 
@@ -18647,8 +18625,15 @@ function _applyRainbowMode(mode) {
   _applyRainbowState({ perf: mode === 2 || mode === 4, ruler: mode === 3 || mode === 4, bg0: false });
 }
 // DEFAULT MODE = 4 (PERFORMANCE MODE + TIME RULER), per direct request.
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => _applyRainbowMode(4), { once: true });
-else _applyRainbowMode(4);
+// JUST TRACK starts OFF, per direct request — the start-up mode would
+// otherwise switch it on (see _applyRainbowState).
+function _applyStartupMode() {
+  _applyRainbowMode(4);
+  setJustTrack(false);
+  const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = false;
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _applyStartupMode, { once: true });
+else _applyStartupMode();
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -19332,7 +19317,7 @@ function fullReset() {
   document.body.style.removeProperty('--bg-pulse-color');
   if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(20); // matches the current defaults (20% / 1px)
   if (typeof _applyMarkerModeRulerThickness === 'function') _applyMarkerModeRulerThickness(); else if (typeof setTimeRulerThickness === 'function') setTimeRulerThickness(1); // 4px square / 1px circle
-  if (typeof _applyRainbowMode === 'function') _applyRainbowMode(4); // reset lands on the default mode 4 (PERFORMANCE MODE + TIME RULER), same as a fresh load
+  if (typeof _applyStartupMode === 'function') _applyStartupMode(); // reset lands on the default mode 4 (PERFORMANCE MODE + TIME RULER), same as a fresh load
   else if (typeof setTimeRuler === 'function') setTimeRuler(false); else document.body.style.removeProperty('--track-line-color');
   document.body.style.removeProperty('--header-text-color');
   document.body.style.removeProperty('--header-text-dim');
