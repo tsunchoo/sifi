@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 16:54:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 16:55:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -999,6 +999,14 @@ html body.track-btn-lights.track-btn-lights-pulse .shift-btn.right.on,
 html body.track-btn-lights.track-btn-lights-pulse .track-ctrl-icon-btn.sweep-on:not(.lock-btn),
 html body.track-btn-lights.track-btn-lights-pulse .rand-btn.rand-auto {
   animation: lights-scale-pulse 0.6s ease-in-out infinite !important;
+}
+/* + AUTO in lights mode: glyph breathes PLAY FLASH <-> hot colour (mix
+   amount --auto-mix set per frame by _randAutoBreatheTick), replacing the
+   opacity breathe. Overrides the flat hot colour above. */
+html body.track-btn-lights .rand-btn.rand-auto {
+  --auto-col: color-mix(in srgb, var(--play-flash-hot, #ff8a2e) var(--auto-mix, 100%), var(--play-flash-color, #f17d21));
+  color: var(--auto-col) !important;
+  text-shadow: 0 0 5px var(--auto-col), 0 0 12px color-mix(in srgb, var(--auto-col) 70%, transparent) !important;
 }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
@@ -2014,7 +2022,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:54:12 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:55:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -16795,9 +16803,15 @@ function _randAutoBreatheTick() {
   const phase = (now % measureDur) / measureDur; // 0..1 across the measure
   const tri = 1 - Math.abs(phase * 2 - 1); // 0 at the start/end of the measure, 1 at the midpoint — always ramping one way or the other, never flat
   const opacity = 0.4 + 0.6 * tri;
+  // TRACK BUTTON LIGHTS mode: no opacity breathe — instead the glyph
+  // breathes between PLAY FLASH and the hotter --play-flash-hot, on the same
+  // tempo-synced cycle (--auto-mix 0..1, consumed by the lights CSS).
+  const _lights = document.body.classList.contains('track-btn-lights');
   _randAutoBreathingTracks.forEach(tr => {
     const btn = document.getElementById(`randbtn-${tr}`);
-    if (btn) btn.style.opacity = opacity.toFixed(3);
+    if (!btn) return;
+    if (_lights) { btn.style.opacity = ''; btn.style.setProperty('--auto-mix', (tri * 100).toFixed(1) + '%'); }
+    else { btn.style.opacity = opacity.toFixed(3); btn.style.removeProperty('--auto-mix'); }
   });
   _randAutoBreatheRAF = requestAnimationFrame(_randAutoBreatheTick);
 }
@@ -16808,7 +16822,7 @@ function _startRandAutoBreathe(tr) {
 function _stopRandAutoBreathe(tr) {
   _randAutoBreathingTracks.delete(tr);
   const btn = document.getElementById(`randbtn-${tr}`);
-  if (btn) btn.style.opacity = '';
+  if (btn) { btn.style.opacity = ''; btn.style.removeProperty('--auto-mix'); }
 }
 function _setRandBtnLabel(rb, isAuto) {
   if (!rb) return;
