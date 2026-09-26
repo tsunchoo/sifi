@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 05:10:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 02:13:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -752,35 +752,6 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
   transition: background 0.06s, color 0.06s;
 }
 .track-name-btn.has-notes { color: #fff; }
-/* VOL BANGER (LOOK AND FEEL > DEV toggle) — moved off the track name
-   button onto the VOLUME FILL itself, per direct request: the fill bounces
-   with the track's live level, from the left edge up to the fader position
-   (full level = the fill reaches the fader tip, silence = no fill). It's
-   the same .track-vol-fill-solid element, so JUST TRACK's height change
-   (thin ruler-height strip vs full bar height) applies to it automatically.
-   Done with scaleX from the left edge so the fader's own width/position
-   logic (_setVolFillPct) is untouched; --vb (0-1) is set on each
-   .track-vol-bar by _volBangerLoop() and inherited by the fill. */
-body.vol-banger .track-vol-fill-solid {
-  transform-origin: left center;
-  transform: scaleX(var(--vb, 0));
-}
-body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; } /* keep JUST TRACK's vertical centring */
-/* VOL BANGER background, per direct request — a static strip behind the
-   bouncing fill in the fill's quietest/resting colour (the same #555555
-   the fill decays back to between hits), running from the left edge to
-   the fader position, so the full volume extent is always visible under
-   the bounce. Same height rules as the fill (full bar, or JUST TRACK's
-   thin centred strip). Hidden on muted tracks, like the fill. */
-/* VOL BANGER: no static track line underneath the moving level, per
-   direct request — the vol track line only runs from the fader position to
-   the right edge; everything left of the fader is left to the bouncing
-   fill (and the optional BG strip, whose opacity slider can hide it). */
-body.vol-banger .track-vol-scale::before { left: calc(var(--fill-pct, 0) * 1%); }
-.track-vol-fill-bg { display: none; position: absolute; left: 0; top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%); width: calc(var(--fill-pct, 0) * 1%); background: #555555; pointer-events: none; opacity: var(--vb-opacity, 1); /* VOL BANGER BG OPACITY slider — moved here from the bouncing fill, per direct request */ }
-body.vol-banger .track-vol-fill-bg { display: block; }
-body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
-.track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1857,7 +1828,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle">
+<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1890,7 +1861,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:10:11 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 02:13:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2115,7 +2086,7 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DRUM MUSIC RATIO</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randomizeDrumMusicRatioToggle" onchange="setRandomizeDrumMusicRatio(this.checked)">
+        <input type="checkbox" id="randomizeDrumMusicRatioToggle" checked onchange="setRandomizeDrumMusicRatio(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -2126,7 +2097,7 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE INTENSITY</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randomizeNoteIntensityToggle" onchange="setRandomizeNoteIntensity(this.checked)">
+        <input type="checkbox" id="randomizeNoteIntensityToggle" checked onchange="setRandomizeNoteIntensity(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -2203,19 +2174,6 @@ body.performance-mode header { padding-bottom: 10px; }
     </div>
 
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
-      </label>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
-          <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-        </div>
-        <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -2338,7 +2296,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
       </label>
-      <!-- JUST TRACK moved up next to VOL BANGER, per direct request -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+      </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -2491,9 +2451,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">40%</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="40" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="20" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -4121,7 +4081,7 @@ function _syncAutoPeriodRow() {
 // SETTINGS slider (DRUM MUSIC RATIO: any of its 7 positions 0-6; NOTE
 // INTENSITY: any of its 5 notches, MELLOW..MENTAL), then builds the new
 // pattern with it. The slider itself moves to show the value picked.
-window._randomizeDrumMusicRatio = false; window._randomizeNoteIntensity = false; // OFF by default again, per direct request
+window._randomizeDrumMusicRatio = true; window._randomizeNoteIntensity = true; // ON by default, per direct request
 function setRandomizeDrumMusicRatio(on) { window._randomizeDrumMusicRatio = !!on; }
 function setRandomizeNoteIntensity(on) { window._randomizeNoteIntensity = !!on; }
 function showRandMenu() {
@@ -10055,86 +10015,6 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
 function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
-// VOL BANGER — see the body.vol-banger CSS. One AnalyserNode per track,
-// tapped (in parallel, no effect on the sound) off that track's own gain
-// node, i.e. post track-volume. Re-attached automatically if the graph gets
-// rebuilt (bounce/export swaps trackGainNodes). Fast attack, smooth fall.
-// Only runs while the toggle is on.
-const _vbAnalysers = [];
-const VB_RANGE_DB = 30, VB_GATE_DB = -80; // VOL BANGER: dB shown below each track's own recent peak / anything quieter than the gate reads as silence
-const _vbPeakDb = new Array(NUM_TRACKS).fill(-60);
-let _vbLastT = 0;
-let _vbLevels = new Array(NUM_TRACKS).fill(0), _vbRaf = null, _vbBuf = null;
-function setVolBanger(on) {
-  document.body.classList.toggle('vol-banger', !!on);
-  const cb = document.getElementById('volBangerToggle'); if (cb) cb.checked = !!on;
-  if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
-  if (!on) {
-    if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) vbar.style.removeProperty('--vb'); }
-  }
-}
-function setVolBangerOpacity(v) {
-  v = Math.max(0, Math.min(100, +v));
-  document.documentElement.style.setProperty('--vb-opacity', v / 100);
-  const r = document.getElementById('volBangerOpacityVal'); if (r) r.textContent = v + '%';
-  const sl = document.getElementById('volBangerOpacitySlider'); if (sl) sl.value = v;
-}
-// VOL BANGER on by default, per direct request.
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setVolBanger(true), { once: true });
-else setTimeout(() => setVolBanger(true), 0);
-function _volBangerLoop(now) {
-  _vbRaf = requestAnimationFrame(_volBangerLoop);
-  if (!ctx) return;
-  const dt = _vbLastT ? Math.min(0.1, (now - _vbLastT) / 1000) : 0; _vbLastT = now;
-  for (let tr = 0; tr < NUM_TRACKS; tr++) _vbPeakDb[tr] = Math.max(-60, _vbPeakDb[tr] - 6 * dt); // recent-peak memory relaxes ~6dB/s
-  for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    const g = trackGainNodes[tr];
-    let a = _vbAnalysers[tr];
-    if (g && (!a || a.src !== g || a.node.context !== ctx)) {
-      if (a) { try { a.src.disconnect(a.node); } catch(e) {} }
-      const node = ctx.createAnalyser(); node.fftSize = 512;
-      try { g.connect(node); } catch(e) {}
-      a = _vbAnalysers[tr] = { node, src: g };
-    }
-    let lvl = 0;
-    if (a && !trackMuted[tr]) {
-      if (!_vbBuf || _vbBuf.length !== a.node.fftSize) _vbBuf = new Float32Array(a.node.fftSize);
-      a.node.getFloatTimeDomainData(_vbBuf);
-      // AC-coupled: subtract the window's mean first. Every track output
-      // carries a small constant DC offset (~-36dB) even in silence, which
-      // the plain RMS was reading as signal — why the meter never fell to
-      // zero (per direct report). Removing the mean ignores DC entirely.
-      let mean = 0; for (let i = 0; i < _vbBuf.length; i++) mean += _vbBuf[i]; mean /= _vbBuf.length;
-      // CALIBRATION, per direct request ("most tracks sit right down the
-      // bottom"): measured real per-track levels at this tap point (post
-      // track-volume, pre master makeup gain) across several random
-      // patterns — typical hit peaks land around -53..-36dB for percussion
-      // and -29..-15dB for basses, far below where the old RMS scale
-      // (-48..-6dB) even started. Now reads the window's PEAK (punchier,
-      // tracks each hit) and maps -66dB..-20dB -> 0..1, which puts
-      // ordinary hits mid-to-high on the button and loud basses near full.
-      let pk = 0; for (let i = 0; i < _vbBuf.length; i++) { const v = Math.abs(_vbBuf[i] - mean); if (v > pk) pk = v; }
-      const db = pk > 0 ? 20 * Math.log10(pk) : -200;
-      // PER-TRACK AUTO-CALIBRATION, per direct request: each track's own
-      // loudest recent hit always reaches FULL (the fill hits the fader
-      // tip), however quiet or loud that instrument is by nature. Tracks
-      // its recent peak in dB (jumps up instantly, relaxes ~6dB/s so it
-      // re-adapts when a part gets quieter), and shows everything within
-      // VB_RANGE_DB below that peak. How FAR the fill can reach is still
-      // set by the fader position (the fill is scaled up to the fader), so
-      // a louder (higher) fader = a longer bounce.
-      if (db > VB_GATE_DB) {
-        if (db > _vbPeakDb[tr]) _vbPeakDb[tr] = db;
-        lvl = Math.max(0, Math.min(1, 1 - (_vbPeakDb[tr] - db) / VB_RANGE_DB));
-      }
-    }
-    _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
-    if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
-    const vbar = document.getElementById(`vbar-${tr}`);
-    if (vbar) vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
-  }
-}
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
 // but harmless to set regardless (the CSS variable just sits unused if
@@ -10524,8 +10404,6 @@ function buildUI() {
     volBar.classList.toggle('muted', trackMuted[tr]);
     const volScale = document.createElement('div'); volScale.className = 'track-vol-scale'; // ruler behind the fill — one horizontal line through the middle (::before, in CSS), appended first so it paints behind everything else added below
     volBar.appendChild(volScale);
-    const volFillBg = document.createElement('div'); volFillBg.className = 'track-vol-fill-bg'; // VOL BANGER background strip (resting colour, to the fader position) — behind the bouncing fill
-    volBar.appendChild(volFillBg);
     const volFillSolid = document.createElement('div'); volFillSolid.className = 'track-vol-fill-solid'; // width-based fill, snapped to VOL_STEP_BOUNDARIES's 14 steps — always solid now, the old segmented (notched) alternative and its toggle were removed
     volBar.appendChild(volFillSolid);
     // SIMPLE FADER tip — a real sibling element of the fill (both direct
@@ -12105,7 +11983,7 @@ function setTrackRowBgOpacity(v) {
   if (readout) readout.textContent = v + '%';
 }
 setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
-setTrackRowBgOpacity(40); // startup default — 40% (was 20%), per direct request
+setTrackRowBgOpacity(20); // startup default, per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -13809,27 +13687,6 @@ function tempoNoteFactor() {
 // There's no separate on/off for BEAT's reverb any more — its mix alone
 // (0 = silent) covers that, so a random roll here can land anywhere
 // including effectively off, same as any other mix value.
-// REVERB PREVIEW, per direct request — after a swipe-down on the reverb
-// icon rolls new settings, the icon's own button sound (tinyclick) is what
-// drives the reverb: it plays dry at its normal level (playUiSound, so it
-// follows BUTTONS SOUNDS TO MIX / NO BUTTON SOUNDS like any button sound)
-// and a second, much hotter copy (REVERB_PREVIEW_SEND) goes straight into
-// the shared reverb input bus, so the NEW room's size and tail ring out
-// clearly. The tail's loudness still follows the new REVERB MIX roll (the
-// return gain), so a near-zero MIX roll is honestly close to dry.
-const REVERB_PREVIEW_SEND = 1.6; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
-function _previewReverb() {
-  if (window._noButtonSounds || !ctx) return;
-  playUiSound('tinyclick');
-  const buf = window._uiSoundBufs && window._uiSoundBufs['tinyclick'];
-  if (!buf || !window._reverbSendBus) return;
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2500; lp.Q.value = 0.5; // soften the click's transient before it hits the reverb
-  const wet = ctx.createGain(); wet.gain.value = REVERB_PREVIEW_SEND;
-  src.connect(lp); lp.connect(wet); wet.connect(window._reverbSendBus);
-  src.start();
-  src.onended = () => { try { lp.disconnect(); wet.disconnect(); } catch(e) {} };
-}
 function _randomizeReverbSettings() {
   const _newReverbSize = Math.random();
   setReverbIntensity(_newReverbSize);
@@ -18013,7 +17870,6 @@ function setPerformanceMode(on) {
 function _makeSwipeIcon(btn, opts) {
   const TRIGGER_PX = 30, MAX_PX = 30, MOVE_CANCEL_HOLD_PX = 6;
   let downY = null, fired = false, holdFired = false, holdTimer = null, touchJustHandled = 0;
-  // opts.noClick — skip the generic drag click (the reverb icon plays its own, through the new reverb — see _previewReverb)
   const visual = dy => { btn.style.transition = 'none'; btn.style.transform = `translateY(${Math.max(0, Math.min(MAX_PX, dy))}px)`; };
   const snapBack = () => { btn.style.transition = 'transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; btn.style.transform = 'translateY(0px)'; };
   const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
@@ -18026,7 +17882,7 @@ function _makeSwipeIcon(btn, opts) {
     const dy = y - downY;
     if (Math.abs(dy) > MOVE_CANCEL_HOLD_PX) clearHold();
     visual(dy);
-    if (!fired && dy > TRIGGER_PX) { fired = true; clearHold(); if (!opts.noClick) playUiSound('tinyclick'); opts.onSwipe(); } // drag click on fire, per direct request (reverb + marker style icons)
+    if (!fired && dy > TRIGGER_PX) { fired = true; clearHold(); playUiSound('tinyclick'); opts.onSwipe(); } // drag click on fire, per direct request (reverb + marker style icons)
   };
   const end = () => {
     clearHold();
@@ -18086,12 +17942,6 @@ function _applyRainbowState(m) {
   if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
   if (m.ruler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(m.ruler);
   _setRainbowBgZero(m.bg0);
-  // JUST TRACK — ON in modes 1, 2, 4 and 5, OFF in modes 3 and 6 (the two
-  // no-track-row-BG modes), per direct request (flipped from the first
-  // version). Applied last so it wins over PERFORMANCE MODE's own
-  // save/restore of this same setting.
-  setJustTrack(!m.bg0);
-  const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = !m.bg0;
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
 // DEV slider was set to is remembered on the way in and put back on the
@@ -18101,10 +17951,10 @@ function _setRainbowBgZero(on) {
   if (on === !!window._rainbowBgZero) return;
   const sl = document.getElementById('trackRowBgOpacitySlider');
   if (on) {
-    _rainbowBgOpacityBefore = sl ? +sl.value : 40;
+    _rainbowBgOpacityBefore = sl ? +sl.value : 20;
     setTrackRowBgOpacity(0); if (sl) sl.value = 0;
   } else {
-    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 40;
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 20;
     setTrackRowBgOpacity(v); if (sl) sl.value = v;
     _rainbowBgOpacityBefore = null;
   }
@@ -18814,8 +18664,8 @@ function fullReset() {
   setRandomize8BitMix(false);         _setCb('randomize8BitMixToggle', false);
   setRandomizeBeatType(true);         _setCb('randomizeBeatTypeToggle', true);
   setRandomizeDrumFx(false);          _setCb('randomizeDrumFxToggle', false);
-  setRandomizeDrumMusicRatio(false);  _setCb('randomizeDrumMusicRatioToggle', false);
-  setRandomizeNoteIntensity(false);   _setCb('randomizeNoteIntensityToggle', false);
+  setRandomizeDrumMusicRatio(true);   _setCb('randomizeDrumMusicRatioToggle', true);
+  setRandomizeNoteIntensity(true);    _setCb('randomizeNoteIntensityToggle', true);
   _setCb('automateToggle', false); if (typeof _syncAutoPeriodRow === 'function') _syncAutoPeriodRow();
   setAutoRandPeriod(0); { const sl = document.getElementById('autoRandPeriodSlider'); if (sl) sl.value = 0; }
   setTonalPercBalance(2); { const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = 2; }
@@ -18929,8 +18779,7 @@ function fullReset() {
   // direct request. Hold still opens the REVERB menu; a plain tap does
   // nothing.
   _makeSwipeIcon(btn, {
-    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); _previewReverb(); }, // the button click itself, run through the newly-rolled reverb, per direct request
-    noClick: true,
+    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); },
     holdMs: HOLD_MS,
     onHold: openMenu,
   });
