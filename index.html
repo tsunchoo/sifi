@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 21:59:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:11:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -436,6 +436,14 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    stays there permanently (not a pulse that reverts) — same trigger
    applies whether it's a single press or entering AUTO mode. */
 #randBtn .glyph { display: inline-block; transform: translateY(-2px); }
+/* NEW PATTERN pulse, per direct request — when a new whole pattern lands,
+   the + glyph jumps big with a heavy glow and eases back to its resting
+   size/glow over two beats (duration set from the tempo in JS). */
+@keyframes new-pattern-pulse {
+  0%   { transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(4px * var(--rglow, 1)) currentColor, 0 0 calc(12px * var(--rglow, 1)) currentColor, 0 0 calc(28px * var(--rglow, 1)) currentColor, 0 0 calc(44px * var(--rglow, 1)) color-mix(in srgb, currentColor 70%, transparent); }
+  100% { transform: translateY(-2px) scale(1); text-shadow: 0 0 calc(3px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor 14%, transparent); }
+}
+#randBtn.new-pattern .glyph { animation: new-pattern-pulse var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
 /* RAND BTN GLYPH = ASTERISK (SETTINGS toggle) — an alternative to the
    plain "+" text: an asterisk with a small gap in the middle, where all
    6 spokes stop short of the center instead of meeting at a point. Same
@@ -651,7 +659,7 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
 /* Circle glyph at rest; the word REC only while recording (per direct request). */
 #recBtnText { display: none; font-size: calc(0.72rem * 1.65); font-weight: 700; letter-spacing: 1px; line-height: 1; margin-right: -1px; /* cancel the trailing letter-spacing so the word sits truly centred */ }
 #saveBtn.rec-active #recBtnImg, #saveBtn.rec-active #recBtnMask { display: none !important; }
-#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, -2px)); } /* REC TEXT X (DEV slider) — default -2px (was +10px, came back 12px per direct request) */
+#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, 5px)); } /* REC TEXT X (DEV slider) — default +5px, per direct request */
 #saveBtn.rec-active #recBtnText { color: #ff2a2a; animation: rec-text-pulse 0.5s infinite alternate; }
 @keyframes rec-text-pulse { from { opacity: 1; } to { opacity: 0.55; } }
 /* TOP ROW GLOW, per direct request — every top-row button's label/glyph
@@ -664,7 +672,7 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
   text-shadow: 0 0 calc(3px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor 14%, transparent) !important;
   filter: saturate(var(--top-row-saturation, 1)) contrast(1.05) brightness(1.01);
 }
-.transport .btn.active, .transport .btn.menu-open, .transport .btn.beat-auto-active, .transport .btn.pulsing, .transport .btn.rand-auto,
+.transport .btn.glow-pressed, .transport .btn.active, .transport .btn.menu-open, .transport .btn.beat-auto-active, .transport .btn.pulsing, .transport .btn.rand-auto,
 .transport #playBtn.playing, .transport #saveBtn.rec-active {
   text-shadow: 0 0 calc(3px * var(--rglow, 1)) currentColor, 0 0 calc(9px * var(--rglow, 1)) currentColor, 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor 70%, transparent) !important;
   filter: saturate(var(--top-row-saturation, 1)) contrast(1.25) brightness(1.05);
@@ -2093,7 +2101,7 @@ body.performance-mode header { padding-bottom: 10px; }
   var KEY_LIVE = '_sifiBlackBox', KEY_REPORTS = '_sifiCrashReports';
   var t0 = Date.now(), sid = t0.toString(36) + Math.random().toString(36).slice(2, 6);
   var crumbs = [], errors = [], samples = [];
-  var stats = { audioCtx: 0, nodes: 0, nodeTypes: {}, bufMB: 0, decodes: 0, blobsLive: 0, canvases: 0, liveNodes: 0, liveBufMB: 0, sounding: 0 };
+  var stats = { audioCtx: 0, nodes: 0, nodeTypes: {}, bufMB: 0, decodes: 0, blobsLive: 0, canvases: 0, liveNodes: 0, liveBufMB: 0, sounding: 0, soundBy: {} };
   // LIVE counts (not just totals created): FinalizationRegistry tells us
   // when the browser actually frees an audio node / buffer, so liveNodes and
   // liveBufMB are what's really still held in memory (lagging a little
@@ -2123,7 +2131,7 @@ body.performance-mode header { padding-bottom: 10px; }
           else if (r && typeof r === 'object') { stats.liveNodes++; if (FR) FR.register(r, 0); }
           if (isSrc && r && r.start) {
             var st = r.start;
-            r.start = function(){ stats.sounding++; r.addEventListener('ended', function(){ stats.sounding--; }, { once: true }); r.start = st; return st.apply(r, arguments); };
+            r.start = function(){ stats.sounding++; var fn = 'unknown'; try { var fr0 = (new Error().stack || '').split('\n'); for (var q = 1; q < fr0.length; q++) { var m0 = fr0[q].match(/(?:at\s+)?([A-Za-z_$][\w$]*)[@\s(]/); if (m0 && m0[1] !== 'Error' && !/^(r|start|at)$/.test(m0[1])) { fn = m0[1]; break; } } } catch (e) {} stats.soundBy[fn] = (stats.soundBy[fn] || 0) + 1; r.addEventListener('ended', function(){ stats.sounding--; stats.soundBy[fn]--; if (!stats.soundBy[fn]) delete stats.soundBy[fn]; }, { once: true }); r.start = st; return st.apply(r, arguments); };
           }
           return r; };
       });
@@ -2207,6 +2215,8 @@ body.performance-mode header { padding-bottom: 10px; }
     for (var i = 0; i < head; i += step) L.push(row(sm[i]));
     for (var i2 = head; i2 < sm.length - 1; i2++) L.push(row(sm[i2]));
     if (sm.length) L.push(row(sm[sm.length - 1]) + '  <- last');
+    var sb = (r.stats && r.stats.soundBy) || {};
+    L.push('SOUNDING NOW BY SOURCE (started, not yet ended): ' + (Object.keys(sb).sort(function(a, b){ return sb[b] - sb[a]; }).slice(0, 10).map(function(k){ return k + '=' + sb[k]; }).join(' ') || 'none'));
     L.push('ERRORS: ' + ((r.errors || []).length ? '' : 'none'));
     (r.errors || []).forEach(function(e){ L.push('  ' + e); });
     L.push('LAST ACTIONS:');
@@ -2299,7 +2309,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 21:59:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:11:25 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2651,9 +2661,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REC TEXT POSITION</div>
-          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">-2PX</div>
+          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">5PX</div>
         </div>
-        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="-2" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="5" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">
         <span>TEST BG</span>
@@ -14469,7 +14479,14 @@ function _randomizeReverbSettings() {
   const brmb = document.getElementById('beatReverbMixBar'); if (brmb) brmb.value = Math.round(_newBeatReverbMix * 100);
   const brmv = document.getElementById('beatReverbMixVal'); if (brmv) brmv.textContent = Math.round(_newBeatReverbMix * 100);
 }
+function _newPatternPulse() {
+  const b = document.getElementById('randBtn'); if (!b) return;
+  document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2).toFixed(3) + 's'); // two beats
+  b.classList.remove('new-pattern'); void b.offsetWidth; b.classList.add('new-pattern');
+  clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2000 + 50);
+}
 function randAll(mode, opts) {
+  try { _newPatternPulse(); } catch (e) {}
   opts = opts || {};
   _clearAllSolo(); // a new pattern replaces every track — solo state from the old one isn't meaningful anymore
   // RANDOMIZE REVERB (Settings toggle) — same "goes along with every new
@@ -17143,8 +17160,10 @@ function wireShiftButton(btn, tr, dir) {
 // even where the buttons' own touch handlers preventDefault.
 (function() {
   let pressed = null;
-  const release = () => { if (pressed) { pressed.classList.remove('glyph-pressed'); pressed = null; } };
+  const release = () => { if (pressed) { pressed.classList.remove('glyph-pressed', 'glow-pressed'); pressed = null; } };
   document.addEventListener('pointerdown', e => {
+    const ab = e.target.closest && e.target.closest('#scratchBtn');
+    if (ab) { release(); pressed = ab; ab.classList.add('glow-pressed'); return; } // A/B glows while held, per direct request
     const b = e.target.closest && e.target.closest('.shift-btn:not(.right), .rand-btn');
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
