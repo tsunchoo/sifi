@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 06:57:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 07:17:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -781,6 +781,20 @@ body.vol-banger .track-vol-scale::before { left: calc(var(--fill-pct, 0) * 1%); 
 body.vol-banger .track-vol-fill-bg { display: block; }
 body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
 .track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
+/* VOLUME FILL HEIGHT (DEV slider, 5-100% of the volume bar, vertically
+   centred), per direct request — sets the fill's height (and the VOL
+   BANGER background strip's) whatever mode it's in. JUST TRACK still
+   drives it: on snaps it to the thin track-line height, off to the full
+   bar (see setJustTrack) — the slider fine-tunes from there. The extra
+   .track-vol-bar in these selectors + !important make them win over the
+   older JUST TRACK / VOL BANGER height and transform rules. */
+html body .track-vol-bar .track-vol-fill-solid,
+html body .track-vol-bar .track-vol-fill-bg {
+  top: 50% !important; bottom: auto !important;
+  height: var(--vol-fill-h, 100%) !important;
+  transform: translateY(-50%) !important;
+}
+html body.vol-banger .track-vol-bar .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1907,7 +1921,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 06:57:57 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:17:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2226,6 +2240,13 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
       </label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOLUME FILL HEIGHT</div>
+          <div id="volFillHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
@@ -10071,7 +10092,24 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // percentage, so the marker rides its right edge with no other JS
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
-function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
+function setJustTrack(on) {
+  document.body.classList.toggle('just-track', !!on);
+  // VOLUME FILL HEIGHT follows JUST TRACK: thin track-line height when on,
+  // full bar when off — the slider then fine-tunes either.
+  if (typeof setVolFillHeightPct === 'function') setVolFillHeightPct(on ? _thinVolFillPct() : 100);
+}
+function _thinVolFillPct() {
+  const bar = document.querySelector('.track-vol-bar');
+  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
+  const h = bar ? bar.getBoundingClientRect().height : 29;
+  return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
+}
+function setVolFillHeightPct(v) {
+  v = Math.max(5, Math.min(100, Math.round(+v) || 100));
+  document.documentElement.style.setProperty('--vol-fill-h', v + '%');
+  const r = document.getElementById('volFillHeightVal'); if (r) r.textContent = v + '%';
+  const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = v;
+}
 // VOL BANGER — see the body.vol-banger CSS. One AnalyserNode per track,
 // tapped (in parallel, no effect on the sound) off that track's own gain
 // node, i.e. post track-volume. Re-attached automatically if the graph gets
@@ -18238,13 +18276,13 @@ function setNoteMarkersCircle(on) {
   if (typeof _applyCircleRulerOpacity === 'function') _applyCircleRulerOpacity(); // TIME RULER OPACITY 50% in circle mode while the ruler is on — see setTimeRuler
   _applyMarkerModeRulerThickness();
 }
-// TIME RULER THICKNESS per marker style, per direct request: 4px in
+// TIME RULER THICKNESS per marker style, per direct request: 2px in
 // SQUARE mode, 1px in CIRCLE mode. Re-applied whenever the marker style
 // changes (and at startup / reset), so the DEV slider still works for
 // fine-tuning in between but each mode always comes back to its own value.
 function _applyMarkerModeRulerThickness() {
   if (typeof setTimeRulerThickness !== 'function') return;
-  setTimeRulerThickness(document.body.classList.contains('note-markers-circle') ? 1 : 4);
+  setTimeRulerThickness(document.body.classList.contains('note-markers-circle') ? 1 : 2); // square mode 2px (was 4px), per direct request
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _applyMarkerModeRulerThickness, { once: true });
 else _applyMarkerModeRulerThickness();
