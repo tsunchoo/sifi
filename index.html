@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 05:52:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 06:01:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -773,6 +773,15 @@ body.vol-banger .track-vol-fill-solid {
   clip-path: inset(0 calc(100% - var(--fill-pct, 0) * var(--vb, 0) * 1%) 0 0);
   -webkit-mask-image: repeating-linear-gradient(to right, #000 0, #000 calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14)));
           mask-image: repeating-linear-gradient(to right, #000 0, #000 calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14) / 2), transparent calc(100% / var(--vb-segs, 14)));
+  /* VOL BANGER HEIGHT slider (5-100% of the bar, vertically centred) —
+     applies to the fill and therefore its segment mask too. JUST TRACK
+     still drives it: turning JUST TRACK on snaps this to the thin
+     track-line height, off snaps it to the full bar (see setJustTrack);
+     the slider fine-tunes from there. !important to win over JUST TRACK's
+     own fill-height rule. */
+  top: 50% !important; bottom: auto !important;
+  height: var(--vb-height, 100%) !important;
+  transform: translateY(-50%) !important;
 }
 /* VOL BANGER background, per direct request — a static strip behind the
    bouncing fill in the fill's quietest/resting colour (the same #555555
@@ -1916,7 +1925,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 05:52:51 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 06:01:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2242,6 +2251,13 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="volBangerSegsVal" style="font-size:0.6rem;font-family:monospace;color:#333;">14</div>
         </div>
         <input type="range" id="volBangerSegsSlider" min="10" max="20" step="1" value="14" oninput="setVolBangerSegments(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER HEIGHT</div>
+          <div id="volBangerHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="volBangerHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolBangerHeight(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
@@ -10081,7 +10097,26 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // percentage, so the marker rides its right edge with no other JS
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
-function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
+function setJustTrack(on) {
+  document.body.classList.toggle('just-track', !!on);
+  // VOL BANGER HEIGHT follows JUST TRACK: thin track-line height when on,
+  // full bar when off — the slider can then fine-tune either.
+  if (typeof setVolBangerHeight === 'function') setVolBangerHeight(on ? _vbThinHeightPct() : 100);
+}
+// Thin-line height as a % of the bar — matches JUST TRACK's own
+// --vol-scale-thickness (4px default) against the bar's real height.
+function _vbThinHeightPct() {
+  const bar = document.querySelector('.track-vol-bar');
+  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
+  const h = bar ? bar.getBoundingClientRect().height : 29;
+  return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
+}
+function setVolBangerHeight(pct) {
+  pct = Math.max(5, Math.min(100, Math.round(+pct) || 100));
+  document.documentElement.style.setProperty('--vb-height', pct + '%');
+  const r = document.getElementById('volBangerHeightVal'); if (r) r.textContent = pct + '%';
+  const sl = document.getElementById('volBangerHeightSlider'); if (sl) sl.value = pct;
+}
 // VOL BANGER — see the body.vol-banger CSS. One AnalyserNode per track,
 // tapped (in parallel, no effect on the sound) off that track's own gain
 // node, i.e. post track-volume. Re-attached automatically if the graph gets
