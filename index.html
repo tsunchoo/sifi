@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 01:26:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 01:40:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -519,17 +519,22 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    rather than a generic clock, per direct request. */
 @keyframes drums-text-flash-pulse { from { color: var(--top-row-pressed-text-color, #fff); } to { color: var(--play-flash-color, #f8ff00); } }
 #beatBtnText.drums-hit-flash { animation: drums-text-flash-pulse 0.18s ease-out forwards; }
-/* RECORD button's hold-menu — a small floating dropdown, not a full-screen
-   overlay like the beat-type menu below. Position (top/left) is set in JS
-   right before it opens, anchored under wherever the RECORD button
-   actually is. */
+/* RECORD menu — opened by holding the RECORD button. Rebuilt on the
+   LOOK AND FEEL (color menu) template, per direct request: full-screen dim
+   overlay + centered cream panel. Holds TAPES, RECORDING mode and the
+   button-sound toggles (moved here from SETTINGS). Tap outside the panel
+   to close. */
 .record-menu {
-  display: none; flex-direction: column; gap: 6px;
-  position: fixed; z-index: 501; min-width: 170px;
-  background: #f5f0e8; border-radius: 6px; padding: 8px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  display: none; position: fixed; inset: 0; z-index: 501;
+  background: rgba(0,0,0,0.5);
 }
-.record-menu.visible { display: flex; }
+.record-menu.visible { display: block; }
+.record-menu-inner {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  background: #f5f0e8; padding: 20px 24px 40px; min-width: min(340px, 90vw);
+  max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+  font-family: 'DM Sans', sans-serif; border-radius: 8px;
+}
 .reverb-menu {
   display: none; position: fixed; inset: 0; z-index: 501;
   background: rgba(0,0,0,0.5);
@@ -1853,7 +1858,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:26:51 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:40:16 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -1944,9 +1949,33 @@ body.performance-mode header { padding-bottom: 10px; }
 </div>
 
 <div id="recordMenu" class="record-menu">
-  <button class="rec-mode-btn" id="recordMenuSaveTape">SAVE TAPE</button>
-  <button class="rec-mode-btn" id="recordMenuExportLoop">EXPORT LOOP</button>
-  <button class="rec-mode-btn" id="recordMenuExportStems">EXPORT STEMS</button>
+  <div class="record-menu-inner">
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RECORD</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TAPES</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button id="exportTapeBtn" class="rec-mode-btn" onclick="hideRecordMenu(); exportTape();">SAVE TAPE</button>
+            <button id="shareTapeLinkBtn" class="rec-mode-btn" onclick="shareTapeLink()">SEND TAPE LINK</button>
+            <button id="importTapeBtn" class="rec-mode-btn" onclick="document.getElementById('tapeFileInput').click()">LOAD TAPE</button>
+            <input type="file" id="tapeFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" style="display:none;" onchange="importTapeFile(this.files[0])">
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button id="recMode_realtime" class="rec-mode-btn" onclick="setRecordMode('realtime')">REALTIME</button>
+            <button id="recMode_bounceLoop" class="rec-mode-btn" onclick="setRecordMode('bounceLoop')">BOUNCE LOOP</button>
+            <button id="recMode_bounceStems" class="rec-mode-btn" onclick="setRecordMode('bounceStems')">BOUNCE LOOP STEMS</button>
+          </div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+          <input type="checkbox" id="buttonSoundsToMixToggle" checked onchange="setButtonSoundsToMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">BUTTONS SOUNDS TO MIX
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+          <input type="checkbox" id="noButtonSoundsToggle" onchange="setNoButtonSounds(this.checked)" style="width:14px;height:14px;cursor:pointer;">NO BUTTON SOUNDS
+        </label>
+  </div>
 </div>
 
 <div id="reverbMenu" class="reverb-menu">
@@ -2017,7 +2046,7 @@ body.performance-mode header { padding-bottom: 10px; }
      INSTRUMENTS button. -->
 <div id="randMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideRandMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px 40px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
-    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZE</div>
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZATION</div>
     <!-- At the top, per direct request, so the same drag down from + that
          opens this menu can carry on down and release on it (see the +
          button's drag handling). A normal tap works too. -->
@@ -2057,12 +2086,20 @@ body.performance-mode header { padding-bottom: 10px; }
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:-6px;">
+      <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="flex:1;">
+      <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:40px;text-align:right;">2 / 4</div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE INTENSITY</div>
       <label class="wild-toggle">
         <input type="checkbox" id="randomizeNoteIntensityToggle" onchange="setRandomizeNoteIntensity(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:-6px;">
+      <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="flex:1;">
+      <div id="intensityReadout" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:40px;text-align:right;">LOW</div>
     </div>
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
@@ -2442,6 +2479,7 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
 
+      <!-- DRUM MUSIC RATIO / NOTE INTENSITY sliders moved to the RANDOMIZATION menu (under their toggles), per direct request -->
       <!-- 8-BIT MIX moved up here, right under MAIN VOL, per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -2451,18 +2489,7 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUM MUSIC RATIO</div>
-          <div id="tonalPercBalanceReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
-        </div>
-        <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
 
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">NOTE INTENSITY</div>
-        <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
 
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
@@ -2480,30 +2507,7 @@ body.performance-mode header { padding-bottom: 10px; }
 
       <!-- RANDOMIZE 8-BIT MIX / RANDOMIZE DRUM FX toggles moved to the RANDOMIZE MENU (drag down from +), per direct request -->
 
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">TAPES</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button id="exportTapeBtn" class="rec-mode-btn" onclick="hideSettings(); exportTape();">SAVE TAPE</button>
-          <button id="shareTapeLinkBtn" class="rec-mode-btn" onclick="shareTapeLink()">SEND TAPE LINK</button>
-          <button id="importTapeBtn" class="rec-mode-btn" onclick="document.getElementById('tapeFileInput').click()">LOAD TAPE</button>
-          <input type="file" id="tapeFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" style="display:none;" onchange="importTapeFile(this.files[0])">
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">RECORDING</div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
-          <button id="recMode_realtime" class="rec-mode-btn" onclick="setRecordMode('realtime')">REALTIME</button>
-          <button id="recMode_bounceLoop" class="rec-mode-btn" onclick="setRecordMode('bounceLoop')">BOUNCE LOOP</button>
-          <button id="recMode_bounceStems" class="rec-mode-btn" onclick="setRecordMode('bounceStems')">BOUNCE LOOP STEMS</button>
-        </div>
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="buttonSoundsToMixToggle" checked onchange="setButtonSoundsToMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">BUTTONS SOUNDS TO MIX
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="noButtonSoundsToggle" onchange="setNoButtonSounds(this.checked)" style="width:14px;height:14px;cursor:pointer;">NO BUTTON SOUNDS
-      </label>
+      <!-- TAPES / RECORDING / BUTTONS SOUNDS TO MIX / NO BUTTON SOUNDS moved to the RECORD menu (hold RECORD), per direct request -->
       <!-- OFFSET STEP SIZE ... SOLO IS MOMENTARY moved to the top of LOOK AND FEEL > DEV, per direct request -->
 
 
@@ -18631,9 +18635,8 @@ function fullReset() {
 })();
 // RECORD button hold-menu — holding it (rather than a quick tap, which
 // still does its normal onRecClick() behavior, or a quick double-tap,
-// still RESET) opens a small dropdown: SAVE TAPE, EXPORT LOOP, EXPORT
-// STEMS, the same three actions as SAVE TAPE / BOUNCE LOOP / BOUNCE LOOP
-// STEMS in settings, just reachable in one step instead of two.
+// still RESET) opens the RECORD menu: TAPES, RECORDING mode and the
+// button-sound toggles (see #recordMenu).
 (function() {
   const btn = document.getElementById('saveBtn');
   const menu = document.getElementById('recordMenu');
@@ -18643,18 +18646,12 @@ function fullReset() {
 
   function openMenu() {
     holdFired = true;
-    const r = btn.getBoundingClientRect();
-    menu.style.top = (r.bottom + 6) + 'px';
-    // Keep it on-screen — anchor from the right edge instead of the left
-    // if left-aligning would run it off the right side of the viewport.
-    const menuWidth = 170;
-    let left = r.left;
-    if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
-    menu.style.left = Math.max(8, left) + 'px';
+    if (typeof updateRecordModeUI === 'function') updateRecordModeUI(); // show the current RECORDING mode as selected
     menu.classList.add('visible');
     playUiSound('click');
   }
   function closeMenu() { menu.classList.remove('visible'); }
+  window.hideRecordMenu = closeMenu;
 
   const startHold = () => { holdFired = false; if (holdTimer) clearTimeout(holdTimer); holdTimer = setTimeout(openMenu, HOLD_MS); };
   const endHold = e => {
@@ -18667,19 +18664,11 @@ function fullReset() {
   btn.addEventListener('mousedown', startHold);
   document.addEventListener('mouseup', endHold);
 
-  document.addEventListener('touchstart', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('#recordMenu') && !e.target.closest('#saveBtn')) closeMenu();
-  }, { passive: true });
-  document.addEventListener('mousedown', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('#recordMenu') && !e.target.closest('#saveBtn')) closeMenu();
-  });
-
-  const saveTapeBtn = document.getElementById('recordMenuSaveTape');
-  if (saveTapeBtn) saveTapeBtn.addEventListener('click', () => { closeMenu(); exportTape(); });
-  const exportLoopBtn = document.getElementById('recordMenuExportLoop');
-  if (exportLoopBtn) exportLoopBtn.addEventListener('click', () => { closeMenu(); bounceLoop(); });
-  const exportStemsBtn = document.getElementById('recordMenuExportStems');
-  if (exportStemsBtn) exportStemsBtn.addEventListener('click', () => { closeMenu(); bounceLoopStems(); });
+  // Tap on the dimmed backdrop (outside the panel) closes it — the overlay
+  // itself is #recordMenu now, so "outside" means outside .record-menu-inner.
+  // (The old SAVE TAPE / EXPORT LOOP / EXPORT STEMS dropdown buttons were
+  // deleted, per direct request.)
+  menu.addEventListener('click', e => { if (e.target === menu) closeMenu(); });
 })();
 // REVERB icon — holding it opens the REVERB menu (overall mix, size,
 // beat's own mix, and the RANDOMIZE REVERB WITH + toggle), same
