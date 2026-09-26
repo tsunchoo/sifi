@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 03:31:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 03:42:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -752,30 +752,21 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
   transition: background 0.06s, color 0.06s;
 }
 .track-name-btn.has-notes { color: #fff; }
-/* VOL BANGER (LOOK AND FEEL > DEV toggle, per direct request) — each track
-   name button fills from left to right with the track's live output level,
-   like a meter. --vb (0-1) is written per button every animation frame by
-   _volBangerLoop(). The fill sits behind the button text (z-index -1 inside
-   the button's own stacking context), over its background colour. */
-body.vol-banger .track-name-btn { position: relative; isolation: isolate; overflow: hidden; }
-body.vol-banger .track-name-btn::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; z-index: -1;
-  width: calc(var(--vb, 0) * 100%); background: rgba(255,255,255,0.32); pointer-events: none;
+/* VOL BANGER (LOOK AND FEEL > DEV toggle) — moved off the track name
+   button onto the VOLUME FILL itself, per direct request: the fill bounces
+   with the track's live level, from the left edge up to the fader position
+   (full level = the fill reaches the fader tip, silence = no fill). It's
+   the same .track-vol-fill-solid element, so JUST TRACK's height change
+   (thin ruler-height strip vs full bar height) applies to it automatically.
+   Done with scaleX from the left edge so the fader's own width/position
+   logic (_setVolFillPct) is untouched; --vb (0-1) is set on each
+   .track-vol-bar by _volBangerLoop() and inherited by the fill. */
+body.vol-banger .track-vol-fill-solid {
+  transform-origin: left center;
+  transform: scaleX(var(--vb, 0));
   opacity: var(--vb-opacity, 1); /* VOL BANGER OPACITY slider */
 }
-/* VOL BANGER = BUTTON COLOUR (DEV toggle), per direct request — the meter
-   IS the button's background: the button's own instrument colour only
-   fills the part the level reaches, left to right, the rest is empty.
-   Each colour class hands its colour to the fill via --vb-fill (custom
-   properties inherit into ::before). */
-body.vol-banger.vb-bg .track-name-btn { background: transparent !important; }
-body.vol-banger.vb-bg .track-name-btn::before { background: var(--vb-fill, var(--neutral-track, #b0b0b0)); }
-body.vol-banger.vb-bg .track-name-btn.inst-kit   { --vb-fill: var(--lane-color-kit, #0b5394); }
-body.vol-banger.vb-bg .track-name-btn.inst-perc  { --vb-fill: var(--lane-color-perc, #7baa17); }
-body.vol-banger.vb-bg .track-name-btn.inst-tonal { --vb-fill: var(--lane-color-tonal, #fd475d); }
-body.vol-banger.vb-bg .track-name-btn.inst-tonal.inst-bass { --vb-fill: var(--lane-color-bass, #8d3ba8); }
-body.vol-banger.vb-bg .track-name-btn.inst-tonal.inst-pad  { --vb-fill: var(--lane-color-pad, #FFFF39); }
-body.vol-banger.vb-bg .track-name-btn.names-uniform { --vb-fill: var(--neutral-top, #555); }
+body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; } /* keep JUST TRACK's vertical centring */
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1885,7 +1876,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:31:10 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:42:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2200,9 +2191,6 @@ body.performance-mode header { padding-bottom: 10px; }
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBangerToggle" onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="volBangerBgToggle" onchange="setVolBangerBg(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER = BUTTON COLOUR
       </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -10066,12 +10054,8 @@ function setVolBanger(on) {
   if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!on) {
     if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const b = document.getElementById(`tbtn-${tr}`); if (b) b.style.removeProperty('--vb'); }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) vbar.style.removeProperty('--vb'); }
   }
-}
-function setVolBangerBg(on) {
-  document.body.classList.toggle('vb-bg', !!on);
-  const cb = document.getElementById('volBangerBgToggle'); if (cb) cb.checked = !!on;
 }
 function setVolBangerOpacity(v) {
   v = Math.max(0, Math.min(100, +v));
@@ -10114,8 +10098,8 @@ function _volBangerLoop() {
     }
     _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.85 + lvl * 0.15; // instant rise, eased fall
     if (_vbLevels[tr] < 0.005) _vbLevels[tr] = 0;
-    const b = document.getElementById(`tbtn-${tr}`);
-    if (b) b.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
+    const vbar = document.getElementById(`vbar-${tr}`);
+    if (vbar) vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
   }
 }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
