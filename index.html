@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 03:51:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 04:12:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -764,7 +764,6 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
 body.vol-banger .track-vol-fill-solid {
   transform-origin: left center;
   transform: scaleX(var(--vb, 0));
-  opacity: var(--vb-opacity, 1); /* VOL BANGER OPACITY slider */
 }
 body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; } /* keep JUST TRACK's vertical centring */
 /* VOL BANGER background, per direct request — a static strip behind the
@@ -773,7 +772,7 @@ body.vol-banger.just-track .track-vol-fill-solid { transform: translateY(-50%) s
    the fader position, so the full volume extent is always visible under
    the bounce. Same height rules as the fill (full bar, or JUST TRACK's
    thin centred strip). Hidden on muted tracks, like the fill. */
-.track-vol-fill-bg { display: none; position: absolute; left: 0; top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%); width: calc(var(--fill-pct, 0) * 1%); background: #555555; pointer-events: none; }
+.track-vol-fill-bg { display: none; position: absolute; left: 0; top: var(--vol-fill-inset-override, 0%); bottom: var(--vol-fill-inset-override, 0%); width: calc(var(--fill-pct, 0) * 1%); background: #555555; pointer-events: none; opacity: var(--vb-opacity, 1); /* VOL BANGER BG OPACITY slider — moved here from the bouncing fill, per direct request */ }
 body.vol-banger .track-vol-fill-bg { display: block; }
 body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-scale-thickness, 4px); transform: translateY(-50%); }
 .track-vol-bar.muted .track-vol-fill-bg { background: transparent; }
@@ -1886,7 +1885,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:51:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 04:12:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2202,9 +2201,12 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+      </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER OPACITY</div>
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL BANGER BG OPACITY</div>
           <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
         <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
@@ -2331,9 +2333,7 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
-      </label>
+      <!-- JUST TRACK moved up next to VOL BANGER, per direct request -->
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
            buttons' pressed/engaged state is now a simple darker version
@@ -2486,9 +2486,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">40%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="20" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="40" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -12100,7 +12100,7 @@ function setTrackRowBgOpacity(v) {
   if (readout) readout.textContent = v + '%';
 }
 setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
-setTrackRowBgOpacity(20); // startup default, per direct request
+setTrackRowBgOpacity(40); // startup default — 40% (was 20%), per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -18096,10 +18096,10 @@ function _setRainbowBgZero(on) {
   if (on === !!window._rainbowBgZero) return;
   const sl = document.getElementById('trackRowBgOpacitySlider');
   if (on) {
-    _rainbowBgOpacityBefore = sl ? +sl.value : 20;
+    _rainbowBgOpacityBefore = sl ? +sl.value : 40;
     setTrackRowBgOpacity(0); if (sl) sl.value = 0;
   } else {
-    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 20;
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 40;
     setTrackRowBgOpacity(v); if (sl) sl.value = v;
     _rainbowBgOpacityBefore = null;
   }
