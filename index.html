@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 07:56:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 08:01:53 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -790,15 +790,27 @@ body.just-track .track-vol-fill-bg { top: 50%; bottom: auto; height: var(--vol-s
    older JUST TRACK / VOL BANGER height and transform rules. */
 html body .track-vol-bar .track-vol-fill-solid,
 html body .track-vol-bar .track-vol-fill-bg {
-  top: 50% !important; bottom: auto !important;
+  /* Centred with plain positioning (not translateY(-50%)), per the
+     artifact report — a fractional translate combined with the per-frame
+     scaleX was leaving 1px slivers of old paint behind at the fill's
+     edges (the "tiny orange line" left at the bottom of the bar). */
+  top: calc((100% - var(--vol-fill-h, 100%)) / 2) !important; bottom: auto !important;
   height: var(--vol-fill-h, 100%) !important;
-  transform: translateY(-50%) !important;
+  transform: none !important;
 }
-html body.vol-banger .track-vol-bar .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; }
+html body.vol-banger .track-vol-bar .track-vol-fill-solid {
+  transform: scaleX(var(--vb, 0)) !important; transform-origin: left center;
+  will-change: transform; backface-visibility: hidden; /* own compositing layer — clean repaints while it bounces */
+}
+/* Level exactly zero: hide outright rather than leaving a scaleX(0) layer
+   that some browsers still paint a hairline for. Class set per bar by
+   _volBangerLoop. */
+html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility: hidden; }
+html body.vol-banger .track-vol-bar.vb2-silent .track-vol-fill-bg { visibility: hidden; }
 /* VOL BANGER BG strip pulses too, per direct request — same bounce as the
    fill (scaled from the left up to the fader position) but a quarter note
    behind it (--vb2, see _volBangerLoop). */
-html body.vol-banger .track-vol-bar .track-vol-fill-bg { transform-origin: left center; transform: translateY(-50%) scaleX(var(--vb2, 0)) !important; }
+html body.vol-banger .track-vol-bar .track-vol-fill-bg { transform-origin: left center; transform: scaleX(var(--vb2, 0)) !important; will-change: transform; backface-visibility: hidden; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
@@ -1934,7 +1946,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:56:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 08:01:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -10152,7 +10164,7 @@ function setVolBanger(on) {
   if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!on) {
     if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.style.removeProperty('--vb2'); } _vbHist.length = 0; }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb'); vbar.style.removeProperty('--vb2'); vbar.classList.remove('vb-silent','vb2-silent'); } _vbHist.length = 0; }
   }
 }
 function setVolBangerOpacity(v) {
@@ -10225,6 +10237,8 @@ function _volBangerLoop(now) {
     if (vbar) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
       vbar.style.setProperty('--vb2', delayed.toFixed(3));
+      vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
+      vbar.classList.toggle('vb2-silent', delayed < 0.005);
     }
   }
 }
