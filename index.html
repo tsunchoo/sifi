@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 02:54:59 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 03:05:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1871,7 +1871,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 02:54:59 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:05:40 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -13742,6 +13742,33 @@ function tempoNoteFactor() {
 // There's no separate on/off for BEAT's reverb any more — its mix alone
 // (0 = silent) covers that, so a random roll here can land anywhere
 // including effectively off, same as any other mix value.
+// REVERB PREVIEW, per direct request — after a swipe-down on the reverb
+// icon rolls new settings, fire one short percussive "snap" (synthesized:
+// a band-passed noise burst plus a tiny tonal click, so it needs no
+// sample loaded) mostly into the shared reverb input bus, with just a
+// touch of it dry. What you hear is the NEW reverb's size and tail at the
+// NEW overall REVERB MIX level (the return gain), so a big roll rings out
+// and a near-zero MIX roll is honestly almost dry. Counts as a button
+// sound, so NO BUTTON SOUNDS silences it too.
+function _previewReverb() {
+  if (window._noButtonSounds || !ctx || !window._reverbSendBus || !masterGain) return;
+  const t = ctx.currentTime + 0.03;
+  const len = Math.ceil(ctx.sampleRate * 0.07);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const src = ctx.createBufferSource(); src.buffer = buf;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
+  const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(900, t); osc.frequency.exponentialRampToValueAtTime(300, t + 0.03);
+  const og = ctx.createGain(); og.gain.setValueAtTime(0.35, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  const mix = ctx.createGain(); mix.gain.value = 1;
+  const dry = ctx.createGain(); dry.gain.value = 0.12;
+  const wet = ctx.createGain(); wet.gain.value = 0.9;
+  src.connect(bp); bp.connect(mix); osc.connect(og); og.connect(mix);
+  mix.connect(dry); dry.connect(masterGain);
+  mix.connect(wet); wet.connect(window._reverbSendBus);
+  src.start(t); osc.start(t); osc.stop(t + 0.05);
+  src.onended = () => { try { mix.disconnect(); dry.disconnect(); wet.disconnect(); bp.disconnect(); og.disconnect(); } catch(e) {} };
+}
 function _randomizeReverbSettings() {
   const _newReverbSize = Math.random();
   setReverbIntensity(_newReverbSize);
@@ -18840,7 +18867,7 @@ function fullReset() {
   // direct request. Hold still opens the REVERB menu; a plain tap does
   // nothing.
   _makeSwipeIcon(btn, {
-    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); },
+    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); _previewReverb(); }, // preview the newly-rolled reverb, per direct request
     holdMs: HOLD_MS,
     onHold: openMenu,
   });
