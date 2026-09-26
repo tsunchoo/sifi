@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 17:04:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 17:24:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -807,6 +807,7 @@ html body.vol-banger .track-vol-bar .track-vol-fill-solid {
    _volBangerLoop. */
 html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility: hidden; }
 html body.vol-banger .track-vol-bar.vb2-silent .track-vol-fill-bg { visibility: hidden; }
+html body.no-second-level .track-vol-bar .track-vol-fill-bg { display: none !important; } /* SECOND LEVEL off (DEV) */
 /* VOL BANGER BG strip pulses too, per direct request — same bounce as the
    fill (scaled from the left up to the fader position) but a quarter note
    behind it (--vb2, see _volBangerLoop). */
@@ -972,7 +973,6 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 body.track-btn-lights .track-ctrl-icon-btn.on,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on,
 body.track-btn-lights .track-ctrl-icon-btn.lock-btn.sweep-on,
-body.track-btn-lights .track-ctrl-icon-btn.solo-on,
 body.track-btn-lights .fx-btn.on,
 body.track-btn-lights .fx-btn.blast-on,
 body.track-btn-lights .shift-btn.on,
@@ -985,7 +985,6 @@ body.track-btn-lights .rand-btn.rand-auto {
 }
 body.track-btn-lights .track-ctrl-icon-btn.on svg,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on svg,
-body.track-btn-lights .track-ctrl-icon-btn.solo-on svg,
 body.track-btn-lights .fx-btn.on svg,
 body.track-btn-lights .fx-btn.blast-on svg,
 body.track-btn-lights .shift-btn.on svg,
@@ -1026,6 +1025,11 @@ html body.track-btn-lights .rand-btn.rand-auto {
   color: var(--auto-col) !important;
   text-shadow: 0 0 5px var(--auto-col), 0 0 12px color-mix(in srgb, var(--auto-col) 70%, transparent) !important;
 }
+/* SOLO is excluded from lights mode, per direct request — always canary
+   yellow with black text/glyph when active. */
+html body .track-ctrl-row .track-ctrl-icon-btn.solo-on { background: #ffe400 !important; color: #000 !important; text-shadow: none !important; }
+html body .track-ctrl-row .track-ctrl-icon-btn.solo-on svg { filter: none !important; }
+html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !important; }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
@@ -1109,7 +1113,7 @@ body.vol-bg-transparent .track-vol-bar { background: transparent; } /* VOL SLIDE
 .track-vol-fill-solid {
   position: absolute; top: var(--vol-fill-inset-override, 0%); left: 0; bottom: var(--vol-fill-inset-override, 0%); /* left flush against the true edge now, no inset — was clamp(2px, 1vw, 5px), which also meant a 100%-width fill actually overran the bar's own right edge by that same amount, since width is a plain 0-100% of the parent with no offset math to compensate. Default inset dropped from 15% to 0% — the alternative to JUST TRACK (below) is the full height of the div, not a partial inset. */
   background: var(--vol-slider-color, var(--playhead-color, #f8ff00));
-  filter: saturate(20); /* forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
+  filter: none; /* was saturate(20) — see the seq-playing rule; forced to maximum, per direct request — was saturate(var(--vol-slider-saturation, 1)), which could be reduced by that (or the color's own saturation) below 100%. Now hardcoded to mode 2 (--highlight2-color) via the JS default above, this guarantees that color always shows at full saturation regardless of what it's set to elsewhere */
   pointer-events: none; width: 0%; /* always solid now — the old segmented (notched) alternative and its SOLID VOLUME BAR toggle were removed */
 }
 /* NEON off: the fill's RESTING color is the same literal dark grey the
@@ -1167,7 +1171,7 @@ body.simple-fader .track-vol-tip {
   background: #000; /* hardcoded, per direct request — this was the original "almost black" color the user was actually asking to keep as the permanent tip color, not a placeholder to be replaced by a dynamic default */
   pointer-events: none;
 }
-body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: saturate(20) !important; } /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
+body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: none !important; } /* was saturate(20): harmless on the old grey fill, but once the fill became the TOP ROW COLOR it blew muted hues out to neon green / royal blue, per direct report */ /* the CSS time-loop animation this used to run (vol-slider-color-cycle) is gone — the JS note-driven flash in updatePlayhead() now handles the actual color pulsing for every logo mode, tied to this specific track's own notes instead of a generic loop. This rule now only keeps the saturation boost while playing; !important still needed to win over this same element's own base filter: saturate(var(--vol-slider-saturation, 1)) */
 .track-vol-bar.muted { background: #ccc; opacity: calc(var(--track-row-bg-opacity, 1) * 0.35); } /* now derived from the same TRACK ROW BG OPACITY slider as .track-ctrl-row's own muted/empty dimming, per direct request, rather than an independent hardcoded value that happened to also be 0.35 */
 .track-wrap.track-empty .track-vol-bar { opacity: calc(var(--track-row-bg-opacity, 1) * 0.35); } /* same reasoning as .track-vol-bar.muted above */
 .track-vol-bar.muted .track-vol-fill-solid { background: transparent; }
@@ -2008,6 +2012,168 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
 <body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse">
+<script>
+/* CRASH REPORTER (black box), per direct request — iOS kills a tab that
+   uses too much memory with no warning and no JS event, then silently
+   reloads it. Nothing can run at the moment of the kill, so instead this
+   records a heartbeat every 3s to localStorage (app state + memory proxies
+   + recent actions + errors). On the next load, if the previous session
+   never reached a clean pagehide, its last record is kept as a crash report
+   and a banner offers to copy it. Also viewable any time from DEV > CRASH LOG. */
+(function(){
+  var KEY_LIVE = '_sifiBlackBox', KEY_REPORTS = '_sifiCrashReports';
+  var t0 = Date.now(), sid = t0.toString(36) + Math.random().toString(36).slice(2, 6);
+  var crumbs = [], errors = [], samples = [];
+  var stats = { audioCtx: 0, nodes: 0, nodeTypes: {}, bufMB: 0, decodes: 0, blobsLive: 0, canvases: 0 };
+  function now(){ return ((Date.now() - t0) / 1000).toFixed(1) + 's'; }
+  function crumb(s){ crumbs.push(now() + ' ' + s); if (crumbs.length > 40) crumbs.shift(); }
+  window._crashCrumb = crumb;
+
+  // --- memory proxies: count what the page creates ---
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (AC) {
+      var W = function(){ stats.audioCtx++; crumb('AudioContext #' + stats.audioCtx + ' created'); var c = new (Function.prototype.bind.apply(AC, [null].concat([].slice.call(arguments))))(); try { c.addEventListener('statechange', function(){ crumb('audio ' + c.state); }); } catch(e){} return c; };
+      W.prototype = AC.prototype;
+      if (window.AudioContext) window.AudioContext = W; if (window.webkitAudioContext) window.webkitAudioContext = W;
+      var P = (window.BaseAudioContext || AC).prototype;
+      Object.getOwnPropertyNames(P).forEach(function(n){
+        if (!/^create/.test(n) || typeof P[n] !== 'function') return;
+        var o = P[n];
+        P[n] = function(){ stats.nodes++; stats.nodeTypes[n] = (stats.nodeTypes[n] || 0) + 1;
+          if (n === 'createBuffer') stats.bufMB += (arguments[0] * arguments[1] * 4) / 1048576;
+          return o.apply(this, arguments); };
+      });
+      var od = P.decodeAudioData;
+      if (od) P.decodeAudioData = function(){ stats.decodes++; return od.apply(this, arguments); };
+    }
+    var oc = URL.createObjectURL, orv = URL.revokeObjectURL;
+    URL.createObjectURL = function(){ stats.blobsLive++; return oc.apply(URL, arguments); };
+    URL.revokeObjectURL = function(){ stats.blobsLive--; return orv.apply(URL, arguments); };
+    var ce = document.createElement;
+    document.createElement = function(tag){ if (String(tag).toLowerCase() === 'canvas') stats.canvases++; return ce.apply(document, arguments); };
+  } catch(e) {}
+
+  // --- errors + breadcrumbs ---
+  window.addEventListener('error', function(e){ errors.push(now() + ' ' + (e.message || 'error') + ' @' + (e.lineno || '?')); if (errors.length > 15) errors.shift(); write(); });
+  window.addEventListener('unhandledrejection', function(e){ errors.push(now() + ' promise: ' + (e.reason && (e.reason.message || e.reason))); if (errors.length > 15) errors.shift(); write(); });
+  document.addEventListener('pointerdown', function(e){
+    var el = e.target && e.target.closest ? (e.target.closest('button,input,label,[id]') || e.target) : e.target;
+    if (!el) return;
+    var name = el.id || (el.className && String(el.className).split(' ')[0]) || el.tagName;
+    var txt = (el.textContent || '').trim().slice(0, 14);
+    crumb('tap ' + name + (txt ? ' "' + txt + '"' : ''));
+  }, true);
+  document.addEventListener('visibilitychange', function(){ crumb('page ' + document.visibilityState); write(); });
+  var closing = false;
+  window.addEventListener('pagehide', function(e){ closing = true; crumb('pagehide'); write(); });
+  window.addEventListener('pageshow', function(e){ if (e.persisted) { closing = false; crumb('pageshow (bfcache)'); write(); } });
+
+  function g(fn){ try { return fn(); } catch(e) { return null; } }
+  function snapshot(){
+    var s = {
+      up: Math.round((Date.now() - t0) / 1000),
+      dom: document.getElementsByTagName('*').length,
+      anims: g(function(){ return document.getAnimations().length; }),
+      nodes: stats.nodes, bufMB: +stats.bufMB.toFixed(1), blobs: stats.blobsLive, canv: stats.canvases,
+      heapMB: g(function(){ return performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null; })
+    };
+    samples.push(s); if (samples.length > 100) samples.shift();
+    return s;
+  }
+  function appState(){
+    return {
+      playing: g(function(){ return playing; }), bpm: g(function(){ return bpm; }), beat: g(function(){ return _beatType; }),
+      audio: g(function(){ return ctx && ctx.state; }), audioTime: g(function(){ return ctx && +ctx.currentTime.toFixed(1); }),
+      inst: g(function(){ return trackInstruments.join(','); }),
+      visible: document.visibilityState, body: document.body ? document.body.className : ''
+    };
+  }
+  function write(clean){
+    try {
+      var rec = { sid: sid, build: g(function(){ return document.getElementById('buildTimestamp').textContent; }),
+        start: new Date(t0).toISOString(), last: new Date().toISOString(), clean: closing, /* sticky once pagehide fires — a visibilitychange right after it must not un-mark a clean exit */
+        ua: navigator.userAgent, app: appState(), stats: stats, samples: samples, crumbs: crumbs, errors: errors };
+      localStorage.setItem(KEY_LIVE, JSON.stringify(rec));
+    } catch(e) {}
+  }
+
+  function format(r){
+    var L = [];
+    L.push('SI-FI CRASH REPORT');
+    L.push((r.build || '') + ' | session ' + r.sid);
+    L.push('started ' + r.start + ' | last heartbeat ' + r.last + (r.reloadedAt ? ' | reloaded ' + r.reloadedAt + ' (' + Math.round((new Date(r.reloadedAt) - new Date(r.last)) / 1000) + 's after last heartbeat)' : ''));
+    L.push('nav type on reload: ' + (r.navType || '?') + ' | ' + r.ua);
+    var a = r.app || {};
+    L.push('STATE: playing=' + a.playing + ' bpm=' + a.bpm + ' beat=' + a.beat + ' audio=' + a.audio + ' t=' + a.audioTime + ' page=' + a.visible);
+    L.push('tracks: ' + a.inst);
+    var s = r.stats || {};
+    L.push('TOTALS: audioContexts=' + s.audioCtx + ' audioNodesCreated=' + s.nodes + ' bufferMB=' + (s.bufMB || 0).toFixed(1) + ' decodes=' + s.decodes + ' liveBlobURLs=' + s.blobsLive + ' canvases=' + s.canvases);
+    L.push('node types: ' + Object.keys(s.nodeTypes || {}).map(function(k){ return k.replace('create', '') + '=' + s.nodeTypes[k]; }).join(' '));
+    L.push('TREND (every 3s, up to last 5 min) up/dom/anims/nodes/bufMB/blobs/canv/heap:');
+    var sm = r.samples || [], step = Math.max(1, Math.floor(sm.length / 20));
+    for (var i = 0; i < sm.length; i += step) { var x = sm[i]; L.push('  ' + [x.up + 's', x.dom, x.anims, x.nodes, x.bufMB, x.blobs, x.canv, x.heapMB].join(' / ')); }
+    if (sm.length) { var z = sm[sm.length - 1]; L.push('  ' + [z.up + 's', z.dom, z.anims, z.nodes, z.bufMB, z.blobs, z.canv, z.heapMB].join(' / ') + '  <- last'); }
+    L.push('ERRORS: ' + ((r.errors || []).length ? '' : 'none'));
+    (r.errors || []).forEach(function(e){ L.push('  ' + e); });
+    L.push('LAST ACTIONS:');
+    (r.crumbs || []).forEach(function(c){ L.push('  ' + c); });
+    return L.join('\n');
+  }
+
+  // --- previous session check ---
+  var reports = [];
+  try { reports = JSON.parse(localStorage.getItem(KEY_REPORTS) || '[]'); } catch(e) {}
+  var crashed = null;
+  try {
+    var prev = JSON.parse(localStorage.getItem(KEY_LIVE) || 'null');
+    if (prev && !prev.clean) {
+      prev.reloadedAt = new Date().toISOString();
+      prev.navType = g(function(){ return performance.getEntriesByType('navigation')[0].type; });
+      crashed = prev; reports.unshift(prev); reports = reports.slice(0, 3);
+      localStorage.setItem(KEY_REPORTS, JSON.stringify(reports));
+    }
+  } catch(e) {}
+
+  function showLog(){
+    var ov = document.getElementById('crashLogOverlay'); if (ov) ov.remove();
+    ov = document.createElement('div'); ov.id = 'crashLogOverlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:16px;gap:10px;font-family:monospace;';
+    var txt = reports.length ? reports.map(format).join('\n\n----------\n\n') : 'No crash reports recorded yet.\n\nCURRENT SESSION (live):\n\n' + format(JSON.parse(localStorage.getItem(KEY_LIVE) || '{}'));
+    var ta = document.createElement('textarea'); ta.readOnly = true; ta.value = txt;
+    ta.style.cssText = 'flex:1;width:100%;box-sizing:border-box;font-size:10px;line-height:1.35;background:#111;color:#f17d21;border:none;padding:10px;';
+    var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;';
+    function btn(label, fn){ var b = document.createElement('button'); b.textContent = label; b.style.cssText = 'flex:1;padding:12px;font:700 12px monospace;letter-spacing:1px;background:#f17d21;color:#000;border:none;'; b.onclick = fn; row.appendChild(b); return b; }
+    var cb = btn('COPY', function(){
+      var done = function(){ cb.textContent = 'COPIED'; };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(done, function(){ ta.select(); document.execCommand('copy'); done(); });
+      else { ta.select(); document.execCommand('copy'); done(); }
+    });
+    btn('CLEAR', function(){ try { localStorage.removeItem(KEY_REPORTS); } catch(e) {} reports = []; ov.remove(); });
+    btn('CLOSE', function(){ ov.remove(); });
+    ov.appendChild(ta); ov.appendChild(row); document.body.appendChild(ov);
+  }
+  window.showCrashLog = showLog;
+
+  function banner(){
+    var b = document.createElement('div');
+    b.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#111;color:#f17d21;font:700 11px monospace;letter-spacing:0.5px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.5);';
+    b.innerHTML = '<span style="flex:1">PAGE RELOADED UNEXPECTEDLY — CRASH REPORT SAVED</span>';
+    var v = document.createElement('button'); v.textContent = 'VIEW'; v.style.cssText = 'background:#f17d21;color:#000;border:none;padding:6px 10px;font:700 11px monospace;';
+    v.onclick = function(){ b.remove(); showLog(); };
+    var x = document.createElement('button'); x.textContent = '✕'; x.style.cssText = 'background:none;color:#f17d21;border:none;font:700 14px monospace;padding:4px;';
+    x.onclick = function(){ b.remove(); };
+    b.appendChild(v); b.appendChild(x); document.body.appendChild(b);
+    setTimeout(function(){ if (b.parentNode) b.remove(); }, 20000);
+  }
+
+  crumb('load' + (crashed ? ' (after crash)' : ''));
+  write();
+  setInterval(function(){ snapshot(); write(); }, 3000);
+  if (crashed) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', banner); else banner(); }
+})();
+</script>
+
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -2040,7 +2206,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:04:03 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:24:25 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2363,6 +2529,7 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="trackBtnLightsPulseToggle" checked onchange="document.body.classList.toggle('track-btn-lights-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">LIGHTS PULSE
       </label>
+      <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
       </label>
@@ -2379,6 +2546,16 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="volBangerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
         <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="secondLevelToggle" checked onchange="setSecondLevel(this.checked)" style="width:14px;height:14px;cursor:pointer;">SECOND LEVEL
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SECOND LEVEL DELAY</div>
+          <div id="secondLevelDelayVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0.50S</div>
+        </div>
+        <input type="range" id="secondLevelDelaySlider" min="0" max="0.5" step="0.01" value="0.5" oninput="setSecondLevelDelay(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -5277,7 +5454,26 @@ function scheduler() {
 let _renderTapTracks = null;
 let _renderTapBeat = true;
 
+// BASS-ON-THE-ONE KICK DUCK, per direct request — if any bass track has a
+// note landing on the bar's first downbeat, every kick on that same hit
+// (the DRUMS beat engine's kick and any KICK track) sits 3dB under it.
+// Marked by time here, before any track or beat voice is scheduled for
+// this step, and read by playKick / playSynthKick.
+const KICK_BASS_DUCK = 0.708; // -3dB
+window._kickBassDuckAt = -1;
+function _kickBassDuckMult(t) {
+  return Math.abs(t - window._kickBassDuckAt) < 0.02 ? KICK_BASS_DUCK : 1;
+}
+function _markKickBassDuck(step, t) {
+  if (step !== 0) return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackMuted[tr] || !_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr])) continue;
+    const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
+    if (grid[tr][gs] > 0) { window._kickBassDuckAt = t; return; }
+  }
+}
 function fireStepAudio(step, t) {
+    _markKickBassDuck(step, t);
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (trackMuted[tr]) continue;
       const _renderThisTrack = !_renderTapTracks || _renderTapTracks.has(tr);
@@ -5955,7 +6151,7 @@ function playSynthKick(isAccent, time, tr) {
   osc.frequency.setValueAtTime(isAccent ? 180 : 140, time);
   osc.frequency.exponentialRampToValueAtTime(35, time + 0.35);
   const _kickBossaMult = (_beatType === 'bossa') ? 0.8 : 1; // BOSSA NOVA kicks sit a little softer — 80% of every other beat type's level, per direct request
-  g.gain.setValueAtTime((isAccent ? 0.3664 : 0.245) * _kickBossaMult, time); // +0.7dB more (was 0.338/0.226, -3dB from original 0.478/0.319) — a little more punch, per direct request
+  g.gain.setValueAtTime((isAccent ? 0.3664 : 0.245) * _kickBossaMult * _kickBassDuckMult(time), time); // +0.7dB more (was 0.338/0.226, -3dB from original 0.478/0.319) — a little more punch, per direct request
   g.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
   osc.start(time); osc.stop(time + 0.46);
   _cleanupNodes([g], time + 0.47);
@@ -9709,7 +9905,7 @@ function playKick(t, velMult) {
   const beatDest = window._beatGain || masterGain;
   const _pushAtten = (_beatType === 'push') ? 0.5623 : 1; // -5dB, PUSH only
   const _jazzAtten = (_beatType === 'jazz') ? 0.1995 : 1; // -14dB — JAZZ's "feathered" kick, felt more than heard
-  const _velAtten = velMult !== undefined ? velMult : 1; // per-hit velocity, e.g. HALFTIME's second kick at 75%
+  const _velAtten = (velMult !== undefined ? velMult : 1) * _kickBassDuckMult(t); // per-hit velocity (and -3dB under a bass note on the one — see _markKickBassDuck), e.g. HALFTIME's second kick at 75%
   const osc = ctx.createOscillator(), g = ctx.createGain();
   osc.connect(g); g.connect(beatDest);
   osc.frequency.setValueAtTime(160, t);
@@ -10428,20 +10624,42 @@ function _volBangerLoop(now) {
     // same level, a quarter note later (60/bpm s, follows tempo). Each
     // frame's level is logged with its timestamp; the strip reads back the
     // newest entry that's at least a quarter note old.
-    const hist = _vbHist[tr] || (_vbHist[tr] = []);
-    hist.push([now, _vbLevels[tr]]);
-    const q = 60000 / (bpm || 110);
-    while (hist.length > 1 && hist[1][0] <= now - q) hist.shift();
-    const delayed = hist[0][0] <= now - q ? hist[0][1] : 0;
+    // SECOND LEVEL (DEV): delay is now a fixed 0-0.5s from the slider
+    // (was a tempo-following quarter note), and the whole thing can be
+    // switched off — then no history is kept and --vb2 isn't written.
+    let delayed = 0;
+    if (_secondLevelOn) {
+      const hist = _vbHist[tr] || (_vbHist[tr] = []);
+      hist.push([now, _vbLevels[tr]]);
+      const q = _secondLevelDelayMs;
+      while (hist.length > 1 && hist[1][0] <= now - q) hist.shift();
+      delayed = hist[0][0] <= now - q ? hist[0][1] : 0;
+    }
     if (vbar) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
-      vbar.style.setProperty('--vb2', delayed.toFixed(3));
+      if (_secondLevelOn) vbar.style.setProperty('--vb2', delayed.toFixed(3));
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
-      vbar.classList.toggle('vb2-silent', delayed < 0.005);
+      if (_secondLevelOn) vbar.classList.toggle('vb2-silent', delayed < 0.005);
     }
   }
 }
 const _vbHist = [];
+let _secondLevelOn = true, _secondLevelDelayMs = 500;
+function setSecondLevel(on) {
+  _secondLevelOn = !!on;
+  document.body.classList.toggle('no-second-level', !on);
+  const cb = document.getElementById('secondLevelToggle'); if (cb) cb.checked = !!on;
+  if (!on) {
+    _vbHist.length = 0;
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const vbar = document.getElementById(`vbar-${tr}`); if (vbar) { vbar.style.removeProperty('--vb2'); vbar.classList.add('vb2-silent'); } }
+  }
+}
+function setSecondLevelDelay(sec) {
+  sec = Math.max(0, Math.min(0.5, +sec));
+  _secondLevelDelayMs = sec * 1000;
+  const r = document.getElementById('secondLevelDelayVal'); if (r) r.textContent = sec.toFixed(2) + 'S';
+  const sl = document.getElementById('secondLevelDelaySlider'); if (sl) sl.value = sec;
+}
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
 // but harmless to set regardless (the CSS variable just sits unused if
@@ -14124,7 +14342,7 @@ function tempoNoteFactor() {
 // the shared reverb input bus, so the NEW room's size and tail ring out
 // clearly. The tail's loudness still follows the new REVERB MIX roll (the
 // return gain), so a near-zero MIX roll is honestly close to dry.
-const REVERB_PREVIEW_SEND = 1.6; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
+const REVERB_PREVIEW_SEND = 0.9; // -5dB from 1.6, per direct request; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
 function _previewReverb() {
   if (window._noButtonSounds || !ctx) return;
   playUiSound('tinyclick');
