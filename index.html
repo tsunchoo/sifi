@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:47:15 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:56:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -891,10 +891,15 @@ html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
   width: 100% !important; z-index: 1;
   background: var(--play-flash-color, #f17d21) !important;
-  box-shadow: 0 0 6px var(--play-flash-color, #f17d21), 0 0 14px color-mix(in srgb, var(--play-flash-color, #f17d21) 55%, transparent) !important;
+  box-shadow: 0 0 calc(6px * var(--fillglow, 1)) var(--play-flash-color, #f17d21), 0 0 calc(14px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 55%, transparent) !important;
   animation: none !important; filter: none !important;
 }
 html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
+/* VOL FILL GLOW (settings slider, 100% default, applies on release), per
+   direct request — the vol fill glows in the PLAY FLASH colour in every
+   mode now, not just TEST. Clipped to the bar so it can't spill into neighbouring rows. */
+html body .track-vol-bar .track-vol-fill-solid { box-shadow: 0 0 calc(4px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 50%, transparent); }
+html body .track-vol-bar.muted .track-vol-fill-solid { box-shadow: none; }
 /* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
 html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--play-hl, var(--top-row-pressed-text-color, #fff)) !important; }
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
@@ -2037,6 +2042,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 .step-cell.step-cell.legato-tail.legato-tail.playing::after {
   background: var(--play-flash-color, #f8ff00) !important;
   opacity: 1 !important;
+  box-shadow: 0 0 calc(3px * var(--rglow, 1)) var(--play-flash-color, #f17d21), 0 0 calc(9px * var(--rglow, 1)) var(--play-flash-color, #f17d21), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) 70%, transparent) !important; /* same glow as the engaged top-row buttons (TOP ROW GLOW scales it), per direct request */
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
@@ -2348,7 +2354,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:47:15 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:56:21 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2669,6 +2675,13 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="topGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
         <input type="range" id="topGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('topGlowVal').textContent=this.value+'%'" onchange="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL FILL GLOW</div>
+          <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -10788,6 +10801,7 @@ function setSafeGfx(on) {
   const sg = document.getElementById('safeGfxToggle'); if (sg) sg.checked = !!on;
 }
 function setTrackGlow(v) { v = +v; document.documentElement.style.setProperty('--tglow', v / 100); const r = document.getElementById('trackGlowVal'); if (r) r.textContent = v + '%'; }
+function setFillGlow(v) { v = +v; document.documentElement.style.setProperty('--fillglow', v / 100); const r = document.getElementById('fillGlowVal'); if (r) r.textContent = v + '%'; }
 function setTopGlow(v) { v = +v; document.documentElement.style.setProperty('--rglow', v / 100); const r = document.getElementById('topGlowVal'); if (r) r.textContent = v + '%'; }
 function setRecTextX(v) { v = +v; document.documentElement.style.setProperty('--rec-text-x', v + 'px'); const r = document.getElementById('recTextXVal'); if (r) r.textContent = v + 'PX'; }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
@@ -15479,6 +15493,9 @@ function randAll(mode, opts) {
       if (trackVolume[_tr] > 0) {
         const _jDb = (Math.random() * 2 - 1) * 3;
         trackVolume[_tr] = Math.max(0.02, Math.min(1, trackVolume[_tr] * Math.pow(10, _jDb / 20)));
+        // ...then every chosen fader sits ~30% (+/-5%) further up its
+        // travel (slider position, not raw gain), per direct request.
+        trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * (1.25 + Math.random() * 0.10)));
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
