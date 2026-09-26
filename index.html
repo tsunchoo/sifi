@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 07:17:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 07:30:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -795,6 +795,13 @@ html body .track-vol-bar .track-vol-fill-bg {
   transform: translateY(-50%) !important;
 }
 html body.vol-banger .track-vol-bar .track-vol-fill-solid { transform: translateY(-50%) scaleX(var(--vb, 0)) !important; }
+/* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
+   centred), per direct request — the black fader handle's height. */
+html body.simple-fader .track-vol-bar .track-vol-tip {
+  top: 50%; bottom: auto;
+  height: var(--vol-tip-h, 100%);
+  transform: translateY(-50%);
+}
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1921,7 +1928,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:17:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 07:30:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2254,6 +2261,20 @@ body.performance-mode header { padding-bottom: 10px; }
         </div>
         <input type="range" id="volBangerOpacitySlider" min="0" max="100" value="100" oninput="setVolBangerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL FADER HEIGHT</div>
+          <div id="volTipHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="volTipHeightSlider" min="10" max="100" step="1" value="100" oninput="setVolFaderHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FADER WIDTH</div>
+          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
+        </div>
+        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -2352,13 +2373,6 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
       </label>
 
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FADER WIDTH</div>
-          <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10PX</div>
-        </div>
-        <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH</div>
         <input type="color" id="playFlashColorPicker" value="#f8ff00" oninput="setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
@@ -10103,6 +10117,12 @@ function _thinVolFillPct() {
   const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
   const h = bar ? bar.getBoundingClientRect().height : 29;
   return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
+}
+function setVolFaderHeightPct(v) {
+  v = Math.max(10, Math.min(100, Math.round(+v) || 100));
+  document.documentElement.style.setProperty('--vol-tip-h', v + '%');
+  const r = document.getElementById('volTipHeightVal'); if (r) r.textContent = v + '%';
+  const sl = document.getElementById('volTipHeightSlider'); if (sl) sl.value = v;
 }
 function setVolFillHeightPct(v) {
   v = Math.max(5, Math.min(100, Math.round(+v) || 100));
