@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 02:13:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 02:45:15 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -752,6 +752,16 @@ body.track-row-bg .track-wrap.track-empty .track-ctrl-row::before {
   transition: background 0.06s, color 0.06s;
 }
 .track-name-btn.has-notes { color: #fff; }
+/* VOL BANGER (LOOK AND FEEL > DEV toggle, per direct request) — each track
+   name button fills from left to right with the track's live output level,
+   like a meter. --vb (0-1) is written per button every animation frame by
+   _volBangerLoop(). The fill sits behind the button text (z-index -1 inside
+   the button's own stacking context), over its background colour. */
+body.vol-banger .track-name-btn { position: relative; isolation: isolate; overflow: hidden; }
+body.vol-banger .track-name-btn::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; z-index: -1;
+  width: calc(var(--vb, 0) * 100%); background: rgba(255,255,255,0.32); pointer-events: none;
+}
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
    updatePlayhead, toggled every scheduler tick, gated by track-pulse-a so
@@ -1828,7 +1838,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent just-track track-row-bg note-markers-circle">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1861,7 +1871,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 02:13:10 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 02:45:15 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2174,6 +2184,9 @@ body.performance-mode header { padding-bottom: 10px; }
     </div>
 
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="volBangerToggle" onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
+      </label>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -2297,7 +2310,7 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="justTrackToggle" checked onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
+        <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
       </label>
 
       <!-- TOP ROW HIGHLIGHT picker removed from the UI — the top-row
@@ -10015,6 +10028,48 @@ function setBeatIsAllDrums(on) { window._beatIsAllDrums = !!on; }
 // changes needed here beyond toggling this one class).
 function setSimpleFader(on) { document.body.classList.toggle('simple-fader', !!on); }
 function setJustTrack(on) { document.body.classList.toggle('just-track', !!on); }
+// VOL BANGER — see the body.vol-banger CSS. One AnalyserNode per track,
+// tapped (in parallel, no effect on the sound) off that track's own gain
+// node, i.e. post track-volume. Re-attached automatically if the graph gets
+// rebuilt (bounce/export swaps trackGainNodes). Fast attack, smooth fall.
+// Only runs while the toggle is on.
+const _vbAnalysers = [];
+let _vbLevels = new Array(NUM_TRACKS).fill(0), _vbRaf = null, _vbBuf = null;
+function setVolBanger(on) {
+  document.body.classList.toggle('vol-banger', !!on);
+  const cb = document.getElementById('volBangerToggle'); if (cb) cb.checked = !!on;
+  if (on && !_vbRaf) _vbRaf = requestAnimationFrame(_volBangerLoop);
+  if (!on) {
+    if (_vbRaf) { cancelAnimationFrame(_vbRaf); _vbRaf = null; }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { const b = document.getElementById(`tbtn-${tr}`); if (b) b.style.removeProperty('--vb'); }
+  }
+}
+function _volBangerLoop() {
+  _vbRaf = requestAnimationFrame(_volBangerLoop);
+  if (!ctx) return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const g = trackGainNodes[tr];
+    let a = _vbAnalysers[tr];
+    if (g && (!a || a.src !== g || a.node.context !== ctx)) {
+      if (a) { try { a.src.disconnect(a.node); } catch(e) {} }
+      const node = ctx.createAnalyser(); node.fftSize = 512;
+      try { g.connect(node); } catch(e) {}
+      a = _vbAnalysers[tr] = { node, src: g };
+    }
+    let lvl = 0;
+    if (a && !trackMuted[tr]) {
+      if (!_vbBuf || _vbBuf.length !== a.node.fftSize) _vbBuf = new Float32Array(a.node.fftSize);
+      a.node.getFloatTimeDomainData(_vbBuf);
+      let sum = 0; for (let i = 0; i < _vbBuf.length; i++) sum += _vbBuf[i] * _vbBuf[i];
+      const rms = Math.sqrt(sum / _vbBuf.length);
+      const db = rms > 0 ? 20 * Math.log10(rms) : -100;
+      lvl = Math.max(0, Math.min(1, (db + 48) / 42)); // -48dB .. -6dB RMS -> 0..1
+    }
+    _vbLevels[tr] = lvl > _vbLevels[tr] ? lvl : _vbLevels[tr] * 0.88 + lvl * 0.12; // instant rise, eased fall
+    const b = document.getElementById(`tbtn-${tr}`);
+    if (b) b.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
+  }
+}
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
 // but harmless to set regardless (the CSS variable just sits unused if
@@ -17942,6 +17997,11 @@ function _applyRainbowState(m) {
   if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
   if (m.ruler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(m.ruler);
   _setRainbowBgZero(m.bg0);
+  // JUST TRACK — off by default, ON only in modes 3 and 6 (the two
+  // no-track-row-BG modes), per direct request. Applied last so it wins
+  // over PERFORMANCE MODE's own save/restore of this same setting.
+  setJustTrack(m.bg0);
+  const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = !!m.bg0;
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
 // DEV slider was set to is remembered on the way in and put back on the
