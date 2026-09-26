@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 21:23:23 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 21:52:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -486,7 +486,7 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
 #playBtn { position: relative; }
 #saveBtn { position: relative; }
 #playBtn.playing img { opacity: 0; }
-#playBtnMask { display: none; position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; transform: translate(-50%, -50%); background: var(--top-row-pressed-text-color, #fff); /* was var(--top-row-text-color) — the plain, un-contrast-adjusted color, while every other engaged top-row button (#beatBtn.active, #clearBtn.active, #scratchBtn.active, the generic .btn.active rule) uses --top-row-pressed-text-color, the version nudged for contrast against --top-row-pressed-bg specifically. PLAY was the one outlier still using the wrong variable, so its glyph didn't match DRUMS' own pulsing color even though both sit on the same pressed background. */ -webkit-mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+#playBtnMask { display: none; position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; transform: translate(-50%, -50%); background: var(--play-hl, var(--top-row-pressed-text-color, #fff)); /* was var(--top-row-text-color) — the plain, un-contrast-adjusted color, while every other engaged top-row button (#beatBtn.active, #clearBtn.active, #scratchBtn.active, the generic .btn.active rule) uses --top-row-pressed-text-color, the version nudged for contrast against --top-row-pressed-bg specifically. PLAY was the one outlier still using the wrong variable, so its glyph didn't match DRUMS' own pulsing color even though both sit on the same pressed background. */ -webkit-mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 #playBtn.playing #playBtnMask { display: block; }
 #playBtn.playing.btn-beat-pulse #playBtnMask { animation: play-green-pulse 0.44s ease-out; }
 /* PLAY and RECORD icon graphics are plain white PNGs with no built-in
@@ -517,7 +517,10 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    triggered directly off actual BEAT-engine kick/snare/hihat hits (see
    _flashDrumsText(), called from fireBeatKick/playSnare/playSynthHihat)
    rather than a generic clock, per direct request. */
-@keyframes drums-text-flash-pulse { from { color: var(--top-row-pressed-text-color, #fff); } to { color: var(--play-flash-color, #f8ff00); } }
+@keyframes drums-text-flash-pulse { from { color: var(--top-row-pressed-text-color, #fff); } to { color: var(--drums-flash-color, var(--play-flash-color, #f8ff00)); } }
+/* DRUMS FLASH = PLAY COLOUR (DEV toggle, on by default): flash to the
+   PLAY/STOP button's boosted highlight instead of PLAY FLASH. */
+body.drums-flash-hl { --drums-flash-color: var(--play-hl, var(--top-row-pressed-text-color, #fff)); }
 #beatBtnText.drums-hit-flash { animation: drums-text-flash-pulse 0.18s ease-out forwards; }
 /* RECORD menu — opened by holding the RECORD button. Rebuilt on the
    LOOK AND FEEL (color menu) template, per direct request: full-screen dim
@@ -660,7 +663,7 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
   filter: saturate(var(--top-row-saturation, 1)) contrast(1.25) brightness(1.05);
 }
 .transport .btn #playBtnImg { filter: invert(var(--track-text-invert, 0)) drop-shadow(0 0 calc(3px * var(--rglow, 1)) color-mix(in srgb, var(--top-row-text-color, #fff) 20%, transparent)) drop-shadow(0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, var(--top-row-text-color, #fff) 15%, transparent)); }
-#playBtnGlowWrap { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 0 calc(3px * var(--rglow, 1)) var(--top-row-pressed-text-color, #fff)) drop-shadow(0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, var(--top-row-pressed-text-color, #fff) 75%, transparent)); }
+#playBtnGlowWrap { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 0 calc(3px * var(--rglow, 1)) var(--play-hl, #fff)) drop-shadow(0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, var(--play-hl, #fff) 75%, transparent)); }
 #saveBtn.rec-active #recBtnText { text-shadow: 0 0 calc(4px * var(--rglow, 1)) #ff2a2a, 0 0 calc(12px * var(--rglow, 1)) #ff2a2a, 0 0 calc(24px * var(--rglow, 1)) rgba(255,42,42,0.7) !important; }
 
 #saveBtn.rec-active #recBtnImg { opacity: 0; }
@@ -844,7 +847,12 @@ html body.vol-test .track-vol-bar {
   background: linear-gradient(to right, var(--vol-test-bg, var(--top-row-pressed-bg)) calc(var(--fill-pct, 0) * 1%), transparent calc(var(--fill-pct, 0) * 1%)) !important;
 }
 html body.vol-test .track-vol-bar .track-vol-scale { display: none !important; }
-html body.hide-vol-track .track-vol-bar .track-vol-scale { display: none !important; } /* HIDE VOL TRACK (DEV) — the vol track line only; fill and fader stay */
+html body.hide-vol-track .track-vol-bar .track-vol-scale { display: none !important; }
+html body.safe-gfx .transport .btn, html body.safe-gfx .transport .btn * { text-shadow: none !important; }
+html body.safe-gfx .transport .btn { filter: saturate(var(--top-row-saturation, 1)) !important; }
+html body.safe-gfx .transport .btn #playBtnImg { filter: invert(var(--track-text-invert, 0)) !important; }
+html body.safe-gfx #playBtnGlowWrap { filter: none !important; }
+html body.safe-gfx .track-vol-bar .track-vol-tip, html body.safe-gfx .track-vol-bar .track-vol-fill-solid { will-change: auto !important; transform: none !important; } /* HIDE VOL TRACK (DEV) — the vol track line only; fill and fader stay */
 /* TEST BG COLOUR choice (DEV radio): 1 = top row pressed shade (default),
    2 = the offset (<) button's resting colour, 3 = PLAY FLASH taken right
    down to a very dark shade (--play-flash-dark, see _updatePlayFlashHot). */
@@ -2065,7 +2073,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2174,6 +2182,8 @@ body.performance-mode header { padding-bottom: 10px; }
   function format(r){
     var L = [];
     L.push('SI-FI CRASH REPORT');
+    var _a0 = r.app || {};
+    L.push(_a0.visible === 'hidden' ? 'TYPE: BACKGROUND EVICTION — the page was in the background when it died (iOS routinely unloads background tabs; usually not a bug)' : 'TYPE: FOREGROUND CRASH — the page was on screen when it died');
     L.push((r.build || '') + ' | session ' + r.sid);
     L.push('started ' + r.start + ' | last heartbeat ' + r.last + (r.reloadedAt ? ' | reloaded ' + r.reloadedAt + ' (' + Math.round((new Date(r.reloadedAt) - new Date(r.last)) / 1000) + 's after last heartbeat)' : ''));
     L.push('nav type on reload: ' + (r.navType || '?') + ' | ' + r.ua);
@@ -2282,7 +2292,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 21:23:23 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 21:52:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2610,6 +2620,12 @@ body.performance-mode header { padding-bottom: 10px; }
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="hideVolTrackToggle" onchange="document.body.classList.toggle('hide-vol-track', this.checked)" style="width:14px;height:14px;cursor:pointer;">HIDE VOL TRACK
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="drumsFlashHlToggle" checked onchange="document.body.classList.toggle('drums-flash-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">DRUMS FLASH = PLAY COLOUR
       </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -10690,6 +10706,28 @@ function setVolTestBg(n) {
   document.body.classList.remove('vol-test-bg-2', 'vol-test-bg-3');
   if (n === 2 || n === 3) document.body.classList.add('vol-test-bg-' + n);
 }
+// SAFE GFX (DEV) — crash experiment: switches off every recent visual
+// effect at once (VOL BANGER meters, TRACK BUTTON LIGHTS + LIGHTS PULSE,
+// the top-row glow/contrast filters, the extra compositing layers), so a
+// session can be run without them to see whether the crashes stop.
+// Unticking restores what was on before.
+let _safeGfxBefore = null;
+function setSafeGfx(on) {
+  const b = document.body.classList;
+  if (on) {
+    _safeGfxBefore = { banger: b.contains('vol-banger'), lights: b.contains('track-btn-lights'), pulse: b.contains('track-btn-lights-pulse'), test: b.contains('vol-test') };
+    setVolBanger(false); b.remove('track-btn-lights', 'track-btn-lights-pulse', 'vol-test');
+    b.add('safe-gfx');
+  } else {
+    b.remove('safe-gfx');
+    const k = _safeGfxBefore || { banger: true, lights: true, pulse: true, test: false };
+    if (k.banger) setVolBanger(true);
+    b.toggle('track-btn-lights', k.lights); b.toggle('track-btn-lights-pulse', k.pulse); b.toggle('vol-test', k.test);
+    _safeGfxBefore = null;
+  }
+  ['trackBtnLightsToggle', 'trackBtnLightsPulseToggle', 'volTestToggle'].forEach((id, i) => { const c = document.getElementById(id); if (c) c.checked = [b.contains('track-btn-lights'), b.contains('track-btn-lights-pulse'), b.contains('vol-test')][i]; });
+  const sg = document.getElementById('safeGfxToggle'); if (sg) sg.checked = !!on;
+}
 function setTrackGlow(v) { v = +v; document.documentElement.style.setProperty('--tglow', v / 100); const r = document.getElementById('trackGlowVal'); if (r) r.textContent = v + '%'; }
 function setTopGlow(v) { v = +v; document.documentElement.style.setProperty('--rglow', v / 100); const r = document.getElementById('topGlowVal'); if (r) r.textContent = v + '%'; }
 function setRecTextX(v) { v = +v; document.documentElement.style.setProperty('--rec-text-x', v + 'px'); const r = document.getElementById('recTextXVal'); if (r) r.textContent = v + 'PX'; }
@@ -12796,11 +12834,22 @@ function setTopRowTextColor(n) {
   // for something else entirely.
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555';
   document.documentElement.style.setProperty('--top-row-pressed-text-color', _ensureContrast(hex, _mixTowardBlack(bg, 0.67)));
+  _updatePlayHl();
 }
 // AUTO (BEST CONTRAST) — same approach as the other auto pickers: checks
 // each of the 3 highlights against the top row's own resting background
 // (--neutral-top), picks whichever contrasts best, then nudges it further
 // via _ensureContrast if that still isn't enough.
+// PLAY HIGHLIGHT — the PLAY/STOP button's own colour (the top row's
+// pressed text colour), pushed 20% more saturated than the colour
+// ceiling normally allows, per direct request. Used by the PLAY/STOP
+// glyph and (when DRUMS FLASH = PLAY COLOUR is on) the DRUMS text flash.
+function _updatePlayHl() {
+  let hex = getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+  const [h, sat, l] = _hexToHsl(hex);
+  document.documentElement.style.setProperty('--play-hl', _hslToHex(h, Math.min(1, sat + 0.2), l));
+}
 function _autoPickTopRowTextColor() {
   const cs = getComputedStyle(document.documentElement);
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
@@ -12831,6 +12880,7 @@ function _autoPickTopRowTextColor() {
     if (ratio > bestPressedRatio) { bestPressedRatio = ratio; bestPressed = hex; }
   }
   document.documentElement.style.setProperty('--top-row-pressed-text-color', _ensureContrast(bestPressed, pressedBg));
+  _updatePlayHl();
 }
 function setTrackBtnTextColor(n) {
   window._trackBtnTextColorMode = n;
@@ -19135,6 +19185,7 @@ function _updatePlayFlashHot(hex) {
   document.documentElement.style.setProperty('--play-flash-dark', _hslToHex(h0, s0 * 0.55, 0.13));
 }
 _updatePlayFlashHot('#f17d21');
+setTimeout(() => { try { _updatePlayHl(); } catch (e) {} }, 0);
 // SOLO + BEAT — whether BEAT stays in the mix regardless of any active
 // SOLO (on, default) or gets silenced by solo like every un-soloed track
 // unless explicitly clicked to include it (off — the original behavior).
