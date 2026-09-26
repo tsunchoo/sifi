@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 08:01:53 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 16:38:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -936,6 +936,42 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 .shift-btn:active { opacity: 0.4; }
 .shift-btn.on { background: #f17d21; color: var(--track-btn-on-text, #fff); }
 .shift-btn.right.on { background: var(--track-btn-on-color, #0081FE); animation: engaged-btn-pulse 0.6s ease-in-out infinite; }
+/* TRACK BUTTON LIGHTS (LOOK AND FEEL > DEV toggle), per direct request —
+   engaged track buttons read like lit indicators: background goes to the
+   top row's dark pressed colour, the glyph turns the PLAY FLASH colour,
+   and a soft glow in that same colour surrounds it (text-shadow for text
+   glyphs, drop-shadow on the SVG for the lock icon). The usual engaged
+   pulse animations are switched off here — their keyframes animate the
+   glyph colour, which would fight the lit look. Covers every engaged
+   state: lock (sweep-on), offset (<), FX, BLAST, reverb (R), solo, and
+   the per-track + auto mode. */
+body.track-btn-lights .track-ctrl-icon-btn.on,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on,
+body.track-btn-lights .track-ctrl-icon-btn.lock-btn.sweep-on,
+body.track-btn-lights .track-ctrl-icon-btn.solo-on,
+body.track-btn-lights .fx-btn.on,
+body.track-btn-lights .fx-btn.blast-on,
+body.track-btn-lights .shift-btn.on,
+body.track-btn-lights .shift-btn.right.on,
+body.track-btn-lights .rand-btn.rand-auto {
+  background: var(--top-row-pressed-bg) !important;
+  color: var(--play-flash-color, #f17d21) !important;
+  text-shadow: 0 0 4px var(--play-flash-color, #f17d21), 0 0 10px color-mix(in srgb, var(--play-flash-color, #f17d21) 60%, transparent) !important;
+  animation: none !important;
+}
+body.track-btn-lights .track-ctrl-icon-btn.on svg,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on svg,
+body.track-btn-lights .track-ctrl-icon-btn.solo-on svg,
+body.track-btn-lights .fx-btn.on svg,
+body.track-btn-lights .fx-btn.blast-on svg,
+body.track-btn-lights .shift-btn.on svg,
+body.track-btn-lights .rand-btn.rand-auto svg {
+  filter: drop-shadow(0 0 3px var(--play-flash-color, #f17d21)) drop-shadow(0 0 6px color-mix(in srgb, var(--play-flash-color, #f17d21) 60%, transparent));
+}
+body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
+body.track-btn-lights .rand-btn.rand-auto .glyph,
+body.track-btn-lights .shift-btn.on .glyph { color: inherit !important; }
 /* BATTERY SAVER — the per-track REVERB (R) icon greys out and stops
    responding entirely; !important beats even the .on/pulsing state above,
    since reverb is force-disabled at the JS level too (_setTrackReverb)
@@ -1946,7 +1982,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 08:01:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:38:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2261,6 +2297,9 @@ body.performance-mode header { padding-bottom: 10px; }
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="trackBtnLightsToggle" onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
@@ -2773,7 +2812,7 @@ const INSTRUMENTS = {
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'HASSELL',      soft: null, accent: null, group: 'tonal' },
   sprkls: { name: 'SPARKLES',    soft: null, accent: null, group: 'tonal' },
-  sflute: { name: 'SPOOG',   soft: null, accent: null, group: 'tonal' }, // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below
+  sflute: { name: 'SPARP',   soft: null, accent: null, group: 'tonal' }, // SPARP (was SPOOG) — short UNDERPASS-style struck-tube tone playing triplet arpeggio fragments, per direct request; see playSparp. // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
   yamask: { name: 'YAMASK',      soft: null, accent: null, group: 'tonal' },
   dulc:   { name: 'BOOBOO',      soft: null, accent: null, group: 'tonal' },
@@ -3079,6 +3118,38 @@ function _captureIconOriginal(id) {
   else img.addEventListener('load', capture);
 }
 ['playBtnImg', 'recBtnImg'].forEach(_captureIconOriginal);
+// MEMORY LEAK FIX (the random page reloads on + presses): the recolour
+// functions below used to build a NEW canvas on every colour change and
+// hand the <img> a brand-new PNG data: URL. Browsers keep a decoded copy
+// of every distinct image URL they've shown in their image cache, so each
+// WILD-colour change stacked up another full-size decoded copy of the tape
+// window graphic (525x900 = ~1.9MB) plus the icons — measured at ~4MB per
+// + press, never released, until iOS killed and reloaded the tab. Now each
+// image reuses ONE canvas, is handed a blob: URL instead, and the previous
+// blob URL is revoked as soon as the new one has loaded, so the old
+// decoded copy is released. Rapid successive recolours are handled too —
+// only the newest result is applied; stale ones are revoked immediately.
+const _recolorCanvases = {}, _recolorBlobUrls = {}, _recolorTokens = {};
+function _recolorCanvas(id, w, h) {
+  let c = _recolorCanvases[id];
+  if (!c) c = _recolorCanvases[id] = document.createElement('canvas');
+  if (c.width !== w) c.width = w;
+  if (c.height !== h) c.height = h;
+  return c;
+}
+function _setImgFromCanvas(img, id, canvas, after) {
+  const token = (_recolorTokens[id] || 0) + 1; _recolorTokens[id] = token;
+  canvas.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    if (_recolorTokens[id] !== token) { URL.revokeObjectURL(url); return; } // a newer recolour already superseded this one
+    const prev = _recolorBlobUrls[id];
+    _recolorBlobUrls[id] = url;
+    img.onload = () => { if (prev) URL.revokeObjectURL(prev); img.onload = null; };
+    img.src = url;
+    if (after) after();
+  }, 'image/png');
+}
 function recolorTopRowIcons(hex) {
   ['playBtnImg', 'recBtnImg'].forEach(id => {
     const src = _iconOrigImageData[id];
@@ -3086,8 +3157,7 @@ function recolorTopRowIcons(hex) {
     if (!src || !img) return;
     const h = hex.replace('#', '');
     const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
-    const canvas = document.createElement('canvas');
-    canvas.width = src.width; canvas.height = src.height;
+    const canvas = _recolorCanvas(id, src.width, src.height);
     const cctx = canvas.getContext('2d');
     const out = cctx.createImageData(src.width, src.height);
     const sd = src.data, od = out.data;
@@ -3095,14 +3165,17 @@ function recolorTopRowIcons(hex) {
       od[i] = r; od[i+1] = g; od[i+2] = b; od[i+3] = sd[i+3]; // keep original alpha exactly, replace color outright
     }
     cctx.putImageData(out, 0, 0);
-    img.src = canvas.toDataURL('image/png');
-    img.style.filter = 'none'; // the base invert filter no longer applies once precisely recolored
+    _setImgFromCanvas(img, id, canvas, () => { img.style.filter = 'none'; }); // the base invert filter no longer applies once precisely recolored
   });
 }
 function restoreTopRowIcons() {
   ['playBtnImg', 'recBtnImg'].forEach(id => {
     const img = document.getElementById(id);
-    if (img && _iconOrigSrc[id]) { img.src = _iconOrigSrc[id]; img.style.filter = ''; }
+    if (img && _iconOrigSrc[id]) {
+      _recolorTokens[id] = (_recolorTokens[id] || 0) + 1; // cancel any recolour still in flight
+      if (_recolorBlobUrls[id]) { URL.revokeObjectURL(_recolorBlobUrls[id]); delete _recolorBlobUrls[id]; }
+      img.src = _iconOrigSrc[id]; img.style.filter = '';
+    }
   });
 }
 function _applyHighlightColor(hex) {
@@ -3138,8 +3211,7 @@ function recolorTapeWindowImg(bgHex) {
   const hex = bgHex.replace('#', '');
   const r = parseInt(hex.substr(0, 2), 16), g = parseInt(hex.substr(2, 2), 16), b = parseInt(hex.substr(4, 2), 16);
   const src = _tapeWindowOrigImageData;
-  const canvas = document.createElement('canvas');
-  canvas.width = src.width; canvas.height = src.height;
+  const canvas = _recolorCanvas('tapeWindowImg', src.width, src.height);
   const cctx = canvas.getContext('2d');
   const out = cctx.createImageData(src.width, src.height);
   const sd = src.data, od = out.data;
@@ -3150,7 +3222,7 @@ function recolorTapeWindowImg(bgHex) {
     od[i+3] = sd[i+3];
   }
   cctx.putImageData(out, 0, 0);
-  img.src = canvas.toDataURL('image/png');
+  _setImgFromCanvas(img, 'tapeWindowImg', canvas); // blob URL + revoke-previous, not a new data: URL each time (see the leak note above)
 }
 (function() {
   const img = document.getElementById('tapeWindowImg');
@@ -5211,7 +5283,7 @@ function fireStepAudio(step, t) {
           if (key === 'clar')    playSteelGuitar(freq, dur, val === 2, t, tr);
           if (key === 'rhodes')  playSpaceKoto(freq, dur, val === 2, t, tr);
           if (key === 'rhodes2') playRhodes2(freq, dur, val === 2, t, tr);
-          if (key === 'sflute')  playClung(freq, dur, val === 2, t, tr);
+          if (key === 'sflute')  playSparp(freq, dur, val === 2, t, tr);
           if (key === 'underpass') playUnderpass(freq, dur, val === 2, t, tr);
           if (key === 'spiano')  playSchoolPiano(freq, dur, val === 2, t, tr);
           if (key === 'satk')    playSynthAttack(freq, dur, val === 2, t, tr);
@@ -5306,7 +5378,7 @@ function fireStepAudio(step, t) {
             if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
             if (key === 'dulc')    playBooboo(freq2, dur2, false, t2, tr);
-            if (key === 'sflute')  playClung(freq2, dur2, false, t2, tr);
+            if (key === 'sflute')  playSparp(freq2, dur2, false, t2, tr);
             if (key === 'underpass') playUnderpass(freq2, dur2, false, t2, tr);
             if (key === 'spiano')  playSchoolPiano(freq2, dur2, false, t2, tr);
             if (key === 'satk')    playSynthAttack(freq2, dur2, false, t2, tr);
@@ -5963,6 +6035,71 @@ function playUnderpass(freq, durSec, isAccent, time, tr, _isSecondHit) {
   }
 }
 
+// ── SPARP (key 'sflute', was SPOOG/CLUNG), per direct request — "more
+// like UNDERPASS with shorter notes, playing arpeggio fragments of the
+// scale in a triplet feel". Each grid note fires a 3-note fragment spaced
+// as 16th-note TRIPLETS (2/3 of a 16th apart, so the group fills exactly
+// one 8th), stepping through every OTHER degree of the track's own scale
+// (a real arpeggio shape: e.g. 1-3-5), up or down at random, starting
+// from the note's own pitch. Each note is a short UNDERPASS-style struck
+// tube — knock transient + odd-harmonic (1/3/5) sine partials — with much
+// shorter decays so the triplets stay crisp. No feedback, self-cleaning.
+function _sparpHit(freq, isAccent, time, tr, level) {
+  const dest = getSynthConnectNode(tr);
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
+  const decay = isAccent ? 0.2 : 0.15; // UNDERPASS is 0.55/0.4 — much shorter, per direct request
+  const peakVol = (isAccent ? 0.36 : 0.26) * blastAtten * level;
+  const knockDur = 0.01;
+  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
+  const kd = kbuf.getChannelData(0);
+  for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
+  const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
+  const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
+  const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten * level;
+  knockSrc.connect(knockFilter); knockFilter.connect(knockGain); knockGain.connect(dest);
+  knockSrc.start(time);
+  knockSrc.onended = () => { try { knockSrc.disconnect(); knockFilter.disconnect(); knockGain.disconnect(); } catch(e) {} };
+  const detune = (Math.random() * 2 - 1) * 3;
+  [
+    { ratio: 1, amp: peakVol,        decayMult: 1    },
+    { ratio: 3, amp: peakVol * 0.32, decayMult: 0.55 },
+    { ratio: 5, amp: peakVol * 0.14, decayMult: 0.32 },
+  ].forEach(p => {
+    const osc = ctx.createOscillator(); osc.type = 'sine';
+    osc.frequency.value = freq * p.ratio; osc.detune.value = detune;
+    const env = ctx.createGain(); const pDecay = decay * p.decayMult;
+    env.gain.setValueAtTime(0, time);
+    env.gain.linearRampToValueAtTime(p.amp, time + 0.003);
+    env.gain.exponentialRampToValueAtTime(0.0005, time + pDecay);
+    osc.connect(env); env.connect(dest);
+    osc.start(time); osc.stop(time + pDecay + 0.05);
+    osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e) {} };
+  });
+}
+function playSparp(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const tripletGap = (60 / bpm) / 4 * (2 / 3); // 16th-note triplet spacing
+  const scale = trackBassScale[tr];
+  const freqs = [freq];
+  if (scale && scale.length >= 3) {
+    // Nearest scale degree to this note's own pitch, then every other
+    // degree up or down from it — octave-wrapped so the run never falls off
+    // either end of the track's register.
+    let idx = 0, best = Infinity;
+    scale.forEach((f, i) => { const d = Math.abs(Math.log2(f / freq)); if (d < best) { best = d; idx = i; } });
+    const dir = Math.random() < 0.5 ? 1 : -1;
+    for (let k = 1; k < 3; k++) {
+      let j = idx + dir * 2 * k, oct = 1;
+      while (j >= scale.length) { j -= scale.length; oct *= 2; }
+      while (j < 0) { j += scale.length; oct /= 2; }
+      freqs.push(scale[j] * oct);
+    }
+  } else {
+    freqs.push(freq * 1.2599, freq * 1.4983); // no scale yet — plain major-triad shape
+  }
+  freqs.forEach((f, i) => _sparpHit(f, isAccent && i === 0, time + i * tripletGap, tr, i === 0 ? 1 : 0.8)); // first hit of each group carries the accent; the rest a touch lighter
+}
+
 // ── Synth Bass with legato glide (ported from SMPLJAK) ──
 const _bassGlideState = {}; // tr -> lastFreq
 function playSynthBass(freq, durSec, isAccent, time, tr) {
@@ -6332,7 +6469,7 @@ function randomizeBassTrack(tr, level) {
     dulc:    [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // BOOBOO — fewer notes now, legato phrases fill in the rest instead of density
     drone:   [[2,5,0.25],[4,7,0.40],[6,10,0.55]],  // STRINGS — a normal tonal instrument now, same rules as any other
     dronePlus: [[2,5,0.25],[4,7,0.40],[6,10,0.55]], // STRINGS+ — same note-count table as STRINGS; duration is overridden separately (see the contiguous-legato pass) so this only governs how many notes/onsets it gets
-    sflute:  [[2,5,0.25],[4,7,0.40],[6,10,0.55]],  // CLUNG (was XYLOPHONE's slot) — same table as STRINGS+, per direct request to match its auto-generation criteria; was falling through to the generic default before
+    sflute:  [[2,4,0.20],[3,5,0.30],[4,6,0.40]],  // SPARP — fairly sparse onsets, since every note fans out into a 3-note triplet arpeggio fragment (was CLUNG/SPOOG's STRINGS+ table) (was XYLOPHONE's slot) — same table as STRINGS+, per direct request to match its auto-generation criteria; was falling through to the generic default before
     opening: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // OPENING — capped at 3 max, sustained pad chords
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
     denial:  [[1,3,0.15],[2,4,0.30],[3,5,0.40]],  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
@@ -6396,7 +6533,7 @@ function randomizeBassTrack(tr, level) {
   // reworked to sustain across a held/legato duration instead of always
   // ringing out on a short fixed decay, so it needs this pass to actually
   // ever get a held duration to sustain across.
-  if (key === 'dronePlus' || key === 'sflute') {
+  if (key === 'dronePlus') { // SPARP (sflute) no longer shares this — it's short triplet-arpeggio hits now, not held legato notes
     const onsets = [];
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
@@ -11096,7 +11233,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'clar')    playSteelGuitar(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes')  playSpaceKoto(freq, dur, isAccent, t, tr);
     else if (key === 'rhodes2') playRhodes2(freq, dur, isAccent, t, tr);
-    else if (key === 'sflute')  playClung(freq, dur, isAccent, t, tr);
+    else if (key === 'sflute')  playSparp(freq, dur, isAccent, t, tr);
     else if (key === 'underpass') playUnderpass(freq, dur, isAccent, t, tr);
     else if (key === 'spiano')  playSchoolPiano(freq, dur, isAccent, t, tr);
     else if (key === 'satk')    playSynthAttack(freq, dur, isAccent, t, tr);
@@ -11247,7 +11384,7 @@ const BASS_LEGATO_CAP_STEPS = 8;
 // instruments".
 const PAD_LEGATO_KEYS = new Set(['sstring', 'sleg', 'drone', 'damask', 'yamask', 'amlgm', 'denial', 'boog']);
 function _legatoCapForKey(key) {
-  return (key === 'dronePlus' || key === 'sflute') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key)) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
+  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key)) ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 }
 
 // How long a note at ownerGs would sustain if it just ran until the next
@@ -17500,7 +17637,7 @@ function _regenerateAmalgamChord(tr) {
 function _playSpoolAmalgamSwell() {
   if (!ctx) return;
   let busiestTr = -1, busiestCount = -1;
-  for (let tr = 1; tr < NUM_TRACKS; tr++) { // track 0/TEXTURE excluded — sampling its own echo of everything else back into itself would be circular
+  for (let tr = 0; tr < NUM_TRACKS; tr++) { // every track eligible now — the old track-0/TEXTURE exclusion was removed, per direct request (track 0 is no longer reserved for TEXTURE)
     const count = grid[tr].filter(v => v > 0).length;
     if (count > busiestCount) { busiestCount = count; busiestTr = tr; }
   }
