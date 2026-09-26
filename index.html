@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 17:57:27 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 20:37:48 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -801,6 +801,35 @@ html body.vol-banger .track-vol-bar .track-vol-fill-solid {
    that some browsers still paint a hairline for. Class set per bar by
    _volBangerLoop. */
 html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility: hidden; }
+
+/* TEST vol-slider mode (DEV > TEST), per direct request:
+   - the whole track is the level meter: the fill spans the FULL bar width
+     (not just up to the fader), lit in PLAY FLASH with a glow like the
+     lit track buttons;
+   - the slider part (left edge -> fader) gets a background in the TOP ROW
+     COLOR's pressed/active shade (--top-row-pressed-bg);
+   - no track line to the right of the fader;
+   - the fader handle sits in front of everything. */
+html body.vol-test .track-vol-bar {
+  overflow: visible; isolation: isolate;
+  background: linear-gradient(to right, var(--vol-test-bg, var(--top-row-pressed-bg)) calc(var(--fill-pct, 0) * 1%), transparent calc(var(--fill-pct, 0) * 1%)) !important;
+}
+html body.vol-test .track-vol-bar .track-vol-scale { display: none !important; }
+/* TEST BG COLOUR choice (DEV radio): 1 = top row pressed shade (default),
+   2 = the offset (<) button's resting colour, 3 = PLAY FLASH taken right
+   down to a very dark shade (--play-flash-dark, see _updatePlayFlashHot). */
+html body.vol-test-bg-2 { --vol-test-bg: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)); }
+html body.vol-test-bg-3 { --vol-test-bg: var(--play-flash-dark, #2a1a0e); }
+html body.vol-test .track-vol-bar .track-vol-fill-solid,
+html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
+html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
+  width: 100% !important; z-index: 1;
+  background: var(--play-flash-color, #f17d21) !important;
+  box-shadow: 0 0 6px var(--play-flash-color, #f17d21), 0 0 14px color-mix(in srgb, var(--play-flash-color, #f17d21) 55%, transparent) !important;
+  animation: none !important; filter: none !important;
+}
+html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
+html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
@@ -959,9 +988,10 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
    glyph colour, which would fight the lit look. Covers every engaged
    state: lock (sweep-on), offset (<), FX, BLAST, reverb (R), solo, and
    the per-track + auto mode. */
+/* LOCK buttons are left out of lights mode, per direct request — they
+   keep their normal greyscale look. */
 body.track-btn-lights .track-ctrl-icon-btn.on,
-body.track-btn-lights .track-ctrl-icon-btn.sweep-on,
-body.track-btn-lights .track-ctrl-icon-btn.lock-btn.sweep-on,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on:not(.lock-btn),
 body.track-btn-lights .fx-btn.on,
 body.track-btn-lights .fx-btn.blast-on,
 body.track-btn-lights .shift-btn.on,
@@ -973,7 +1003,7 @@ body.track-btn-lights .rand-btn.rand-auto {
   animation: none !important;
 }
 body.track-btn-lights .track-ctrl-icon-btn.on svg,
-body.track-btn-lights .track-ctrl-icon-btn.sweep-on svg,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on:not(.lock-btn) svg,
 body.track-btn-lights .fx-btn.on svg,
 body.track-btn-lights .fx-btn.blast-on svg,
 body.track-btn-lights .shift-btn.on svg,
@@ -1025,7 +1055,7 @@ html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !imp
 html body .shift-btn.glyph-pressed:not(.right), html body .shift-btn.glyph-pressed:not(.right) .track-offset-glyph,
 html body .rand-btn.glyph-pressed, html body .rand-btn.glyph-pressed .glyph { color: var(--play-flash-color, #f17d21) !important; }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
-body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
+body.track-btn-lights .track-ctrl-icon-btn.sweep-on:not(.lock-btn) .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
 body.track-btn-lights .shift-btn.on .glyph { color: inherit !important; }
 /* BATTERY SAVER — the per-track REVERB (R) icon greys out and stops
@@ -2077,16 +2107,21 @@ body.performance-mode header { padding-bottom: 10px; }
   window.addEventListener('pagehide', function(e){ closing = true; crumb('pagehide'); write(); });
   window.addEventListener('pageshow', function(e){ if (e.persisted) { closing = false; crumb('pageshow (bfcache)'); write(); } });
 
+  // FRAME MONITOR — worst frame gap and slow-frame count per heartbeat,
+  // i.e. how hard the main thread / rendering was struggling.
+  var fr = { last: 0, worst: 0, slow: 0, frames: 0 };
+  (function tick(ts){ if (fr.last) { var gap = ts - fr.last; if (gap > fr.worst) fr.worst = gap; if (gap > 50) fr.slow++; fr.frames++; } fr.last = ts; requestAnimationFrame(tick); })(0);
   function g(fn){ try { return fn(); } catch(e) { return null; } }
   function snapshot(){
     var s = {
       up: Math.round((Date.now() - t0) / 1000),
       dom: document.getElementsByTagName('*').length,
       anims: g(function(){ return document.getAnimations().length; }),
-      nodes: stats.nodes, bufMB: +stats.bufMB.toFixed(1), blobs: stats.blobsLive, canv: stats.canvases, liveN: FR ? stats.liveNodes : null, liveMB: FR ? +stats.liveBufMB.toFixed(1) : null, snd: stats.sounding,
+      nodes: stats.nodes, bufMB: +stats.bufMB.toFixed(1), blobs: stats.blobsLive, canv: stats.canvases, liveN: FR ? stats.liveNodes : null, liveMB: FR ? +stats.liveBufMB.toFixed(1) : null, snd: stats.sounding, fps: fr.frames, worst: Math.round(fr.worst), slow: fr.slow,
       heapMB: g(function(){ return performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null; })
     };
-    samples.push(s); if (samples.length > 100) samples.shift();
+    fr.worst = 0; fr.slow = 0; fr.frames = 0;
+    samples.push(s); if (samples.length > 300) samples.shift();
     return s;
   }
   function appState(){
@@ -2115,13 +2150,16 @@ body.performance-mode header { padding-bottom: 10px; }
     var a = r.app || {};
     L.push('STATE: playing=' + a.playing + ' bpm=' + a.bpm + ' beat=' + a.beat + ' audio=' + a.audio + ' t=' + a.audioTime + ' page=' + a.visible);
     L.push('tracks: ' + a.inst);
+    L.push('modes: ' + a.body);
     var s = r.stats || {};
     L.push('TOTALS: audioContexts=' + s.audioCtx + ' audioNodesCreated=' + s.nodes + ' bufferMB=' + (s.bufMB || 0).toFixed(1) + ' decodes=' + s.decodes + ' liveBlobURLs=' + s.blobsLive + ' canvases=' + s.canvases);
     L.push('node types: ' + Object.keys(s.nodeTypes || {}).map(function(k){ return k.replace('create', '') + '=' + s.nodeTypes[k]; }).join(' '));
-    L.push('TREND (every 3s, up to last 5 min) up / dom / anims / LIVE nodes / LIVE bufferMB / sounding / created nodes / created bufMB / blobs / heap:');
-    var sm = r.samples || [], step = Math.max(1, Math.floor(sm.length / 20));
-    for (var i = 0; i < sm.length; i += step) { var x = sm[i]; L.push('  ' + [x.up + 's', x.dom, x.anims, x.liveN, x.liveMB, x.snd, x.nodes, x.bufMB, x.blobs, x.heapMB].join(' / ')); }
-    if (sm.length) { var z = sm[sm.length - 1]; L.push('  ' + [z.up + 's', z.dom, z.anims, z.liveN, z.liveMB, z.snd, z.nodes, z.bufMB, z.blobs, z.heapMB].join(' / ') + '  <- last'); }
+    L.push('TREND (1s samples, up to last 5 min; last 20s in full) up / dom / anims / LIVE nodes / LIVE bufMB / sounding / created nodes / created bufMB / blobs / frames / worst frame ms / slow frames / heap:');
+    var sm = r.samples || [], head = Math.max(0, sm.length - 20), step = Math.max(1, Math.floor(head / 20));
+    var row = function(x){ return '  ' + [x.up + 's', x.dom, x.anims, x.liveN, x.liveMB, x.snd, x.nodes, x.bufMB, x.blobs, x.fps, x.worst, x.slow, x.heapMB].join(' / '); };
+    for (var i = 0; i < head; i += step) L.push(row(sm[i]));
+    for (var i2 = head; i2 < sm.length - 1; i2++) L.push(row(sm[i2]));
+    if (sm.length) L.push(row(sm[sm.length - 1]) + '  <- last');
     L.push('ERRORS: ' + ((r.errors || []).length ? '' : 'none'));
     (r.errors || []).forEach(function(e){ L.push('  ' + e); });
     L.push('LAST ACTIONS:');
@@ -2177,7 +2215,7 @@ body.performance-mode header { padding-bottom: 10px; }
 
   crumb('load' + (crashed ? ' (after crash)' : ''));
   write();
-  setInterval(function(){ snapshot(); write(); }, 3000);
+  setInterval(function(){ snapshot(); write(); }, 1000); // every 1s (was 3s) — smaller blind spot before a crash
   if (crashed) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', banner); else banner(); }
 })();
 </script>
@@ -2214,7 +2252,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:57:27 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 20:37:48 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2537,6 +2575,15 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="trackBtnLightsPulseToggle" checked onchange="document.body.classList.toggle('track-btn-lights-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">LIGHTS PULSE
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="volTestToggle" onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST
+      </label>
+      <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">
+        <span>TEST BG</span>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="1" checked onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="2" onchange="setVolTestBg(2)" style="width:14px;height:14px;cursor:pointer;">2</label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="3" onchange="setVolTestBg(3)" style="width:14px;height:14px;cursor:pointer;">3</label>
+      </div>
       <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
@@ -6116,6 +6163,39 @@ let _sambaSnareVariant = 'ssnare'; // 'ssnare' | 'sidestick' — SAMBA's own sna
 let _beatOffset = 0; // BEAT ctrl-row '<' — steps the whole pattern is shifted by, same idea as trackOffset
 
 const _revBufCache = new WeakMap();
+// SHARED NOISE BUFFERS — per crash-report analysis, nearly every
+// percussion hit used to build a brand-new noise AudioBuffer (2,400+ in 7
+// minutes), which iOS only frees on its lazy garbage-collection passes.
+// Now each (length, decay-curve) pair gets a small pool of 3 pre-rendered
+// variants, reused round-robin at random (so repeated hits still vary,
+// like a sampler's round-robin). Pool capped by total size; oldest dropped.
+const _noiseCache = new Map(); let _noiseCacheBytes = 0;
+const _NOISE_CACHE_MAX_BYTES = 8 * 1048576, _NOISE_VARIANTS = 3;
+function _noiseBuf(len, pow) {
+  len = Math.max(1, Math.round(len));
+  // Quantize length (rounded UP, <=3% longer) so lengths that vary with
+  // pitch/tempo/note length still share buffers instead of each making one.
+  const _q = Math.max(1, Math.pow(2, Math.floor(Math.log2(len))) / 32);
+  len = Math.ceil(len / _q) * _q;
+  const key = len + '|' + pow;
+  let e = _noiseCache.get(key);
+  if (e && e.ctx !== ctx) { _noiseCacheBytes -= e.bytes; _noiseCache.delete(key); e = null; }
+  if (!e) { e = { ctx, bufs: [], bytes: 0 }; _noiseCache.set(key, e); }
+  else { _noiseCache.delete(key); _noiseCache.set(key, e); } // refresh LRU order
+  if (e.bufs.length < _NOISE_VARIANTS) {
+    const b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+    if (pow === 0) for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    else if (pow === 1) for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    else for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, pow);
+    e.bufs.push(b); e.bytes += len * 4; _noiseCacheBytes += len * 4;
+    while (_noiseCacheBytes > _NOISE_CACHE_MAX_BYTES && _noiseCache.size > 1) {
+      const k0 = _noiseCache.keys().next().value; if (k0 === key) break;
+      _noiseCacheBytes -= _noiseCache.get(k0).bytes; _noiseCache.delete(k0);
+    }
+    return b;
+  }
+  return e.bufs[(Math.random() * e.bufs.length) | 0];
+}
 function reverseBuffer(buf, revLen) {
   if (!buf || !ctx) return null;
   // Cache by buffer object — same buffer always reversed the same way
@@ -6167,9 +6247,7 @@ function playSynthSnare(isAccent, time, tr) {
 
   // Rim crack — short sharp noise burst, high-passed for brightness
   const crackLen = 0.006;
-  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.5);
+  const cBuf = _noiseBuf(Math.ceil(ctx.sampleRate * crackLen), 1.5); // shared/cached noise (see _noiseBuf)
   const crack = ctx.createBufferSource(); crack.buffer = cBuf;
   const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
   const crackG = ctx.createGain(); crackG.gain.value = vol * 1.8;
@@ -6179,9 +6257,7 @@ function playSynthSnare(isAccent, time, tr) {
 
   // Snare rattle — subtle, gives it that live drum feel
   const rattleLen = isAccent ? 0.06 : 0.04;
-  const rBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * rattleLen), ctx.sampleRate);
-  const rd = rBuf.getChannelData(0);
-  for (let i = 0; i < rd.length; i++) rd[i] = (Math.random()*2-1) * Math.pow(1 - i/rd.length, 1.8);
+  const rBuf = _noiseBuf(Math.ceil(ctx.sampleRate * rattleLen), 1.8); // shared/cached noise (see _noiseBuf)
   const rattle = ctx.createBufferSource(); rattle.buffer = rBuf;
   const rattleHP = ctx.createBiquadFilter(); rattleHP.type = 'highpass'; rattleHP.frequency.value = 1200;
   const rattleBP = ctx.createBiquadFilter(); rattleBP.type = 'bandpass'; rattleBP.frequency.value = 5000; rattleBP.Q.value = 0.8;
@@ -6199,8 +6275,7 @@ function playSynthHihat(isAccent, time, tr, volMult) {
   if (tr === -1) _flashDrumsText(); // BEAT-engine hihat only — a real track using this same synth sound (tr !== -1) isn't a DRUMS hit
   const dest = (tr === -1) ? (window._beatGain || masterGain) : getSynthConnectNode(tr);
   const dur = isAccent ? 0.12 : 0.06, vol = (isAccent ? 0.1968 : 0.1238) * (volMult !== undefined ? volMult : 1); // -3dB more (was -2dB). volMult (new, optional, default 1) — lets a caller reduce this specific hit when it's about to land on top of another voice at the same instant, e.g. SAMBA's hihat/snare overlap
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2-1;
+  const buf = _noiseBuf(Math.ceil(ctx.sampleRate * dur), 0); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(), g = ctx.createGain();
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
   src.buffer = buf; src.connect(hp); hp.connect(g); g.connect(dest);
@@ -6242,9 +6317,7 @@ function playUnderpass(freq, durSec, isAccent, time, tr, _isSecondHit) {
 
   // 1. Knock transient.
   const knockDur = 0.012;
-  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
-  const kd = kbuf.getChannelData(0);
-  for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
+  const kbuf = _noiseBuf(Math.ceil(ctx.sampleRate * knockDur), 1); // shared/cached noise (see _noiseBuf)
   const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
   const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
   const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.4 : 0.28) * blastAtten;
@@ -6299,9 +6372,7 @@ function _sparpHit(freq, isAccent, time, tr, level) {
   const decay = isAccent ? 0.2 : 0.15; // UNDERPASS is 0.55/0.4 — much shorter, per direct request
   const peakVol = (isAccent ? 0.36 : 0.26) * blastAtten * level;
   const knockDur = 0.01;
-  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
-  const kd = kbuf.getChannelData(0);
-  for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
+  const kbuf = _noiseBuf(Math.ceil(ctx.sampleRate * knockDur), 1); // shared/cached noise (see _noiseBuf)
   const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
   const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
   const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten * level;
@@ -7389,9 +7460,7 @@ function playSpaceKoto(freq, durSec, isAccent, time, tr) {
 
   // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
   const shimLen = 0.5;
-  const shimBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * shimLen), ctx.sampleRate);
-  const sd = shimBuf.getChannelData(0);
-  for (let i = 0; i < sd.length; i++) sd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / sd.length, 1.5);
+  const shimBuf = _noiseBuf(Math.ceil(ctx.sampleRate * shimLen), 1.5); // shared/cached noise (see _noiseBuf)
   const shim = ctx.createBufferSource(); shim.buffer = shimBuf;
   const shimBP = ctx.createBiquadFilter(); shimBP.type = 'bandpass';
   shimBP.frequency.value = Math.min(freq * 8, 9000); shimBP.Q.value = 6;
@@ -7474,9 +7543,7 @@ function initNoiseGate(tr) {
   if (!ctx) return;
   if (_noiseGateNodes[tr]) { try { _noiseGateNodes[tr].src.stop(); } catch(e) {} }
   const bufLen = ctx.sampleRate * 2;
-  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+  const buf = _noiseBuf(bufLen, 0); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
   const filt = ctx.createBiquadFilter(); filt.type = 'bandpass'; filt.Q.value = 2.5; filt.frequency.value = 800;
   // Waveshaper for crunch
@@ -7648,9 +7715,7 @@ function playHopkins(freq, durSec, isAccent, time, tr) {
 
     // Hammer click — brief, dry, gives the percussive piano attack
     const clickLen = Math.ceil(ctx.sampleRate * 0.006);
-    const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
-    const cd = cBuf.getChannelData(0);
-    for (let i = 0; i < clickLen; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / clickLen, 2);
+    const cBuf = _noiseBuf(clickLen, 2); // shared/cached noise (see _noiseBuf)
     const click = ctx.createBufferSource(); click.buffer = cBuf;
     const cHP = ctx.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = noteFreq * 3;
     const cEnv = ctx.createGain(); cEnv.gain.value = vel * ct.ampMul * 0.4;
@@ -7804,9 +7869,7 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   // Pluck transient: a brief filtered noise burst right at the attack — the
   // finger plucking a thick string, something none of the synth basses have
   const clickLen = 0.02;
-  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = clickBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.6);
+  const clickBuf = _noiseBuf(Math.ceil(ctx.sampleRate * clickLen), 1.6); // shared/cached noise (see _noiseBuf)
   const pluck = ctx.createBufferSource(); pluck.buffer = clickBuf;
   const pluckLP = ctx.createBiquadFilter(); pluckLP.type = 'lowpass'; pluckLP.frequency.value = 1400;
   const pluckEnv = ctx.createGain(); pluckEnv.gain.value = vel * 0.35;
@@ -7930,9 +7993,7 @@ function playBashPiano(freq, durSec, isAccent, time, tr, _isDouble) {
   // Hammer transient — brief filtered noise click at the attack, the
   // percussive "strike" that reads as piano rather than guitar
   const clickLen = 0.012;
-  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = clickBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1 - i/cd.length, 1.3);
+  const clickBuf = _noiseBuf(Math.ceil(ctx.sampleRate * clickLen), 1.3); // shared/cached noise (see _noiseBuf)
   const click = ctx.createBufferSource(); click.buffer = clickBuf;
   const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = 1800;
   const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * (isAccent ? 0.6 : 0.35);
@@ -8020,9 +8081,7 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   // (freq*4), part of what sits BUCK higher — just once, on the trill's
   // first note.
   const knockDur = 0.008;
-  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
-  const kd = kbuf.getChannelData(0);
-  for (let j = 0; j < kd.length; j++) kd[j] = (Math.random() * 2 - 1) * (1 - j / kd.length);
+  const kbuf = _noiseBuf(Math.ceil(ctx.sampleRate * knockDur), 1); // shared/cached noise (see _noiseBuf)
   const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
   const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = trillFreqs[0] * 6; knockFilter.Q.value = 1.4;
   const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.32 : 0.22) * blastAtten;
@@ -8167,9 +8226,7 @@ function playChug(freq, durSec, isAccent, time, tr) {
 
   // Pick attack transient
   const clickLen = 0.012;
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = buf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cd.length, 1.4);
+  const buf = _noiseBuf(Math.ceil(ctx.sampleRate * clickLen), 1.4); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = buf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = isAccent ? 2200 : 1800; bp.Q.value = 1.2;
   const nEnv = ctx.createGain(); nEnv.gain.value = vel * 0.6;
@@ -8319,9 +8376,7 @@ function playUrban(isAccent, time, tr) {
   const dur = blurt ? 0.09 : 0.035 + Math.random() * 0.025;
   const vel = (isAccent ? 0.32 : 0.22) * (0.8 + Math.random() * 0.4);
   const len = Math.ceil(ctx.sampleRate * dur);
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const buf = _noiseBuf(len, 0); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(); src.buffer = buf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
   const f0 = 150 * Math.pow(2, Math.random() * 3); // ~150Hz–1.2kHz, random per hit — sits low
@@ -8372,9 +8427,7 @@ function playClarTest(freq, durSec, isAccent, time, tr) {
 
   // Breath layer — gentle bandpassed noise that swells in with the note
   const bLen = Math.ceil(ctx.sampleRate * (durSec + 0.3));
-  const bBuf = ctx.createBuffer(1, bLen, ctx.sampleRate);
-  const bd = bBuf.getChannelData(0);
-  for (let i = 0; i < bLen; i++) bd[i] = Math.random() * 2 - 1;
+  const bBuf = _noiseBuf(bLen, 0); // shared/cached noise (see _noiseBuf)
   const breath = ctx.createBufferSource(); breath.buffer = bBuf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f * 4; bp.Q.value = 1.2;
   const bEnv = ctx.createGain();
@@ -8471,9 +8524,7 @@ function playRhodes2(freq, durSec, isAccent, time, tr, extLevelMul) {
 
   // Softer tine noise — felt not hammer
   const clickLen = 0.018;
-  const clickBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const cd = clickBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/cd.length, 1.5);
+  const clickBuf = _noiseBuf(Math.ceil(ctx.sampleRate * clickLen), 1.5); // shared/cached noise (see _noiseBuf)
   const click = ctx.createBufferSource(); click.buffer = clickBuf;
   const clickLP = ctx.createBiquadFilter(); clickLP.type = 'lowpass'; clickLP.frequency.value = 2000;
   const clickEnv = ctx.createGain(); clickEnv.gain.value = vel * 0.2;
@@ -8501,9 +8552,7 @@ function playMetronome(t, isAccent) {
 
   // Noise body — the "wood"
   const bufLen = Math.ceil(ctx.sampleRate * 0.03);
-  const nBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < bufLen; i++) nd[i] = (Math.random()*2-1) * Math.pow(1-i/bufLen, 2);
+  const nBuf = _noiseBuf(bufLen, 2); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
   bp.frequency.value = freq * 1.5; bp.Q.value = 3;
@@ -8523,9 +8572,7 @@ function playSynthCrash(time, tr) {
 
   // Strike transient — the "tick" of stick hitting metal, gives it an attack
   const clickLen = Math.ceil(ctx.sampleRate * 0.006);
-  const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / clickLen, 1.5);
+  const cBuf = _noiseBuf(clickLen, 1.5); // shared/cached noise (see _noiseBuf)
   const click = ctx.createBufferSource(); click.buffer = cBuf;
   const cHP = ctx.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = 1200;
   const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.7;
@@ -8556,9 +8603,7 @@ function playSynthCrash(time, tr) {
   // Broadband noise wash — starts fuller-spectrum (not just top-end hiss) and
   // brightens slightly as it decays, the way a real crash opens up and thins out.
   const noiseLen = Math.ceil(ctx.sampleRate * decay);
-  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+  const nBuf = _noiseBuf(noiseLen, 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const hp2 = ctx.createBiquadFilter(); hp2.type = 'highpass';
   hp2.frequency.setValueAtTime(1400, time);
@@ -8593,9 +8638,7 @@ function playRide(isAccent, time, tr) {
 
   // Shimmer — narrow high-passed noise, very light, longer tail
   const noiseLen = Math.ceil(ctx.sampleRate * (isAccent ? 1.0 : 0.6));
-  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
+  const nBuf = _noiseBuf(noiseLen, 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 10000; bp.Q.value = 1.2;
@@ -8609,9 +8652,7 @@ function playRide(isAccent, time, tr) {
 
   // Stick tap — very brief transient
   const clickLen = Math.ceil(ctx.sampleRate * 0.004);
-  const cBuf = ctx.createBuffer(1, clickLen, ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < clickLen; i++) cd[i] = (Math.random()*2-1) * Math.pow(1-i/clickLen, 2);
+  const cBuf = _noiseBuf(clickLen, 2); // shared/cached noise (see _noiseBuf)
   const click = ctx.createBufferSource(); click.buffer = cBuf;
   const cHP = ctx.createBiquadFilter(); cHP.type = 'highpass'; cHP.frequency.value = 6000;
   const cEnv = ctx.createGain(); cEnv.gain.value = vel * 0.4;
@@ -8670,9 +8711,7 @@ function playForestFlute(freq, durSec, isAccent, time, tr) {
 
   // Breath noise for air character
   const noiseLen = Math.ceil(ctx.sampleRate * Math.min(durSec + 0.1, 0.5));
-  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
+  const nBuf = _noiseBuf(noiseLen, 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const nhp = ctx.createBiquadFilter(); nhp.type = 'highpass'; nhp.frequency.value = freq * 2;
   const nEnv = ctx.createGain();
@@ -8893,9 +8932,7 @@ function playSynthFlute(freq, durSec, isAccent, time, tr) {
 
   // Breath noise — softened, less hissy
   const noiseLen = Math.ceil(ctx.sampleRate * Math.min(durSec + 0.2, 1.5));
-  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1);
+  const nBuf = _noiseBuf(noiseLen, 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const nbp = ctx.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = freq * 2; nbp.Q.value = 2.2;
   const nGain = ctx.createGain();
@@ -8956,9 +8993,7 @@ function playClung(freq, durSec, isAccent, time, tr) {
 
   // 1. Knock transient — identical to UNDERPASS's own mallet/strike attack.
   const knockDur = 0.012;
-  const kbuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * knockDur), ctx.sampleRate);
-  const kd = kbuf.getChannelData(0);
-  for (let i = 0; i < kd.length; i++) kd[i] = (Math.random() * 2 - 1) * (1 - i / kd.length);
+  const kbuf = _noiseBuf(Math.ceil(ctx.sampleRate * knockDur), 1); // shared/cached noise (see _noiseBuf)
   const knockSrc = ctx.createBufferSource(); knockSrc.buffer = kbuf;
   const knockFilter = ctx.createBiquadFilter(); knockFilter.type = 'bandpass'; knockFilter.frequency.value = freq * 4; knockFilter.Q.value = 1.2;
   const knockGain = ctx.createGain(); knockGain.gain.value = (isAccent ? 0.4 : 0.28) * blastAtten * levelAtten;
@@ -9277,9 +9312,7 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
 
   // Impact 3: metallic noise transient
   const noiseLen = Math.ceil(ctx.sampleRate * 0.15);
-  const nBuf = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
-  const nd = nBuf.getChannelData(0);
-  for (let i = 0; i < noiseLen; i++) nd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / noiseLen, 1.8);
+  const nBuf = _noiseBuf(noiseLen, 1.8); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = nBuf;
   const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = 1800; noiseBP.Q.value = 0.7;
   const noiseEnv = ctx.createGain(); noiseEnv.gain.value = vel * 0.5;
@@ -9504,9 +9537,7 @@ function playDamask(freq, durSec, isAccent, time, tr) {
   // the whole note (not just the attack), which is what actually reads as
   // "reed/flute" rather than a plain synth tone.
   const noiseLen = decay + 0.1;
-  const noiseBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * noiseLen), ctx.sampleRate);
-  const nd = noiseBuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const noiseBuf = _noiseBuf(Math.ceil(ctx.sampleRate * noiseLen), 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
   const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = freq * 2.2; noiseBP.Q.value = 0.7;
   const noiseEnv = ctx.createGain();
@@ -9607,9 +9638,7 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
   // transient at the start of a flute note, distinct from DAMASK's smooth
   // swell-only attack.
   const chiffLen = 0.04;
-  const chiffBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * chiffLen), ctx.sampleRate);
-  const cd = chiffBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = Math.random() * 2 - 1;
+  const chiffBuf = _noiseBuf(Math.ceil(ctx.sampleRate * chiffLen), 0); // shared/cached noise (see _noiseBuf)
   const chiff = ctx.createBufferSource(); chiff.buffer = chiffBuf;
   const chiffBP = ctx.createBiquadFilter(); chiffBP.type = 'bandpass'; chiffBP.frequency.value = freq * 3; chiffBP.Q.value = 0.8;
   const chiffEnv = ctx.createGain();
@@ -9624,9 +9653,7 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
   // airiness — still well short of the original "too breathy" level this
   // was halved down from, just not quite as dry as that halving left it.
   const noiseLen = decay + 0.1;
-  const noiseBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * noiseLen), ctx.sampleRate);
-  const nd = noiseBuf.getChannelData(0);
-  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const noiseBuf = _noiseBuf(Math.ceil(ctx.sampleRate * noiseLen), 0); // shared/cached noise (see _noiseBuf)
   const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
   const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = freq * 2.1; noiseBP.Q.value = 0.45;
   const noiseEnv = ctx.createGain();
@@ -9915,9 +9942,7 @@ function playKick(t, velMult) {
 function _addSnareClick(t, dest, vol) {
   if (!ctx) return;
   const crackLen = 0.006;
-  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cd.length, 1.5);
+  const cBuf = _noiseBuf(Math.ceil(ctx.sampleRate * crackLen), 1.5); // shared/cached noise (see _noiseBuf)
   const crack = ctx.createBufferSource(); crack.buffer = cBuf;
   const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
   const crackG = ctx.createGain(); crackG.gain.value = vol;
@@ -9936,9 +9961,7 @@ function fireBeatSidestick(t) {
   // what a real sidestick's stick-on-rim contact sounds like underneath
   // everything else — without it the hit was all body and no attack.
   const clickLen = 0.0025;
-  const clkBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * clickLen), ctx.sampleRate);
-  const clkd = clkBuf.getChannelData(0);
-  for (let i = 0; i < clkd.length; i++) clkd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / clkd.length, 0.8); // steeper, faster decay than the crack layer — genuinely dry, not a short burst of noise
+  const clkBuf = _noiseBuf(Math.ceil(ctx.sampleRate * clickLen), 0.8); // shared/cached noise (see _noiseBuf)
   const click = ctx.createBufferSource(); click.buffer = clkBuf;
   const clickHP = ctx.createBiquadFilter(); clickHP.type = 'highpass'; clickHP.frequency.value = 6500; // above the crack layer's 3500Hz — sits on top, doesn't just double it
   const clickG = ctx.createGain(); clickG.gain.value = vol * 1.9;
@@ -9958,9 +9981,7 @@ function fireBeatSidestick(t) {
   woodOsc.onended = () => { try { woodBP.disconnect(); woodG.disconnect(); } catch(e) {} };
 
   const crackLen = 0.006;
-  const cBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * crackLen), ctx.sampleRate);
-  const cd = cBuf.getChannelData(0);
-  for (let i = 0; i < cd.length; i++) cd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / cd.length, 1.5);
+  const cBuf = _noiseBuf(Math.ceil(ctx.sampleRate * crackLen), 1.5); // shared/cached noise (see _noiseBuf)
   const crack = ctx.createBufferSource(); crack.buffer = cBuf;
   const crackHP = ctx.createBiquadFilter(); crackHP.type = 'highpass'; crackHP.frequency.value = 3500;
   const crackG = ctx.createGain(); crackG.gain.value = vol * 1.6;
@@ -9969,9 +9990,7 @@ function fireBeatSidestick(t) {
   crack.onended = () => { try { crackHP.disconnect(); crackG.disconnect(); } catch(e) {} };
 
   const rattleLen = 0.04;
-  const rBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * rattleLen), ctx.sampleRate);
-  const rd = rBuf.getChannelData(0);
-  for (let i = 0; i < rd.length; i++) rd[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / rd.length, 1.8);
+  const rBuf = _noiseBuf(Math.ceil(ctx.sampleRate * rattleLen), 1.8); // shared/cached noise (see _noiseBuf)
   const rattle = ctx.createBufferSource(); rattle.buffer = rBuf;
   const rattleHP = ctx.createBiquadFilter(); rattleHP.type = 'highpass'; rattleHP.frequency.value = 1200;
   const rattleBP = ctx.createBiquadFilter(); rattleBP.type = 'bandpass'; rattleBP.frequency.value = 5000; rattleBP.Q.value = 0.8;
@@ -10005,12 +10024,7 @@ function playSnare(t) {
   if (!_renderTapBeat) return;
   _flashDrumsText();
   const dur = 0.22;
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) {
-    const env = Math.pow(1 - i / d.length, 1.5);
-    d[i] = (Math.random() * 2 - 1) * env;
-  }
+  const buf = _noiseBuf(Math.ceil(ctx.sampleRate * dur), 1.5); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(), g = ctx.createGain();
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 1.0;
@@ -10610,6 +10624,17 @@ function _volBangerLoop(now) {
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
     }
   }
+}
+// TEST vol-slider mode — see the body.vol-test CSS. Needs VOL BANGER's
+// live levels to drive the full-width meter, so it switches that on.
+function setVolTest(on) {
+  document.body.classList.toggle('vol-test', !!on);
+  const cb = document.getElementById('volTestToggle'); if (cb) cb.checked = !!on;
+  if (on && !document.body.classList.contains('vol-banger')) setVolBanger(true);
+}
+function setVolTestBg(n) {
+  document.body.classList.remove('vol-test-bg-2', 'vol-test-bg-3');
+  if (n === 2 || n === 3) document.body.classList.add('vol-test-bg-' + n);
 }
 function setVolBgTransparent(on) { document.body.classList.toggle('vol-bg-transparent', !!on); }
 // FADER WIDTH — 1-20px, only visible/relevant while SIMPLE FADER is on,
@@ -15664,9 +15689,7 @@ function playRandReleaseSweep(time) {
   if (!ctx || !masterGain) return;
   const dur = stepDuration() * 16; // a full measure (doubled from half)
   const bufLen = Math.ceil(ctx.sampleRate * dur);
-  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < bufLen; i++) d[i] = Math.random() * 2 - 1;
+  const buf = _noiseBuf(bufLen, 0); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(); src.buffer = buf;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2.5;
   bp.frequency.setValueAtTime(5200, time);
@@ -19041,6 +19064,7 @@ function _updatePlayFlashHot(hex) {
     h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
     h *= 60;
   }
+  const h0 = h, s0 = sat; // untouched originals, for --play-flash-dark below
   // Saturation/brightness alone barely moved an already-saturated orange,
   // so the hue shifts too: +24deg (orange -> gold/amber), fully saturated,
   // a bit brighter — clearly distinct from PLAY FLASH but same family.
@@ -19048,6 +19072,10 @@ function _updatePlayFlashHot(hex) {
   sat = Math.min(1, sat * 1.25 + 0.15);
   l = Math.min(0.64, Math.max(0.55, l + 0.1));
   document.documentElement.style.setProperty('--play-flash-hot', _hslToHex(h, sat, l));
+  // Darkest version (TEST BG option 3): the ORIGINAL hue/saturation, taken
+  // down to 13% lightness (saturation eased back so it reads as a very dark
+  // tinted grey rather than a deep saturated colour or black).
+  document.documentElement.style.setProperty('--play-flash-dark', _hslToHex(h0, s0 * 0.55, 0.13));
 }
 _updatePlayFlashHot('#f17d21');
 // SOLO + BEAT — whether BEAT stays in the mix regardless of any active
@@ -20038,9 +20066,7 @@ async function hardResetAudioEngine() {
     window._sweepStartMs = Date.now();
     const bufDur = 12; // generous buffer length so long holds never run out
     const t = ctx.currentTime;
-    const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * bufDur), ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < buf.length; i++) d[i] = Math.random() * 2 - 1;
+    const buf = _noiseBuf(Math.ceil(ctx.sampleRate * bufDur), 0); // shared/cached noise (see _noiseBuf)
     const noise = ctx.createBufferSource(); noise.buffer = buf;
     const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
     // Starts at the floor — pitch is driven entirely by vertical drag
