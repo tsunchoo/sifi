@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:56:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:59:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -444,6 +444,10 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
   20%  { color: var(--play-hl, currentColor); transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(4px * var(--rglow, 1)) currentColor, 0 0 calc(12px * var(--rglow, 1)) currentColor, 0 0 calc(28px * var(--rglow, 1)) currentColor, 0 0 calc(44px * var(--rglow, 1)) color-mix(in srgb, currentColor 70%, transparent); }
   100% { transform: translateY(-2px) scale(1); text-shadow: 0 0 calc(3px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor 14%, transparent); }
 }
+/* ...and the button's background eases from its highlighted (pressed)
+   shade back to normal over the same duration as the glyph, per direct
+   request, instead of snapping back when the held state clears. */
+#randBtn.new-pattern:not(.btn-flash-blue) { transition: background-color var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1), color var(--new-pattern-dur, 1s) ease-out, transform 0.12s ease-out !important; }
 #randBtn.new-pattern .glyph { animation: new-pattern-pulse var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
 /* BUILD-UP while a RAND waits for the bar line, per direct request: the
    + glyph ramps (over exactly the time left until the new pattern lands)
@@ -871,7 +875,7 @@ html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility
    - the fader handle sits in front of everything. */
 html body.vol-test .track-vol-bar {
   overflow: visible; isolation: isolate;
-  background: linear-gradient(to right, var(--vol-test-bg, var(--top-row-pressed-bg)) calc(var(--fill-pct, 0) * 1%), transparent calc(var(--fill-pct, 0) * 1%)) !important;
+  background: var(--vol-test-bg, var(--top-row-pressed-bg)) !important; /* full width of the vol bar, not just up to the fader, per direct request */
 }
 html body.vol-test .track-vol-bar .track-vol-scale { display: none !important; }
 html body.hide-vol-track .track-vol-bar .track-vol-scale { display: none !important; }
@@ -2354,7 +2358,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:56:21 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:59:36 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
