@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 16:38:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 16:52:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -814,9 +814,15 @@ html body.vol-banger .track-vol-bar .track-vol-fill-bg { transform-origin: left 
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
-  top: 50%; bottom: auto;
+  /* Centred with plain positioning, no translateY(-50%) — per the "tiny
+     sliver of black hanging around under the vol slider" report: a
+     fractional translate on the fader handle left a stale 1px strip of the
+     handle behind at the bottom of the bar whenever the handle moved (a
+     volume change from +, the DOUBLE BASS offset, a drag). Same fix the
+     fill already got. */
+  top: calc((100% - var(--vol-tip-h, 100%)) / 2); bottom: auto;
   height: var(--vol-tip-h, 100%);
-  transform: translateY(-50%);
+  transform: none;
 }
 .track-name-btn.muted { background: var(--dim); color: var(--bg); opacity: 0.55; }
 /* The button flashing along with a track's own notes — driven by
@@ -967,6 +973,19 @@ body.track-btn-lights .fx-btn.blast-on svg,
 body.track-btn-lights .shift-btn.on svg,
 body.track-btn-lights .rand-btn.rand-auto svg {
   filter: drop-shadow(0 0 3px var(--play-flash-color, #f17d21)) drop-shadow(0 0 6px color-mix(in srgb, var(--play-flash-color, #f17d21) 60%, transparent));
+}
+/* BLAST and the per-track + AUTO state get a HOTTER version of the play
+   flash colour in lights mode, per direct request — same hue, pushed to
+   (near) full saturation and a little brighter (--play-flash-hot, derived
+   in JS from the PLAY FLASH picker by _updatePlayFlashHot). */
+body.track-btn-lights .fx-btn.blast-on,
+body.track-btn-lights .rand-btn.rand-auto {
+  color: var(--play-flash-hot, #ff8a2e) !important;
+  text-shadow: 0 0 5px var(--play-flash-hot, #ff8a2e), 0 0 12px color-mix(in srgb, var(--play-flash-hot, #ff8a2e) 70%, transparent) !important;
+}
+body.track-btn-lights .fx-btn.blast-on svg,
+body.track-btn-lights .rand-btn.rand-auto svg {
+  filter: drop-shadow(0 0 3px var(--play-flash-hot, #ff8a2e)) drop-shadow(0 0 7px color-mix(in srgb, var(--play-flash-hot, #ff8a2e) 70%, transparent));
 }
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
@@ -1949,7 +1968,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -1982,7 +2001,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:38:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:52:01 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2175,7 +2194,6 @@ body.performance-mode header { padding-bottom: 10px; }
     <!-- At the top, per direct request, so the same drag down from + that
          opens this menu can carry on down and release on it (see the +
          button's drag handling). A normal tap works too. -->
-    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="_triggerRandomizeInstruments(this);">CURRENT INSTRUMENTS</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REVERB</div>
       <label class="wild-toggle">
@@ -2226,6 +2244,8 @@ body.performance-mode header { padding-bottom: 10px; }
       <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="flex:1;">
       <div id="intensityReadout" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:40px;text-align:right;">LOW</div>
     </div>
+    <!-- CURRENT INSTRUMENTS moved here, under NOTE INTENSITY, per direct request -->
+    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="_triggerRandomizeInstruments(this);">CURRENT INSTRUMENTS</button>
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO</div>
@@ -2299,7 +2319,7 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="trackBtnLightsToggle" onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
+        <input type="checkbox" id="trackBtnLightsToggle" checked onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
@@ -18742,7 +18762,25 @@ function setSoloFlashMode(on) {
 // .step-cell.on.playing::after / .soft.playing::after.
 function setPlayFlashColor(hex) {
   document.documentElement.style.setProperty('--play-flash-color', hex);
+  _updatePlayFlashHot(hex);
 }
+// --play-flash-hot: the PLAY FLASH colour, more saturated and slightly
+// brighter — used for BLAST and + AUTO in TRACK BUTTON LIGHTS mode.
+function _updatePlayFlashHot(hex) {
+  const h6 = String(hex || '#f17d21').replace('#', '');
+  let r = parseInt(h6.substr(0, 2), 16) / 255, g = parseInt(h6.substr(2, 2), 16) / 255, b = parseInt(h6.substr(4, 2), 16) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0, sat = 0, l = (mx + mn) / 2;
+  if (d) {
+    sat = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+    h = mx === r ? ((g - b) / d + (g < b ? 6 : 0)) : mx === g ? ((b - r) / d + 2) : ((r - g) / d + 4);
+    h *= 60;
+  }
+  sat = Math.min(1, sat * 1.25 + 0.1);     // more saturated
+  l = Math.min(0.68, l + 0.07);             // a touch brighter, capped so it never washes out toward white
+  document.documentElement.style.setProperty('--play-flash-hot', _hslToHex(h, sat, l));
+}
+_updatePlayFlashHot('#f17d21');
 // SOLO + BEAT — whether BEAT stays in the mix regardless of any active
 // SOLO (on, default) or gets silenced by solo like every un-soloed track
 // unless explicitly clicked to include it (off — the original behavior).
