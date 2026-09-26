@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:19:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:28:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1025,8 +1025,26 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.rand-holding { animation: rand-hold-pulse 0.35s ease-in-out infinite; }
 @keyframes rand-pending-fast-pulse { 0% { background: var(--neutral-top, #555); transform: scale(1); } 50% { background: var(--top-row-pressed-bg); transform: scale(1.06); } 100% { background: var(--neutral-top, #555); transform: scale(1); } }
 #randBtn.rand-pending-fast { animation: rand-pending-fast-pulse var(--rand-pending-dur, 0.3s) ease-in-out; }
-#randBtn.btn-flash-blue { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
+#randBtn.btn-flash-blue { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; transition: background-color 0.35s ease-in !important; }
+/* The held state used to snap the + glyph straight to white (inline
+   color #fff) the instant it was pressed. The glyph now keeps its resting
+   colour and only the build-up / new-pattern animations move it, so it
+   transitions from where it was, per direct request. */
+#randBtn.btn-flash-blue .glyph { color: var(--top-row-text-color, #fff); }
 #clearBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
+/* SWEEP, per direct request: while held it stays full size (no press
+   shrink), and its highlight + glow follow the sweep itself — --sweep-p
+   (0..1, the same drag progress that drives pitch/level, set in
+   _sweepUpdateFreqFromY) blends from the resting look up to the full
+   engaged look (pressed background, boosted play colour, full glow),
+   and back down again as the finger comes back. */
+.transport #clearBtn.active, .transport #clearBtn.active:active {
+  transform: none !important; opacity: 1 !important;
+  background: color-mix(in srgb, var(--top-row-pressed-bg) calc(var(--sweep-p, 0) * 100%), var(--neutral-top, #555)) !important;
+  color: color-mix(in srgb, var(--play-hl, #fff) calc(var(--sweep-p, 0) * 100%), var(--top-row-text-color, #fff)) !important;
+  text-shadow: 0 0 calc(3px * var(--rglow, 1) * (0.2 + 0.8 * var(--sweep-p, 0))) currentColor, 0 0 calc(9px * var(--rglow, 1) * (0.2 + 0.8 * var(--sweep-p, 0))) currentColor, 0 0 calc(18px * var(--rglow, 1) * (0.2 + 0.8 * var(--sweep-p, 0))) color-mix(in srgb, currentColor 70%, transparent) !important;
+  filter: saturate(var(--top-row-saturation, 1)) contrast(calc(1.05 + 0.2 * var(--sweep-p, 0))) !important;
+}
 #scratchBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
@@ -2318,7 +2336,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:19:54 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:28:49 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -20249,6 +20267,7 @@ async function hardResetAudioEngine() {
     noise.connect(bp); bp.connect(baseGain); baseGain.connect(masterGain);
     noise.start(t);
     sweepNodes = { noise, bp, gain: baseGain };
+    btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
   }
 
@@ -20353,6 +20372,7 @@ async function hardResetAudioEngine() {
     // now does most of the work, so the sweep leaps in right away instead of
     // creeping up — per direct request, it felt unresponsive.
     const progress = Math.pow(Math.min(1, dragDist / (window._sweepDragRange || 1)), 0.55);
+    btn.style.setProperty('--sweep-p', progress.toFixed(3)); // drives the button's highlight/glow (see #clearBtn.active CSS)
     const freq = SWEEP_FLOOR_FREQ * Math.pow(SWEEP_CEIL_FREQ / SWEEP_FLOOR_FREQ, progress);
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
     const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
