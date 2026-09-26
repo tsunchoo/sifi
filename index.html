@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 16:52:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 16:53:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -987,6 +987,19 @@ body.track-btn-lights .fx-btn.blast-on svg,
 body.track-btn-lights .rand-btn.rand-auto svg {
   filter: drop-shadow(0 0 3px var(--play-flash-hot, #ff8a2e)) drop-shadow(0 0 7px color-mix(in srgb, var(--play-flash-hot, #ff8a2e) 70%, transparent));
 }
+/* LIGHTS PULSE (DEV toggle next to TRACK BUTTON LIGHTS) — lets the
+   engaged FX / BLAST / reverb / sweep / + auto buttons keep a scale-only
+   pulse while lit. Scale only, no colour or brightness, so the lit glyph
+   colour and glow stay put. html body prefix + !important to beat the
+   lights rule's animation:none. */
+@keyframes lights-scale-pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+html body.track-btn-lights.track-btn-lights-pulse .fx-btn.on,
+html body.track-btn-lights.track-btn-lights-pulse .fx-btn.blast-on,
+html body.track-btn-lights.track-btn-lights-pulse .shift-btn.right.on,
+html body.track-btn-lights.track-btn-lights-pulse .track-ctrl-icon-btn.sweep-on:not(.lock-btn),
+html body.track-btn-lights.track-btn-lights-pulse .rand-btn.rand-auto {
+  animation: lights-scale-pulse 0.6s ease-in-out infinite !important;
+}
 body.track-btn-lights .track-ctrl-icon-btn.on .glyph,
 body.track-btn-lights .track-ctrl-icon-btn.sweep-on .glyph,
 body.track-btn-lights .rand-btn.rand-auto .glyph,
@@ -1968,7 +1981,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse">
 <svg width="0" height="0" style="position:absolute">
   <filter id="lockGreenFilter" color-interpolation-filters="sRGB">
     <feColorMatrix type="matrix" values="0 0 0 0 0.6784
@@ -2001,7 +2014,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:52:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 16:53:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2320,6 +2333,9 @@ body.performance-mode header { padding-bottom: 10px; }
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="trackBtnLightsToggle" checked onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="trackBtnLightsPulseToggle" checked onchange="document.body.classList.toggle('track-btn-lights-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">LIGHTS PULSE
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="justTrackToggle" onchange="setJustTrack(this.checked)" style="width:14px;height:14px;cursor:pointer;">JUST TRACK
