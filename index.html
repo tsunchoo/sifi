@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 00:25:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 00:42:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -835,7 +835,6 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.rand-holding { animation: rand-hold-pulse 0.35s ease-in-out infinite; }
 @keyframes rand-pending-fast-pulse { 0% { background: var(--neutral-top, #555); transform: scale(1); } 50% { background: var(--top-row-pressed-bg); transform: scale(1.06); } 100% { background: var(--neutral-top, #555); transform: scale(1); } }
 #randBtn.rand-pending-fast { animation: rand-pending-fast-pulse var(--rand-pending-dur, 0.3s) ease-in-out; }
-#randomizeInstrumentsBtn.drag-hover { background: #111 !important; color: #fff !important; } /* drag-from-+ hover, see the + button's RANDOMIZE MENU drag */
 #randBtn.btn-flash-blue { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 #clearBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 #scratchBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
@@ -1843,7 +1842,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 00:25:37 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 00:42:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2054,6 +2053,21 @@ body.performance-mode header { padding-bottom: 10px; }
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
+    <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTOMATE</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NEW PATTERN EVERY...</div>
+        <div id="autoRandPeriodReadout" style="font-size:0.6rem;font-family:monospace;color:#333;">4 BARS</div>
+      </div>
+      <input type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
+    </div>
   </div>
 </div>
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
@@ -2123,20 +2137,7 @@ body.performance-mode header { padding-bottom: 10px; }
          on, per direct request. setTrackRowBg() kept intact in the code
          in case this needs to change again later. The darkness slider
          itself is back below, now that it's wanted again. -->
-    <div style="display:flex;flex-direction:column;gap:15px;">
-      <div style="display:flex;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
-        <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">75%</div>
-      </div>
-      <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="75" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-    <div style="display:flex;flex-direction:column;gap:15px;">
-      <div style="display:flex;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-        <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
-      </div>
-      <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="20" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
+    <!-- TRACK ROW BG DARKNESS / OPACITY moved to the bottom of the DEV section, per direct request -->
 
     <div style="display:flex;flex-direction:column;gap:12px;">
       <button id="randomizeColorsBtn" class="rec-mode-btn" style="margin-top:4px;">RANDOMIZE COLORS</button>
@@ -2350,9 +2351,23 @@ body.performance-mode header { padding-bottom: 10px; }
           <input type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
       </div>
+      <!-- TRACK ROW BG DARKNESS / OPACITY — moved here (bottom of DEV) from the main COLOR MENU, per direct request -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
+          <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">75%</div>
+        </div>
+        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="75" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
+        </div>
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="20" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
     </div>
-
-    <button onclick="hideDevMenu()" class="rec-mode-btn">CLOSE</button>
+    <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
   </div>
 </div>
 
@@ -2447,13 +2462,7 @@ body.performance-mode header { padding-bottom: 10px; }
           <span id="devOffsetStepReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
         </div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO RANDOM PERIOD</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" id="autoRandPeriodSlider" min="0" max="3" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="autoRandPeriodReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">4 BARS</span>
-        </div>
-      </div>
+      <!-- AUTO RANDOM PERIOD moved to the RANDOMIZE menu as NEW PATTERN EVERY..., per direct request -->
       <!-- SWAP TAPE SPOOLS, ALT TAPE SPOOLS, and RAND OFFSET all removed
            from the UI per direct request. setSwapSpools()/
            setAltTapeSpools()/setDevRandOffset() are all kept intact in
@@ -4029,6 +4038,14 @@ function setRandomizeDrumFx(on) { window._randomizeDrumFx = !!on; }
 // having to lock it from the BEAT menu).
 window._randomizeBeatType = true;
 function setRandomizeBeatType(on) { window._randomizeBeatType = !!on; }
+// AUTOMATE (RANDOMIZE menu) — the AUTO mode that used to be a long press on
+// +: a fresh pattern immediately, then a new one every NEW PATTERN EVERY...
+// bars. Turning it off stops it; tapping + while it runs also stops it.
+function setAutomate(on) {
+  if (on) { if (window._randStartAuto) window._randStartAuto(); }
+  else if (window._randStopAuto) window._randStopAuto();
+  const at = document.getElementById('automateToggle'); if (at) at.checked = !!_autoRandLoopActive;
+}
 // DRUM MUSIC RATIO / NOTE INTENSITY (RANDOMIZE MENU toggles, off by
 // default) — when on, every + press first rolls a fresh value for that
 // SETTINGS slider (DRUM MUSIC RATIO: any of its 7 positions 0-6; NOTE
@@ -4043,10 +4060,12 @@ function showRandMenu() {
   // Same ghost-click guard as the COLOR MENU's RANDOMIZE COLORS button —
   // the menu opens mid-gesture, so briefly refuse clicks on the one-shot
   // button in case the release lands on it.
-  // (No ghost-click guard needed on RANDOMIZE CURRENT INSTRUMENTS: the
-  // opening gesture's own release is handled by the + button itself — see
-  // _randMenuDragHover — and touchend preventDefault stops any synthetic
-  // click from landing on it.)
+  // Opened by a long press on + — the release of that same press is
+  // swallowed by the + button's own touchend preventDefault / mouse
+  // handling, so it can't land on anything in here. AUTOMATE reflects
+  // the live AUTO state each time the menu opens (AUTO can also be
+  // stopped by tapping + while it's running).
+  const at = document.getElementById('automateToggle'); if (at) at.checked = !!_autoRandLoopActive;
 }
 function hideRandMenu() {
   const el = document.getElementById('randMenuOverlay');
@@ -12231,7 +12250,37 @@ function exportTape() {
   // greying those out entirely in the LOAD TAPE picker, unable to tell
   // what kind of file they even were. .json is a type iOS actually knows.
   const file = new File([json], `${safeName}.SiFiTape.json`, { type: 'application/json' });
-  shareOrDownload([file]);
+  shareOrDownload([file]).then(ok => { if (ok !== false) _showTapeSavedToast(payload.name || _currentSpecies || 'Untitled'); });
+}
+// "Tape Saved..." confirmation, per direct request — same look as the
+// "Bouncing" toast (dark box, bold first line, tape name underneath), shown
+// once the save/share actually completes (not if the share sheet was
+// cancelled), then fades out on its own after a couple of seconds.
+let _tapeSavedToastTimer = null;
+function _showTapeSavedToast(name) {
+  let el = document.getElementById('_tapeSavedToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_tapeSavedToast';
+    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;color:#fff;padding:14px 28px;border-radius:6px;font-family:"DM Sans",sans-serif;text-align:center;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);pointer-events:none;min-width:200px;';
+    el.style.transition = 'opacity 0.35s ease';
+    const line1 = document.createElement('div');
+    line1.textContent = 'Tape Saved...';
+    line1.style.cssText = 'font-weight:700;letter-spacing:1px;font-size:0.95rem;';
+    const line2 = document.createElement('div');
+    line2.id = '_tapeSavedToastName';
+    line2.style.cssText = 'font-weight:400;letter-spacing:0.3px;margin-top:5px;font-size:0.8rem;opacity:0.85;';
+    el.appendChild(line1); el.appendChild(line2);
+    el.addEventListener('click', () => { el.style.display = 'none'; });
+    document.body.appendChild(el);
+  }
+  document.getElementById('_tapeSavedToastName').textContent = name;
+  clearTimeout(_tapeSavedToastTimer);
+  el.style.opacity = '1'; el.style.display = 'block';
+  _tapeSavedToastTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    _tapeSavedToastTimer = setTimeout(() => { el.style.display = 'none'; }, 380);
+  }, 2000);
 }
 // A tape as a clickable LINK, not a file — sent in a message, tapped, and
 // the app opens straight into that pattern with no manual save/import step.
@@ -12374,8 +12423,8 @@ async function importTapeFile(file) {
 async function shareOrDownload(files) {
   const shareData = { files }; // no title/text here — some share targets (Save to Files, in particular) were spinning that into a separate, pointless companion text file alongside the real one
   if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-    try { await navigator.share(shareData); return; }
-    catch(e) { if (e.name === 'AbortError') return; console.error('Share failed, falling back to download', e); }
+    try { await navigator.share(shareData); return true; }
+    catch(e) { if (e.name === 'AbortError') return false; console.error('Share failed, falling back to download', e); } // false = user cancelled the share sheet (SAVE TAPE uses this to skip its "Tape Saved" confirmation)
   }
   if (files.length === 1) {
     const file = files[0];
@@ -12384,7 +12433,7 @@ async function shareOrDownload(files) {
     document.body.appendChild(a); a.click();
     await new Promise(r => setTimeout(r, 300));
     URL.revokeObjectURL(url); a.remove();
-    return;
+    return true;
   }
   // Only reached if the real share sheet genuinely isn't available for
   // multiple files — one zip download beats N separate download prompts.
@@ -13715,6 +13764,13 @@ function randAll(mode, opts) {
     if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'jazz') {
       _beatTypes = _beatTypes.filter(t => t !== 'boogie' && t !== 'jazz');
     }
+    // HALFTIME + TEMPO LOCK, per direct request — halftime sits at a
+    // completely different feel/tempo from everything else, so with TEMPO
+    // LOCK on RAND never jumps INTO halftime, and if it's already ON
+    // halftime it never jumps OUT of it either (it just stays put).
+    if (_tempoLocked) {
+      _beatTypes = (_beatType === 'halftime') ? ['halftime'] : _beatTypes.filter(t => t !== 'halftime');
+    }
     setBeatType(_beatTypes[Math.floor(Math.random() * _beatTypes.length)]);
   }
 
@@ -15029,59 +15085,27 @@ function stopAllAutoRand() {
     setBtnBlueHeld('randBtn'); queueRand();
   };
 
-  // DRAG DOWN on + opens the RANDOMIZE MENU, per direct request — same
-  // 30px threshold as the rainbow/reverb/marker icons. Any real movement
-  // cancels the AUTO-mode hold timer, so a slow drag can't also start
-  // AUTO, and a press that became a drag never fires a single RAND on
-  // release either.
-  const DRAG_DOWN_PX = 30, MOVE_CANCEL_PX = 6;
-  let _pressStartY = null, _dragOpened = false;
-  // Once the drag has opened the menu, keep following the finger: hovering
-  // RANDOMIZE CURRENT INSTRUMENTS highlights it, releasing on it fires it
-  // (and closes the menu). Releasing anywhere else just leaves the menu open.
-  const instBtnUnder = (x, y) => {
-    const el = document.elementFromPoint(x, y);
-    return el && el.closest ? el.closest('#randomizeInstrumentsBtn') : null;
-  };
-  const _randMenuDragHover = (x, y) => {
-    const b = document.getElementById('randomizeInstrumentsBtn');
-    if (b) b.classList.toggle('drag-hover', !!instBtnUnder(x, y));
-  };
-  const pressMove = (y, x) => {
-    if (_dragOpened) { if (x !== undefined) _randMenuDragHover(x, y); return; }
-    if (!_pressActive || _pressStartY === null || holdFired) return;
-    const dy = y - _pressStartY;
-    if (Math.abs(dy) > MOVE_CANCEL_PX) clearTimeout(holdTimer);
-    if (dy > DRAG_DOWN_PX) {
-      _dragOpened = true;
-      clearTimeout(holdTimer);
-      btn.classList.remove('rand-holding');
-      showRandMenu();
-    }
-  };
+  // + button, per direct request: a plain TAP still fires a single RAND
+  // (or stops AUTO if it's running); a LONG PRESS now opens the RANDOMIZE
+  // MENU instead of switching AUTO mode on. AUTO lives in that menu now
+  // (AUTOMATE toggle + NEW PATTERN EVERY... slider). The old click-and-
+  // drag-down gesture is gone entirely.
+  window._randStartAuto = () => { if (!_autoRandLoopActive) startAuto(); };
+  window._randStopAuto = stopAuto;
   let holdTimer = null, holdFired = false, _pressActive = false;
   const beginPress = () => {
-    _dragOpened = false;
     if (!ctx) initAudio(); else ctx.resume().catch(()=>{});
     holdFired = false;
     _pressActive = true;
     clearTimeout(holdTimer);
     btn.classList.add('rand-holding'); // fast pulse while held, so it's clear the press is registering
-    holdTimer = setTimeout(() => { holdFired = true; startAuto(); }, HOLD_MS);
+    holdTimer = setTimeout(() => { holdFired = true; btn.classList.remove('rand-holding'); showRandMenu(); }, HOLD_MS);
   };
-  const endPress = (endX, endY) => {
+  const endPress = () => {
     if (!_pressActive) return; // nothing actually held on this button — don't let an unrelated mouseup elsewhere on the page fire a RAND
     _pressActive = false;
     clearTimeout(holdTimer);
     btn.classList.remove('rand-holding');
-    _pressStartY = null;
-    if (_dragOpened) { // press became a drag-down that opened the RANDOMIZE MENU — not a tap
-      _dragOpened = false;
-      const b = document.getElementById('randomizeInstrumentsBtn');
-      if (b) b.classList.remove('drag-hover');
-      if (endX !== undefined && instBtnUnder(endX, endY)) { randomizeCurrentInstruments(); hideRandMenu(); }
-      return;
-    }
     if (!holdFired) singleFire(); // only a plain tap fires the single rand, and only on release
   };
 
@@ -15094,27 +15118,21 @@ function stopAllAutoRand() {
     _pressActive = false;
     clearTimeout(holdTimer);
     btn.classList.remove('rand-holding');
-    _pressStartY = null; _dragOpened = false;
   };
   btn.addEventListener('touchstart', e => {
     e.preventDefault();
     _lastTouchTime = Date.now();
     beginPress();
-    _pressStartY = e.touches[0].clientY;
   }, { passive: false });
-  btn.addEventListener('touchmove', e => { e.preventDefault(); pressMove(e.touches[0].clientY, e.touches[0].clientX); }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault();
-    const t = e.changedTouches && e.changedTouches[0];
-    endPress(t ? t.clientX : undefined, t ? t.clientY : undefined);
+    endPress();
   }, { passive: false });
   btn.addEventListener('touchcancel', cancelPress);
   btn.addEventListener('mousedown', e => {
     if (Date.now() - _lastTouchTime < 500) return; // ignore synthetic mouse events following a real touch
     beginPress();
-    _pressStartY = e.clientY;
   });
-  document.addEventListener('mousemove', e => { if (_pressActive) pressMove(e.clientY, e.clientX); });
   // Document-wide, not button-only — mouseup fires on whatever element is
   // currently under the pointer at release time (unlike touchend, which
   // stays bound to wherever the touch started), so if the pointer drifted
@@ -15126,7 +15144,7 @@ function stopAllAutoRand() {
   // all of them) can't spuriously fire a RAND.
   document.addEventListener('mouseup', e => {
     if (Date.now() - _lastTouchTime < 500) return;
-    endPress(e.clientX, e.clientY);
+    endPress();
   });
 })();
 
@@ -17568,7 +17586,7 @@ function setDevOffsetStepSize(idx) {
 // generating a new pattern — was a flat, uneditable 4 bars; now settable
 // from Settings, 4/8/16/32.
 let _autoRandPeriod = 4;
-const _AUTO_RAND_PERIOD_VALUES = [4, 8, 16, 32];
+const _AUTO_RAND_PERIOD_VALUES = [4, 16, 32]; // 8 dropped — NEW PATTERN EVERY... slider (RANDOMIZE menu) is 4 / 16 / 32 bars, per direct request
 function setAutoRandPeriod(idx) {
   idx = +idx;
   _autoRandPeriod = _AUTO_RAND_PERIOD_VALUES[idx] ?? 4;
@@ -19756,6 +19774,9 @@ function randomizeBeatType() {
   // shuffle while already there is still fine.
   let pool = _BEAT_TYPE_POOL;
   if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
+  // HALFTIME + TEMPO LOCK — same rule as RAND's own beat pick: locked means
+  // never into halftime, and never out of it if already there.
+  if (_tempoLocked) pool = (_beatType === 'halftime') ? ['halftime'] : pool.filter(t => t !== 'halftime');
   const pick = pool[Math.floor(Math.random() * pool.length)];
   setBeatType(pick);
   refreshBeatMenuHighlight();
