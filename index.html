@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 01:10:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 01:26:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1853,7 +1853,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:10:14 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:26:51 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2133,6 +2133,41 @@ body.performance-mode header { padding-bottom: 10px; }
     </div>
 
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
+      <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" id="devOffsetStepSlider" min="0" max="3" step="1" value="0" oninput="setDevOffsetStepSize(this.value)" class="master-vol-slider" style="flex:1;">
+          <span id="devOffsetStepReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
+        </div>
+      </div>
+      <!-- AUTO RANDOM PERIOD moved to the RANDOMIZE menu as NEW PATTERN EVERY..., per direct request -->
+      <!-- SWAP TAPE SPOOLS, ALT TAPE SPOOLS, and RAND OFFSET all removed
+           from the UI per direct request. setSwapSpools()/
+           setAltTapeSpools()/setDevRandOffset() are all kept intact in
+           case this needs re-enabling later. -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL GENERATES NEW PATTERN
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="soloIncludesBeatToggle" onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES DRUMS
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
+      </label>
+      <!-- SIMPLE FADER, VOL TRACK LINE HEIGHT, VOL SLIDER HEIGHT, and VOL
+           FILL HEIGHT all removed from the UI — hardcoded per direct
+           request: SIMPLE FADER is permanently on (see the "simple-fader"
+           class on <body>), track line height is 4px, and the bar/fill
+           both stay at their full natural height (the overrides these
+           last two sliders wrote to are simply never set now, so the CSS
+           falls back to that automatically). FADER WIDTH brought back as
+           a slider again below. setSimpleFader()/setVolScaleThickness()/
+           setVolBarHeight()/setVolFillHeight() are all kept intact for
+           this reason. -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO IS MOMENTARY
+      </label>
       <!-- BG = SONG NAME COLOR checkbox removed from the UI per direct
            request — setBgFollowsBarColor and its applyBarColor() hook are
            kept intact elsewhere for this reason. -->
@@ -2407,6 +2442,15 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
 
+      <!-- 8-BIT MIX moved up here, right under MAIN VOL, per direct request -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
+          <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
+        </div>
+        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUM MUSIC RATIO</div>
@@ -2434,13 +2478,6 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="checkbox" id="loadMeterToggle" onchange="setLoadMeterEnabled(this.checked)" style="width:14px;height:14px;cursor:pointer;">LOAD METER
       </label>
 
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
-          <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
-        </div>
-        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
       <!-- RANDOMIZE 8-BIT MIX / RANDOMIZE DRUM FX toggles moved to the RANDOMIZE MENU (drag down from +), per direct request -->
 
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -2467,41 +2504,8 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="noButtonSoundsToggle" onchange="setNoButtonSounds(this.checked)" style="width:14px;height:14px;cursor:pointer;">NO BUTTON SOUNDS
       </label>
+      <!-- OFFSET STEP SIZE ... SOLO IS MOMENTARY moved to the top of LOOK AND FEEL > DEV, per direct request -->
 
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" id="devOffsetStepSlider" min="0" max="3" step="1" value="0" oninput="setDevOffsetStepSize(this.value)" class="master-vol-slider" style="flex:1;">
-          <span id="devOffsetStepReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
-        </div>
-      </div>
-      <!-- AUTO RANDOM PERIOD moved to the RANDOMIZE menu as NEW PATTERN EVERY..., per direct request -->
-      <!-- SWAP TAPE SPOOLS, ALT TAPE SPOOLS, and RAND OFFSET all removed
-           from the UI per direct request. setSwapSpools()/
-           setAltTapeSpools()/setDevRandOffset() are all kept intact in
-           case this needs re-enabling later. -->
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL GENERATES NEW PATTERN
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="soloIncludesBeatToggle" onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES DRUMS
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
-      </label>
-      <!-- SIMPLE FADER, VOL TRACK LINE HEIGHT, VOL SLIDER HEIGHT, and VOL
-           FILL HEIGHT all removed from the UI — hardcoded per direct
-           request: SIMPLE FADER is permanently on (see the "simple-fader"
-           class on <body>), track line height is 4px, and the bar/fill
-           both stay at their full natural height (the overrides these
-           last two sliders wrote to are simply never set now, so the CSS
-           falls back to that automatically). FADER WIDTH brought back as
-           a slider again below. setSimpleFader()/setVolScaleThickness()/
-           setVolBarHeight()/setVolFillHeight() are all kept intact for
-           this reason. -->
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO IS MOMENTARY
-      </label>
 
     </div>
 
@@ -4109,6 +4113,14 @@ function hideRandMenu() {
 // skipped. Goes through selectSound() so tonal scales etc. are rebuilt
 // properly, then restores each track's mute state (selectSound unmutes).
 function randomizeCurrentInstruments() {
+  // A/B + colors, per direct request: this now counts as a NEW PATTERN as
+  // far as A/B (RECALL) is concerned — the pattern as it was, instruments
+  // and colors included, is saved as the "previous" one right before the
+  // swap (same thing a + press does in queueRand), so A/B brings the old
+  // instruments straight back. It also always rolls a fresh color scheme
+  // (whether or not WILD MODE is on), so saving the result into a save
+  // slot gives that slot its own distinct color too.
+  _recallSnapB = snapshotState();
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
   const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
   const groupOf = k => {
@@ -4145,7 +4157,9 @@ function randomizeCurrentInstruments() {
     if (mutedBefore[tr]) { trackMuted[tr] = true; updateTrackMute(tr); }
     changed++;
   }
-  if (changed) for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr, true); // repaint markers in each track's new instrument colour, without re-sorting the layout
+  if (typeof randomizeAppColors === 'function') randomizeAppColors();
+  for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr, true); // repaint markers in each track's new instrument colour, without re-sorting the layout
+  markModified();
   return changed;
 }
 // Thin on/off wrapper kept for anything still calling the old boolean API
@@ -15115,6 +15129,19 @@ function stopAllAutoRand() {
   // (AUTOMATE toggle + NEW PATTERN EVERY... slider). The old click-and-
   // drag-down gesture is gone entirely.
   window._randStartAuto = () => { if (!_autoRandLoopActive) startAuto(); };
+  // Once the long press has opened the menu, the same press can carry on:
+  // dragging over CURRENT INSTRUMENTS lights it in the PLAY FLASH color, and
+  // releasing on it fires it (per direct request). Releasing anywhere else
+  // just leaves the menu open.
+  const instBtnUnder = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest('#randomizeInstrumentsBtn') : null;
+  };
+  const holdMove = (x, y) => {
+    if (!_pressActive || !holdFired) return;
+    const b = document.getElementById('randomizeInstrumentsBtn');
+    if (b) b.classList.toggle('rand-inst-flash', !!instBtnUnder(x, y));
+  };
   window._randStopAuto = stopAuto;
   let holdTimer = null, holdFired = false, _pressActive = false;
   const beginPress = () => {
@@ -15125,12 +15152,18 @@ function stopAllAutoRand() {
     btn.classList.add('rand-holding'); // fast pulse while held, so it's clear the press is registering
     holdTimer = setTimeout(() => { holdFired = true; btn.classList.remove('rand-holding'); showRandMenu(); }, HOLD_MS);
   };
-  const endPress = () => {
+  const endPress = (x, y) => {
     if (!_pressActive) return; // nothing actually held on this button — don't let an unrelated mouseup elsewhere on the page fire a RAND
     _pressActive = false;
     clearTimeout(holdTimer);
     btn.classList.remove('rand-holding');
-    if (!holdFired) singleFire(); // only a plain tap fires the single rand, and only on release
+    if (holdFired) {
+      const b = document.getElementById('randomizeInstrumentsBtn');
+      if (b) b.classList.remove('rand-inst-flash');
+      if (b && x !== undefined && instBtnUnder(x, y)) _triggerRandomizeInstruments(b); // released on CURRENT INSTRUMENTS
+      return;
+    }
+    singleFire(); // only a plain tap fires the single rand, and only on release
   };
 
   let _lastTouchTime = 0;
@@ -15148,15 +15181,18 @@ function stopAllAutoRand() {
     _lastTouchTime = Date.now();
     beginPress();
   }, { passive: false });
+  btn.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; holdMove(t.clientX, t.clientY); }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault();
-    endPress();
+    const t = e.changedTouches && e.changedTouches[0];
+    endPress(t ? t.clientX : undefined, t ? t.clientY : undefined);
   }, { passive: false });
   btn.addEventListener('touchcancel', cancelPress);
   btn.addEventListener('mousedown', e => {
     if (Date.now() - _lastTouchTime < 500) return; // ignore synthetic mouse events following a real touch
     beginPress();
   });
+  document.addEventListener('mousemove', e => { if (_pressActive) holdMove(e.clientX, e.clientY); });
   // Document-wide, not button-only — mouseup fires on whatever element is
   // currently under the pointer at release time (unlike touchend, which
   // stays bound to wherever the touch started), so if the pointer drifted
@@ -15168,7 +15204,7 @@ function stopAllAutoRand() {
   // all of them) can't spuriously fire a RAND.
   document.addEventListener('mouseup', e => {
     if (Date.now() - _lastTouchTime < 500) return;
-    endPress();
+    endPress(e.clientX, e.clientY);
   });
 })();
 
