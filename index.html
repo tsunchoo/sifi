@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 03:05:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 03:11:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1871,7 +1871,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:05:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 03:11:14 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -13743,31 +13743,24 @@ function tempoNoteFactor() {
 // (0 = silent) covers that, so a random roll here can land anywhere
 // including effectively off, same as any other mix value.
 // REVERB PREVIEW, per direct request — after a swipe-down on the reverb
-// icon rolls new settings, fire one short percussive "snap" (synthesized:
-// a band-passed noise burst plus a tiny tonal click, so it needs no
-// sample loaded) mostly into the shared reverb input bus, with just a
-// touch of it dry. What you hear is the NEW reverb's size and tail at the
-// NEW overall REVERB MIX level (the return gain), so a big roll rings out
-// and a near-zero MIX roll is honestly almost dry. Counts as a button
-// sound, so NO BUTTON SOUNDS silences it too.
+// icon rolls new settings, the icon's own button sound (tinyclick) is what
+// drives the reverb: it plays dry at its normal level (playUiSound, so it
+// follows BUTTONS SOUNDS TO MIX / NO BUTTON SOUNDS like any button sound)
+// and a second, much hotter copy (REVERB_PREVIEW_SEND) goes straight into
+// the shared reverb input bus, so the NEW room's size and tail ring out
+// clearly. The tail's loudness still follows the new REVERB MIX roll (the
+// return gain), so a near-zero MIX roll is honestly close to dry.
+const REVERB_PREVIEW_SEND = 8; // "crank it up" — about +18dB over the dry click, into the reverb only
 function _previewReverb() {
-  if (window._noButtonSounds || !ctx || !window._reverbSendBus || !masterGain) return;
-  const t = ctx.currentTime + 0.03;
-  const len = Math.ceil(ctx.sampleRate * 0.07);
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  if (window._noButtonSounds || !ctx) return;
+  playUiSound('tinyclick');
+  const buf = window._uiSoundBufs && window._uiSoundBufs['tinyclick'];
+  if (!buf || !window._reverbSendBus) return;
   const src = ctx.createBufferSource(); src.buffer = buf;
-  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.8;
-  const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(900, t); osc.frequency.exponentialRampToValueAtTime(300, t + 0.03);
-  const og = ctx.createGain(); og.gain.setValueAtTime(0.35, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-  const mix = ctx.createGain(); mix.gain.value = 1;
-  const dry = ctx.createGain(); dry.gain.value = 0.12;
-  const wet = ctx.createGain(); wet.gain.value = 0.9;
-  src.connect(bp); bp.connect(mix); osc.connect(og); og.connect(mix);
-  mix.connect(dry); dry.connect(masterGain);
-  mix.connect(wet); wet.connect(window._reverbSendBus);
-  src.start(t); osc.start(t); osc.stop(t + 0.05);
-  src.onended = () => { try { mix.disconnect(); dry.disconnect(); wet.disconnect(); bp.disconnect(); og.disconnect(); } catch(e) {} };
+  const wet = ctx.createGain(); wet.gain.value = REVERB_PREVIEW_SEND;
+  src.connect(wet); wet.connect(window._reverbSendBus);
+  src.start();
+  src.onended = () => { try { wet.disconnect(); } catch(e) {} };
 }
 function _randomizeReverbSettings() {
   const _newReverbSize = Math.random();
@@ -17952,6 +17945,7 @@ function setPerformanceMode(on) {
 function _makeSwipeIcon(btn, opts) {
   const TRIGGER_PX = 30, MAX_PX = 30, MOVE_CANCEL_HOLD_PX = 6;
   let downY = null, fired = false, holdFired = false, holdTimer = null, touchJustHandled = 0;
+  // opts.noClick — skip the generic drag click (the reverb icon plays its own, through the new reverb — see _previewReverb)
   const visual = dy => { btn.style.transition = 'none'; btn.style.transform = `translateY(${Math.max(0, Math.min(MAX_PX, dy))}px)`; };
   const snapBack = () => { btn.style.transition = 'transform 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; btn.style.transform = 'translateY(0px)'; };
   const clearHold = () => { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
@@ -17964,7 +17958,7 @@ function _makeSwipeIcon(btn, opts) {
     const dy = y - downY;
     if (Math.abs(dy) > MOVE_CANCEL_HOLD_PX) clearHold();
     visual(dy);
-    if (!fired && dy > TRIGGER_PX) { fired = true; clearHold(); playUiSound('tinyclick'); opts.onSwipe(); } // drag click on fire, per direct request (reverb + marker style icons)
+    if (!fired && dy > TRIGGER_PX) { fired = true; clearHold(); if (!opts.noClick) playUiSound('tinyclick'); opts.onSwipe(); } // drag click on fire, per direct request (reverb + marker style icons)
   };
   const end = () => {
     clearHold();
@@ -18867,7 +18861,8 @@ function fullReset() {
   // direct request. Hold still opens the REVERB menu; a plain tap does
   // nothing.
   _makeSwipeIcon(btn, {
-    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); _previewReverb(); }, // preview the newly-rolled reverb, per direct request
+    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); _previewReverb(); }, // the button click itself, run through the newly-rolled reverb, per direct request
+    noClick: true,
     holdMs: HOLD_MS,
     onHold: openMenu,
   });
