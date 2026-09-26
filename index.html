@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 21:52:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 21:59:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -488,7 +488,14 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
 #playBtn.playing img { opacity: 0; }
 #playBtnMask { display: none; position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; transform: translate(-50%, -50%); background: var(--play-hl, var(--top-row-pressed-text-color, #fff)); /* was var(--top-row-text-color) — the plain, un-contrast-adjusted color, while every other engaged top-row button (#beatBtn.active, #clearBtn.active, #scratchBtn.active, the generic .btn.active rule) uses --top-row-pressed-text-color, the version nudged for contrast against --top-row-pressed-bg specifically. PLAY was the one outlier still using the wrong variable, so its glyph didn't match DRUMS' own pulsing color even though both sit on the same pressed background. */ -webkit-mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); mask-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='18' y='18' width='64' height='64'/%3E%3C/svg%3E"); -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 #playBtn.playing #playBtnMask { display: block; }
-#playBtn.playing.btn-beat-pulse #playBtnMask { animation: play-green-pulse 0.44s ease-out; }
+/* PLAY/STOP beat pulse now matches DRUMS: a COLOUR flash (pressed text
+   colour -> the boosted play highlight, same 0.18s ease-out as DRUMS'
+   drums-text-flash-pulse) at full opacity, instead of the old opacity dip
+   (0.55 -> 1 -> 0.55). The glow is a drop-shadow of this square, so the
+   opacity dip was dimming the glow on every beat — why it pulsed while
+   DRUMS' (text-shadow in the text's own colour, never dimmed) looked steady. */
+@keyframes play-hl-flash { from { background-color: var(--top-row-pressed-text-color, #fff); } to { background-color: var(--play-hl, var(--top-row-pressed-text-color, #fff)); } }
+#playBtn.playing.btn-beat-pulse #playBtnMask { animation: play-hl-flash 0.18s ease-out forwards; }
 /* PLAY and RECORD icon graphics are plain white PNGs with no built-in
    color variant, unlike text buttons which just switch CSS color — so
    they're recolored via filter:invert() instead, driven by the same
@@ -644,7 +651,7 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
 /* Circle glyph at rest; the word REC only while recording (per direct request). */
 #recBtnText { display: none; font-size: calc(0.72rem * 1.65); font-weight: 700; letter-spacing: 1px; line-height: 1; margin-right: -1px; /* cancel the trailing letter-spacing so the word sits truly centred */ }
 #saveBtn.rec-active #recBtnImg, #saveBtn.rec-active #recBtnMask { display: none !important; }
-#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, 10px)); } /* REC TEXT X (DEV slider), per direct request — default +10px */
+#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, -2px)); } /* REC TEXT X (DEV slider) — default -2px (was +10px, came back 12px per direct request) */
 #saveBtn.rec-active #recBtnText { color: #ff2a2a; animation: rec-text-pulse 0.5s infinite alternate; }
 @keyframes rec-text-pulse { from { opacity: 1; } to { opacity: 0.55; } }
 /* TOP ROW GLOW, per direct request — every top-row button's label/glyph
@@ -2292,7 +2299,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 21:52:30 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 21:59:44 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2644,9 +2651,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REC TEXT POSITION</div>
-          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">10PX</div>
+          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">-2PX</div>
         </div>
-        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="10" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="-2" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">
         <span>TEST BG</span>
