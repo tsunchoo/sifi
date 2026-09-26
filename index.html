@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 22:11:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 22:19:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -440,10 +440,16 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    the + glyph jumps big with a heavy glow and eases back to its resting
    size/glow over two beats (duration set from the tempo in JS). */
 @keyframes new-pattern-pulse {
-  0%   { transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(4px * var(--rglow, 1)) currentColor, 0 0 calc(12px * var(--rglow, 1)) currentColor, 0 0 calc(28px * var(--rglow, 1)) currentColor, 0 0 calc(44px * var(--rglow, 1)) color-mix(in srgb, currentColor 70%, transparent); }
+  0%   { color: var(--play-hl, currentColor); transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(4px * var(--rglow, 1)) currentColor, 0 0 calc(12px * var(--rglow, 1)) currentColor, 0 0 calc(28px * var(--rglow, 1)) currentColor, 0 0 calc(44px * var(--rglow, 1)) color-mix(in srgb, currentColor 70%, transparent); }
   100% { transform: translateY(-2px) scale(1); text-shadow: 0 0 calc(3px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(9px * var(--rglow, 1)) color-mix(in srgb, currentColor 20%, transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor 14%, transparent); }
 }
 #randBtn.new-pattern .glyph { animation: new-pattern-pulse var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+/* BUILD-UP while a RAND waits for the bar line, per direct request: the
+   + glyph ramps (over exactly the time left until the new pattern lands)
+   up to DRUMS' engaged look — the boosted play highlight colour with the
+   full glow — then the new-pattern pulse takes over from there. */
+@keyframes rand-build-up { to { color: var(--play-hl, #fff); text-shadow: 0 0 calc(3px * var(--rglow, 1)) var(--play-hl, #fff), 0 0 calc(9px * var(--rglow, 1)) var(--play-hl, #fff), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, var(--play-hl, #fff) 70%, transparent); } }
+#randBtn.rand-building .glyph { animation: rand-build-up var(--rand-build-dur, 1s) ease-in forwards; }
 /* RAND BTN GLYPH = ASTERISK (SETTINGS toggle) — an alternative to the
    plain "+" text: an asterisk with a small gap in the middle, where all
    6 spokes stop short of the center instead of meeting at a point. Same
@@ -659,7 +665,7 @@ body:not(.note-markers-circle) #markerStyleIcon { border-radius: 50%; }
 /* Circle glyph at rest; the word REC only while recording (per direct request). */
 #recBtnText { display: none; font-size: calc(0.72rem * 1.65); font-weight: 700; letter-spacing: 1px; line-height: 1; margin-right: -1px; /* cancel the trailing letter-spacing so the word sits truly centred */ }
 #saveBtn.rec-active #recBtnImg, #saveBtn.rec-active #recBtnMask { display: none !important; }
-#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, 5px)); } /* REC TEXT X (DEV slider) — default +5px, per direct request */
+#saveBtn.rec-active #recBtnText { display: block; transform: translateX(var(--rec-text-x, 2px)); } /* REC TEXT X (DEV slider) — default +2px, per direct request */
 #saveBtn.rec-active #recBtnText { color: #ff2a2a; animation: rec-text-pulse 0.5s infinite alternate; }
 @keyframes rec-text-pulse { from { opacity: 1; } to { opacity: 0.55; } }
 /* TOP ROW GLOW, per direct request — every top-row button's label/glyph
@@ -882,6 +888,9 @@ html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
   animation: none !important; filter: none !important;
 }
 html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
+/* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
+html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--play-hl, var(--top-row-pressed-text-color, #fff)) !important; }
+html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
@@ -2309,7 +2318,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:11:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 22:19:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2661,9 +2670,9 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REC TEXT POSITION</div>
-          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">5PX</div>
+          <div id="recTextXVal" style="font-size:0.6rem;font-family:monospace;color:#333;">2PX</div>
         </div>
-        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="5" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="recTextXSlider" min="-20" max="20" step="1" value="2" oninput="setRecTextX(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">
         <span>TEST BG</span>
@@ -2696,6 +2705,9 @@ body.performance-mode header { padding-bottom: 10px; }
         </div>
         <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="10" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
+      </label>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
@@ -13494,7 +13506,16 @@ function queueRand(mode) {
     // touch its own styles at all, just leave the class on until the
     // pattern actually lands and the bar-boundary code clears it.
     const rbP = document.getElementById('randBtn');
-    if (rbP) rbP.classList.remove('rand-pending-fast');
+    if (rbP) {
+      rbP.classList.remove('rand-pending-fast');
+      // Ramp time = whatever's left of this bar (remaining steps + the
+      // gap to the next scheduled step), so the build-up peaks exactly
+      // as the new pattern lands.
+      let left = 0.4;
+      try { left = Math.max(0.15, (NUM_STEPS - 1 - currentStep) * stepDuration() + Math.max(0, nextStepTime - ctx.currentTime)); } catch (e) {}
+      rbP.style.setProperty('--rand-build-dur', left.toFixed(3) + 's');
+      rbP.classList.remove('rand-building', 'new-pattern'); void rbP.offsetWidth; rbP.classList.add('rand-building');
+    }
   } else {
     playUiSound('Rand');
     scheduleRandTransition();
@@ -14482,7 +14503,7 @@ function _randomizeReverbSettings() {
 function _newPatternPulse() {
   const b = document.getElementById('randBtn'); if (!b) return;
   document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2).toFixed(3) + 's'); // two beats
-  b.classList.remove('new-pattern'); void b.offsetWidth; b.classList.add('new-pattern');
+  b.classList.remove('new-pattern', 'rand-building'); void b.offsetWidth; b.classList.add('new-pattern');
   clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2000 + 50);
 }
 function randAll(mode, opts) {
