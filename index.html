@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 01:40:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 02:13:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -686,9 +686,12 @@ input.master-vol-slider::-webkit-slider-runnable-track { background: var(--neutr
    what you see matches exactly what you can grab — no more invisible
    catch zone around a thin bar. Height untouched — only width was ever
    reported as hard to hit. */
-input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; margin-top: -8.64px !important; cursor: pointer; }
+/* Extra vertical room for the taller thumbs below — the input box itself is only the 5.76px track, and the 41.5px thumb overhangs it by ~17.9px each side, so 14px margin (plus each menu's own row gaps) keeps the thumb clear of the label above and the row below. */
+input.master-vol-slider { margin-top: 14px; margin-bottom: 14px; }
+/* Menu slider thumbs, per direct request: width -20% (30 -> 24px), height +80% (23.04 -> 41.472px). margin-top re-centres the taller thumb on the 5.76px track: -(41.472 - 5.76) / 2. */
+input.master-vol-slider::-webkit-slider-thumb { -webkit-appearance: none !important; appearance: none !important; width: 24px !important; height: 41.472px !important; border-radius: 0 !important; background: #000 !important; margin-top: -17.856px !important; cursor: pointer; }
 input.master-vol-slider::-moz-range-track { background: var(--neutral-top, #555) !important; height: 5.76px !important; border-radius: 2px !important; } /* +20% again (was 4.8px, before that 4px) */
-input.master-vol-slider::-moz-range-thumb { width: 30px !important; height: 23.04px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; }
+input.master-vol-slider::-moz-range-thumb { width: 24px !important; height: 41.472px !important; border-radius: 0 !important; background: #000 !important; border: none !important; cursor: pointer; }
 #bpmSettingsSlider.tempo-locked::-webkit-slider-thumb { background: #b0b0b0; }
 #bpmSettingsSlider.tempo-locked::-moz-range-thumb { background: #b0b0b0; }
 .vol-section { width: 100%; max-width: 960px; margin-top: 12px; display: flex; align-items: center; gap: 6px; }
@@ -1858,7 +1861,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:40:16 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 02:13:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2002,9 +2005,10 @@ body.performance-mode header { padding-bottom: 10px; }
 
 <div id="beatTypeMenu" class="beat-type-menu">
   <div class="beat-type-menu-inner">
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:16px;">DRUMS</div>
     <div style="display:block;width:100%;margin-bottom:22px;position:relative;z-index:2;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">BEAT VOL</div>
-      <input type="range" id="beatVolBar" min="0" max="100" value="43" class="master-vol-slider" style="width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
+      <input type="range" id="beatVolBar" min="0" max="100" value="43" class="master-vol-slider" style="margin-top:24px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
     </div>
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
@@ -2082,7 +2086,7 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DRUM MUSIC RATIO</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randomizeDrumMusicRatioToggle" onchange="setRandomizeDrumMusicRatio(this.checked)">
+        <input type="checkbox" id="randomizeDrumMusicRatioToggle" checked onchange="setRandomizeDrumMusicRatio(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -2093,7 +2097,7 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE INTENSITY</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randomizeNoteIntensityToggle" onchange="setRandomizeNoteIntensity(this.checked)">
+        <input type="checkbox" id="randomizeNoteIntensityToggle" checked onchange="setRandomizeNoteIntensity(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -4077,7 +4081,7 @@ function _syncAutoPeriodRow() {
 // SETTINGS slider (DRUM MUSIC RATIO: any of its 7 positions 0-6; NOTE
 // INTENSITY: any of its 5 notches, MELLOW..MENTAL), then builds the new
 // pattern with it. The slider itself moves to show the value picked.
-window._randomizeDrumMusicRatio = false; window._randomizeNoteIntensity = false;
+window._randomizeDrumMusicRatio = true; window._randomizeNoteIntensity = true; // ON by default, per direct request
 function setRandomizeDrumMusicRatio(on) { window._randomizeDrumMusicRatio = !!on; }
 function setRandomizeNoteIntensity(on) { window._randomizeNoteIntensity = !!on; }
 function showRandMenu() {
@@ -17907,22 +17911,59 @@ function _makeSwipeIcon(btn, opts) {
   _makeSwipeIcon(b, { onSwipe: () => setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle')) });
 })();
 function _cycleRainbowMode() {
-  // Cycle ORDER changed per direct request (in terms of the original
-  // numbering above): 4 -> 2 -> 1 -> 3 -> back to 4, and the app now STARTS
-  // in mode 4 (PERFORMANCE MODE + TIME RULER) — see _applyRainbowMode(4) at
-  // startup below. Mode numbers: 1 normal, 2 PERFORMANCE, 3 normal + RULER,
-  // 4 PERFORMANCE + RULER. The current mode is still read from the real
-  // states, so it steps on correctly even after changes from the COLOR MENU.
+  // RAINBOW swipe-down cycle — 6 positions now, per direct request (two
+  // new "no track row BG" modes slotted into 3rd and 6th place, each a
+  // copy of the mode before it with TRACK ROW BG OPACITY forced to 0):
+  //   1. PERFORMANCE + RULER          (start-up default)
+  //   2. PERFORMANCE
+  //   3. PERFORMANCE, track row BG 0%          <- new
+  //   4. normal
+  //   5. normal + RULER
+  //   6. normal + RULER, track row BG 0%       <- new
+  // then round to 1. The current position is read back from the real
+  // states (performance-mode class, _timeRulerEnabled, the BG-zero flag)
+  // so it always steps on correctly, even after COLOR MENU changes.
   const perf = document.body.classList.contains('performance-mode');
   const ruler = !!window._timeRulerEnabled;
-  const cur = ruler ? (perf ? 4 : 3) : (perf ? 2 : 1);
-  const ORDER = [4, 2, 1, 3];
-  _applyRainbowMode(ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length]);
+  const bg0 = !!window._rainbowBgZero;
+  let idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler && m.bg0 === bg0);
+  if (idx < 0) idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler); // e.g. ruler toggled from the menu while BG was zeroed
+  _applyRainbowState(_RAINBOW_CYCLE[(idx + 1) % _RAINBOW_CYCLE.length]);
 }
+const _RAINBOW_CYCLE = [
+  { perf: true,  ruler: true,  bg0: false },
+  { perf: true,  ruler: false, bg0: false },
+  { perf: true,  ruler: false, bg0: true  },
+  { perf: false, ruler: false, bg0: false },
+  { perf: false, ruler: true,  bg0: false },
+  { perf: false, ruler: true,  bg0: true  },
+];
+function _applyRainbowState(m) {
+  if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
+  if (m.ruler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(m.ruler);
+  _setRainbowBgZero(m.bg0);
+}
+// TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
+// DEV slider was set to is remembered on the way in and put back on the
+// way out, so leaving those modes restores the normal track row BG.
+window._rainbowBgZero = false; let _rainbowBgOpacityBefore = null;
+function _setRainbowBgZero(on) {
+  if (on === !!window._rainbowBgZero) return;
+  const sl = document.getElementById('trackRowBgOpacitySlider');
+  if (on) {
+    _rainbowBgOpacityBefore = sl ? +sl.value : 20;
+    setTrackRowBgOpacity(0); if (sl) sl.value = 0;
+  } else {
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 20;
+    setTrackRowBgOpacity(v); if (sl) sl.value = v;
+    _rainbowBgOpacityBefore = null;
+  }
+  window._rainbowBgZero = !!on;
+}
+// Old-style entry point (mode numbers 1-4 = normal / PERF / normal+RULER /
+// PERF+RULER, BG untouched) — still used for the start-up default and reset.
 function _applyRainbowMode(mode) {
-  const wantPerf = mode === 2 || mode === 4, wantRuler = mode === 3 || mode === 4;
-  if (wantPerf !== document.body.classList.contains('performance-mode')) setPerformanceMode(wantPerf);
-  if (wantRuler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(wantRuler);
+  _applyRainbowState({ perf: mode === 2 || mode === 4, ruler: mode === 3 || mode === 4, bg0: false });
 }
 // DEFAULT MODE = 4 (PERFORMANCE MODE + TIME RULER), per direct request.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => _applyRainbowMode(4), { once: true });
@@ -18476,6 +18517,10 @@ function setTonalPercBalance(v) {
 // and leave the page blank, so the reset gesture must never depend on one.
 function fullReset() {
   if (playing) togglePlay();
+  // Cancel any per-track pattern-generation steps still queued from a
+  // RAND/AUTO that fired just before the reset — otherwise they land a
+  // moment AFTER it and re-mute/re-level tracks the reset just defaulted.
+  _pendingRandTimeouts.forEach(id => clearTimeout(id)); _pendingRandTimeouts = [];
   _recallSnapB = null;
   window._resetRecallAB?.();
   setTrackPulseMode('a');
@@ -18607,6 +18652,33 @@ function fullReset() {
   // stay tinted to the old custom color after a reset. Track lines always
   // stay transparent, so there's nothing to re-sync there anymore.
   if (window._applyEmptyCellColor) window._applyEmptyCellColor();
+
+  // RESET also returns, per direct request: every RANDOMIZATION menu
+  // setting (toggles, AUTO off, NEW PATTERN EVERY 4 BARS, DRUM MUSIC RATIO
+  // 2/4, NOTE INTENSITY LOW), every volume/mix slider (MAIN VOL, 8-BIT MIX,
+  // REVERB MIX/SIZE/ON BEAT — their on-screen positions too, not just the
+  // values) and every track button (delay/R etc. — buildUI() below redraws
+  // the rows from these reset values) to their defaults.
+  const _setCb = (id, on) => { const c = document.getElementById(id); if (c) c.checked = !!on; };
+  setRandomizeReverb(false);          _setCb('randomizeReverbToggle', false);
+  setRandomize8BitMix(false);         _setCb('randomize8BitMixToggle', false);
+  setRandomizeBeatType(true);         _setCb('randomizeBeatTypeToggle', true);
+  setRandomizeDrumFx(false);          _setCb('randomizeDrumFxToggle', false);
+  setRandomizeDrumMusicRatio(true);   _setCb('randomizeDrumMusicRatioToggle', true);
+  setRandomizeNoteIntensity(true);    _setCb('randomizeNoteIntensityToggle', true);
+  _setCb('automateToggle', false); if (typeof _syncAutoPeriodRow === 'function') _syncAutoPeriodRow();
+  setAutoRandPeriod(0); { const sl = document.getElementById('autoRandPeriodSlider'); if (sl) sl.value = 0; }
+  setTonalPercBalance(2); { const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = 2; }
+  setIntensity(25); { const sl = document.getElementById('intensitySlider'); if (sl) sl.value = 25; }
+  setMasterVol(0.8);
+  setEightBitMix(0); { const sl = document.getElementById('eightBitMixSlider'); if (sl) sl.value = 0; }
+  const _setSl = (id, v, readoutId) => { const sl = document.getElementById(id); if (sl) sl.value = v; const r = readoutId && document.getElementById(readoutId); if (r) r.textContent = v; };
+  _setSl('delayMixBar', 30, 'reverbMixVal');
+  _setSl('reverbIntensityBar', 51, 'reverbIntensityVal');
+  _setSl('beatReverbMixBar', 24, 'beatReverbMixVal');
+  _setSl('beatVolBar', Math.round(_beatVolRaw * 100));
+  for (let tr = 0; tr < NUM_TRACKS; tr++) { trackDelay[tr] = false; }
+  if (typeof _instrVolRec !== 'undefined') _instrVolRec.fill(null); // default volumes above are absolute — no instrument offset to remember
 
   buildUI(); // rebuild every track row's DOM fresh from the reset state above
   // Track 1 is no longer special — no forced FX or auto-rand re-engagement
