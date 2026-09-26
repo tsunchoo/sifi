@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 17:52:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 17:57:27 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2018,7 +2018,14 @@ body.performance-mode header { padding-bottom: 10px; }
   var KEY_LIVE = '_sifiBlackBox', KEY_REPORTS = '_sifiCrashReports';
   var t0 = Date.now(), sid = t0.toString(36) + Math.random().toString(36).slice(2, 6);
   var crumbs = [], errors = [], samples = [];
-  var stats = { audioCtx: 0, nodes: 0, nodeTypes: {}, bufMB: 0, decodes: 0, blobsLive: 0, canvases: 0 };
+  var stats = { audioCtx: 0, nodes: 0, nodeTypes: {}, bufMB: 0, decodes: 0, blobsLive: 0, canvases: 0, liveNodes: 0, liveBufMB: 0, sounding: 0 };
+  // LIVE counts (not just totals created): FinalizationRegistry tells us
+  // when the browser actually frees an audio node / buffer, so liveNodes and
+  // liveBufMB are what's really still held in memory (lagging a little
+  // behind, since it depends on garbage collection). 'sounding' = sources
+  // started and not yet ended — a figure that keeps climbing means voices
+  // that never stop (a real leak: each one pins its whole node chain).
+  var FR = window.FinalizationRegistry ? new FinalizationRegistry(function(v){ if (v > 0) stats.liveBufMB -= v; else stats.liveNodes--; }) : null;
   function now(){ return ((Date.now() - t0) / 1000).toFixed(1) + 's'; }
   function crumb(s){ crumbs.push(now() + ' ' + s); if (crumbs.length > 40) crumbs.shift(); }
   window._crashCrumb = crumb;
@@ -2034,9 +2041,16 @@ body.performance-mode header { padding-bottom: 10px; }
       Object.getOwnPropertyNames(P).forEach(function(n){
         if (!/^create/.test(n) || typeof P[n] !== 'function') return;
         var o = P[n];
+        var isSrc = /^create(Oscillator|BufferSource|ConstantSource)$/.test(n);
         P[n] = function(){ stats.nodes++; stats.nodeTypes[n] = (stats.nodeTypes[n] || 0) + 1;
-          if (n === 'createBuffer') stats.bufMB += (arguments[0] * arguments[1] * 4) / 1048576;
-          return o.apply(this, arguments); };
+          var r = o.apply(this, arguments);
+          if (n === 'createBuffer') { var mb = (arguments[0] * arguments[1] * 4) / 1048576; stats.bufMB += mb; stats.liveBufMB += mb; if (FR) FR.register(r, mb); }
+          else if (r && typeof r === 'object') { stats.liveNodes++; if (FR) FR.register(r, 0); }
+          if (isSrc && r && r.start) {
+            var st = r.start;
+            r.start = function(){ stats.sounding++; r.addEventListener('ended', function(){ stats.sounding--; }, { once: true }); r.start = st; return st.apply(r, arguments); };
+          }
+          return r; };
       });
       var od = P.decodeAudioData;
       if (od) P.decodeAudioData = function(){ stats.decodes++; return od.apply(this, arguments); };
@@ -2069,7 +2083,7 @@ body.performance-mode header { padding-bottom: 10px; }
       up: Math.round((Date.now() - t0) / 1000),
       dom: document.getElementsByTagName('*').length,
       anims: g(function(){ return document.getAnimations().length; }),
-      nodes: stats.nodes, bufMB: +stats.bufMB.toFixed(1), blobs: stats.blobsLive, canv: stats.canvases,
+      nodes: stats.nodes, bufMB: +stats.bufMB.toFixed(1), blobs: stats.blobsLive, canv: stats.canvases, liveN: FR ? stats.liveNodes : null, liveMB: FR ? +stats.liveBufMB.toFixed(1) : null, snd: stats.sounding,
       heapMB: g(function(){ return performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null; })
     };
     samples.push(s); if (samples.length > 100) samples.shift();
@@ -2104,10 +2118,10 @@ body.performance-mode header { padding-bottom: 10px; }
     var s = r.stats || {};
     L.push('TOTALS: audioContexts=' + s.audioCtx + ' audioNodesCreated=' + s.nodes + ' bufferMB=' + (s.bufMB || 0).toFixed(1) + ' decodes=' + s.decodes + ' liveBlobURLs=' + s.blobsLive + ' canvases=' + s.canvases);
     L.push('node types: ' + Object.keys(s.nodeTypes || {}).map(function(k){ return k.replace('create', '') + '=' + s.nodeTypes[k]; }).join(' '));
-    L.push('TREND (every 3s, up to last 5 min) up/dom/anims/nodes/bufMB/blobs/canv/heap:');
+    L.push('TREND (every 3s, up to last 5 min) up / dom / anims / LIVE nodes / LIVE bufferMB / sounding / created nodes / created bufMB / blobs / heap:');
     var sm = r.samples || [], step = Math.max(1, Math.floor(sm.length / 20));
-    for (var i = 0; i < sm.length; i += step) { var x = sm[i]; L.push('  ' + [x.up + 's', x.dom, x.anims, x.nodes, x.bufMB, x.blobs, x.canv, x.heapMB].join(' / ')); }
-    if (sm.length) { var z = sm[sm.length - 1]; L.push('  ' + [z.up + 's', z.dom, z.anims, z.nodes, z.bufMB, z.blobs, z.canv, z.heapMB].join(' / ') + '  <- last'); }
+    for (var i = 0; i < sm.length; i += step) { var x = sm[i]; L.push('  ' + [x.up + 's', x.dom, x.anims, x.liveN, x.liveMB, x.snd, x.nodes, x.bufMB, x.blobs, x.heapMB].join(' / ')); }
+    if (sm.length) { var z = sm[sm.length - 1]; L.push('  ' + [z.up + 's', z.dom, z.anims, z.liveN, z.liveMB, z.snd, z.nodes, z.bufMB, z.blobs, z.heapMB].join(' / ') + '  <- last'); }
     L.push('ERRORS: ' + ((r.errors || []).length ? '' : 'none'));
     (r.errors || []).forEach(function(e){ L.push('  ' + e); });
     L.push('LAST ACTIONS:');
@@ -2200,7 +2214,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:52:39 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 17:57:27 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
