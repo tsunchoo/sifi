@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-26 00:42:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 01:10:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -542,7 +542,7 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    button-anchored-popup dimensions. */
 .reverb-menu-inner {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  background: #f5f0e8; padding: 24px; min-width: min(340px, 90vw);
+  background: #f5f0e8; padding: 24px 24px 44px; min-width: min(340px, 90vw); /* +20px at the bottom, per direct request */
   display: flex; flex-direction: column; gap: 16px;
   font-family: 'DM Sans', sans-serif; max-height: 85vh; overflow-y: auto;
 }
@@ -592,6 +592,17 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    dark/light swap .rec-mode-btn.on already uses elsewhere. */
 #exportTapeBtn, #shareTapeLinkBtn, #importTapeBtn { transition: background 0.1s, color 0.1s; }
 #exportTapeBtn:active, #shareTapeLinkBtn:active, #importTapeBtn:active { background:#111; color:#fff; }
+/* RANDOMIZE menu > CURRENT INSTRUMENTS — rollover + trigger effect in the
+   PLAY FLASH color (SETTINGS color picker, --play-flash-color), per direct
+   request. Hover (desktop) / press (touch) lights it; on trigger it holds
+   the flash (.rand-inst-flash) briefly before the menu closes, so the
+   press is actually seen. */
+#randomizeInstrumentsBtn { transition: background 0.08s, color 0.08s; }
+@media (hover: hover) { #randomizeInstrumentsBtn:hover { background: var(--play-flash-color, #f8ff00); color: #111; } }
+#randomizeInstrumentsBtn:active, #randomizeInstrumentsBtn.rand-inst-flash { background: var(--play-flash-color, #f8ff00); color: #111; }
+/* NEW PATTERN EVERY... greyed out (and not adjustable) until AUTO is on, per direct request */
+#autoPeriodRow { transition: opacity 0.15s; }
+#autoPeriodRow.disabled { opacity: 0.35; pointer-events: none; }
 /* WILD toggle — standard pill switch, HIGHLIGHT color when on */
 .wild-toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer; }
 .wild-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -1842,7 +1853,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 00:42:54 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 01:10:14 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2005,12 +2016,12 @@ body.performance-mode header { padding-bottom: 10px; }
      sets them keeps working), plus a one-shot RANDOMIZE CURRENT
      INSTRUMENTS button. -->
 <div id="randMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideRandMenu();">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px 40px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZE</div>
     <!-- At the top, per direct request, so the same drag down from + that
          opens this menu can carry on down and release on it (see the +
          button's drag handling). A normal tap works too. -->
-    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="randomizeCurrentInstruments(); hideRandMenu();">CURRENT INSTRUMENTS</button>
+    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="_triggerRandomizeInstruments(this);">CURRENT INSTRUMENTS</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REVERB</div>
       <label class="wild-toggle">
@@ -2055,13 +2066,13 @@ body.performance-mode header { padding-bottom: 10px; }
     </div>
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTOMATE</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO</div>
       <label class="wild-toggle">
         <input type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
+    <div id="autoPeriodRow" class="disabled" style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NEW PATTERN EVERY...</div>
         <div id="autoRandPeriodReadout" style="font-size:0.6rem;font-family:monospace;color:#333;">4 BARS</div>
@@ -2072,9 +2083,9 @@ body.performance-mode header { padding-bottom: 10px; }
 </div>
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
-    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">COLOR MENU</div>
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">LOOK AND FEEL</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="wildColorsToggle" checked>
         <span class="wild-toggle-slider"></span>
@@ -2104,29 +2115,6 @@ body.performance-mode header { padding-bottom: 10px; }
     <!-- LOGO NOTE JUMP checkbox removed from the UI per direct request — the
          toggle function (setLogoNoteJump) and its checkbox ID are kept
          intact elsewhere for this reason, in case it's reinstated later. -->
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-      <input type="checkbox" id="devNotesGrayscale" onchange="setDevNotesGrayscale(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS GRAYSCALE
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-      <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
-    </label>
-    <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-      <input type="checkbox" id="timeRulerToggle" onchange="setTimeRuler(this.checked)" style="width:14px;height:14px;cursor:pointer;">TIME RULER
-    </label>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER OPACITY</div>
-        <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">20%</div>
-      </div>
-      <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="20" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER THICKNESS</div>
-        <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1px</div>
-      </div>
-      <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="1" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
-    </div>
     <!-- FADER TIP = TOP ROW COLOR removed from the UI per direct request
          — the tip color is hardcoded to #000 now (see .track-vol-tip),
          which is the actual color that was wanted permanently, not a
@@ -2155,6 +2143,27 @@ body.performance-mode header { padding-bottom: 10px; }
         </div>
         <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
+      <!-- NOTE MARKERS GRAYSCALE + all TIME RULER controls moved here (under TOP ROW COLOR) from the main menu, per direct request -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="devNotesGrayscale" onchange="setDevNotesGrayscale(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS GRAYSCALE
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="timeRulerToggle" onchange="setTimeRuler(this.checked)" style="width:14px;height:14px;cursor:pointer;">TIME RULER
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER OPACITY</div>
+          <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">20%</div>
+        </div>
+        <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="20" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER THICKNESS</div>
+          <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1px</div>
+        </div>
+        <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="1" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
 
     </div>
 
@@ -2182,6 +2191,10 @@ body.performance-mode header { padding-bottom: 10px; }
           </label>
         </div>
       </div>
+      <!-- FX/REVERB PULSE moved here (under TRACK BUTTON PULSE) from the main menu, per direct request -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
+      </label>
 
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;justify-content:space-between;">
@@ -4045,6 +4058,11 @@ function setAutomate(on) {
   if (on) { if (window._randStartAuto) window._randStartAuto(); }
   else if (window._randStopAuto) window._randStopAuto();
   const at = document.getElementById('automateToggle'); if (at) at.checked = !!_autoRandLoopActive;
+  _syncAutoPeriodRow();
+}
+function _syncAutoPeriodRow() {
+  const row = document.getElementById('autoPeriodRow');
+  if (row) row.classList.toggle('disabled', !_autoRandLoopActive);
 }
 // DRUM MUSIC RATIO / NOTE INTENSITY (RANDOMIZE MENU toggles, off by
 // default) — when on, every + press first rolls a fresh value for that
@@ -4066,6 +4084,12 @@ function showRandMenu() {
   // the live AUTO state each time the menu opens (AUTO can also be
   // stopped by tapping + while it's running).
   const at = document.getElementById('automateToggle'); if (at) at.checked = !!_autoRandLoopActive;
+  _syncAutoPeriodRow(); // NEW PATTERN EVERY... greyed unless AUTO is on
+}
+function _triggerRandomizeInstruments(btn) {
+  randomizeCurrentInstruments(); // instruments swap right away — the flash is just visual confirmation
+  btn.classList.add('rand-inst-flash');
+  setTimeout(() => { hideRandMenu(); btn.classList.remove('rand-inst-flash'); }, 260);
 }
 function hideRandMenu() {
   const el = document.getElementById('randMenuOverlay');
@@ -17964,7 +17988,18 @@ function setNoteMarkersCircle(on) {
   const pill = document.getElementById('markerStyleToggle'); if (pill) pill.checked = !!on;
   const devCb = document.getElementById('noteMarkersCircleToggle'); if (devCb) devCb.checked = !!on;
   if (typeof _applyCircleRulerOpacity === 'function') _applyCircleRulerOpacity(); // TIME RULER OPACITY 50% in circle mode while the ruler is on — see setTimeRuler
+  _applyMarkerModeRulerThickness();
 }
+// TIME RULER THICKNESS per marker style, per direct request: 4px in
+// SQUARE mode, 1px in CIRCLE mode. Re-applied whenever the marker style
+// changes (and at startup / reset), so the DEV slider still works for
+// fine-tuning in between but each mode always comes back to its own value.
+function _applyMarkerModeRulerThickness() {
+  if (typeof setTimeRulerThickness !== 'function') return;
+  setTimeRulerThickness(document.body.classList.contains('note-markers-circle') ? 1 : 4);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _applyMarkerModeRulerThickness, { once: true });
+else _applyMarkerModeRulerThickness();
 // DEV (SETTINGS tab, bottom of panel) — collapses every marker-tuning
 // slider/toggle (plus a few unrelated settings that happened to sit below
 // NOTE MARKERS = CIRCLES in the panel) behind a single DEV button, per
@@ -18508,7 +18543,7 @@ function fullReset() {
   document.body.classList.remove('notes-grayscale', 'bg-beat-pulse');
   document.body.style.removeProperty('--bg-pulse-color');
   if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(20); // matches the current defaults (20% / 1px)
-  if (typeof setTimeRulerThickness === 'function') setTimeRulerThickness(1);
+  if (typeof _applyMarkerModeRulerThickness === 'function') _applyMarkerModeRulerThickness(); else if (typeof setTimeRulerThickness === 'function') setTimeRulerThickness(1); // 4px square / 1px circle
   if (typeof _applyRainbowMode === 'function') _applyRainbowMode(4); // reset lands on the default mode 4 (PERFORMANCE MODE + TIME RULER), same as a fresh load
   else if (typeof setTimeRuler === 'function') setTimeRuler(false); else document.body.style.removeProperty('--track-line-color');
   document.body.style.removeProperty('--header-text-color');
