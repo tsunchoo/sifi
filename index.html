@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-25 21:38:06 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-26 00:25:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -835,6 +835,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.rand-holding { animation: rand-hold-pulse 0.35s ease-in-out infinite; }
 @keyframes rand-pending-fast-pulse { 0% { background: var(--neutral-top, #555); transform: scale(1); } 50% { background: var(--top-row-pressed-bg); transform: scale(1.06); } 100% { background: var(--neutral-top, #555); transform: scale(1); } }
 #randBtn.rand-pending-fast { animation: rand-pending-fast-pulse var(--rand-pending-dur, 0.3s) ease-in-out; }
+#randomizeInstrumentsBtn.drag-hover { background: #111 !important; color: #fff !important; } /* drag-from-+ hover, see the + button's RANDOMIZE MENU drag */
 #randBtn.btn-flash-blue { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 #clearBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 #scratchBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
@@ -1497,7 +1498,7 @@ body.note-markers-circle .step-cell.legato-tail.playing::after {
    higher-specificity rule below that sets its full geometry itself. */
 .step-cell.legato-start.on::after, .step-cell.legato-start.soft::after {
   left: var(--note-marker-square-inset, 12%); right: var(--note-marker-square-inset, 12%);
-  top: 50%; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: translateY(-50%); border-radius: 0;
+  top: 0; bottom: auto; height: auto; aspect-ratio: 1 / 1; transform: none; border-radius: 0; /* pinned to the TOP of the cell (was vertically centred), per direct report — its top edge now lines up exactly with the top-stuck tail bar that follows it, with the ruler off too (ruler-on is handled by the top:0/bottom:0 rule further down) */
   opacity: var(--note-marker-opacity, 1);
 }
 /* With TIME RULER on: head sits flush on the ruler line like every other
@@ -1842,7 +1843,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-25 21:38:06 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-26 00:25:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2006,36 +2007,53 @@ body.performance-mode header { padding-bottom: 10px; }
      INSTRUMENTS button. -->
 <div id="randMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideRandMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
-    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZE MENU</div>
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZE</div>
+    <!-- At the top, per direct request, so the same drag down from + that
+         opens this menu can carry on down and release on it (see the +
+         button's drag handling). A normal tap works too. -->
+    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="randomizeCurrentInstruments(); hideRandMenu();">CURRENT INSTRUMENTS</button>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">RANDOMIZE REVERB</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REVERB</div>
       <label class="wild-toggle">
         <input type="checkbox" id="randomizeReverbToggle" onchange="setRandomizeReverb(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">RANDOMIZE 8-BIT MIX</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">8-BIT MIX</div>
       <label class="wild-toggle">
         <input type="checkbox" id="randomize8BitMixToggle" onchange="setRandomize8BitMix(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">RANDOMIZE BEAT TYPE</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BEAT TYPE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="randomizeBeatTypeToggle" checked onchange="setRandomizeBeatType(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">RANDOMIZE BEAT FX</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BEAT FX</div>
       <label class="wild-toggle">
         <input type="checkbox" id="randomizeDrumFxToggle" onchange="setRandomizeDrumFx(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
-    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" style="margin-top:4px;" onclick="randomizeCurrentInstruments(); hideRandMenu();">RANDOMIZE CURRENT INSTRUMENTS</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DRUM MUSIC RATIO</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="randomizeDrumMusicRatioToggle" onchange="setRandomizeDrumMusicRatio(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE INTENSITY</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="randomizeNoteIntensityToggle" onchange="setRandomizeNoteIntensity(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
   </div>
 </div>
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
@@ -2363,14 +2381,14 @@ body.performance-mode header { padding-bottom: 10px; }
 
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS V MUSIC</div>
+          <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUM MUSIC RATIO</div>
           <div id="tonalPercBalanceReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">2 / 4</div>
         </div>
         <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">INTENSITY: MELLOW TO MENTAL</div>
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">NOTE INTENSITY</div>
         <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
@@ -3600,7 +3618,7 @@ function playUiSound(name) {
   // their existing relative levels — covers rewind/rewind2, Stop,
   // StopReversed, Cymbal, Rand, and the plain 0.7 default (click, play,
   // clickoff).
-  g.gain.value = (name === 'rewind' ? 0.625 : name === 'Stop' ? 0.7 * 0.376 : name === 'StopReversed' ? 0.7 * 0.376 : name === 'Cymbal' ? 0.7 * 0.299 : name === 'Rand' ? 0.7 * 0.3548 : 0.7) * 0.7943;
+  g.gain.value = (name === 'rewind' ? 0.625 : name === 'Stop' ? 0.7 * 0.376 : name === 'StopReversed' ? 0.7 * 0.376 : name === 'Cymbal' ? 0.7 * 0.299 : name === 'Rand' ? 0.7 * 0.3548 : name === 'tinyclick' ? 0.7 * 0.7079 : 0.7) * 0.7943; // tinyclick (header icon drags) -3dB, per direct request
   if (window._buttonSoundsToMix === false) {
     // Straight to the speakers, level-matched to the mix path (see above).
     g.gain.value *= (masterGain ? masterGain.gain.value : 1) * (window._makeupGain ? window._makeupGain.gain.value : 1);
@@ -4011,14 +4029,24 @@ function setRandomizeDrumFx(on) { window._randomizeDrumFx = !!on; }
 // having to lock it from the BEAT menu).
 window._randomizeBeatType = true;
 function setRandomizeBeatType(on) { window._randomizeBeatType = !!on; }
+// DRUM MUSIC RATIO / NOTE INTENSITY (RANDOMIZE MENU toggles, off by
+// default) — when on, every + press first rolls a fresh value for that
+// SETTINGS slider (DRUM MUSIC RATIO: any of its 7 positions 0-6; NOTE
+// INTENSITY: any of its 5 notches, MELLOW..MENTAL), then builds the new
+// pattern with it. The slider itself moves to show the value picked.
+window._randomizeDrumMusicRatio = false; window._randomizeNoteIntensity = false;
+function setRandomizeDrumMusicRatio(on) { window._randomizeDrumMusicRatio = !!on; }
+function setRandomizeNoteIntensity(on) { window._randomizeNoteIntensity = !!on; }
 function showRandMenu() {
   const el = document.getElementById('randMenuOverlay');
   if (el) el.style.display = 'flex';
   // Same ghost-click guard as the COLOR MENU's RANDOMIZE COLORS button —
   // the menu opens mid-gesture, so briefly refuse clicks on the one-shot
   // button in case the release lands on it.
-  const b = document.getElementById('randomizeInstrumentsBtn');
-  if (b) { b.style.pointerEvents = 'none'; setTimeout(() => { b.style.pointerEvents = ''; }, 600); }
+  // (No ghost-click guard needed on RANDOMIZE CURRENT INSTRUMENTS: the
+  // opening gesture's own release is handled by the + button itself — see
+  // _randMenuDragHover — and touchend preventDefault stops any synthetic
+  // click from landing on it.)
 }
 function hideRandMenu() {
   const el = document.getElementById('randMenuOverlay');
@@ -4567,6 +4595,37 @@ function updateVolFillDisplay(tr) {
 // log-scaled) by +0.2 and snaps back to gain-space, once, whenever a track
 // newly becomes DOUBLE BASS — guarded by prevKey so re-picking it or RAND
 // landing on it again on an already-dbass track never stacks the boost.
+// INSTRUMENT VOLUME OFFSETS — DOUBLE BASS gets a built-in +0.65 slider-
+// position boost, RYTM GTR a -0.35 cut. BUGFIX (per direct report: bass
+// tracks creeping up until "completely maxed out"): these used to be
+// applied every time a track BECAME that instrument but never taken back
+// off when it switched to something else, so dbass -> other -> dbass ->
+// ... (via RAND, the sound picker, or RANDOMIZE CURRENT INSTRUMENTS)
+// stacked another +0.65 each time until the slider pinned at max. Now
+// every instrument change goes through _setInstrVolOffset(): it
+// remembers the pre-offset position (base) and the position it set
+// (applied), removes the old instrument's offset when leaving it
+// (keeping any manual volume change made in between: base + (current -
+// applied)), then applies the new instrument's offset, if any. If a track
+// arrives at an offset instrument some other way (a loaded slot/tape, a
+// reset) with no record, the offset is assumed to already be baked into
+// its volume, so leaving still removes it rather than stacking again.
+const _INSTR_VOL_OFFSET = { dbass: 0.65, stab: -0.35 };
+const _instrVolRec = new Array(NUM_TRACKS).fill(null);
+function _setInstrVolOffset(tr, prevKey, k) {
+  if (prevKey === k) return;
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const cur = volGainToPos(trackVolume[tr]);
+  const rec = _instrVolRec[tr];
+  const base = clamp01(rec && rec.key === prevKey ? rec.base + (cur - rec.applied) : cur - (_INSTR_VOL_OFFSET[prevKey] || 0));
+  const off = _INSTR_VOL_OFFSET[k] || 0;
+  const newPos = clamp01(base + off);
+  _instrVolRec[tr] = off ? { key: k, base, applied: newPos } : null;
+  if (Math.abs(newPos - cur) < 1e-6) return;
+  trackVolume[tr] = volPosToGain(newPos);
+  if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
+  updateVolFillDisplay(tr);
+}
 function _applyDoubleBassVolBoost(tr) {
   const pos = Math.min(1, volGainToPos(trackVolume[tr]) + 0.65); // +0.2 more position on top of the previous +0.45 (0.2 → 0.45 → 0.65), per direct request
   trackVolume[tr] = volPosToGain(pos);
@@ -9662,30 +9721,17 @@ function beatMenuHighlightUnder(clientX, clientY) {
   if (!menu) return null;
   const el = document.elementFromPoint(clientX, clientY);
   menu.querySelectorAll('.beat-type-item, .beat-ctrl-row button').forEach(it => it.classList.remove('drag-hover'));
-  const item = el && el.closest ? el.closest('.beat-type-item, .beat-ctrl-row button') : null;
+  // Only the beat-type grid responds to the hold/drag that OPENS the menu,
+  // per direct request — the top ctrl row (L / < / FX / N) is deliberately
+  // excluded from this drag-to-select gesture (no hover, no release-commit,
+  // and no drag-hover hold on N starting auto mode), so the same touch that
+  // opened the menu can never switch one of them on/off by accident. They
+  // still work normally with a separate tap once the menu is open (see
+  // _wireBeatMenuItemTaps-style handlers below).
+  const item = el && el.closest ? el.closest('.beat-type-item') : null;
   if (item) item.classList.add('drag-hover');
-  // beatCtrlRand specifically: entering auto-random-beat mode is a HOLD
-  // now, not a double-tap — tracks how long the finger has stayed on this
-  // one button during the drag-hover, separate from the release-triggered
-  // single-randomize/turn-off action in onBeatCtrlRandTap below.
-  if (item && item.id === 'beatCtrlRand') {
-    if (_beatCtrlRandHoldTarget !== item) {
-      _beatCtrlRandHoldTarget = item;
-      clearTimeout(_beatCtrlRandHoldTimer);
-      _beatCtrlRandHoldTimer = setTimeout(() => {
-        if (_beatCtrlRandHoldTarget === item && !_beatAutoRandActive) {
-          _beatAutoRandActive = true;
-          _beatAutoRandBarCount = 0;
-          if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
-          updateBeatCtrlRow();
-          _beatCtrlRandHeldTriggered = true; // so the eventual release doesn't also fire a plain tap action
-        }
-      }, 400);
-    }
-  } else {
-    _beatCtrlRandHoldTarget = null;
-    clearTimeout(_beatCtrlRandHoldTimer);
-  }
+  _beatCtrlRandHoldTarget = null;
+  clearTimeout(_beatCtrlRandHoldTimer);
   return item;
 }
 function openBeatMenu() {
@@ -10138,8 +10184,7 @@ function selectSound(tr, k) {
     trackFx[tr] = { x: 0.5, y: 0.5 };
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.add('on');
   }
-  if (k === 'dbass' && prevKey !== 'dbass') _applyDoubleBassVolBoost(tr);
-  if (k === 'stab' && prevKey !== 'stab') _applyRytmGtrVolCut(tr);
+  _setInstrVolOffset(tr, prevKey, k); // DOUBLE BASS boost / RYTM GTR cut — applied on arrival AND removed on departure now (see _setInstrVolOffset)
   if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
   setTrackNameColor(tr, k);
@@ -13642,6 +13687,18 @@ function randAll(mode, opts) {
   // RAND press (the "+" button and its auto-mode) also rolls a fresh
   // 8-BIT MIX value, same as tempo/beat type above.
   if (window._randomize8BitMix) setEightBitMix(Math.random() * 100);
+  // DRUM MUSIC RATIO / NOTE INTENSITY (RANDOMIZE MENU toggles) — rolled
+  // here, before the instrument pool and note generation below read them.
+  if (window._randomizeDrumMusicRatio) {
+    const v = Math.floor(Math.random() * 7);
+    setTonalPercBalance(v);
+    const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = v;
+  }
+  if (window._randomizeNoteIntensity) {
+    const v = [0, 25, 50, 75, 100][Math.floor(Math.random() * 5)];
+    setIntensity(v);
+    const sl = document.getElementById('intensitySlider'); if (sl) sl.value = v;
+  }
   // RANDOMIZE DRUM FX (SETTINGS toggle) — off by default; when on, every
   // RAND press also rolls a fresh state for DRUMS' own FX button (off/FX/
   // FX+BLAST) and REVERB ON BEAT, same idea as RANDOMIZE 8-BIT MIX above.
@@ -14286,8 +14343,7 @@ function randAll(mode, opts) {
     if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && typeof _noiseGateNodes !== 'undefined' && _noiseGateNodes[tr]) {
       try { _noiseGateNodes[tr].src.stop(); } catch(e) {} delete _noiseGateNodes[tr];
     }
-    if (k === 'dbass' && trackInstruments[tr] !== 'dbass') _applyDoubleBassVolBoost(tr);
-    if (k === 'stab' && trackInstruments[tr] !== 'stab') _applyRytmGtrVolCut(tr);
+    _setInstrVolOffset(tr, trackInstruments[tr], k); // see _setInstrVolOffset — no more stacking boosts
     trackInstruments[tr] = k;
     if (k === 'ngate' && typeof initNoiseGate === 'function' && ctx) initNoiseGate(tr);
     // A new RAND pattern clears any Delay/FX/BLAST this (unlocked) track was
@@ -14535,7 +14591,7 @@ function randAll(mode, opts) {
       if (target !== -1) {
         const bassChoiceKeys = Object.keys(INSTRUMENTS).filter(k => bassKeys.has(k));
         const forcedBass = bassChoiceKeys[Math.floor(Math.random() * bassChoiceKeys.length)];
-        if (forcedBass === 'dbass' && trackInstruments[target] !== 'dbass') _applyDoubleBassVolBoost(target);
+        _setInstrVolOffset(target, trackInstruments[target], forcedBass);
         trackInstruments[target] = forcedBass;
         const tbF = document.getElementById(`tbtn-${target}`); if (tbF) tbF.textContent = INSTRUMENTS[forcedBass]?.name || forcedBass;
         setTrackNameColor(target, forcedBass);
@@ -14980,8 +15036,20 @@ function stopAllAutoRand() {
   // release either.
   const DRAG_DOWN_PX = 30, MOVE_CANCEL_PX = 6;
   let _pressStartY = null, _dragOpened = false;
-  const pressMove = y => {
-    if (!_pressActive || _pressStartY === null || holdFired || _dragOpened) return;
+  // Once the drag has opened the menu, keep following the finger: hovering
+  // RANDOMIZE CURRENT INSTRUMENTS highlights it, releasing on it fires it
+  // (and closes the menu). Releasing anywhere else just leaves the menu open.
+  const instBtnUnder = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    return el && el.closest ? el.closest('#randomizeInstrumentsBtn') : null;
+  };
+  const _randMenuDragHover = (x, y) => {
+    const b = document.getElementById('randomizeInstrumentsBtn');
+    if (b) b.classList.toggle('drag-hover', !!instBtnUnder(x, y));
+  };
+  const pressMove = (y, x) => {
+    if (_dragOpened) { if (x !== undefined) _randMenuDragHover(x, y); return; }
+    if (!_pressActive || _pressStartY === null || holdFired) return;
     const dy = y - _pressStartY;
     if (Math.abs(dy) > MOVE_CANCEL_PX) clearTimeout(holdTimer);
     if (dy > DRAG_DOWN_PX) {
@@ -15001,13 +15069,19 @@ function stopAllAutoRand() {
     btn.classList.add('rand-holding'); // fast pulse while held, so it's clear the press is registering
     holdTimer = setTimeout(() => { holdFired = true; startAuto(); }, HOLD_MS);
   };
-  const endPress = () => {
+  const endPress = (endX, endY) => {
     if (!_pressActive) return; // nothing actually held on this button — don't let an unrelated mouseup elsewhere on the page fire a RAND
     _pressActive = false;
     clearTimeout(holdTimer);
     btn.classList.remove('rand-holding');
     _pressStartY = null;
-    if (_dragOpened) { _dragOpened = false; return; } // press became a drag-down that opened the RANDOMIZE MENU — not a tap
+    if (_dragOpened) { // press became a drag-down that opened the RANDOMIZE MENU — not a tap
+      _dragOpened = false;
+      const b = document.getElementById('randomizeInstrumentsBtn');
+      if (b) b.classList.remove('drag-hover');
+      if (endX !== undefined && instBtnUnder(endX, endY)) { randomizeCurrentInstruments(); hideRandMenu(); }
+      return;
+    }
     if (!holdFired) singleFire(); // only a plain tap fires the single rand, and only on release
   };
 
@@ -15028,10 +15102,11 @@ function stopAllAutoRand() {
     beginPress();
     _pressStartY = e.touches[0].clientY;
   }, { passive: false });
-  btn.addEventListener('touchmove', e => { e.preventDefault(); pressMove(e.touches[0].clientY); }, { passive: false });
+  btn.addEventListener('touchmove', e => { e.preventDefault(); pressMove(e.touches[0].clientY, e.touches[0].clientX); }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault();
-    endPress();
+    const t = e.changedTouches && e.changedTouches[0];
+    endPress(t ? t.clientX : undefined, t ? t.clientY : undefined);
   }, { passive: false });
   btn.addEventListener('touchcancel', cancelPress);
   btn.addEventListener('mousedown', e => {
@@ -15039,7 +15114,7 @@ function stopAllAutoRand() {
     beginPress();
     _pressStartY = e.clientY;
   });
-  document.addEventListener('mousemove', e => { if (_pressActive) pressMove(e.clientY); });
+  document.addEventListener('mousemove', e => { if (_pressActive) pressMove(e.clientY, e.clientX); });
   // Document-wide, not button-only — mouseup fires on whatever element is
   // currently under the pointer at release time (unlike touchend, which
   // stays bound to wherever the touch started), so if the pointer drifted
@@ -15049,9 +15124,9 @@ function stopAllAutoRand() {
   // gesture already accounts for. Guarded by _pressActive above so an
   // unrelated mouseup anywhere else on the page (this listener fires for
   // all of them) can't spuriously fire a RAND.
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('mouseup', e => {
     if (Date.now() - _lastTouchTime < 500) return;
-    endPress();
+    endPress(e.clientX, e.clientY);
   });
 })();
 
@@ -17750,13 +17825,26 @@ function _makeSwipeIcon(btn, opts) {
   _makeSwipeIcon(b, { onSwipe: () => setNoteMarkersCircle(!document.body.classList.contains('note-markers-circle')) });
 })();
 function _cycleRainbowMode() {
+  // Cycle ORDER changed per direct request (in terms of the original
+  // numbering above): 4 -> 2 -> 1 -> 3 -> back to 4, and the app now STARTS
+  // in mode 4 (PERFORMANCE MODE + TIME RULER) — see _applyRainbowMode(4) at
+  // startup below. Mode numbers: 1 normal, 2 PERFORMANCE, 3 normal + RULER,
+  // 4 PERFORMANCE + RULER. The current mode is still read from the real
+  // states, so it steps on correctly even after changes from the COLOR MENU.
   const perf = document.body.classList.contains('performance-mode');
   const ruler = !!window._timeRulerEnabled;
-  const next = ((perf ? 1 : 0) + (ruler ? 2 : 0) + 1) % 4;
-  const wantPerf = (next & 1) === 1, wantRuler = (next & 2) === 2;
-  if (wantPerf !== perf) setPerformanceMode(wantPerf);
-  if (wantRuler !== ruler && typeof setTimeRuler === 'function') setTimeRuler(wantRuler);
+  const cur = ruler ? (perf ? 4 : 3) : (perf ? 2 : 1);
+  const ORDER = [4, 2, 1, 3];
+  _applyRainbowMode(ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length]);
 }
+function _applyRainbowMode(mode) {
+  const wantPerf = mode === 2 || mode === 4, wantRuler = mode === 3 || mode === 4;
+  if (wantPerf !== document.body.classList.contains('performance-mode')) setPerformanceMode(wantPerf);
+  if (wantRuler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(wantRuler);
+}
+// DEFAULT MODE = 4 (PERFORMANCE MODE + TIME RULER), per direct request.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => _applyRainbowMode(4), { once: true });
+else _applyRainbowMode(4);
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -18401,8 +18489,10 @@ function fullReset() {
   document.body.style.background = '';
   document.body.classList.remove('notes-grayscale', 'bg-beat-pulse');
   document.body.style.removeProperty('--bg-pulse-color');
-  if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(35);
-  if (typeof setTimeRuler === 'function') setTimeRuler(false); else document.body.style.removeProperty('--track-line-color');
+  if (typeof setTimeRulerOpacity === 'function') setTimeRulerOpacity(20); // matches the current defaults (20% / 1px)
+  if (typeof setTimeRulerThickness === 'function') setTimeRulerThickness(1);
+  if (typeof _applyRainbowMode === 'function') _applyRainbowMode(4); // reset lands on the default mode 4 (PERFORMANCE MODE + TIME RULER), same as a fresh load
+  else if (typeof setTimeRuler === 'function') setTimeRuler(false); else document.body.style.removeProperty('--track-line-color');
   document.body.style.removeProperty('--header-text-color');
   document.body.style.removeProperty('--header-text-dim');
   document.body.style.removeProperty('--reel-filter');
