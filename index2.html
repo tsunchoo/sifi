@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 02:40:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 06:32:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:40:50 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 06:32:12 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2516,7 +2516,7 @@ body.performance-mode header { padding-bottom: 10px; }
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:16px;">DRUMS</div>
     <div style="display:block;width:100%;margin-bottom:22px;position:relative;z-index:2;">
       <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">BEAT VOL</div>
-      <input type="range" id="beatVolBar" min="0" max="100" value="43" class="master-vol-slider" style="margin-top:24px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
+      <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="margin-top:24px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
     </div>
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
@@ -14022,7 +14022,7 @@ function _buildBounceGraph(targetCtx) {
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
-  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.3861; // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.5711; /* +3dB default DRUMS level, matching _beatVolRaw */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
   // so an isolated track/BEAT stem doesn't carry every other track along
@@ -19622,7 +19622,7 @@ function fullReset() {
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
   _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false;
   _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
-  _beatVolRaw = 0.4043; _applyBeatVolWithDuck();
+  _beatVolRaw = 0.5711; _applyBeatVolWithDuck(); // +3dB default
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setValueAtTime(_beatReverbGainForMix(_beatReverbMix), ctx.currentTime); // on by default now, not silenced
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setValueAtTime(0, ctx.currentTime);
@@ -20150,7 +20150,7 @@ async function initAudio() {
     window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.3861; window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711; /* +3dB default DRUMS level, matching _beatVolRaw */ window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -20758,7 +20758,7 @@ function stopRecallLoop() {
 // the gain actually applied to the node also folds in a -1.5dB duck
 // whenever FX or BLAST is engaged on BEAT, so the dial itself always
 // reflects what the user set rather than the post-duck level.
-let _beatVolRaw = 0.4043; // -0.5dB more (was 0.4283)
+let _beatVolRaw = 0.5711; // +3dB (was 0.4043), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
 function _applyBeatVolWithDuck() {
   if (!window._beatGain) return;
