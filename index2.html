@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 00:08:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 01:58:23 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -907,7 +907,16 @@ html body .track-vol-bar.muted .track-vol-fill-solid { box-shadow: none; }
 /* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
 html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-hl, var(--play-hl, #fff)) !important;
   /* glow in the handle's inverse colour, same size/strength as the vol fill glow (VOL FILL GLOW slider scales both) */
-  box-shadow: 0 0 calc(4px * var(--fillglow, 1)) color-mix(in srgb, var(--fader-glow, #000) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1)) color-mix(in srgb, var(--fader-glow, #000) 50%, transparent); }
+  box-shadow: 0 0 calc(4px * var(--fillglow, 1) * 0.5) color-mix(in srgb, var(--fader-glow, #000) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1) * 0.5) color-mix(in srgb, var(--fader-glow, #000) 50%, transparent); } /* half the vol fill's glow, per direct request */
+/* BUGFIX ("fader tips are sometimes different colours, like it's per
+   track"): the whole vol bar was drawn at TRACK BUTTON OPACITY (75%), so
+   the handle was see-through — each row's own tinted background, and in
+   TEST mode the level meter passing behind it, showed through and shifted
+   its colour track by track. The bar itself is now fully opaque (muted /
+   empty tracks still dim) and the see-through is applied to the fill
+   instead, so the handle is the same solid colour on every track. */
+html body.fader-tip-hl .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1; }
+html body.fader-tip-hl .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: var(--track-default-opacity, 1); }
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
@@ -2052,7 +2061,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
-:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 1.5; } /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
+:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 1.5; --rglow: 1.5; } /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
 /* ── Track lane label — now inside ctrl row, removed ── */
 
@@ -2360,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 00:08:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 01:58:23 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2674,13 +2683,6 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="trackGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
         </div>
         <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW GLOW</div>
-          <div id="topGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-        </div>
-        <input type="range" id="topGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('topGlowVal').textContent=this.value+'%'" onchange="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
