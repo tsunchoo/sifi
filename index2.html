@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 01:58:23 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 02:10:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -907,7 +907,7 @@ html body .track-vol-bar.muted .track-vol-fill-solid { box-shadow: none; }
 /* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
 html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-hl, var(--play-hl, #fff)) !important;
   /* glow in the handle's inverse colour, same size/strength as the vol fill glow (VOL FILL GLOW slider scales both) */
-  box-shadow: 0 0 calc(4px * var(--fillglow, 1) * 0.5) color-mix(in srgb, var(--fader-glow, #000) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1) * 0.5) color-mix(in srgb, var(--fader-glow, #000) 50%, transparent); } /* half the vol fill's glow, per direct request */
+  box-shadow: 0 0 calc(4px * var(--fillglow, 1) * 0.25) color-mix(in srgb, var(--fader-glow, #000) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1) * 0.25) color-mix(in srgb, var(--fader-glow, #000) 50%, transparent); } /* a quarter of the vol fill's glow, per direct request */
 /* BUGFIX ("fader tips are sometimes different colours, like it's per
    track"): the whole vol bar was drawn at TRACK BUTTON OPACITY (75%), so
    the handle was see-through — each row's own tinted background, and in
@@ -915,8 +915,8 @@ html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-h
    its colour track by track. The bar itself is now fully opaque (muted /
    empty tracks still dim) and the see-through is applied to the fill
    instead, so the handle is the same solid colour on every track. */
-html body.fader-tip-hl .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1; }
-html body.fader-tip-hl .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: var(--track-default-opacity, 1); }
+html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1; } /* solid handle in every tip colour mode, not just the play-colour one */
+html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: var(--track-default-opacity, 1); }
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
@@ -2148,7 +2148,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track flash-from-top vol-test vol-test-bg-4 fader-tip-hl">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track flash-from-top vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 01:58:23 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:10:36 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2757,7 +2757,7 @@ body.performance-mode header { padding-bottom: 10px; }
         <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="8" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="faderTipHlToggle" checked onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
+        <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
       </label>
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
@@ -3023,16 +3023,16 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
-          <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">75%</div>
+          <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
         </div>
-        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="75" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="100" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
-          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">15%</div>
+          <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="15" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="10" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -12814,8 +12814,8 @@ function setTrackRowBgOpacity(v) {
   const readout = document.getElementById('trackRowBgOpacityReadout');
   if (readout) readout.textContent = v + '%';
 }
-setTrackRowBgDarken(75); // startup default, per direct request — applied immediately since sliders don't fire their own oninput on page load
-setTrackRowBgOpacity(15); // startup default — hard-coded to 15%, per direct request
+setTrackRowBgDarken(100); // startup default 100% (was 75), per direct request — applied immediately since sliders don't fire their own oninput on page load
+setTrackRowBgOpacity(10); // startup default 10% (was 15%), per direct request
 // AUTO (BEST CONTRAST) — same contrast-checking routine as before
 // (_ensureContrast against the volume bar's own resting background,
 // --neutral-top, since that's what the fill actually sits on top of),
@@ -18899,10 +18899,10 @@ function _setRainbowBgZero(on) {
   if (on === !!window._rainbowBgZero) return;
   const sl = document.getElementById('trackRowBgOpacitySlider');
   if (on) {
-    _rainbowBgOpacityBefore = sl ? +sl.value : 15;
+    _rainbowBgOpacityBefore = sl ? +sl.value : 10;
     setTrackRowBgOpacity(0); if (sl) sl.value = 0;
   } else {
-    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 15;
+    const v = _rainbowBgOpacityBefore !== null ? _rainbowBgOpacityBefore : 10;
     setTrackRowBgOpacity(v); if (sl) sl.value = v;
     _rainbowBgOpacityBefore = null;
   }
