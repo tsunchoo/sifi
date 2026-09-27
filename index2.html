@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 21:31:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 22:29:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2387,7 +2387,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 21:31:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 22:29:49 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2673,6 +2673,13 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="bgSatVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
         </div>
         <input type="range" id="bgSatSlider" min="0" max="100" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">LIGHTNESS</div>
+          <div id="bgLightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">77%</div>
+        </div>
+        <input type="range" id="bgLightSlider" min="0" max="100" step="1" value="77" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -3771,21 +3778,23 @@ function recolorTapeWindowImg(bgHex) {
 // preview in the swatch while dragging and apply when the menu closes, like
 // every other slider in the menu. They're re-read from the current
 // background each time the menu opens, so WILD changes are reflected.
-function _bgCtlVals() { return [+document.getElementById('bgHueSlider').value, +document.getElementById('bgSatSlider').value, 77]; } // lightness pinned at 77%
+function _bgCtlVals() { return ['bgHue', 'bgSat', 'bgLight'].map(k => +document.getElementById(k + 'Slider').value); }
 function _bgCtlHex() { const [h, sat, l] = _bgCtlVals(); return _hslToHex(h, sat / 100, l / 100); }
 function _bgCtlPreview() {
   const [h, sat, l] = _bgCtlVals();
   document.getElementById('bgHueVal').textContent = h + '°';
   document.getElementById('bgSatVal').textContent = sat + '%';
+  document.getElementById('bgLightVal').textContent = l + '%';
   document.getElementById('bgCtlSwatch').style.background = _bgCtlHex();
 }
-function _bgCtlApply() { _applyBgColor(_bgCtlHex(), true); }
+function _bgCtlApply() { window._bgLightPct = +document.getElementById('bgLightSlider').value; _applyBgColor(_bgCtlHex(), true); }
 function _bgCtlSync() {
   const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.getElementById('bgHueSlider').value = Math.round(h);
   document.getElementById('bgSatSlider').value = Math.round(sat * 100);
+  document.getElementById('bgLightSlider').value = Math.round(l * 100);
   _bgCtlPreview();
 }
 // BACKGROUND LOCK (checkbox in the BACKGROUND panel): while ticked, nothing
@@ -3794,9 +3803,9 @@ function _bgCtlSync() {
 window._bgLocked = false;
 function _applyBgColor(hex, fromPanel) {
   if (window._bgLocked && !fromPanel) return;
-  // Background LIGHTNESS pinned at 77%, per direct request — hue and
-  // saturation still come from WILD / the panel, lightness never moves.
-  if (/^#[0-9a-f]{6}$/i.test(hex || '')) { const [bh, bs] = _hexToHsl(hex); hex = _hslToHex(bh, bs, 0.77); }
+  // Background LIGHTNESS held at the panel's LIGHTNESS slider (77% by
+  // default) — WILD / resets only ever change the hue and saturation.
+  if (/^#[0-9a-f]{6}$/i.test(hex || '')) { const [bh, bs] = _hexToHsl(hex); hex = _hslToHex(bh, bs, (window._bgLightPct != null ? window._bgLightPct : 77) / 100); }
   document.documentElement.style.setProperty('--bg', hex);
   const el = document.getElementById('bgColorPicker'); if (el) el.value = hex;
   if (window._applyEmptyCellColor) window._applyEmptyCellColor();
