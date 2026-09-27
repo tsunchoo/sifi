@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 06:32:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 06:51:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -907,7 +907,7 @@ html body .track-vol-bar.muted .track-vol-fill-solid { box-shadow: none; }
 /* FADER TIP = PLAY COLOUR (toggle under FADER WIDTH): the fader handle in the PLAY/STOP button's boosted highlight instead of black. */
 html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-hl, var(--play-hl, #fff)) !important;
   /* glow in the handle's inverse colour, same size/strength as the vol fill glow (VOL FILL GLOW slider scales both) */
-  box-shadow: 0 0 calc(4px * var(--fillglow, 1) * 0.25) color-mix(in srgb, var(--fader-glow, #000) 85%, transparent), 0 0 calc(10px * var(--fillglow, 1) * 0.25) color-mix(in srgb, var(--fader-glow, #000) 50%, transparent); } /* a quarter of the vol fill's glow, per direct request */
+  box-shadow: 0 0 calc(4px * var(--fillglow, 1)) color-mix(in srgb, var(--fader-glow, #000) calc(85% / 8), transparent), 0 0 calc(10px * var(--fillglow, 1)) color-mix(in srgb, var(--fader-glow, #000) calc(50% / 8), transparent); } /* an eighth of the vol fill's glow — same soft spread, 1/8 the STRENGTH. Shrinking the blur radius instead (previous builds) squeezed the same full-strength colour into a thinner band, which read as a hard, more pronounced edge the smaller it got. */
 /* BUGFIX ("fader tips are sometimes different colours, like it's per
    track"): the whole vol bar was drawn at TRACK BUTTON OPACITY (75%), so
    the handle was see-through — each row's own tinted background, and in
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 06:32:12 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 06:51:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -10565,9 +10565,10 @@ function commitBeatMenuSelection(item) {
   btn.removeAttribute('onclick');
   const HOLD_MS = 320;
   const MOVE_OPEN_PX = 12;
-  let holdTimer = null, startX = 0, startY = 0;
+  let holdTimer = null, startX = 0, startY = 0, dragCancelled = false;
 
   btn.addEventListener('touchstart', e => {
+    dragCancelled = false;
     e.preventDefault();
     _pressPulse('beatBtn');
     startX = e.touches[0].clientX; startY = e.touches[0].clientY;
@@ -10579,12 +10580,15 @@ function commitBeatMenuSelection(item) {
   btn.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (!_beatMenuOpen) {
+      // A drag BEFORE the hold completes no longer opens the menu (per
+      // direct request — only a genuine press-and-hold does). Moving past
+      // the threshold just cancels the pending hold, and letting go after
+      // that does nothing (no BEAT toggle either).
       if (Math.abs(t.clientY - startY) > MOVE_OPEN_PX || Math.abs(t.clientX - startX) > MOVE_OPEN_PX) {
         clearTimeout(holdTimer);
-        openBeatMenu();
-      } else {
-        return;
+        if (!dragCancelled) { dragCancelled = true; btn.classList.remove('menu-open'); }
       }
+      return;
     }
     e.preventDefault();
     beatMenuHighlightUnder(t.clientX, t.clientY);
@@ -10611,7 +10615,7 @@ function commitBeatMenuSelection(item) {
       // themselves (see _wireBeatMenuItemTaps below) rather than closing.
     } else {
       btn.classList.remove('menu-open');
-      toggleBeat();
+      if (!dragCancelled) toggleBeat();
     }
   }, { passive: false });
 
@@ -21463,6 +21467,49 @@ document.querySelectorAll('.tape-window').forEach(r => {
 // very likely the actual cause of the tape jumping to the wrong position.)
 
 
+</script>
+
+<script>
+/* SETTINGS SLIDERS APPLY ON CLOSE, per direct request (two crashes happened
+   mid-drag: a glow slider, then VOLUME FILL HEIGHT). Every slider inside the
+   LOOK AND FEEL / DEV menu and the SETTINGS menu now only moves its own
+   thumb and readout while dragging; the actual change is applied once, when
+   the menu closes. Sliders whose own 'input' handler only updates their
+   readout (they already apply on 'change') are left to do that. */
+(function () {
+  const menus = ['devMenuOverlay', 'settingsOverlay'].map(id => document.getElementById(id)).filter(Boolean);
+  if (!menus.length) return;
+  const pending = new Set();
+  let flushing = false;
+  const inMenu = el => menus.some(m => m.contains(el));
+  const readoutFor = el => {
+    const box = el.parentElement; if (!box) return null;
+    return box.querySelector('[id$="Val"], [id$="Readout"]');
+  };
+  const onEv = e => {
+    const el = e.target;
+    if (flushing || !el || el.type !== 'range' || !inMenu(el)) return;
+    const readoutOnlyInput = e.type === 'input' && el.hasAttribute('onchange');
+    if (readoutOnlyInput) return; // let its own readout update run
+    e.stopImmediatePropagation(); e.stopPropagation();
+    pending.add(el);
+    if (e.type === 'input') {
+      const r = readoutFor(el);
+      if (r) { const m = (r.textContent || '').match(/[^\d.\-+]*$/); r.textContent = el.value + (m ? m[0] : ''); }
+    }
+  };
+  document.addEventListener('input', onEv, true);
+  document.addEventListener('change', onEv, true);
+  const flush = () => {
+    if (!pending.size) return;
+    flushing = true;
+    pending.forEach(el => { try { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} });
+    pending.clear();
+    flushing = false;
+  };
+  window._flushMenuSliders = flush;
+  menus.forEach(m => new MutationObserver(() => { if (getComputedStyle(m).display === 'none') flush(); }).observe(m, { attributes: true, attributeFilter: ['style', 'class'] }));
+})();
 </script>
 </body>
 </html>
