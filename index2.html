@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 16:50:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 18:03:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 16:50:50 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 18:03:37 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2634,6 +2634,33 @@ body.performance-mode header { padding-bottom: 10px; }
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">LOOK AND FEEL</div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BACKGROUND</div>
+        <div id="bgCtlSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.2);background:var(--bg);"></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">HUE</div>
+          <div id="bgHueVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0°</div>
+        </div>
+        <input type="range" id="bgHueSlider" min="0" max="360" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">SATURATION</div>
+          <div id="bgSatVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
+        </div>
+        <input type="range" id="bgSatSlider" min="0" max="100" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">LIGHTNESS</div>
+          <div id="bgLightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
+        </div>
+        <input type="range" id="bgLightSlider" min="0" max="100" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+      </div>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
@@ -3721,6 +3748,30 @@ function recolorTapeWindowImg(bgHex) {
   if (img.complete && img.naturalWidth > 0) capture();
   else img.addEventListener('load', capture);
 })();
+// BACKGROUND controls (top of the LOOK AND FEEL menu), per direct request —
+// hue / saturation / lightness for the main background (--bg). Sliders
+// preview in the swatch while dragging and apply when the menu closes, like
+// every other slider in the menu. They're re-read from the current
+// background each time the menu opens, so WILD changes are reflected.
+function _bgCtlVals() { return ['bgHue', 'bgSat', 'bgLight'].map(k => +document.getElementById(k + 'Slider').value); }
+function _bgCtlHex() { const [h, sat, l] = _bgCtlVals(); return _hslToHex(h, sat / 100, l / 100); }
+function _bgCtlPreview() {
+  const [h, sat, l] = _bgCtlVals();
+  document.getElementById('bgHueVal').textContent = h + '°';
+  document.getElementById('bgSatVal').textContent = sat + '%';
+  document.getElementById('bgLightVal').textContent = l + '%';
+  document.getElementById('bgCtlSwatch').style.background = _bgCtlHex();
+}
+function _bgCtlApply() { _applyBgColor(_bgCtlHex()); }
+function _bgCtlSync() {
+  const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+  const [h, sat, l] = _hexToHsl(hex);
+  document.getElementById('bgHueSlider').value = Math.round(h);
+  document.getElementById('bgSatSlider').value = Math.round(sat * 100);
+  document.getElementById('bgLightSlider').value = Math.round(l * 100);
+  _bgCtlPreview();
+}
 function _applyBgColor(hex) {
   document.documentElement.style.setProperty('--bg', hex);
   const el = document.getElementById('bgColorPicker'); if (el) el.value = hex;
@@ -18579,6 +18630,7 @@ function setLeftSpoolRand(on) { _leftSpoolRandEnabled = on; }
   wrap.addEventListener('pointercancel', release);
 })();
 function showDevMenu() {
+  try { _bgCtlSync(); } catch (e) {}
   const el = document.getElementById('devMenuOverlay');
   if (el) el.style.display = 'flex';
   const _scSlider = document.getElementById('satCeilingSlider');
@@ -18953,10 +19005,9 @@ function _applyRainbowMode(mode) {
 // JUST TRACK starts OFF, per direct request — the start-up mode would
 // otherwise switch it on (see _applyRainbowState).
 function _applyStartupMode() {
-  // Starts on the NEXT rainbow display mode after the old default, per
-  // direct request: PERFORMANCE without the TIME RULER (cycle position 2),
-  // instead of PERFORMANCE + RULER (position 1).
-  _applyRainbowState(_RAINBOW_CYCLE[1]);
+  // Starts on rainbow display mode 1 — PERFORMANCE + TIME RULER (the mode
+  // just before the previous start-up mode, per direct request).
+  _applyRainbowState(_RAINBOW_CYCLE[0]);
   setJustTrack(false);
   const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = false;
 }
