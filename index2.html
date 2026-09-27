@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 02:23:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 02:40:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -967,7 +967,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.5s infinite alternate; }
 .track-ctrl-icon-btn {
   width: calc(32px * var(--track-btn-scale, 1)); flex-shrink: 0;
-  background: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)); border: none; color: var(--track-btn-text-color, #fff);
+  background: color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)); border: none; color: var(--track-btn-text-color, #fff); /* TRACK BUTTON SHADE slider darkens/lightens this */
   font-family: 'DM Sans', sans-serif; font-size: calc(1rem * var(--track-btn-font-scale, 1)); font-weight: 700;
   letter-spacing: 0; text-transform: uppercase; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -1076,7 +1076,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 @keyframes pulse { from { background: var(--playhead); color: #fff; } to { background: #ff7755; color: #fff; } }
 .track-ctrl-icon-btn.playing { opacity: 0.45; }
 .shift-btn {
-  width: 32px; flex-shrink: 0; background: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0));
+  width: 32px; flex-shrink: 0; background: color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000));
   border: none;
   color: var(--track-btn-text-color, #fff); font-family: 'DM Sans', sans-serif;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:23:41 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:40:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3040,6 +3040,13 @@ body.performance-mode header { padding-bottom: 10px; }
           <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10%</div>
         </div>
         <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="10" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK BUTTON SHADE</div>
+          <div id="trackBtnShadeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0</div>
+        </div>
+        <input type="range" id="trackBtnShadeSlider" min="-100" max="100" step="5" value="0" oninput="setTrackBtnShade(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -12822,6 +12829,17 @@ function setTrackRowBgDarken(v) {
 // (see CSS) scales proportionally from this same value (0.35x), so this
 // one slider affects both looks by default rather than needing a
 // separate, independent muted-only control.
+// TRACK BUTTON SHADE (slider next to TRACK ROW BG OPACITY), per direct
+// request — darkens (left) or lightens (right) the track buttons' own
+// current colour; the middle (0) is the colour exactly as it is. Mixes up
+// to 60% toward black/white at the ends. Follows WILD colour changes, since
+// it's a mix applied on top of whatever the button colour currently is.
+function setTrackBtnShade(v) {
+  v = +v;
+  document.documentElement.style.setProperty('--tbtn-shade-amt', (Math.abs(v) * 0.6) + '%');
+  document.documentElement.style.setProperty('--tbtn-shade-col', v < 0 ? '#000' : '#fff');
+  const r = document.getElementById('trackBtnShadeReadout'); if (r) r.textContent = (v > 0 ? '+' : '') + v;
+}
 function setTrackRowBgOpacity(v) {
   document.documentElement.style.setProperty('--track-row-bg-opacity', (+v) / 100);
   const readout = document.getElementById('trackRowBgOpacityReadout');
