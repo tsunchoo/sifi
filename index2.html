@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 02:10:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-27 02:23:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2369,7 +2369,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:10:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 02:23:41 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2864,6 +2864,13 @@ body.performance-mode header { padding-bottom: 10px; }
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="flashFromTopToggle" checked onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
       </label>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH SATURATION</div>
+          <div id="flashSatVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+        </div>
+        <input type="range" id="flashSatSlider" min="0" max="100" step="5" value="100" oninput="document.getElementById('flashSatVal').textContent=this.value+'%'" onchange="setFlashSat(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
 
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
            contrast) is the only mode reachable via that old system now.
@@ -3496,9 +3503,15 @@ function _applyFlashFromTop() {
   const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
   if (!/^#[0-9a-f]{6}$/i.test(top) || typeof setPlayFlashColor !== 'function') return;
   const [h] = _hexToHsl(top);
-  const hex = _hslToHex(h + 150, 1, 0.55);
+  const hex = _hslToHex(h + 150, (window._flashSatPct != null ? window._flashSatPct : 100) / 100, 0.55); // saturation from the PLAY FLASH SATURATION slider
   setPlayFlashColor(hex);
   const pk = document.getElementById('playFlashColorPicker'); if (pk) pk.value = hex;
+}
+window._flashSatPct = 100;
+function setFlashSat(v) {
+  window._flashSatPct = +v;
+  const r = document.getElementById('flashSatVal'); if (r) r.textContent = v + '%';
+  _applyFlashFromTop();
 }
 function setFlashFromTop(on) {
   document.body.classList.toggle('flash-from-top', !!on);
