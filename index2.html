@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-28 05:08:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-28 05:21:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -782,10 +782,9 @@ body.track-row-bg .track-ctrl-row { position: relative; }
    row BG is forced to 50% darkness / 25% opacity (see _checkRowContrast).
    Set on body so it overrides the :root slider values without moving them. */
 body.track-row-bg.low-contrast-rows { --track-row-bg-darken: 50%; --track-row-bg-opacity: 0.25; }
-/* TIP EDGE (same guard): a light fader tip on a light background gets a dark
-   edge + soft dark glow so it reads. The outline survives SAFE GFX / GLOWS OFF
-   (they only strip shadows); the dark glow replaces the colour glow. */
-html body.tip-needs-edge .track-vol-bar .track-vol-tip.track-vol-tip { outline: 1.5px solid rgba(0,0,0,0.5); outline-offset: 0; box-shadow: 0 0 3px 1px rgba(0,0,0,0.35) !important; }
+/* TIP EDGE (same guard): a light fader tip on a light background gets its
+   glow turned dark so it reads. */
+html body.tip-needs-edge .track-vol-bar .track-vol-tip { --tip-glow-col: #000; --fader-glow: #000; } /* no fixed outline any more, per direct request — the tip's own glow just turns dark, so it keeps following VOL FILL GLOW / TIP GLOW */
 body.track-row-bg .track-ctrl-row::before {
   content: '';
   position: absolute;
@@ -2414,7 +2413,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 05:08:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 05:21:49 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -21932,15 +21931,51 @@ document.querySelectorAll('.tape-window').forEach(r => {
   };
   document.addEventListener('input', onEv, true);
   document.addEventListener('change', onEv, true);
-  const flush = () => {
-    if (!pending.size) return;
-    flushing = true;
-    pending.forEach(el => { try { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {} });
+  // WORST CASE ON CLOSE, per direct request: closing a menu with lots of
+  // changed sliders used to fire them all in the same frame, on top of every
+  // glow switching back on at once. Now: sliders dragged back to where they
+  // started are skipped; the rest apply ONE PER FRAME; and glows only come
+  // back ~150ms after the last one has landed.
+  const flush = (done) => {
+    const list = [...pending].filter(el => el._menuStartVal === undefined || el.value !== el._menuStartVal);
     pending.clear();
-    flushing = false;
+    if (!list.length) { if (done) done(); return; }
+    const step = () => {
+      const el = list.shift();
+      if (el) {
+        flushing = true;
+        try { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+        flushing = false;
+      }
+      if (list.length) requestAnimationFrame(step); else if (done) done();
+    };
+    requestAnimationFrame(step);
   };
   window._flushMenuSliders = flush;
-  menus.forEach(m => new MutationObserver(() => { if (getComputedStyle(m).display === 'none') flush(); }).observe(m, { attributes: true, attributeFilter: ['style', 'class'] }));
+  // ALL GLOWS OFF WHILE A MENU IS OPEN, per direct request — the tracks are
+  // covered anyway, and this is when the crashes kept happening (menu opened
+  // or closed over a screen full of glows). Uses the same no-glow switch as
+  // GLOWS ON (GLOW panel); on close the GLOWS ON tick box decides again.
+  const glowMenus = menus.concat(['randMenuOverlay'].map(id => document.getElementById(id)).filter(Boolean));
+  const isOpen = m => getComputedStyle(m).display !== 'none' && getComputedStyle(m).visibility !== 'hidden';
+  let wasOpen = false, glowT = null;
+  const check = () => {
+    const open = glowMenus.some(isOpen);
+    if (open === wasOpen) return;
+    wasOpen = open;
+    const b = document.body.classList;
+    if (open) { clearTimeout(glowT); b.add('menu-open', 'no-glow'); menus.forEach(m => m.querySelectorAll('input[type=range]').forEach(el => { if (!pending.has(el)) el._menuStartVal = el.value; })); return; }
+    b.remove('menu-open');
+    flush(() => {
+      clearTimeout(glowT);
+      glowT = setTimeout(() => {
+        if (wasOpen) return;
+        const g = document.getElementById('glowsOnToggle');
+        b.toggle('no-glow', g ? !g.checked : false);
+      }, 150);
+    });
+  };
+  glowMenus.forEach(m => new MutationObserver(check).observe(m, { attributes: true, attributeFilter: ['style', 'class'] }));
 })();
 </script>
 
