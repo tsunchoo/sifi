@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-27 23:43:19 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-28 01:11:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -891,7 +891,7 @@ html body.safe-gfx .track-ctrl-row svg, html body.safe-gfx .track-ctrl-row .glyp
 /* ...including the few glow rules that out-rank the catch-all above */
 html body.safe-gfx .transport #playBtn#playBtn, html body.safe-gfx .transport #playBtn#playBtn *, html body.safe-gfx .transport #saveBtn#saveBtn, html body.safe-gfx .transport #saveBtn#saveBtn *, html body.safe-gfx .transport #clearBtn#clearBtn, html body.safe-gfx .transport #clearBtn#clearBtn *, html body.safe-gfx .transport #randBtn#randBtn, html body.safe-gfx .transport #randBtn#randBtn *, html body.safe-gfx .transport #beatBtn#beatBtn, html body.safe-gfx .transport #beatBtn#beatBtn *, html body.safe-gfx .transport #scratchBtn#scratchBtn, html body.safe-gfx .transport #scratchBtn#scratchBtn * { text-shadow: none !important; }
 html body.safe-gfx .step-cell.step-cell.step-cell.step-cell.step-cell.step-cell::after, html body.safe-gfx .step-cell.step-cell.step-cell.step-cell.step-cell.step-cell::before { box-shadow: none !important; }
-html body.safe-gfx .track-vol-bar .track-vol-tip, html body.safe-gfx .track-vol-bar .track-vol-fill-solid { will-change: auto !important; transform: none !important; } /* HIDE VOL TRACK (DEV) — the vol track line only; fill and fader stay */
+html body.safe-gfx .track-vol-bar .track-vol-tip { will-change: auto !important; transform: none !important; } /* the vol fill (VOL BANGER meter) is left alone by SAFE GFX, per direct request */ /* HIDE VOL TRACK (DEV) — the vol track line only; fill and fader stay */
 /* GLOWS master switch (GLOW panel): the same glow-stripping as SAFE GFX, on its own. */
 /* Heavy-specificity catch-all (three :not(#id) = id-level weight) so no
    glow rule anywhere — lit buttons, TEST-mode fill, markers — can out-rank
@@ -2405,7 +2405,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-27 23:43:19 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 01:11:26 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -11101,7 +11101,7 @@ function setVolTestBg(n) {
   if (n === 2 || n === 3 || n === 4) document.body.classList.add('vol-test-bg-' + n);
 }
 // SAFE GFX (DEV) — crash experiment: switches off every recent visual
-// effect at once (VOL BANGER meters, TRACK BUTTON LIGHTS + LIGHTS PULSE,
+// effect at once (TRACK BUTTON LIGHTS + LIGHTS PULSE,
 // the top-row glow/contrast filters, the extra compositing layers), so a
 // session can be run without them to see whether the crashes stop.
 // Unticking restores what was on before.
@@ -11112,13 +11112,13 @@ setTimeout(() => { try { setSafeGfx(true); } catch (e) {} }, 400);
 function setSafeGfx(on) {
   const b = document.body.classList;
   if (on) {
-    _safeGfxBefore = { banger: b.contains('vol-banger'), lights: b.contains('track-btn-lights'), pulse: b.contains('track-btn-lights-pulse'), test: b.contains('vol-test') };
-    setVolBanger(false); b.remove('track-btn-lights', 'track-btn-lights-pulse', 'vol-test');
+    _safeGfxBefore = { lights: b.contains('track-btn-lights'), pulse: b.contains('track-btn-lights-pulse'), test: b.contains('vol-test') };
+    b.remove('track-btn-lights', 'track-btn-lights-pulse', 'vol-test');
     b.add('safe-gfx');
   } else {
     b.remove('safe-gfx');
-    const k = _safeGfxBefore || { banger: true, lights: true, pulse: true, test: false };
-    if (k.banger) setVolBanger(true);
+    const k = _safeGfxBefore || { lights: true, pulse: true, test: false };
+    // VOL BANGER (the vol fill meter) stays on regardless of SAFE GFX, per direct request
     b.toggle('track-btn-lights', k.lights); b.toggle('track-btn-lights-pulse', k.pulse); b.toggle('vol-test', k.test);
     _safeGfxBefore = null;
   }
