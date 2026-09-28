@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-28 01:11:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-28 04:12:52 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2405,7 +2405,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 01:11:26 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 04:12:52 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7020,6 +7020,13 @@ const trackLockedRoot = {}; // tr -> root frequency, captured the moment L locks
 
 // Global scale root — shared by all tonal tracks, cleared by CLEAR
 let globalScaleRoot = null;
+// CPU budget for RAND, per direct request: pads and the voice-hungry
+// instruments (long overlapping notes / many oscillators per note, measured
+// in the heavy crash test) — at most HEAVY_TONAL_MAX of these per pattern.
+// The remaining tonal slots go to lighter plucked/keys/lead instruments, so
+// an all-music pattern still has 6 music tracks but can't overload iOS audio.
+const HEAVY_TONAL_KEYS = new Set(['fflute','blunt','sstring','sleg','opening','drone','dronePlus','magic','sparkle','clar','rhodes2','underpass','sflute','boog']);
+const HEAVY_TONAL_MAX = 2;
 const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','stab','chug','bashp','denial','jcmgtr','sprkls','clar','sstring','sleg','sparkle','rhodes','rhodes2','sflute','spiano','satk','boog','fflute','blunt','damask','yamask','dulc','opening','drone','dronePlus','magic','amlgm','underpass']);
 
 function buildScaleFromRoot(root, scaleOverride, tr) {
@@ -7881,6 +7888,26 @@ const _sparkleGlideState = {};
 
 // ── Piano: additive partials with inharmonicity + hammer transient ──
 const _rhodesGlide = {};
+// SPACE KOTO pluck cache: one Karplus-Strong render per pitch (period),
+// most-recently-used 10 kept (~4.5MB max). See playSpaceKoto.
+const _kotoCache = new Map();
+function _kotoBuf(freq) {
+  const sr = ctx.sampleRate, period = Math.max(2, Math.round(sr / freq));
+  let e = _kotoCache.get(period);
+  if (e && e.ctx === ctx) { _kotoCache.delete(period); _kotoCache.set(period, e); return e.buf; }
+  const numSamples = Math.round(sr * 2.4);
+  const buf = ctx.createBuffer(1, numSamples, sr), data = buf.getChannelData(0);
+  const ring = new Float32Array(period);
+  for (let i = 0; i < period; i++) ring[i] = (Math.random() * 2 - 1) * (1 - i / period);
+  let idx = 0; const damp = 0.994; // per-sample extra damping to shape overall decay length
+  for (let n = 0; n < numSamples; n++) {
+    const cur = ring[idx], next = ring[(idx + 1) % period];
+    data[n] = cur; ring[idx] = (cur + next) * 0.5 * damp; idx = (idx + 1) % period;
+  }
+  _kotoCache.set(period, { ctx, buf });
+  while (_kotoCache.size > 10) _kotoCache.delete(_kotoCache.keys().next().value);
+  return buf;
+}
 function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
@@ -7892,30 +7919,20 @@ function playSpaceKoto(freq, durSec, isAccent, time, tr) {
   // delay to stay stable; higher koto notes would violate that and blow up).
   // The classic 2-point moving-average recursion is unconditionally stable
   // (output can only ever decay, never grow), so this is safe at any pitch.
+  // The pluck buffer is now rendered ONCE per pitch (full 2.4s) and cached,
+  // instead of a fresh ~330-460KB buffer on every single note — that per-note
+  // allocation was the biggest memory churn in the heavy crash test (tens of
+  // MB per minute with KOTO playing). Shorter notes just fade out early.
   const sr = ctx.sampleRate;
   const decayTime = Math.min(durSec + 1.8, 2.4); // long, spacey sustain
-  const numSamples = Math.max(2, Math.round(sr * decayTime));
-  const period = Math.max(2, Math.round(sr / freq));
-  const buf = ctx.createBuffer(1, numSamples, sr);
-  const data = buf.getChannelData(0);
-
-  const ring = new Float32Array(period);
-  for (let i = 0; i < period; i++) ring[i] = (Math.random() * 2 - 1) * (1 - i / period);
-  let idx = 0;
-  const damp = 0.994; // per-sample extra damping to shape overall decay length
-  for (let n = 0; n < numSamples; n++) {
-    const cur = ring[idx];
-    const next = ring[(idx + 1) % period];
-    data[n] = cur;
-    ring[idx] = (cur + next) * 0.5 * damp;
-    idx = (idx + 1) % period;
-  }
+  const buf = _kotoBuf(freq);
 
   const src = ctx.createBufferSource(); src.buffer = buf;
-  const env = ctx.createGain(); env.gain.value = vel;
+  const env = ctx.createGain(); env.gain.setValueAtTime(vel, time);
+  if (decayTime < 2.39) { env.gain.setValueAtTime(vel, time + decayTime - 0.06); env.gain.linearRampToValueAtTime(0, time + decayTime); }
   // Gentle vibrato via a second detuned copy is skipped — keep it simple/safe.
   src.connect(env); env.connect(dest);
-  src.start(time);
+  src.start(time); src.stop(time + decayTime + 0.01);
   src.onended = () => { try { src.disconnect(); env.disconnect(); } catch(e) {} };
 
   // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
@@ -15153,6 +15170,7 @@ function randAll(mode, opts) {
     let soloRareLeadUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && soloRareLeadKeys.has(trackInstruments[tr]));
     let jinxClashUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && jinxClashKeys.has(trackInstruments[tr]));
     let padUsed2 = _anyTrackLocked && [...Array(NUM_TRACKS)].some((_, tr) => trackSweep[tr] && padKeys.has(trackInstruments[tr]));
+    let heavyUsed2 = _anyTrackLocked ? [...Array(NUM_TRACKS)].filter((_, tr) => trackSweep[tr] && HEAVY_TONAL_KEYS.has(trackInstruments[tr])).length : 0;
 
     const nonBassShuffle = [];
     const _leadKeysSet = new Set([...soloLeadKeys, ...soloRareLeadKeys]);
@@ -15190,6 +15208,7 @@ function randAll(mode, opts) {
       if (soloRareLeadKeys.has(k)) { if (soloRareLeadUsed2) continue; soloRareLeadUsed2 = true; }
       if (jinxClashKeys.has(k)) { if (jinxClashUsed2) continue; jinxClashUsed2 = true; }
       if (padKeys.has(k)) { if (padUsed2) continue; padUsed2 = true; }
+      if (HEAVY_TONAL_KEYS.has(k)) { if (heavyUsed2 >= HEAVY_TONAL_MAX) continue; heavyUsed2++; } // CPU budget — see HEAVY_TONAL_KEYS
       nonBassShuffle.push(k);
     }
 
@@ -15211,6 +15230,7 @@ function randAll(mode, opts) {
         if (soloRareLeadKeys.has(k)) { if (soloRareLeadUsed2) continue; soloRareLeadUsed2 = true; }
         if (jinxClashKeys.has(k)) { if (jinxClashUsed2) continue; jinxClashUsed2 = true; }
         if (padKeys.has(k)) { if (padUsed2) continue; padUsed2 = true; }
+        if (HEAVY_TONAL_KEYS.has(k)) { if (heavyUsed2 >= HEAVY_TONAL_MAX) continue; heavyUsed2++; } // CPU budget — see HEAVY_TONAL_KEYS
         nonBassShuffle.push(k);
       }
     }
@@ -15229,6 +15249,7 @@ function randAll(mode, opts) {
         if (soloRareLeadKeys.has(k)) { if (soloRareLeadUsed2) continue; soloRareLeadUsed2 = true; }
         if (jinxClashKeys.has(k)) { if (jinxClashUsed2) continue; jinxClashUsed2 = true; }
         if (padKeys.has(k)) { if (padUsed2) continue; padUsed2 = true; }
+        if (HEAVY_TONAL_KEYS.has(k)) { if (heavyUsed2 >= HEAVY_TONAL_MAX) continue; heavyUsed2++; } // CPU budget — see HEAVY_TONAL_KEYS
         nonBassShuffle.push(k);
       }
     }
