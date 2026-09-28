@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-28 04:50:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-28 05:08:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -782,6 +782,10 @@ body.track-row-bg .track-ctrl-row { position: relative; }
    row BG is forced to 50% darkness / 25% opacity (see _checkRowContrast).
    Set on body so it overrides the :root slider values without moving them. */
 body.track-row-bg.low-contrast-rows { --track-row-bg-darken: 50%; --track-row-bg-opacity: 0.25; }
+/* TIP EDGE (same guard): a light fader tip on a light background gets a dark
+   edge + soft dark glow so it reads. The outline survives SAFE GFX / GLOWS OFF
+   (they only strip shadows); the dark glow replaces the colour glow. */
+html body.tip-needs-edge .track-vol-bar .track-vol-tip.track-vol-tip { outline: 1.5px solid rgba(0,0,0,0.5); outline-offset: 0; box-shadow: 0 0 3px 1px rgba(0,0,0,0.35) !important; }
 body.track-row-bg .track-ctrl-row::before {
   content: '';
   position: absolute;
@@ -2410,7 +2414,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 04:50:24 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 05:08:40 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2794,7 +2798,10 @@ body.performance-mode header { padding-bottom: 10px; }
         <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
           <input type="checkbox" id="glowTipOnlyToggle" onchange="document.body.classList.toggle('glow-tip-only', this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOW ON FADER TIP ONLY (NOT FILL)
         </label>
-        <div style="font-size:0.58rem;color:#666;line-height:1.35;">Fader tip glow colour: opposite of the tip when FADER TIP = PLAY COLOUR is on (DEV › VOLUME SLIDER), otherwise the PLAY FLASH colour. Track button glows need TRACK BUTTON LIGHTS (DEV › TRACK BUTTONS).</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+          <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
+        </label>
+        <div style="font-size:0.58rem;color:#666;line-height:1.35;">Fader tip glow colour: opposite of the tip when FADER TIP = PLAY COLOUR is on, otherwise the PLAY FLASH colour. Track button glows need TRACK BUTTON LIGHTS (DEV › TRACK BUTTONS).</div>
       </div>
 
     <div style="display:flex;flex-direction:column;gap:12px;">
@@ -2856,13 +2863,6 @@ body.performance-mode header { padding-bottom: 10px; }
           </div>
           <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="8" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
-        <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">VOLUME SLIDER — FADER</div>
-        <div style="font-size:0.58rem;color:#666;line-height:1.35;">Glow amounts are in the main menu (VOL FILL GLOW, GLOW ON FADER ONLY).</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
-        </label>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">TRACK BUTTONS</div>
@@ -13139,7 +13139,11 @@ function _checkRowContrast() {
   }
   let low = false;
   const tip = document.querySelector('.track-vol-tip');
-  if (tip) { const c = _rgbOf(tip.style.background || getComputedStyle(tip).backgroundColor); if (c && c[3] > 0 && _tooClose(c, eff)) low = true; }
+  let edge = false;
+  if (tip) { const c = _rgbOf(tip.style.background || getComputedStyle(tip).backgroundColor); if (c && c[3] > 0) { if (_tooClose(c, eff)) low = true; if (_contrast(c, eff) < 2) edge = true; } }
+  // Tip under 2:1 brightness contrast against its background (even when its
+  // colour differs, e.g. lime on pale green) → dark edge round the tip.
+  body.classList.toggle('tip-needs-edge', edge);
   if (!low) document.querySelectorAll('.track-wrap:not(.track-empty) .track-vol-fill-solid').forEach(f => {
     const cs = getComputedStyle(f); let c = _rgbOf(cs.backgroundColor);
     if (!c || c[3] === 0) c = _rgbOf(cs.backgroundImage);
