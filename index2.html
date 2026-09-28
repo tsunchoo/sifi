@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-28 04:12:52 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-28 04:22:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -777,6 +777,11 @@ input.master-vol-slider::-moz-range-thumb { width: 24px !important; height: 41.4
    layout height at all — the row's own background was stopping a little
    short of that. */
 body.track-row-bg .track-ctrl-row { position: relative; }
+/* LOW-CONTRAST GUARD, per direct request — when the colours come out so
+   light that the fader tip / vol fill vanish into the background, the track
+   row BG is forced to 50% darkness / 25% opacity (see _checkRowContrast).
+   Set on body so it overrides the :root slider values without moving them. */
+body.track-row-bg.low-contrast-rows { --track-row-bg-darken: 50%; --track-row-bg-opacity: 0.25; }
 body.track-row-bg .track-ctrl-row::before {
   content: '';
   position: absolute;
@@ -2405,7 +2410,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 04:12:52 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 04:22:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -13100,6 +13105,57 @@ function setFaderTipTopRowColor(on) {
 // TRACK ROW BG (COLOR MENU toggle + darkness slider) — see the CSS rule
 // on .track-ctrl-row for what this actually does.
 function setTrackRowBg(on) { document.body.classList.toggle('track-row-bg', !!on); }
+
+// LOW-CONTRAST GUARD, per direct request — after any colour change, checks
+// the fader tip and vol fill colours against what they actually sit on (the
+// page background with the track row BG composited over it at the current
+// slider/display-mode settings). If the tip or any fill is too close to it
+// (under 1.3:1 brightness contrast AND under 40 colour difference), body.low-contrast-rows forces TRACK ROW BG to 50% darkness / 25%
+// opacity; when the colours are fine again, it lets go and the normal
+// settings come straight back.
+function _rgbOf(str) { const m = (str || '').match(/rgba?\(([\d.]+)[, ]+([\d.]+)[, ]+([\d.]+)(?:[, /]+([\d.]+))?/); return m ? [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]] : null; }
+function _hexRgb(h) { h = (h || '').trim(); if (h.startsWith('rgb')) return _rgbOf(h); h = h.replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); if (h.length < 6) return null; return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16), 1]; }
+function _lum(c) { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); }
+function _contrast(a, b) { const x = _lum(a), y = _lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+function _lab(c) { const f = v => { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; const r = f(c[0]), g = f(c[1]), b = f(c[2]);
+  const X = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, Y = r * 0.2126 + g * 0.7152 + b * 0.0722, Z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+  const h = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; return [116 * h(Y) - 16, 500 * (h(X) - h(Y)), 200 * (h(Y) - h(Z))]; }
+function _deltaE(a, b) { const x = _lab(a), y = _lab(b); return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]); }
+// "Too close" = both similar brightness AND similar colour — hue alone can
+// carry a bright tip on a light background (cyan on lavender reads fine).
+function _tooClose(c, bg) { return _contrast(c, bg) < 1.3 && _deltaE(c, bg) < 40; }
+function _checkRowContrast() {
+  const body = document.body; if (!body) return;
+  const root = document.documentElement, rcs = getComputedStyle(root);
+  let bg = _rgbOf(getComputedStyle(body).backgroundColor); if (!bg || bg[3] === 0) bg = _rgbOf(rcs.backgroundColor);
+  if (!bg) return;
+  let eff = bg.slice(0, 3);
+  if (body.classList.contains('track-row-bg')) {
+    const nt = _hexRgb(rcs.getPropertyValue('--neutral-top')) || [85, 85, 85];
+    const dk = (parseFloat(root.style.getPropertyValue('--track-row-bg-darken')) || 0) / 100;
+    const op = parseFloat(root.style.getPropertyValue('--track-row-bg-opacity')); const a = isNaN(op) ? 1 : op;
+    const row = nt.slice(0, 3).map(v => v * (1 - dk));
+    eff = eff.map((v, i) => v * (1 - a) + row[i] * a);
+  }
+  let low = false;
+  const tip = document.querySelector('.track-vol-tip');
+  if (tip) { const c = _rgbOf(tip.style.background || getComputedStyle(tip).backgroundColor); if (c && c[3] > 0 && _tooClose(c, eff)) low = true; }
+  if (!low) document.querySelectorAll('.track-wrap:not(.track-empty) .track-vol-fill-solid').forEach(f => {
+    const cs = getComputedStyle(f); let c = _rgbOf(cs.backgroundColor);
+    if (!c || c[3] === 0) c = _rgbOf(cs.backgroundImage);
+    if (c && c[3] > 0 && cs.visibility !== 'hidden' && _tooClose(c, eff)) low = true;
+  });
+  body.classList.toggle('low-contrast-rows', low);
+}
+(function () {
+  let t = null; const q = () => { clearTimeout(t); t = setTimeout(_checkRowContrast, 120); };
+  const start = () => {
+    q();
+    new MutationObserver(q).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    new MutationObserver(q).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+  };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
+})();
 function setTrackRowBgDarken(v) {
   document.documentElement.style.setProperty('--track-row-bg-darken', v + '%');
   const readout = document.getElementById('trackRowBgDarkenReadout');
