@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 21:51:33 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 22:08:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1503,11 +1503,11 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: none
    black text, with a border in the < (offset) button's own background
    colour (same colour-mix, so it follows TRACK BUTTON SHADE too). No
    pulsing or flashing. */
-html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn,
-html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.playing,
-html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.note-pulse {
+html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn:not(.muted),
+html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.playing:not(.muted),
+html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.note-pulse:not(.muted) {
   background: transparent !important;
-  color: var(--track-btn-on-color, #f17d21) !important; box-sizing: border-box !important; /* text = the ACTIVE FX button's background colour (was black), per direct request */
+  color: #fff !important; box-sizing: border-box !important; /* white text, per direct request (was the active FX colour, black before that). Muted tracks (:not(.muted) above) keep the normal muted look. */
   border: 2px solid color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) !important;
   animation: none !important; text-shadow: none !important; filter: none !important; opacity: 1 !important;
 }
@@ -1526,10 +1526,6 @@ html body.name-tag .track-ctrl-row .track-ctrl-icon-btn.lock-btn svg { width: 16
 /* ...and the name text stops short of the padlock with an ellipsis (block
    layout so text-overflow works; line-height re-centres it vertically) */
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn { display: block !important; padding-right: 24px !important; overflow: hidden !important; white-space: nowrap !important; text-overflow: ellipsis !important; line-height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1) - 4px) !important; text-align: left !important; }
-/* ...in TRACK BUTTON LIGHTS mode an active FX button is the top row's pressed shade instead, so follow that */
-html body.name-tag.track-btn-lights .track-ctrl-row .track-name-btn.track-name-btn,
-html body.name-tag.track-btn-lights .track-ctrl-row .track-name-btn.track-name-btn.playing,
-html body.name-tag.track-btn-lights .track-ctrl-row .track-name-btn.track-name-btn.note-pulse { color: var(--top-row-pressed-bg) !important; }
 .track-name-btn.names-uniform { background: var(--neutral-top, #555); color: #fff; }
 
 /* ── Vol overlay ── */
@@ -2485,7 +2481,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:51:33 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 22:08:51 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19458,12 +19454,14 @@ const _RAINBOW_CYCLE = [
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: true, jt: true, glowTip: true, nameTag: true }, // NAME TAG mode, per direct request — mode 3's settings + white/black-bordered track names with a 25px instrument-colour tab
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, palette: 'groovy' }, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon' }, // mode 11 "CARTOON", from the display snapshot, per direct request — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
 // colour changes can re-roll them afterwards like any other colours.
 const _DISPLAY_PALETTES = {
-  groovy: {"--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
+  cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
+  groovy: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
 };
 function _applyDisplayPalette(name) {
   const pal = _DISPLAY_PALETTES[name]; if (!pal) return;
@@ -19486,6 +19484,21 @@ function _applyRainbowState(m) {
     if (typeof setFlashFromTop === 'function') setFlashFromTop(was);
     if (!was && typeof setPlayFlashColor === 'function') { const pk = document.getElementById('playFlashColorPicker'); setPlayFlashColor('#ffffff'); if (pk) pk.value = '#ffffff'; } // back to the white default
   }
+  // WIDE METER per mode (m.wide), remembered/restored like the others
+  if (m.wide !== undefined) {
+    if (window._wideBeforeMode === undefined) window._wideBeforeMode = document.body.classList.contains('vol-test');
+    if (typeof setVolTest === 'function') setVolTest(!!m.wide);
+  } else if (window._wideBeforeMode !== undefined) {
+    const was = window._wideBeforeMode; window._wideBeforeMode = undefined;
+    if (typeof setVolTest === 'function') setVolTest(was);
+  }
+  // Any menu sliders a mode sets (m.sliders = {id: value}) — the previous
+  // values are remembered and put back when the cycle moves to a mode that
+  // doesn't set them.
+  window._slidersBeforeMode = window._slidersBeforeMode || {};
+  const _setSl = (id, v) => { const el = document.getElementById(id); if (!el) return; el.value = v; try { if (el.oninput) el.oninput(); if (el.onchange) el.onchange(); } catch (e) {} };
+  Object.keys(window._slidersBeforeMode).forEach(id => { if (!m.sliders || !(id in m.sliders)) { _setSl(id, window._slidersBeforeMode[id]); delete window._slidersBeforeMode[id]; } });
+  if (m.sliders) Object.keys(m.sliders).forEach(id => { const el = document.getElementById(id); if (!el) return; if (!(id in window._slidersBeforeMode)) window._slidersBeforeMode[id] = el.value; _setSl(id, m.sliders[id]); });
   if (m.palette) _applyDisplayPalette(m.palette);
   document.body.classList.toggle('name-tag', !!m.nameTag);
   if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
