@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 17:16:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 17:26:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2413,7 +2413,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 17:16:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 17:26:44 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2779,6 +2779,13 @@ body.performance-mode header { padding-bottom: 10px; }
             <div id="markerGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">150%</div>
           </div>
           <input type="range" id="markerGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('markerGlowVal').textContent=this.value+'%'" onchange="setMarkerGlow(this.value)" class="master-vol-slider" style="width:100%;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">NOTE MARKER DECAY</div>
+            <div id="markerDecayVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
+          </div>
+          <input type="range" id="markerDecaySlider" min="100" max="400" step="5" value="100" oninput="document.getElementById('markerDecayVal').textContent=this.value+'%'" onchange="setMarkerDecay(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -4970,6 +4977,7 @@ function showRandMenu() {
   // stopped by tapping + while it's running).
   const at = document.getElementById('automateToggle'); if (at) at.checked = !!_autoRandLoopActive;
   _syncAutoPeriodRow(); // NEW PATTERN EVERY... greyed unless AUTO is on
+  window._autoAtRandMenuOpen = !!_autoRandLoopActive; // for the AUTO MODE ON notice on close
 }
 function _triggerRandomizeInstruments(btn) {
   randomizeCurrentInstruments(); // instruments swap right away — the flash is just visual confirmation
@@ -4978,7 +4986,12 @@ function _triggerRandomizeInstruments(btn) {
 }
 function hideRandMenu() {
   const el = document.getElementById('randMenuOverlay');
+  const wasOpen = el && el.style.display !== 'none';
   if (el) el.style.display = 'none';
+  // AUTO MODE ON notice, per direct request — when AUTO was switched on in
+  // this visit to the menu, confirm it as the menu closes.
+  if (wasOpen && _autoRandLoopActive && !window._autoAtRandMenuOpen) _showNotice('AUTO MODE ON');
+  window._autoAtRandMenuOpen = !!_autoRandLoopActive;
 }
 // RANDOMIZE CURRENT INSTRUMENTS (RANDOMIZE MENU one-shot button) — swaps
 // the instrument on every track for a different one, leaving everything
@@ -6301,7 +6314,7 @@ function updatePlayhead(step) {
       // was cutting the pop's ease-back short). Grow is unchanged; the ease
       // back to normal size is now twice as long, per direct request.
       el.classList.add('popping');
-      clearTimeout(el._popT); el._popT = setTimeout(() => el.classList.remove('popping'), 300);
+      clearTimeout(el._popT); el._popT = setTimeout(() => el.classList.remove('popping'), (window._markerPopMs || 288) + 12); // NOTE MARKER DECAY sets the length
     }
     const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     const tbtn = document.getElementById(`tbtn-${tr}`);
@@ -11163,6 +11176,27 @@ function setSafeGfx(on) {
   const sg = document.getElementById('safeGfxToggle'); if (sg) sg.checked = !!on;
 }
 function setTrackGlow(v) { v = +v; document.documentElement.style.setProperty('--tglow', v / 100); const r = document.getElementById('trackGlowVal'); if (r) r.textContent = v + '%'; }
+// NOTE MARKER DECAY (GLOW panel), per direct request — how long a played
+// note marker takes to shrink back to its normal size AND for its glow to
+// fade. 100% = the current feel (216ms ease back); max 400% (864ms). The
+// grow (72ms) is never changed. Rewrites the pop keyframes so the grow keeps
+// its fixed length while only the ease-back stretches.
+window._markerPopMs = 288;
+function setMarkerDecay(v) {
+  v = Math.max(100, Math.min(400, +v || 100));
+  const decay = 216 * v / 100, total = Math.round(72 + decay), peak = (72 / total * 100).toFixed(2);
+  window._markerPopMs = total;
+  let st = document.getElementById('markerDecayStyle');
+  if (!st) { st = document.createElement('style'); st.id = 'markerDecayStyle'; document.head.appendChild(st); }
+  st.textContent =
+    '@keyframes step-cell-pop-marker { 0% { transform: translateY(-50%) scale(1); } ' + peak + '% { transform: translateY(-50%) scale(1.72); } 100% { transform: translateY(-50%) scale(1); } }\n' +
+    '@keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } ' + peak + '% { transform: scale(1.72); } 100% { transform: scale(1); } }\n' +
+    'html body .step-cell.popping::after { animation-duration: ' + total + 'ms; }\n' +
+    'html body .step-cell.on::after, html body .step-cell.soft::after, html body .step-cell.legato-tail::after { transition: box-shadow ' + Math.round(decay) + 'ms ease-out; }\n' +
+    'html body .step-cell.step-cell.playing::after { transition: none; }';
+  const r = document.getElementById('markerDecayVal'); if (r) r.textContent = v + '%';
+}
+if (document.head) setMarkerDecay(100); else document.addEventListener('DOMContentLoaded', () => setMarkerDecay(100), { once: true });
 function setMarkerGlow(v) { v = +v; document.documentElement.style.setProperty('--mglow', v / 100); const r = document.getElementById('markerGlowVal'); if (r) r.textContent = v + '%'; }
 function setTipGlow(v) { v = +v; document.documentElement.style.setProperty('--tipglow', v / 100); const r = document.getElementById('tipGlowVal'); if (r) r.textContent = v + '%'; }
 function setFillGlow(v) { v = +v; document.documentElement.style.setProperty('--fillglow', v / 100); const r = document.getElementById('fillGlowVal'); if (r) r.textContent = v + '%'; }
@@ -13563,6 +13597,21 @@ function exportTape() {
 // once the save/share actually completes (not if the share sheet was
 // cancelled), then fades out on its own after a couple of seconds.
 let _tapeSavedToastTimer = null;
+// Small notice box (same look as the TAPE SAVED toast) — used for AUTO MODE
+// ON / AUTO MODE OFF, per direct request. Shows for ~1.4s then fades.
+let _noticeTimer = null;
+function _showNotice(text) {
+  let el = document.getElementById('_noticeToast');
+  if (!el) {
+    el = document.createElement('div'); el.id = '_noticeToast';
+    el.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#111;color:#fff;padding:14px 28px;border-radius:6px;font-family:"DM Sans",sans-serif;font-weight:700;letter-spacing:1px;font-size:0.95rem;text-align:center;z-index:9999;pointer-events:none;transition:opacity 0.35s ease;white-space:nowrap;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  clearTimeout(_noticeTimer);
+  el.style.opacity = '1'; el.style.display = 'block';
+  _noticeTimer = setTimeout(() => { el.style.opacity = '0'; _noticeTimer = setTimeout(() => { el.style.display = 'none'; }, 380); }, 1400);
+}
 function _showTapeSavedToast(name) {
   let el = document.getElementById('_tapeSavedToast');
   if (!el) {
@@ -16427,7 +16476,7 @@ function stopAllAutoRand() {
   };
 
   const singleFire = () => {
-    if (_autoRandLoopActive) { stopAuto(); return; } // turning AUTO off doesn't need its own press-pulse
+    if (_autoRandLoopActive) { stopAuto(); _showNotice('AUTO MODE OFF'); return; } // turning AUTO off doesn't need its own press-pulse
     // Defensive reset before applying this press's own visual state — a
     // prior interaction (e.g. the sweep-drag-onto-RAND gesture, or some
     // other path not yet identified) has occasionally been observed
