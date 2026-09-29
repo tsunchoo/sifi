@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 19:41:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 19:52:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,7 +86,19 @@ header {
      request. */
   padding-right: max(0px, calc((100vw - 960px) / 2));
 }
+#beatCount { -webkit-tap-highlight-color: transparent; outline: none; } /* no iOS grey tap flash over the numeral's box, per direct request */
 #beatCount.beat-count-hidden { opacity: 0; } /* hidden but still tappable to bring it back */
+/* BEAT COUNT PULSE (2nd tap), per direct request — each new beat flashes the
+   numeral up to the PLAY FLASH colour (white by default) with a glow, then it
+   scales and glows back down — same timing as the note-marker playhead pop
+   (72ms up, 216ms back). */
+@keyframes beat-count-pop {
+  0%   { transform: scale(1); color: var(--header-text-color, #111); text-shadow: none; }
+  25%  { transform: scale(1.35); color: var(--play-flash-color, #fff); text-shadow: 0 0 calc(10px * var(--mglow, 1.5)) color-mix(in srgb, var(--play-flash-color, #fff) calc(min(100%, 100% * var(--mglow, 1.5))), transparent); }
+  100% { transform: scale(1); color: var(--header-text-color, #111); text-shadow: 0 0 0 transparent; }
+}
+#beatCount { transform-origin: 70% 55%; }
+#beatCount.beat-count-pulse.beat-pop { animation: beat-count-pop 288ms ease-out; }
 header h1 { font-family: 'DM Sans', sans-serif; font-size: 2.0671rem; line-height: 1; letter-spacing: 0.5px; margin: 0; padding-left: 6px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; flex: 1 1 0; min-width: 0; align-self: flex-start; color: var(--header-text-color, #4a4a4a); }
 /* Logo starts white before playback begins, independent of the shared
    --header-text-color variable (also used by the tempo number, so
@@ -2418,7 +2430,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 19:41:30 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 19:52:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2483,7 +2495,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <!-- BEAT COUNT (1-2-3-4), per direct request: left side, same size and
        height as the tempo number; "-" when stopped; tap to hide (it stays
        tappable while hidden, so another tap brings it back). -->
-  <div id="beatCount" onclick="this.classList.toggle('beat-count-hidden')" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;width:1.2em;text-align:right;padding:4px 0 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
+  <div id="beatCount" onclick="_cycleBeatCountMode()" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;width:1.2em;text-align:right;padding:4px 0 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap" id="leftReelWrap" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;">
       <img class="reel" id="reel1" src="tape_spool.png" alt="" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none;">
@@ -3488,6 +3500,8 @@ function syncSettingsPanel() {
 function updateSwingReadout() {
   const readout = document.getElementById('swingReadout');
   if (!readout) return;
+  const _sb = document.getElementById('swingBar');
+  if (_sb && window._menuSliderPending && window._menuSliderPending(_sb)) { readout.textContent = Math.round(_sb.value / 100 * 40) + 'ms'; return; } // not applied yet (menu still open) — keep showing where the slider is
   const liveMs = Math.round(swingVal * 40);
   const committedMs = Math.round(_committedSwing * 40);
   readout.textContent = liveMs + 'ms';
@@ -6309,7 +6323,17 @@ function fireStepAudio(step, t) {
 let _beatCountLast = null;
 function _setBeatCount(v) {
   if (v === _beatCountLast) return; _beatCountLast = v;
-  const el = document.getElementById('beatCount'); if (el) el.textContent = v;
+  const el = document.getElementById('beatCount'); if (!el) return;
+  el.textContent = v;
+  if (v !== '-' && el.classList.contains('beat-count-pulse')) { el.classList.remove('beat-pop'); void el.offsetWidth; el.classList.add('beat-pop'); } // restart the pop on every new beat
+}
+// Tap cycle, per direct request: 1st tap = PULSE (pops like a note marker on
+// each beat), 2nd = HIDDEN (still tappable), 3rd = back to the plain count.
+function _cycleBeatCountMode() {
+  const el = document.getElementById('beatCount'); if (!el) return;
+  if (el.classList.contains('beat-count-hidden')) { el.classList.remove('beat-count-hidden'); }
+  else if (el.classList.contains('beat-count-pulse')) { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
+  else { el.classList.add('beat-count-pulse'); }
 }
 let _beatMeasureCtx = null;
 function _inkRightGap(ch, cs) { // advance width minus the glyph's inked right edge
@@ -22016,6 +22040,16 @@ document.querySelectorAll('.tape-window').forEach(r => {
   const menus = ['devMenuOverlay', 'settingsOverlay'].map(id => document.getElementById(id)).filter(Boolean);
   if (!menus.length) return;
   const pending = new Set();
+  // Readout formats for sliders whose display is converted from the raw
+  // position (BUGFIX: SWING showed 0-100 "ms" while dragging, then snapped
+  // back — its own refresh re-wrote the old applied value).
+  const FMT = {
+    swingBar: v => Math.round(v / 100 * 40) + 'ms',
+    sweepDecaySpeedSlider: v => (v / 100).toFixed(2) + 'X',
+    devOffsetStepSlider: v => (typeof _DEV_OFFSET_STEP_LABELS !== 'undefined' && _DEV_OFFSET_STEP_LABELS[v]) || '16TH',
+    trackBtnShadeSlider: v => (v > 0 ? '+' : '') + v,
+  };
+  window._menuSliderPending = el => pending.has(el);
   let flushing = false;
   const inMenu = el => menus.some(m => m.contains(el));
   const readoutFor = el => {
@@ -22031,7 +22065,9 @@ document.querySelectorAll('.tape-window').forEach(r => {
     pending.add(el);
     if (e.type === 'input') {
       const r = readoutFor(el);
-      if (r) { const m = (r.textContent || '').match(/[^\d.\-+]*$/); r.textContent = el.value + (m ? m[0] : ''); }
+      const fmt = FMT[el.id];
+      if (r && fmt) r.textContent = fmt(+el.value); // sliders whose readout isn't just the raw number
+      else if (r) { const m = (r.textContent || '').match(/[^\d.\-+]*$/); r.textContent = el.value + (m ? m[0] : ''); }
     }
   };
   document.addEventListener('input', onEv, true);
