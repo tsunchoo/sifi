@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 17:26:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 17:58:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,7 @@ header {
      request. */
   padding-right: max(0px, calc((100vw - 960px) / 2));
 }
+#beatCount.beat-count-hidden { opacity: 0; } /* hidden but still tappable to bring it back */
 header h1 { font-family: 'DM Sans', sans-serif; font-size: 2.0671rem; line-height: 1; letter-spacing: 0.5px; margin: 0; padding-left: 6px; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; flex: 1 1 0; min-width: 0; align-self: flex-start; color: var(--header-text-color, #4a4a4a); }
 /* Logo starts white before playback begins, independent of the shared
    --header-text-color variable (also used by the tempo number, so
@@ -2413,7 +2414,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 17:26:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 17:58:01 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2475,6 +2476,10 @@ body.performance-mode header { padding-bottom: 10px; }
       <path d="M6.2 13a4.8 4.8 0 0 1 9.6 0" stroke="#4d9de0" stroke-width="2.6" stroke-linecap="round"/>
     </svg>
   </button>
+  <!-- BEAT COUNT (1-2-3-4), per direct request: left side, same size and
+       height as the tempo number; "-" when stopped; tap to hide (it stays
+       tappable while hidden, so another tap brings it back). -->
+  <div id="beatCount" onclick="this.classList.toggle('beat-count-hidden')" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;min-width:1.4em;padding:4px 10px 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap" id="leftReelWrap" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;">
       <img class="reel" id="reel1" src="tape_spool.png" alt="" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none;">
@@ -2781,13 +2786,6 @@ body.performance-mode header { padding-bottom: 10px; }
           <input type="range" id="markerGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('markerGlowVal').textContent=this.value+'%'" onchange="setMarkerGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;">
-            <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">NOTE MARKER DECAY</div>
-            <div id="markerDecayVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
-          </div>
-          <input type="range" id="markerDecaySlider" min="100" max="400" step="5" value="100" oninput="document.getElementById('markerDecayVal').textContent=this.value+'%'" onchange="setMarkerDecay(this.value)" class="master-vol-slider" style="width:100%;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">VOL FILL</div>
             <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">150%</div>
@@ -2818,17 +2816,17 @@ body.performance-mode header { padding-bottom: 10px; }
     <div id="devMorePanel" style="display:none;flex-direction:column;gap:12px;">
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">VOLUME SLIDER — STYLE</div>
-        <div style="font-size:0.58rem;color:#666;line-height:1.35;">VOL BANGER = live level meter. TEST = full-width meter (switches VOL BANGER on). JUST TRACK = thin fill (sets FILL HEIGHT). TEST hides the track line and replaces the slider background by itself.</div>
+        <div style="font-size:0.58rem;color:#666;line-height:1.35;">VOL BANGER = live level meter. WIDE METER = the meter runs the full width of the bar in steady PLAY FLASH colour, fader on top (switches VOL BANGER on). JUST TRACK = thin fill (sets FILL HEIGHT). WIDE METER hides the track line and replaces the slider background by itself.</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
           <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
         </label>
         <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#555;">TEST PARAMETERS</div>
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#555;">WIDE METER (was TEST)</div>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="volTestToggle" checked onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST
+            <input type="checkbox" id="volTestToggle" checked onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">WIDE METER
           </label>
           <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
-            <span>TEST BG</span>
+            <span>METER BG</span>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="1" onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="2" onchange="setVolTestBg(2)" style="width:14px;height:14px;cursor:pointer;">2</label>
             <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="3" onchange="setVolTestBg(3)" style="width:14px;height:14px;cursor:pointer;">3</label>
@@ -6302,7 +6300,28 @@ function fireStepAudio(step, t) {
     }
 }
 
+// BEAT COUNT (header, left) — 1..4 following the playhead, "-" when stopped.
+let _beatCountLast = null;
+function _setBeatCount(v) {
+  if (v === _beatCountLast) return; _beatCountLast = v;
+  const el = document.getElementById('beatCount'); if (el) el.textContent = v;
+}
+function _placeBeatCount() {
+  const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum');
+  if (!el || !num || !el.offsetParent) return;
+  const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect();
+  el.style.top = (nr.top - pr.top - 4) + 'px'; // line the numeral up with the tempo number (4px = its top padding)
+}
+(function () {
+  const start = () => {
+    _placeBeatCount(); setTimeout(_placeBeatCount, 300); setTimeout(_placeBeatCount, 1500);
+    window.addEventListener('resize', () => requestAnimationFrame(_placeBeatCount));
+    new MutationObserver(() => { if (!document.body.classList.contains('seq-playing')) _setBeatCount('-'); requestAnimationFrame(_placeBeatCount); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  };
+  if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
+})();
 function updatePlayhead(step) {
+  _setBeatCount(Math.floor(((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS / (NUM_STEPS / 4)) + 1);
   document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
@@ -6314,7 +6333,7 @@ function updatePlayhead(step) {
       // was cutting the pop's ease-back short). Grow is unchanged; the ease
       // back to normal size is now twice as long, per direct request.
       el.classList.add('popping');
-      clearTimeout(el._popT); el._popT = setTimeout(() => el.classList.remove('popping'), (window._markerPopMs || 288) + 12); // NOTE MARKER DECAY sets the length
+      clearTimeout(el._popT); el._popT = setTimeout(() => el.classList.remove('popping'), 300);
     }
     const gs = (step - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
     const tbtn = document.getElementById(`tbtn-${tr}`);
@@ -11176,27 +11195,6 @@ function setSafeGfx(on) {
   const sg = document.getElementById('safeGfxToggle'); if (sg) sg.checked = !!on;
 }
 function setTrackGlow(v) { v = +v; document.documentElement.style.setProperty('--tglow', v / 100); const r = document.getElementById('trackGlowVal'); if (r) r.textContent = v + '%'; }
-// NOTE MARKER DECAY (GLOW panel), per direct request — how long a played
-// note marker takes to shrink back to its normal size AND for its glow to
-// fade. 100% = the current feel (216ms ease back); max 400% (864ms). The
-// grow (72ms) is never changed. Rewrites the pop keyframes so the grow keeps
-// its fixed length while only the ease-back stretches.
-window._markerPopMs = 288;
-function setMarkerDecay(v) {
-  v = Math.max(100, Math.min(400, +v || 100));
-  const decay = 216 * v / 100, total = Math.round(72 + decay), peak = (72 / total * 100).toFixed(2);
-  window._markerPopMs = total;
-  let st = document.getElementById('markerDecayStyle');
-  if (!st) { st = document.createElement('style'); st.id = 'markerDecayStyle'; document.head.appendChild(st); }
-  st.textContent =
-    '@keyframes step-cell-pop-marker { 0% { transform: translateY(-50%) scale(1); } ' + peak + '% { transform: translateY(-50%) scale(1.72); } 100% { transform: translateY(-50%) scale(1); } }\n' +
-    '@keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } ' + peak + '% { transform: scale(1.72); } 100% { transform: scale(1); } }\n' +
-    'html body .step-cell.popping::after { animation-duration: ' + total + 'ms; }\n' +
-    'html body .step-cell.on::after, html body .step-cell.soft::after, html body .step-cell.legato-tail::after { transition: box-shadow ' + Math.round(decay) + 'ms ease-out; }\n' +
-    'html body .step-cell.step-cell.playing::after { transition: none; }';
-  const r = document.getElementById('markerDecayVal'); if (r) r.textContent = v + '%';
-}
-if (document.head) setMarkerDecay(100); else document.addEventListener('DOMContentLoaded', () => setMarkerDecay(100), { once: true });
 function setMarkerGlow(v) { v = +v; document.documentElement.style.setProperty('--mglow', v / 100); const r = document.getElementById('markerGlowVal'); if (r) r.textContent = v + '%'; }
 function setTipGlow(v) { v = +v; document.documentElement.style.setProperty('--tipglow', v / 100); const r = document.getElementById('tipGlowVal'); if (r) r.textContent = v + '%'; }
 function setFillGlow(v) { v = +v; document.documentElement.style.setProperty('--fillglow', v / 100); const r = document.getElementById('fillGlowVal'); if (r) r.textContent = v + '%'; }
