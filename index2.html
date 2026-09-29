@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-28 05:21:49 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 16:44:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1039,7 +1039,7 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
    shared .track-ctrl-icon-btn.sweep-on rule further down (two classes)
    regardless of source order. */
 .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { width: calc(32px * var(--track-btn-scale, 1)); background: #999; color: #fff; }
-.track-ctrl-icon-btn.lock-btn.sweep-on:not(#beatCtrlL) { background: #333; color: #fff; }
+.track-ctrl-icon-btn.lock-btn.sweep-on:not(#beatCtrlL) { background: #999; color: #000; } /* engaged: button BG stays as it was, padlock goes black, per direct request (was #333 bg / white lock) */
 .fx-btn.on { background: var(--track-btn-on-color, #f17d21); color: var(--track-btn-on-text, #fff); }
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
@@ -2413,7 +2413,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-28 05:21:49 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 16:44:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2936,7 +2936,7 @@ body.performance-mode header { padding-bottom: 10px; }
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">DIAGNOSTICS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="safeGfxToggle" checked onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
+          <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
         </label>
         <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
         <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
@@ -4659,9 +4659,27 @@ async function loadSamples() {
 
 // ── Node lifecycle management ─────────────────────────────────────────────
 // Schedules disconnect() after a node stops to free it from the audio graph
+// AUDIO-CLOCK CLEANUP, crash fix: every timed disconnect now waits on the
+// AUDIO clock (ctx.currentTime), not just a wall-clock timer. When the phone
+// is overloaded the audio clock falls behind real time, so a plain
+// setTimeout could cut a voice's chain while its oscillators were still due
+// to play — and iOS never finishes an oscillator whose output was cut, so it
+// ran forever ("SOUNDING forEach=568" in the crash report), adding load,
+// slowing the clock further, orphaning more... This re-checks the audio
+// clock when the timer fires and waits longer if the audio hasn't got there.
+function _afterAudio(at, fn) {
+  const c = ctx;
+  const run = () => { try { fn(); } catch (e) {} };
+  const tick = () => {
+    if (!c || c.state === 'closed') return run();
+    if (c.state !== 'running') return setTimeout(tick, 500); // suspended/interrupted: sources are paused too — wait
+    const rem = at - c.currentTime;
+    if (rem > 0.02) setTimeout(tick, rem * 1000 + 30); else run();
+  };
+  setTimeout(tick, Math.max(0, at - (c ? c.currentTime : 0)) * 1000 + 30);
+}
 function scheduleDisconnect(node, stopTime) {
-  const delay = Math.max(0, (stopTime - (ctx?.currentTime || 0)) + 0.1);
-  setTimeout(() => { try { node.disconnect(); } catch(e) {} }, delay * 1000);
+  _afterAudio(stopTime + 0.1, () => { try { node.disconnect(); } catch(e) {} });
 }
 
 // Track approximate node count for health monitoring
@@ -7883,9 +7901,9 @@ function playSynthLeg(freq, durSec, isAccent, time, tr, extLevelMul) {
   if (rev) { hp.connect(rev); }
 
   // Shared chain cleanup, timed to the longest-running layer (detune/octave voices, durSec+tail)
-  setTimeout(() => {
+  _afterAudio(time + durSec + Math.max(tail, 0.5) + 0.2, () => {
     try { masterEnv.disconnect(); lp.disconnect(); hp.disconnect(); if (rev) rev.disconnect(); dryG.disconnect(); if (revG) revG.disconnect(); } catch(e) {}
-  }, (durSec + tail + 0.2) * 1000);
+  }); // audio-clock timed, and waits for the 0.5s noise layer too (was wall-clock from NOW)
 }
 
 const _sparkleGlideState = {};
@@ -8167,7 +8185,7 @@ function playSparkle(freq, durSec, isAccent, time, tr) {
     o.start(time); o.stop(time + decay + 0.25);
     o.onended = () => { try { g.disconnect(); } catch(e) {} };
   });
-  setTimeout(() => { try { lp.disconnect(); mix.disconnect(); } catch(e) {} }, (decay + 0.3) * 1000);
+  _afterAudio(time + decay + 0.35, () => { try { lp.disconnect(); mix.disconnect(); } catch(e) {} }); // audio-clock timed (was wall-clock from NOW with only 0.05-0.1s slack — cut ringing notes early on iOS and leaked them)
 }
 // ── HOPKINS: loose rock piano chord — Nicky Hopkins/Stones style comping.
 // Open root+5th+octave+9th voicing (works over major or minor without
@@ -8969,7 +8987,7 @@ function playSteelGuitar(freq, durSec, isAccent, time, tr) {
     o.start(time); o.stop(time + decay + 0.2);
     o.onended = () => { try { g.disconnect(); } catch(e) {} };
   });
-  setTimeout(() => { try { lp.disconnect(); mix.disconnect(); } catch(e) {} }, (decay + 0.3) * 1000);
+  _afterAudio(time + decay + 0.35, () => { try { lp.disconnect(); mix.disconnect(); } catch(e) {} }); // audio-clock timed (was wall-clock from NOW with only 0.05-0.1s slack — cut ringing notes early on iOS and leaked them)
 }
 
 // ── Rhodes 2: warm electric piano, more fundamental, softer attack ──
@@ -9572,14 +9590,13 @@ function playClung(freq, durSec, isAccent, time, tr) {
   grainNoise.start(time); grainNoise.stop(stopAt);
   grainNoise.onended = () => { try { grainBP.disconnect(); grainGain.disconnect(); } catch(e) {} };
 
-  const cleanupMs = Math.max(0, (stopAt + 0.05 - ctx.currentTime)) * 1000;
-  setTimeout(() => {
+  _afterAudio(stopAt + 0.05, () => {
     try {
       bodyMix.disconnect(); filter.disconnect(); env.disconnect(); sweepDepth.disconnect(); driftGain.disconnect();
       grit.disconnect(); hollowDelay.disconnect(); hollowInvert.disconnect();
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
-  }, cleanupMs);
+  });
 }
 // SCHOOL PIANO — an upright, slightly worn, close-mic'd piano: real
 // timbre, not too wet on its own (that's what the reverb send is for).
@@ -9647,13 +9664,12 @@ function playSchoolPiano(freq, durSec, isAccent, time, tr) {
   hammer.start(time); hammer.stop(time + 0.02);
   hammer.onended = () => { try { hammerBP.disconnect(); hammerGain.disconnect(); } catch(e) {} };
 
-  const cleanupMs = Math.max(0, (stopAt + 0.05 - ctx.currentTime)) * 1000;
-  setTimeout(() => {
+  _afterAudio(stopAt + 0.05, () => {
     try {
       bodyMix.disconnect(); bodyFilter.disconnect(); bodyReso.disconnect(); env.disconnect();
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
-  }, cleanupMs);
+  });
 }
 // BOOBOO — a short, pulsey analog lead. Two detuned square-wave oscillators
 // for a fat unison lead tone, a classic analog filter envelope (fast open
@@ -9755,7 +9771,7 @@ function playOpening(freq, durSec, isAccent, time, tr) {
     });
   });
 
-  setTimeout(() => { try { chordGain.disconnect(); lp.disconnect(); } catch(e) {} }, (sustain + release + 0.6) * 1000);
+  _afterAudio(time + sustain + release + 0.6, () => { try { chordGain.disconnect(); lp.disconnect(); } catch(e) {} }); // audio-clock timed (was wall-clock from NOW, not from the note's start)
 }
 // ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
 function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
@@ -11129,7 +11145,7 @@ function setVolTestBg(n) {
 let _safeGfxBefore = null;
 // SAFE GFX on by default for the crash test, per direct request — applied
 // shortly after start-up so it runs after VOL BANGER / lights defaults.
-setTimeout(() => { try { setSafeGfx(true); } catch (e) {} }, 400);
+// SAFE GFX now OFF by default, per direct request (no start-up call).
 function setSafeGfx(on) {
   const b = document.body.classList;
   if (on) {
@@ -18463,15 +18479,14 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   // and ducks track 0, this filter also gets an audible "kick" (see
   // duckEchoTrack below), rather than DRONE only reacting via plain volume.
   _droneActiveFilters.push(filter);
-  const cleanupDelayMs = Math.max(0, (stopAt + 0.05 - ctx.currentTime)) * 1000;
-  setTimeout(() => {
+  _afterAudio(stopAt + 0.05, () => {
     _droneActiveFilters = _droneActiveFilters.filter(f => f !== filter);
     try {
       bodyMix.disconnect(); filter.disconnect(); midDip.disconnect(); airShelf.disconnect(); ws.disconnect(); env.disconnect(); hp1.disconnect();
       sweepDepth.disconnect(); driftGain.disconnect();
       createdOscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
-  }, cleanupDelayMs);
+  });
 }
 function _playPhantomNote(tr, key, freq, isAccent, when, destOverride, durSec) {
   if (!ctx) return;
@@ -20423,8 +20438,7 @@ function _patchCtxForAutoCleanup(ctx) {
 
 // Schedule disconnection of multiple nodes after a voice ends
 function _cleanupNodes(nodes, stopTime) {
-  const delay = Math.max(0.1, (stopTime - (ctx?.currentTime || 0)) + 0.15);
-  setTimeout(() => { nodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); }, delay * 1000);
+  _afterAudio(stopTime + 0.15, () => { nodes.forEach(n => { try { n.disconnect(); } catch(e) {} }); });
 }
 // Keep the screen awake while the app is open — released automatically by the
 // browser if the tab goes to background, so re-request it when it comes back.
