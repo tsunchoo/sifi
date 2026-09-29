@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 19:18:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 19:41:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2109,7 +2109,7 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
-:root { --play-flash-color: #f17d21; --tglow: 0.5; --fillglow: 1.5; --rglow: 1.5; } /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
+:root { --play-flash-color: #ffffff; --tglow: 0.5; --fillglow: 1.5; --rglow: 1.5; } /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
 /* ── Track lane label — now inside ctrl row, removed ── */
 
@@ -2196,7 +2196,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track flash-from-top vol-test vol-test-bg-4">
+<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2418,7 +2418,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 19:18:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 19:41:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3003,10 +3003,10 @@ body.performance-mode header { padding-bottom: 10px; }
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH</div>
-        <input type="color" id="playFlashColorPicker" value="#f17d21" oninput="setFlashFromTop(false); setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
+        <input type="color" id="playFlashColorPicker" value="#ffffff" oninput="setFlashFromTop(false); setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="flashFromTopToggle" checked onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
+        <input type="checkbox" id="flashFromTopToggle" onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
       </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -3641,6 +3641,7 @@ function _applyTopColor(hex) {
   const sw = document.getElementById('topColorSwatch'); if (sw) sw.style.background = hex;
   _deriveInstrumentColorsFromTop(hex);
   _applyFlashFromTop();
+  if (!document.body.classList.contains('flash-from-top') && typeof _updatePlayFlashHot === 'function') _updatePlayFlashHot(getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim()); // keeps the white-PLAY-FLASH hot colour following TOP ROW
   if (typeof _updateLitGlyph === 'function') _updateLitGlyph();
 }
 // PLAY FLASH FROM TOP ROW (toggle, on by default), per direct request —
@@ -19835,6 +19836,11 @@ function setSoloFlashMode(on) {
 // PLAY FLASH (SETTINGS color picker) — the color the playhead flashes
 // actual notes (not empty cells) as it passes through them. See
 // .step-cell.on.playing::after / .soft.playing::after.
+// PLAY FLASH default = WHITE, per direct request (PLAY FLASH FROM TOP ROW now
+// off by default) — applied once at start-up so the derived colours (hot,
+// lit glyph, fader highlight) are worked out from white too.
+(function () { const go = () => { try { if (!document.body.classList.contains('flash-from-top')) setPlayFlashColor('#ffffff'); } catch (e) {} };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go, { once: true }); else setTimeout(go, 0); })();
 function setPlayFlashColor(hex) {
   document.documentElement.style.setProperty('--play-flash-color', hex);
   _updatePlayFlashHot(hex);
@@ -19875,6 +19881,14 @@ function _updatePlayFlashHot(hex) {
   h = (h + 24) % 360;
   sat = Math.min(1, sat * 1.25 + 0.15);
   l = Math.min(0.64, Math.max(0.55, l + 0.1));
+  // White / grey PLAY FLASH (white is the default now, per direct request)
+  // has no hue to push, so the old maths gave a muddy grey-brown. Instead the
+  // hot colour comes from the TOP ROW hue turned 150deg at full saturation —
+  // the colour PLAY FLASH FROM TOP ROW would pick — so BLAST / + AUTO still pop.
+  if (s0 < 0.08) {
+    const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+    if (/^#[0-9a-f]{6}$/i.test(top) && typeof _hexToHsl === 'function') { h = (_hexToHsl(top)[0] + 150) % 360; sat = 1; l = 0.6; }
+  }
   document.documentElement.style.setProperty('--play-flash-hot', _hslToHex(h, sat, l));
   // Darkest version (TEST BG option 3): the ORIGINAL hue/saturation, taken
   // down to 13% lightness (saturation eased back so it reads as a very dark
@@ -20851,8 +20865,8 @@ async function hardResetAudioEngine() {
   // target at press, and where drag position 0 maps to) and the ceiling
   // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
   // maps drag position onto both this and the pitch range together.
-  const SWEEP_ATTACK_LEVEL = 0.00958; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.09016; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.01206; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.11350; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
   // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
   // ramps toward the next downbeat) removed along with startSweepTakeover
   // and the RMS sidechain duck — nothing here is time-based any more, only
@@ -20914,7 +20928,13 @@ async function hardResetAudioEngine() {
     gain.gain.cancelScheduledValues(t);
     gain.gain.setValueAtTime(gain.gain.value * 0.355, t); // -9dB total on the release tail (-5dB then another -4dB)
     gain.gain.linearRampToValueAtTime(0, t + halfNote);
-    setTimeout(() => { try { noise.stop(); noise.disconnect(); } catch(e) {} }, halfNote * 1000 + 100);
+    // LEAK FIX (crash report "startSweep=5"): the noise used to be stopped and
+    // disconnected in the same instant from a wall-clock timer — iOS never
+    // finished a source cut off before its stop was processed, so every SWEEP
+    // release left a 12s looping noise voice running for good. Now the stop is
+    // scheduled on the audio clock and the chain is only taken apart after it.
+    try { noise.stop(t + halfNote + 0.05); } catch(e) {}
+    _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} });
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
