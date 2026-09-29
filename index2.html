@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 21:31:32 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 21:46:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -86,6 +86,14 @@ header {
      request. */
   padding-right: max(0px, calc((100vw - 960px) / 2));
 }
+/* MENU OPEN = NOTHING DRAWN UNDERNEATH, per direct request (crash hunt —
+   several crashes came with a menu open or just opened/closed). While
+   LOOK AND FEEL / SETTINGS / RANDOMIZATION is open the tracks aren't drawn
+   at all (the dimmed backdrop just shows the background colour there), the
+   top row / header animations are frozen, and the VOL BANGER meter loop
+   idles (see _volBangerLoop). All of it comes straight back on close. */
+body.menu-open #seqWrap { visibility: hidden !important; }
+body.menu-open header *, body.menu-open .transport, body.menu-open .transport *, body.menu-open #songNameBar, body.menu-open #songNameBar * { animation-play-state: paused !important; }
 #beatCount { -webkit-tap-highlight-color: transparent; outline: none; } /* no iOS grey tap flash over the numeral's box, per direct request */
 #beatCount.beat-count-hidden { opacity: 0; } /* hidden but still tappable to bring it back */
 /* BEAT COUNT PULSE (2nd tap), per direct request — each new beat flashes the
@@ -2460,7 +2468,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:31:32 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:46:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -11186,6 +11194,7 @@ else setTimeout(() => setVolBanger(true), 0);
 function _volBangerLoop(now) {
   _vbRaf = requestAnimationFrame(_volBangerLoop);
   if (!ctx) return;
+  if (document.body.classList.contains('menu-open')) { _vbLastT = 0; return; } // menu open: tracks aren't drawn, so skip the meter work entirely
   const dt = _vbLastT ? Math.min(0.1, (now - _vbLastT) / 1000) : 0; _vbLastT = now;
   for (let tr = 0; tr < NUM_TRACKS; tr++) _vbPeakDb[tr] = Math.max(-60, _vbPeakDb[tr] - 6 * dt); // recent-peak memory relaxes ~6dB/s
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
