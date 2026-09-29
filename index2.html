@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 22:59:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 23:22:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1413,6 +1413,21 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: none
   background: #ccc !important; border: none !important; color: #888 !important;
   animation: none !important;
 }
+/* BUGFIX (per direct report: TOM MID / TOM HI / TEXTURE etc. kept lit FX / R
+   buttons while muted): in TRACK BUTTON LIGHTS mode the lit rules (with
+   !important and more classes) out-ranked the muted greying above, so any
+   engaged button on a muted track kept its lit colour, glow and pulse. The
+   repeated classes here out-rank every lights rule, so a muted row is
+   always fully dulled — engaged or not. */
+html body .track-ctrl-row.row-muted.row-muted.row-muted .track-ctrl-icon-btn,
+html body .track-ctrl-row.row-muted.row-muted.row-muted .shift-btn,
+html body .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn {
+  background: #ccc !important; border: none !important; color: #888 !important;
+  animation: none !important; text-shadow: none !important; box-shadow: none !important; transform: none !important; opacity: 1 !important;
+}
+html body .track-ctrl-row.row-muted.row-muted.row-muted .track-ctrl-icon-btn *,
+html body .track-ctrl-row.row-muted.row-muted.row-muted .shift-btn *,
+html body .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn * { color: #888 !important; text-shadow: none !important; filter: none !important; animation: none !important; }
 
 
 
@@ -2489,7 +2504,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 22:59:45 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 23:22:20 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
