@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 21:15:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 21:20:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2456,7 +2456,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:15:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:20:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19427,8 +19427,36 @@ const _RAINBOW_CYCLE = [
   { perf: false, ruler: true,  bg0: true  },
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: true, jt: true, glowTip: true, nameTag: true }, // NAME TAG mode, per direct request — mode 3's settings + white/black-bordered track names with a 25px instrument-colour tab
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, palette: 'groovy' }, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
 ];
+// Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
+// that name one (m.palette). Applied once on entering the mode; WILD / +
+// colour changes can re-roll them afterwards like any other colours.
+const _DISPLAY_PALETTES = {
+  groovy: {"--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
+};
+function _applyDisplayPalette(name) {
+  const pal = _DISPLAY_PALETTES[name]; if (!pal) return;
+  try {
+    if (pal['--bg'] && typeof _applyBgColor === 'function') _applyBgColor(pal['--bg']);
+    if (pal['--neutral-top'] && typeof _applyTopColor === 'function') _applyTopColor(pal['--neutral-top']);
+    const r = document.documentElement.style;
+    Object.keys(pal).forEach(k => r.setProperty(k, pal[k])); // exact snapshot values last, so nothing derived above drifts from them
+    if (typeof trackInstruments !== 'undefined') for (let tr = 0; tr < NUM_TRACKS; tr++) { try { setTrackNameColor(tr, trackInstruments[tr]); redrawTrackCells(tr, true); } catch (e) {} }
+    if (typeof _repaintFaderTips === 'function') _repaintFaderTips();
+  } catch (e) {}
+}
 function _applyRainbowState(m) {
+  // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
+  if (m.flashTop !== undefined) {
+    if (window._flashTopBeforeMode === undefined) window._flashTopBeforeMode = document.body.classList.contains('flash-from-top');
+    if (typeof setFlashFromTop === 'function') setFlashFromTop(!!m.flashTop);
+  } else if (window._flashTopBeforeMode !== undefined) {
+    const was = window._flashTopBeforeMode; window._flashTopBeforeMode = undefined;
+    if (typeof setFlashFromTop === 'function') setFlashFromTop(was);
+    if (!was && typeof setPlayFlashColor === 'function') { const pk = document.getElementById('playFlashColorPicker'); setPlayFlashColor('#ffffff'); if (pk) pk.value = '#ffffff'; } // back to the white default
+  }
+  if (m.palette) _applyDisplayPalette(m.palette);
   document.body.classList.toggle('name-tag', !!m.nameTag);
   if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
   if (m.ruler !== !!window._timeRulerEnabled && typeof setTimeRuler === 'function') setTimeRuler(m.ruler);
@@ -22171,12 +22199,13 @@ function snapshotDisplay() {
     m.querySelectorAll('input[type=radio]:checked').forEach(el => { controls['radio:' + el.name] = el.value; });
   });
   const transient = /^(seq-playing|logo-pulse-expired|menu-open)$/;
+  const _glowsCb = document.getElementById('glowsOnToggle'); const _glowOffReal = _glowsCb && !_glowsCb.checked; // 'no-glow' is also set just because a menu is open — only record it when GLOWS is really off
   const snap = {
     name: name || null,
     taken: new Date().toISOString(),
     build: (document.getElementById('buildTimestamp') || {}).textContent || '',
     rainbowMode: (window._rainbowIdx !== undefined ? window._rainbowIdx + 1 : null),
-    bodyClasses: document.body.className.split(/\s+/).filter(c => c && !transient.test(c)),
+    bodyClasses: document.body.className.split(/\s+/).filter(c => c && !transient.test(c) && (c !== 'no-glow' || _glowOffReal)),
     cssVariables: vars,
     controls
   };
