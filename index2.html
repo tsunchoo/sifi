@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 20:34:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 21:15:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1488,25 +1488,19 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid { filter: none
 .track-name-btn.inst-tonal { background: var(--lane-color-tonal, #fd475d); color: var(--lane-color-tonal-text, #fff); }
 .track-name-btn.inst-tonal.inst-bass { background: var(--lane-color-bass, #8d3ba8); color: var(--lane-color-bass-text, #fff); }
 .track-name-btn.inst-tonal.inst-pad  { background: var(--lane-color-pad, #FFFF39); color: var(--lane-color-pad-text, #111); }
-/* NAME TAG display mode (rainbow mode 9), per direct request — track name
-   buttons go white with a black border and black text, with only the last
-   25px on the right in the instrument's colour; no pulsing or flashing.
-   --nt picks up the same lane colour the .inst-* classes use, so it follows
-   colour changes. */
-.track-name-btn.inst-kit { --nt: var(--lane-color-kit, #0b5394); }
-.track-name-btn.inst-perc { --nt: var(--lane-color-perc, #7baa17); }
-.track-name-btn.inst-tonal { --nt: var(--lane-color-tonal, #fd475d); }
-.track-name-btn.inst-tonal.inst-bass { --nt: var(--lane-color-bass, #8d3ba8); }
-.track-name-btn.inst-tonal.inst-pad { --nt: var(--lane-color-pad, #FFFF39); }
+/* NAME TAG display mode (rainbow mode 9), per direct request — the track
+   name button is one plain transparent cell: no fill, no instrument colour,
+   black text, with a border in the < (offset) button's own background
+   colour (same colour-mix, so it follows TRACK BUTTON SHADE too). No
+   pulsing or flashing. */
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn,
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.playing,
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn.note-pulse {
-  background: #fff !important; position: relative !important;
-  color: #000 !important; border: 2px solid #000 !important; box-sizing: border-box !important;
+  background: transparent !important;
+  color: #000 !important; box-sizing: border-box !important;
+  border: 2px solid color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) !important;
   animation: none !important; text-shadow: none !important; filter: none !important; opacity: 1 !important;
 }
-/* the 25px instrument-colour tab, drawn ON TOP so a long name runs under it rather than over it */
-html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 25px; background: var(--nt, #999); pointer-events: none; }
 .track-name-btn.names-uniform { background: var(--neutral-top, #555); color: #fff; }
 
 /* ── Vol overlay ── */
@@ -2462,7 +2456,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 20:34:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 21:15:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
