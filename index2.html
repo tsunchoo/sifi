@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 17:58:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 19:10:04 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2414,7 +2414,7 @@ body.performance-mode header { padding-bottom: 10px; }
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 17:58:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 19:10:04 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2479,7 +2479,7 @@ body.performance-mode header { padding-bottom: 10px; }
   <!-- BEAT COUNT (1-2-3-4), per direct request: left side, same size and
        height as the tempo number; "-" when stopped; tap to hide (it stays
        tappable while hidden, so another tap brings it back). -->
-  <div id="beatCount" onclick="this.classList.toggle('beat-count-hidden')" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;min-width:1.4em;padding:4px 10px 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
+  <div id="beatCount" onclick="this.classList.toggle('beat-count-hidden')" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;width:1.2em;text-align:right;padding:4px 0 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap" id="leftReelWrap" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;">
       <img class="reel" id="reel1" src="tape_spool.png" alt="" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none;">
@@ -6306,11 +6306,30 @@ function _setBeatCount(v) {
   if (v === _beatCountLast) return; _beatCountLast = v;
   const el = document.getElementById('beatCount'); if (el) el.textContent = v;
 }
+let _beatMeasureCtx = null;
+function _inkRightGap(ch, cs) { // advance width minus the glyph's inked right edge
+  _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
+  _beatMeasureCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+  const m = _beatMeasureCtx.measureText(ch);
+  return m.width - m.actualBoundingBoxRight;
+}
 function _placeBeatCount() {
-  const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum');
+  const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent) return;
   const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect();
   el.style.top = (nr.top - pr.top - 4) + 'px'; // line the numeral up with the tempo number (4px = its top padding)
+  // Right edge of the "4" (the widest numeral) lined up with the right edge
+  // of the Si•Fi logo, per direct request — both measured on the actual ink,
+  // not the text boxes. Numerals are right-aligned in a fixed-width box.
+  if (!logo || !logo.firstChild) return;
+  const r = document.createRange(); r.selectNodeContents(logo); const lr = r.getBoundingClientRect();
+  const lcs = getComputedStyle(logo), ecs = getComputedStyle(el);
+  const txt = logo.textContent.trim(), last = txt.slice(-1);
+  const ls = parseFloat(lcs.letterSpacing) || 0;
+  const logoInkRight = lr.right - ls - _inkRightGap(last, lcs);
+  const boxRight = logoInkRight + _inkRightGap('4', ecs); // where the 4's advance box must end
+  const w = el.offsetWidth;
+  el.style.left = (boxRight - pr.left - w) + 'px';
 }
 (function () {
   const start = () => {
