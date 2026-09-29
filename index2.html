@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 22:20:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 22:34:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1229,8 +1229,16 @@ html body .track-ctrl-row .track-ctrl-icon-btn.solo-on .glyph { color: #000 !imp
 /* Offset (<) and + buttons: glyph goes PLAY FLASH colour while pressed,
    per direct request. .glyph-pressed is added on pointerdown and cleared on
    release by the listener next to wireShiftButton. */
-html body .shift-btn.glyph-pressed:not(.right), html body .shift-btn.glyph-pressed:not(.right) .track-offset-glyph,
-html body .rand-btn.glyph-pressed, html body .rand-btn.glyph-pressed .glyph { color: var(--lit-glyph, var(--play-flash-color, #f17d21)) !important; }
+/* ...replaced, per direct request: on press the < / + glyph now flashes
+   BRIGHT WHITE with a glow and fades back to its normal colour, exactly like
+   a note marker as the playhead passes (72ms at the peak, then a 216ms
+   ease-out back). No 100% keyframe, so it fades to whatever the glyph's
+   normal colour is in the current mode. */
+@keyframes track-glyph-pop {
+  0%, 25% { color: #fff; text-shadow: 0 0 calc(6px * var(--mglow, 1.5)) rgba(255, 255, 255, 0.95), 0 0 calc(2px * var(--mglow, 1.5)) #fff; }
+}
+html body .shift-btn.glyph-pop:not(.right) .track-offset-glyph,
+html body .rand-btn.glyph-pop .glyph { animation: track-glyph-pop 288ms ease-out; }
 /* ...and their background takes the FX button's own engaged colour while
    pressed, per direct request (lights mode: the top row's pressed shade;
    otherwise the normal track-button ON colour). */
@@ -2481,7 +2489,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 22:20:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 22:34:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17850,6 +17858,8 @@ function wireShiftButton(btn, tr, dir) {
     const b = e.target.closest && e.target.closest('.shift-btn:not(.right), .rand-btn');
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
+    b.classList.remove('glyph-pop'); void b.offsetWidth; b.classList.add('glyph-pop'); // restart the white flash + fade on every press
+    clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), 320);
   }, true);
   document.addEventListener('pointerup', release, true);
   document.addEventListener('pointercancel', release, true);
@@ -17937,7 +17947,7 @@ function wireRandomizeButton(btn, tr) {
     window._nButtonClickCount[tr] = (window._nButtonClickCount[tr] || 0) + 1;
     doRand();
     btn.style.background = document.body.classList.contains('track-btn-lights') ? 'var(--top-row-pressed-bg)' : 'var(--track-btn-on-color, #0081FE)'; // same as the FX button's engaged background, per direct request (was _highlight2Color())
-    btn.style.color = 'var(--play-flash-color, #f17d21)'; // glyph in PLAY FLASH colour for the tap flash, per direct request (was #fff)
+    // (glyph colour flash now handled by the white .glyph-pop fade, per direct request)
     setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
   };
 
@@ -19441,7 +19451,7 @@ function _cycleRainbowMode() {
   if (_k !== undefined && _RAINBOW_CYCLE[_k] && _RAINBOW_CYCLE[_k].perf === perf && _RAINBOW_CYCLE[_k].ruler === ruler) idx = _k;
   if (idx < 0) idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler && !!m.bg0 === bg0);
   if (idx < 0) idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler); // e.g. ruler toggled from the menu while BG was zeroed
-  _applyRainbowState(_RAINBOW_CYCLE[(idx + 1) % _RAINBOW_CYCLE.length]);
+  { const _nm = _RAINBOW_CYCLE[(idx + 1) % _RAINBOW_CYCLE.length]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
 }
 const _RAINBOW_CYCLE = [
   { perf: true,  ruler: true,  bg0: false },
@@ -19452,14 +19462,16 @@ const _RAINBOW_CYCLE = [
   { perf: false, ruler: true,  bg0: false },
   { perf: false, ruler: true,  bg0: true  },
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
-  { perf: true,  ruler: false, bg0: true, jt: true, glowTip: true, nameTag: true }, // NAME TAG mode, per direct request — mode 3's settings + white/black-bordered track names with a 25px instrument-colour tab
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, palette: 'groovy' }, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon' }, // mode 11 "CARTOON", from the display snapshot, per direct request — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: true, glowTip: true, nameTag: true, name: 'NAME TAG' }, // NAME TAG mode, per direct request — mode 3's settings + white/black-bordered track names with a 25px instrument-colour tab
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, palette: 'groovy', name: 'GROOVY' }, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
+  { perf: true,  ruler: false, bg0: false, rowBg: 25, jt: true, tipHl: true, classes: { 'drums-pulse': true }, sliders: {"lockBtnDarknessSlider": "25", "trackBtnShadeSlider": "-50"}, palette: 'darker', name: 'DARKER' }, // mode 12 "DARKER", from the display snapshot, per direct request — mode 4 with track row BG 25%, TEST DRUMS PULSE on, lock buttons 25% darker, track buttons shaded -50, and its colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
 // colour changes can re-roll them afterwards like any other colours.
 const _DISPLAY_PALETTES = {
+  darker: {"--track-text-invert": "0", "--neutral-top": "#6f4a67", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c3f", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a5a63f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d762", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#336f99", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b563e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff5d", "--play-flash-dark": "#19330f", "--lit-glyph": "#5bff1a", "--lit-glyph-hot": "#47ff5d", "--neutral-track": "#b28caa", "--neutral-track-text": "#ffffff", "--playhead-color": "#cd9789", "--highlight-text": "#ffffff", "--highlight2-color": "#bdcd89", "--highlight2-text": "#111111", "--highlight3-color": "#4db362", "--bg": "#bbcacd", "--bar-color": "#8379a6", "--empty-cell-color": "#91aaaf", "--vol-slider-color": "#907ecd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#bdcd89", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a1ae74", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#9ac600", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#2e6c3b", "--top-row-text-color": "#bdcd89", "--top-row-pressed-text-color": "#bdcd89", "--play-hl": "#c6de78", "--fader-hl": "#e0f797", "--fader-glow": "#1f0868", "--track-btn-text-color": "#bdcd89", "--play-flash-color": "#5bff1a", "--tbtn-shade-col": "#000"},
   cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
   groovy: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
 };
@@ -19474,7 +19486,24 @@ function _applyDisplayPalette(name) {
     if (typeof _repaintFaderTips === 'function') _repaintFaderTips();
   } catch (e) {}
 }
+// Little temporary DISPLAY MODE label, per direct request — "MODE 12 · DARKER"
+// under the rainbow icon for ~1.6s whenever the rainbow cycle moves on, so
+// modes can be referred to by number.
+let _modeLabelT = null;
+function _showModeLabel(m) {
+  const i = _RAINBOW_CYCLE.indexOf(m); if (i < 0) return;
+  let el = document.getElementById('modeLabel');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'modeLabel';
+    el.style.cssText = 'position:absolute;top:26px;right:62px;font-family:"DM Sans",sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:1.5px;color:var(--header-text-color,#111);white-space:nowrap;pointer-events:none;z-index:5;transition:opacity 0.4s ease;opacity:0;';
+    const h = document.querySelector('header'); (h || document.body).appendChild(el);
+  }
+  el.textContent = 'MODE ' + (i + 1) + (m.name ? ' \u00b7 ' + m.name : '');
+  el.style.opacity = '1';
+  clearTimeout(_modeLabelT); _modeLabelT = setTimeout(() => { el.style.opacity = '0'; }, 1600);
+}
 function _applyRainbowState(m) {
+  if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
   // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
   if (m.flashTop !== undefined) {
     if (window._flashTopBeforeMode === undefined) window._flashTopBeforeMode = document.body.classList.contains('flash-from-top');
@@ -19499,6 +19528,20 @@ function _applyRainbowState(m) {
   const _setSl = (id, v) => { const el = document.getElementById(id); if (!el) return; el.value = v; try { if (el.oninput) el.oninput(); if (el.onchange) el.onchange(); } catch (e) {} };
   Object.keys(window._slidersBeforeMode).forEach(id => { if (!m.sliders || !(id in m.sliders)) { _setSl(id, window._slidersBeforeMode[id]); delete window._slidersBeforeMode[id]; } });
   if (m.sliders) Object.keys(m.sliders).forEach(id => { const el = document.getElementById(id); if (!el) return; if (!(id in window._slidersBeforeMode)) window._slidersBeforeMode[id] = el.value; _setSl(id, m.sliders[id]); });
+  // Body classes a mode switches (m.classes = {cls: on}), remembered/restored
+  window._classesBeforeMode = window._classesBeforeMode || {};
+  Object.keys(window._classesBeforeMode).forEach(c => { if (!m.classes || !(c in m.classes)) { document.body.classList.toggle(c, window._classesBeforeMode[c]); delete window._classesBeforeMode[c]; } });
+  if (m.classes) Object.keys(m.classes).forEach(c => { if (!(c in window._classesBeforeMode)) window._classesBeforeMode[c] = document.body.classList.contains(c); document.body.classList.toggle(c, !!m.classes[c]); });
+  { const dp = document.getElementById('drumsPulseToggle'); if (dp) dp.checked = document.body.classList.contains('drums-pulse'); }
+  // A snapshot colour scheme brings its own PLAY FLASH colour; when the cycle
+  // moves on to a mode without one, the PLAY FLASH it had before comes back
+  // (otherwise e.g. DARKER's green would stick, since WILD never re-rolls it).
+  if (m.palette) {
+    // (captured at the very top of this function, before FROM TOP ROW can change it)
+  } else if (window._flashBeforePalette !== undefined) {
+    const f = window._flashBeforePalette; window._flashBeforePalette = undefined;
+    if (!document.body.classList.contains('flash-from-top') && f && typeof setPlayFlashColor === 'function') { setPlayFlashColor(f); const pk = document.getElementById('playFlashColorPicker'); if (pk) pk.value = f; }
+  }
   if (m.palette) _applyDisplayPalette(m.palette);
   document.body.classList.toggle('name-tag', !!m.nameTag);
   if (m.perf !== document.body.classList.contains('performance-mode')) setPerformanceMode(m.perf);
