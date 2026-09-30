@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 21:47:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 21:59:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -95,7 +95,7 @@ header {
 body.menu-open #seqWrap { visibility: hidden !important; }
 body.menu-open header *, body.menu-open .transport, body.menu-open .transport *, body.menu-open #songNameBar, body.menu-open #songNameBar * { animation-play-state: paused !important; }
 /* NIGHT CITY (mode 13): the Si•Fi logo and all the tape graphics (reels + tape window) inverted, per direct request */
-html body.night-invert #tapeReels { filter: invert(1) !important; }
+html body.night-invert #tapeReels .reel-wrap { filter: invert(1); } /* reels only — the TAPE WINDOW is left exactly as in the light modes (no invert, tint or glow), per direct request; _syncTapeTint sets the real tint inline on each reel */
 /* DARK MODES: the Si•Fi logo, the tempo readout and the LOCKED label are coloured the TOP ROW buttons' default glyph colour
    (--top-row-text-color) instead of being inverted to white, per direct request. The logo's playing colour animations still run over it. */
 html body.night-invert #siFiTitle { filter: none !important; color: var(--top-row-text-color, #ececec); }
@@ -114,7 +114,7 @@ html body.night-invert.tape-two-tone:not(.no-glow):not(.safe-gfx) .tape-window {
 /* --reel-glow-img is a bitmap made ONCE by _buildReelGlow(): the spool's own silhouette, blurred (canvas shadowBlur), with the disc inside
    the teeth tips punched out — so the glow follows the teeth outward and the notches/spokes stay dark. It rotates with the reel as a plain
    image, so spinning costs nothing extra (no live blur). Per direct request: the old ring glow ignored the spool's shape. */
-html body.night-invert:not(.no-glow):not(.safe-gfx) .tape-window { box-shadow: 0 0 7px 1px rgba(0,0,0,0.55); }
+/* (tape-window glow removed — the window is no longer modified in the dark modes, per direct request) */
 html body.night-invert:not(.no-glow):not(.safe-gfx) #tapeReels { isolation: isolate; }
 /* tint is applied by _syncTapeTint as an INLINE !important filter on #tapeReels; if Safari ever rejects it, this plain invert(1) above still shows the tapes (white) instead of black */
 /* ...and the dark header text (beat count, tempo + 'bpm', MODE label) goes light so it reads on the near-black background — scoped variable, so the beat count's pulse still works */
@@ -2595,7 +2595,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:47:45 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:59:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3566,7 +3566,7 @@ const INSTRUMENTS = {
   underpass: { name: 'UNDERPASS', soft: null, accent: null, group: 'tonal' },
   guiro:  { name: 'GUIRO',       soft: 'Sounds/Guiro.wav', accent: 'Sounds/Guiro_Scratch.wav', group: 'perc'  },
   // cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
-  jcmgtr: { name: 'JINX',         soft: null, accent: null, group: 'tonal' },
+  jcmgtr: { name: 'PIPE',         soft: null, accent: null, group: 'tonal' },
   clar:   { name: 'JENNY',       soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'DREAM PIANO',  soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'DX PIANO',    soft: null, accent: null, group: 'tonal' },
@@ -7871,9 +7871,9 @@ function randomizeBassTrack(tr, level) {
   if (key === 'jcmgtr' && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.75) {
+      if (grid[tr][s] > 0 && Math.random() < 0.3) { // PIPE (was JINX): mostly STACCATO now, per direct request — was 75% legato
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 2 + Math.floor(Math.random() * 5); // 2-6
+        const wantLen = 2 + Math.floor(Math.random() * 3); // 2-4 (was 2-6)
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
@@ -17939,9 +17939,9 @@ function randomizeTrack(tr) {
   if (key === 'jcmgtr' && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
-      if (grid[tr][s] > 0 && Math.random() < 0.75) {
+      if (grid[tr][s] > 0 && Math.random() < 0.3) { // PIPE (was JINX): mostly STACCATO now, per direct request — was 75% legato
         const maxLen = _legatoMaxLen(tr, s);
-        const wantLen = 2 + Math.floor(Math.random() * 5); // 2-6
+        const wantLen = 2 + Math.floor(Math.random() * 3); // 2-4 (was 2-6)
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
@@ -19693,13 +19693,13 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: true,  bg0: false },
   { perf: true,  ruler: false, bg0: false },
   { perf: true,  ruler: false, bg0: true, jt: false }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'KNIGHT FLYER' }, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'DASHBOARD' } /* was KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true  },
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'AUBERGINE' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-two-tone': true, 'tape-from-fill': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "18", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
-  { perf: true,  ruler: false, bg0: true, jt: false, safeGfx: true, name: 'SAFE GFX' }, // mode 10 "SAFE GFX", per direct request — the start-up mode 3 look with SAFE GFX switched on (no track-button lights, no WIDE METER, lighter graphics); leaving it puts SAFE GFX back how it was
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "18", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 4, sliders: {"squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "150", "emptyMarkerSizeSquareSlider": "100", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -19709,6 +19709,7 @@ const _DISPLAY_PALETTES = {
   night: {"--track-text-invert": "0", "--neutral-top": "#4b6670", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3996", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bd", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99b0", "--neutral-track": "#8da8b3", "--neutral-track-text": "#ffffff", "--playhead-color": "#563e92", "--highlight-text": "#ffffff", "--highlight2-color": "#923e7a", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3684d", "--bg": "#0c264b", "--bar-color": "#a3c2ac", "--empty-cell-color": "#483434", "--vol-slider-color": "#7bcc92", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#d9b4a6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#b8998d", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#e94100", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#563e92", "--top-row-text-color": "#d9b4a6", "--top-row-pressed-text-color": "#c28671", "--play-hl": "#d67c5d", "--fader-hl": "#f5a285", "--fader-glow": "#0a5d7a", "--track-btn-text-color": "#d9b4a6", "--play-flash-color": "#ffffff"},
   darker: {"--track-text-invert": "0", "--neutral-top": "#6f4a67", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c3f", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a5a63f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d762", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#336f99", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b563e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff5d", "--play-flash-dark": "#19330f", "--lit-glyph": "#5bff1a", "--lit-glyph-hot": "#47ff5d", "--neutral-track": "#b28caa", "--neutral-track-text": "#ffffff", "--playhead-color": "#cd9789", "--highlight-text": "#ffffff", "--highlight2-color": "#bdcd89", "--highlight2-text": "#111111", "--highlight3-color": "#4db362", "--bg": "#bbcacd", "--bar-color": "#8379a6", "--empty-cell-color": "#91aaaf", "--vol-slider-color": "#907ecd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#bdcd89", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a1ae74", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#9ac600", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#2e6c3b", "--top-row-text-color": "#bdcd89", "--top-row-pressed-text-color": "#bdcd89", "--play-hl": "#c6de78", "--fader-hl": "#e0f797", "--fader-glow": "#1f0868", "--track-btn-text-color": "#bdcd89", "--play-flash-color": "#5bff1a", "--tbtn-shade-col": "#000"},
   aubergine: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b2604e", "--bg": "#241e48", "--bar-color": "#9f6f9c", "--empty-cell-color": "#4d4965", "--vol-slider-color": "#dda9dd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#c578b5", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63", "--tbtn-shade-col": "#fff"},
+  bigschool: {"--track-text-invert": "0", "--neutral-top": "#476a46", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c9669", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#3f57a6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d342d7", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#994533", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b7e963", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#9333ff", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#c999ff", "--neutral-track": "#87ae86", "--neutral-track-text": "#ffffff", "--playhead-color": "#409492", "--highlight-text": "#ffffff", "--highlight2-color": "#404094", "--highlight2-text": "#ffffff", "--highlight3-color": "#b04db3", "--bg": "#d0b9b9", "--bar-color": "#a5a478", "--empty-cell-color": "#b09292", "--vol-slider-color": "#c7c771", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#76c4c2", "--top-row-highlight-text": "#ffffff", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#64a7a5", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#00afaa", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#404094", "--top-row-text-color": "#76c4c2", "--top-row-pressed-text-color": "#48a6a4", "--play-hl": "#30bebb", "--fader-hl": "#46efec", "--fader-glow": "#b91013", "--track-btn-text-color": "#76c4c2", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   twilight: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#102c4c", "--bar-color": "#8fb59e", "--empty-cell-color": "#45515f", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
   groovy: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
@@ -19817,12 +19818,11 @@ function _syncTapeTint() {
   const key = on + '|' + two + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
   const f = on && hex ? _cssTintFor(hex) : '';
   const wraps = document.querySelectorAll('#tapeReels .reel-wrap');
-  if (two && f) { // TWO-TONE tape window: the tint filter moves off the whole group onto the two reels only, so the window photo can carry its own two colours
+  if (f) { // per direct request the TAPE WINDOW is no longer tinted/modified at all: the tint always goes on the two reels only (TWO-TONE window paused): the tint filter moves off the whole group onto the two reels only, so the window photo can carry its own two colours
     el.style.setProperty('filter', 'none', 'important');
     wraps.forEach(w => w.style.setProperty('filter', 'invert(1) ' + f, 'important'));
-    el.style.setProperty('--tape-tint-col', hex);
     const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i), W = m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : [200, 150, 130];
-    _tapeTwoTone = [W.map(v => Math.round(v * 0.28)), W]; // packs: a deep, dark shade of the highlight (oxide tape); window: the highlight itself
+    _tapeTwoTone = null; void W; // TWO-TONE window paused (was [dark shade, highlight] — see recolorTapeWindowImg)
   } else {
     wraps.forEach(w => w.style.removeProperty('filter')); el.style.removeProperty('--tape-tint-col');
     if (f) el.style.setProperty('filter', 'invert(1) ' + f, 'important'); else el.style.removeProperty('filter');
@@ -19896,9 +19896,9 @@ function _applyRainbowState(m) {
   setJustTrack(jtOn);
   const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = jtOn;
   const b = document.body.classList;
-  if (m.tipHl) {
+  if (m.tipHl !== undefined) { // true = force on, false = force off (BIG SCHOOL), undefined = leave / restore
     if (window._tipHlBeforeMode === undefined) window._tipHlBeforeMode = b.contains('fader-tip-hl');
-    b.add('fader-tip-hl');
+    b.toggle('fader-tip-hl', !!m.tipHl);
   } else if (window._tipHlBeforeMode !== undefined) {
     b.toggle('fader-tip-hl', window._tipHlBeforeMode); window._tipHlBeforeMode = undefined;
   }
@@ -19921,6 +19921,17 @@ function _applyRainbowState(m) {
     const was = window._safeGfxBeforeMode; window._safeGfxBeforeMode = undefined;
     if (typeof setSafeGfx === 'function' && b.contains('safe-gfx') !== was) setSafeGfx(was);
   }
+  // NOTE MARKER STYLE per mode (m.markers = 'square' | 'circle'), remembered/restored — through setNoteMarkersCircle so the
+  // per-style ruler thickness etc. follow. Then m.rulerThick (TIME RULER THICKNESS px) is applied on top, since the style
+  // change resets thickness to its own default.
+  if (m.markers !== undefined) {
+    if (window._markersBeforeMode === undefined) window._markersBeforeMode = b.contains('note-markers-circle');
+    if (typeof setNoteMarkersCircle === 'function' && b.contains('note-markers-circle') !== (m.markers === 'circle')) setNoteMarkersCircle(m.markers === 'circle');
+  } else if (window._markersBeforeMode !== undefined) {
+    const was = window._markersBeforeMode; window._markersBeforeMode = undefined;
+    if (typeof setNoteMarkersCircle === 'function' && b.contains('note-markers-circle') !== was) setNoteMarkersCircle(was);
+  }
+  if (m.rulerThick !== undefined) _setSl('timeRulerThicknessSlider', String(m.rulerThick));
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
 // DEV slider was set to is remembered on the way in and put back on the
