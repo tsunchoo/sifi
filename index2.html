@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 21:59:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 22:21:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1099,14 +1099,26 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
 /* LOCK BUTTONS = NEW SOUND: the padlock is swapped for the asterisk glyph (same shape as + BUTTON = ASTERISK), white, lock state not shown */
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; color: #fff !important; }
+/* LOCK BUTTONS = NEW SOUND: the lock button takes the + track button's look — same resting background, opacity and glyph colour,
+   the same pressed background (FX-engaged colour / top row pressed shade in lights mode) — with the padlock swapped for the asterisk.
+   On press the asterisk flashes WHITE with a glow and a pop, then eases back like a note marker as the playhead passes
+   (peak in the first 72ms, 216ms release), with a small turn. Per direct request. */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; filter: none !important;
+  background: color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) !important;
+  opacity: var(--track-default-opacity, 1); color: var(--track-btn-text-color, #fff) !important; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--track-btn-on-color, #0081FE) !important; }
+html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--top-row-pressed-bg) !important; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { visibility: hidden; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); background-color: #fff; pointer-events: none;
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%) rotate(var(--ast-rot, 0deg)); background-color: currentColor; pointer-events: none;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.swap-pop:not(#beatCtrlL)::before { animation: lock-swap-pop 0.3s ease-out; }
-@keyframes lock-swap-pop { 0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); } 40% { transform: translate(-50%, -50%) scale(1.35) rotate(30deg); } 100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); } }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL)::before { animation: lock-swap-pop 288ms ease-out; } /* starts on PRESS, same as the + glyph's flash */
+@keyframes lock-swap-pop {
+  0%   { background-color: #fff; transform: translate(-50%, -50%) scale(1) rotate(var(--ast-rot, 0deg)); filter: drop-shadow(0 0 calc(3px * var(--mglow, 1.5)) rgba(255,255,255,0.95)); }
+  25%  { background-color: #fff; transform: translate(-50%, -50%) scale(1.45) rotate(calc(var(--ast-rot, 0deg) + 30deg)); filter: drop-shadow(0 0 calc(4px * var(--mglow, 1.5)) rgba(255,255,255,0.95)); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(calc(var(--ast-rot, 0deg) + 60deg)); filter: none; }
+}
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2595,7 +2607,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:59:03 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:21:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -11890,7 +11902,6 @@ function buildUI() {
       if (e.isTrusted && Date.now() - _lastRealTouchTimeGlobal < 500) return; // ignore genuine synthetic mouseup following a real touch, but let the drag system's own dispatched (untrusted) event through
       if (document.body.classList.contains('lock-swap')) { // LOCK BUTTONS = NEW SOUND mode: the button picks a new instrument from the same group instead of locking
         swapTrackInstrumentInGroup(tr);
-        sweepBtnL.classList.remove('swap-pop'); void sweepBtnL.offsetWidth; sweepBtnL.classList.add('swap-pop');
         return;
       }
       trackSweep[tr] = !trackSweep[tr];
@@ -18091,7 +18102,7 @@ function wireShiftButton(btn, tr, dir) {
   document.addEventListener('pointerdown', e => {
     const ab = e.target.closest && e.target.closest('#scratchBtn');
     if (ab) { release(); pressed = ab; ab.classList.add('glow-pressed'); return; } // A/B glows while held, per direct request
-    const b = e.target.closest && e.target.closest('.shift-btn:not(.right), .rand-btn');
+    const b = e.target.closest && e.target.closest(document.body.classList.contains('lock-swap') ? '.shift-btn:not(.right), .rand-btn, .track-ctrl-row .lock-btn:not(#beatCtrlL)' : '.shift-btn:not(.right), .rand-btn'); // LOCK BUTTONS = NEW SOUND: the lock button gets the + button's pressed look too
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
     b.classList.remove('glyph-pop'); void b.offsetWidth; b.classList.add('glyph-pop'); // restart the white flash + fade on every press
