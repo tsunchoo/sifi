@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 06:10:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 06:29:06 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2022,7 +2022,7 @@ body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-c
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.legato-start.soft::after {
   top: 0; bottom: 0; height: auto; aspect-ratio: auto; transform: none;
 }
-@keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } 25% { transform: scale(1.72); } 100% { transform: scale(1); } }
+@keyframes step-cell-pop-marker-top { 0% { transform: scale(1); } 25% { transform: scale(var(--sq-pop, 1.72)); } 100% { transform: scale(1); } } /* SQUARES: --sq-pop (set by _syncSquarePop) makes a square grow by the same number of PIXELS as a circle does at 1.72x — squares sit bigger at rest, so the same 1.72x read as a bigger pop, per direct request */
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.on.popping::after,
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.split32.popping::after,
 body.time-ruler-on:not(.note-markers-circle):not(.note-markers-asterisk) .step-cell.soft.popping::after { animation-name: step-cell-pop-marker-top; }
@@ -2546,7 +2546,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 06:10:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 06:29:06 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19711,6 +19711,17 @@ function _buildReelGlow() {
   img.src = 'tape_spool.png';
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _buildReelGlow, { once: true }); else _buildReelGlow();
+// Square note-marker pop size (see step-cell-pop-marker-top): a square grows by the same PIXELS a circle grows at 1.72x.
+// Resting sizes come from the marker-size insets: size = cell * (1 - 2 * inset).
+let _sqPopKey = null;
+function _syncSquarePop() {
+  const cs = getComputedStyle(document.documentElement);
+  const ci = parseFloat(cs.getPropertyValue('--note-marker-circle-inset')), si = parseFloat(cs.getPropertyValue('--note-marker-square-inset'));
+  if (!isFinite(ci) || !isFinite(si)) return;
+  const key = ci + '|' + si; if (key === _sqPopKey) return; _sqPopKey = key;
+  const c = 1 - 2 * ci / 100, q = 1 - 2 * si / 100; if (q <= 0) return;
+  document.documentElement.style.setProperty('--sq-pop', (1 + 0.72 * c / q).toFixed(3));
+}
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
@@ -19732,7 +19743,7 @@ function _syncTapeTint() {
   }
   if (typeof recolorTapeWindowImg === 'function') recolorTapeWindowImg();
 }
-(function () { const go = () => { _syncTapeTint(); let t = null; const kick = () => { clearTimeout(t); t = setTimeout(_syncTapeTint, 50); };
+(function () { const go = () => { _syncTapeTint(); _syncSquarePop(); let t = null; const kick = () => { clearTimeout(t); t = setTimeout(() => { _syncTapeTint(); _syncSquarePop(); }, 50); };
     new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     new MutationObserver(kick).observe(document.body, { attributes: true, attributeFilter: ['class'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
