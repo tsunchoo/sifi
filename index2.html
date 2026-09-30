@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 04:30:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 04:49:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -96,8 +96,8 @@ body.menu-open #seqWrap { visibility: hidden !important; }
 body.menu-open header *, body.menu-open .transport, body.menu-open .transport *, body.menu-open #songNameBar, body.menu-open #songNameBar * { animation-play-state: paused !important; }
 /* NIGHT CITY (mode 13): the Si•Fi logo and all the tape graphics (reels + tape window) inverted, per direct request */
 html body.night-invert #siFiTitle, html body.night-invert #tapeReels { filter: invert(1) !important; }
-/* ...and in those dark modes the (inverted, now white) tape graphics are tinted the TOP ROW highlight colour, per direct request — an SVG colour-multiply filter (#tapeTint, kept in step with --top-row-highlight-color by _syncTapeTint) */
-html body.night-invert #tapeReels { filter: invert(1) url(#tapeTint) !important; }
+/* ...and in those dark modes the (inverted, now white) tape graphics are tinted the TOP ROW highlight colour, per direct request — plain CSS filter functions set inline by _syncTapeTint, kept in step with --top-row-highlight-color */
+/* tint is applied by _syncTapeTint as an INLINE !important filter on #tapeReels; if Safari ever rejects it, this plain invert(1) above still shows the tapes (white) instead of black */
 /* ...and the dark header text (beat count, tempo + 'bpm', MODE label) goes light so it reads on the near-black background — scoped variable, so the beat count's pulse still works */
 html body.night-invert #beatCount, html body.night-invert #topTempoReadout, html body.night-invert #modeLabel { --header-text-color: #ececec; }
 #beatCount { -webkit-tap-highlight-color: transparent; outline: none; } /* no iOS grey tap flash over the numeral's box, per direct request */
@@ -2510,7 +2510,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 04:30:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 04:49:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19583,21 +19583,46 @@ function _showModeLabel(m) {
 // TAPE TINT (dark modes): a tiny inline SVG filter that multiplies the
 // inverted tape graphics by the top-row highlight colour. Its matrix is
 // rewritten whenever the colour changes (WILD, snapshots, colour menu).
-function _syncTapeTint() {
-  let svg = document.getElementById('tapeTintSvg');
-  if (!svg) {
-    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'tapeTintSvg';
-    svg.setAttribute('width', '0'); svg.setAttribute('height', '0'); svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
-    svg.innerHTML = '<filter id="tapeTint" color-interpolation-filters="sRGB"><feColorMatrix id="tapeTintMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter>';
-    document.body.appendChild(svg);
-  }
-  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color') || '').trim();
-  const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); if (!m) return;
-  const [r, g, b] = [m[1], m[2], m[3]].map(x => (parseInt(x, 16) / 255).toFixed(3));
-  const vals = r + ' 0 0 0 0  0 ' + g + ' 0 0 0  0 0 ' + b + ' 0 0  0 0 0 1 0';
-  const fm = document.getElementById('tapeTintMatrix'); if (fm && fm.getAttribute('values') !== vals) fm.setAttribute('values', vals);
+// Finds plain CSS filter functions (sepia / saturate / hue-rotate /
+// brightness — all linear, so black stays black) that turn WHITE into the
+// target colour, i.e. a multiply-style tint Safari can render.
+function _cssTintFor(hex) {
+  const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); if (!m) return '';
+  const T = [m[1], m[2], m[3]].map(x => parseInt(x, 16));
+  const cl = v => Math.max(0, Math.min(255, v));
+  const mul = (c, M) => [cl(c[0]*M[0]+c[1]*M[1]+c[2]*M[2]), cl(c[0]*M[3]+c[1]*M[4]+c[2]*M[5]), cl(c[0]*M[6]+c[1]*M[7]+c[2]*M[8])]; // browsers clamp after EVERY filter step (verified against Chromium pixels)
+  const sepia = (c, v) => mul(c, [0.393+0.607*(1-v), 0.769-0.769*(1-v), 0.189-0.189*(1-v), 0.349-0.349*(1-v), 0.686+0.314*(1-v), 0.168-0.168*(1-v), 0.272-0.272*(1-v), 0.534-0.534*(1-v), 0.131+0.869*(1-v)]);
+  const sat = (c, v) => mul(c, [0.213+0.787*v, 0.715-0.715*v, 0.072-0.072*v, 0.213-0.213*v, 0.715+0.285*v, 0.072-0.072*v, 0.213-0.213*v, 0.715-0.715*v, 0.072+0.928*v]);
+  const hue = (c, deg) => { const a = deg * Math.PI / 180, co = Math.cos(a), si = Math.sin(a);
+    return mul(c, [0.213+co*0.787-si*0.213, 0.715-co*0.715-si*0.715, 0.072-co*0.072+si*0.928, 0.213-co*0.213+si*0.143, 0.715+co*0.285+si*0.140, 0.072-co*0.072-si*0.283, 0.213-co*0.213-si*0.787, 0.715-co*0.715+si*0.715, 0.072+co*0.928+si*0.072]); };
+  // chain: brightness(b0) · sepia · saturate · hue-rotate · saturate · brightness. Dimming FIRST keeps every step out of the clamp,
+  // so the whole chain stays linear: white -> the target colour AND mid-grey -> half of it (the tape's grey detail survives).
+  const run = (p, w) => { let c = [w * p[5], w * p[5], w * p[5]]; c = sepia(c, p[4]); c = sat(c, p[0]); c = hue(c, p[1]); c = sat(c, p[2]); return c.map(v => cl(v * p[3])); };
+  const T2 = T.map(v => v * 128 / 255);
+  const loss = p => { const a = run(p, 255), b = run(p, 128); let l = 0; for (let i = 0; i < 3; i++) l += Math.abs(a[i] - T[i]) + Math.abs(b[i] - T2[i]); return l; };
+  const seeds = [];
+  for (const st of [1, 2, 4, 6]) for (let h = 0; h < 360; h += 15) for (const s2 of [0.2, 0.5, 1.0, 1.5]) for (const br of [1, 1.5, 2, 3]) for (const sp of [0.5, 1]) for (const b0 of [0.4, 0.7]) { const p = [st, h, s2, br, sp, b0]; seeds.push([loss(p), p]); }
+  seeds.sort((x, y) => x[0] - y[0]);
+  let best = null, bestL = 1e9;
+  for (let si = 0; si < 10; si++) { let p = seeds[si][1], l = seeds[si][0]; const step = [0.5, 5, 0.1, 0.1, 0.1, 0.1];
+    for (let it = 0; it < 400; it++) { let improved = false;
+      for (let k = 0; k < 6; k++) for (const d of [-1, 1]) { const q = p.slice(); q[k] += d * step[k]; if (Math.min(q[0], q[2], q[3], q[4], q[5]) < 0 || q[4] > 1 || q[5] > 1) continue; const lq = loss(q); if (lq < l) { l = lq; p = q; improved = true; } }
+      if (!improved) { for (let k = 0; k < 6; k++) step[k] /= 2; if (step[1] < 0.01) break; } }
+    if (l < bestL) { bestL = l; best = p; } }
+  return 'brightness(' + best[5].toFixed(3) + ') sepia(' + best[4].toFixed(3) + ') saturate(' + best[0].toFixed(3) + ') hue-rotate(' + best[1].toFixed(1) + 'deg) saturate(' + best[2].toFixed(3) + ') brightness(' + best[3].toFixed(3) + ')';
 }
-(function () { const go = () => { _syncTapeTint(); let t = null; new MutationObserver(() => { clearTimeout(t); t = setTimeout(_syncTapeTint, 50); }).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] }); };
+let _tapeTintKey = null;
+function _syncTapeTint() {
+  const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
+  const on = document.body.classList.contains('night-invert');
+  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color') || '').trim();
+  const key = on + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
+  const f = on && hex ? _cssTintFor(hex) : '';
+  if (f) el.style.setProperty('filter', 'invert(1) ' + f, 'important'); else el.style.removeProperty('filter');
+}
+(function () { const go = () => { _syncTapeTint(); let t = null; const kick = () => { clearTimeout(t); t = setTimeout(_syncTapeTint, 50); };
+    new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+    new MutationObserver(kick).observe(document.body, { attributes: true, attributeFilter: ['class'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
   if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
