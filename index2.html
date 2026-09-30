@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 05:56:47 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 06:10:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2546,7 +2546,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:56:47 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 06:10:36 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5175,7 +5175,7 @@ function randomizeCurrentInstruments() {
     new Set(['fflute','damask','yamask','dulc']),
     new Set(['jcmgtr','clar','boog']),
     new Set(['shihat','tamb','shak']),
-    new Set(['jcmgtr','rhodes','sprkls','boog','dulc']),
+    new Set(['rhodes','sprkls','boog']), // BROOTH (dulc) and JINX taken out of the rare-lead group, per direct request
     new Set(['jcmgtr','damask','yamask']),
   ];
   const deck = [...trackInstruments];
@@ -9030,13 +9030,53 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
     env.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(Math.min(durSec, 0.22), 0.09));
   }
 
-  const mix = ctx.createGain(); mix.gain.value = 0.5; // two squares run hot
+  const mix = ctx.createGain(); mix.gain.value = 0.35; // two squares run hot — pulled back (was 0.5) so the breath + crunch layers below share the space (JINX rework, per direct request)
   osc1.connect(mix); osc2.connect(mix); mix.connect(lp); lp.connect(env); env.connect(dest);
 
-  const stopAt = time + durSec + 0.2;
-  [osc1, osc2, vib, drift].forEach(n => { n.start(time); n.stop(stopAt); });
-  osc1.onended = () => { try { mix.disconnect(); lp.disconnect(); env.disconnect(); vibGain.disconnect(); } catch(e) {} };
+  // ── JINX rework, per direct request: SUPER BREATHY, half tonal / half
+  // white-noise CRUNCH BLAST. Two noise layers on top of the pitched core:
+  //  1) BREATH — looped white noise through a resonant bandpass that
+  //     follows the note's pitch (and its glide/drift, via the same
+  //     frequency curve), swelling in and sustaining with the note.
+  //  2) CRUNCH BLAST — a short, hard-driven noise burst on the attack,
+  //     band-passed high and clipped through a waveshaper; accents hit harder.
+  // One shared 1s noise buffer, looped (no per-note buffer churn). ──
+  const nbuf = _noiseBuf(ctx.sampleRate, 0);
+  const breathSrc = ctx.createBufferSource(); breathSrc.buffer = nbuf; breathSrc.loop = true;
+  breathSrc.loopStart = 0; breathSrc.playbackRate.value = 0.9 + Math.random() * 0.2;
+  const bbp = ctx.createBiquadFilter(); bbp.type = 'bandpass'; bbp.Q.value = 4.5;
+  bbp.frequency.setValueAtTime(Math.max(f * 2, 60), time);
+  if (doSlideIn) { bbp.frequency.setValueAtTime(Math.max(f * 2 * 1.19, 60), time); bbp.frequency.exponentialRampToValueAtTime(Math.max(f * 2, 60), time + slideInLen); }
+  const bhp = ctx.createBiquadFilter(); bhp.type = 'highpass'; bhp.frequency.value = 700; // keep the breath airy, not rumbly
+  const bEnv = ctx.createGain(); const bVel = vel * (legato ? 5.5 : 4.5);
+  bEnv.gain.setValueAtTime(0, time);
+  bEnv.gain.linearRampToValueAtTime(bVel * 0.55, time + 0.02);
+  bEnv.gain.linearRampToValueAtTime(bVel, time + Math.min(Math.max(durSec * 0.35, 0.05), 0.4)); // swells in like a breath
+  const bEnd = time + Math.max(durSec, 0.09);
+  bEnv.gain.setValueAtTime(bVel, Math.max(bEnd - 0.04, time + 0.06));
+  bEnv.gain.linearRampToValueAtTime(0, bEnd + (legato ? 0.22 : 0.12)); // breathy tail past the note
+  breathSrc.connect(bbp); bbp.connect(bhp); bhp.connect(bEnv); bEnv.connect(dest);
+
+  const blastLen = isAccent ? 0.11 : 0.075;
+  const blastSrc = ctx.createBufferSource(); blastSrc.buffer = nbuf; blastSrc.loop = true;
+  const blastBp = ctx.createBiquadFilter(); blastBp.type = 'bandpass'; blastBp.Q.value = 0.7;
+  blastBp.frequency.setValueAtTime(isAccent ? 3200 : 2600, time);
+  blastBp.frequency.exponentialRampToValueAtTime(900, time + blastLen);
+  const blastDrive = ctx.createGain(); blastDrive.gain.value = 6; // slam into the clipper
+  const crunch = ctx.createWaveShaper(); crunch.oversample = 'none'; crunch.curve = _jinxCrunchCurve || (_jinxCrunchCurve = makeDistCurve(0.9));
+  const blastEnv = ctx.createGain(); const blastVel = vel * (isAccent ? 1.5 : 1.0);
+  blastEnv.gain.setValueAtTime(0, time);
+  blastEnv.gain.linearRampToValueAtTime(blastVel, time + 0.003);
+  blastEnv.gain.exponentialRampToValueAtTime(0.0001, time + blastLen);
+  blastSrc.connect(blastBp); blastBp.connect(blastDrive); blastDrive.connect(crunch); crunch.connect(blastEnv); blastEnv.connect(dest);
+
+  const stopAt = time + durSec + 0.4;
+  [osc1, osc2, vib, drift, breathSrc].forEach(n => { n.start(time); n.stop(stopAt); });
+  blastSrc.start(time); blastSrc.stop(time + blastLen + 0.02);
+  blastSrc.onended = () => { try { blastBp.disconnect(); blastDrive.disconnect(); crunch.disconnect(); blastEnv.disconnect(); } catch(e) {} };
+  osc1.onended = () => { try { mix.disconnect(); lp.disconnect(); env.disconnect(); vibGain.disconnect(); bbp.disconnect(); bhp.disconnect(); bEnv.disconnect(); } catch(e) {} };
 }
+let _jinxCrunchCurve = null;
 
 // ── SPARKLES: tiny bell twinkles way up top — each note re-echoes softly
 // three times, spaced out through the measure. Higher octave than anything
@@ -15406,7 +15446,7 @@ function randAll(mode, opts) {
   const soloUniqueKeys = new Set(['jcmgtr','clar','boog']); // max one of these — JCX GUITAR / JENNY / BOOG
   const soloHatKeys = new Set(['shihat','tamb','shak']); // max one of these — hihat/shaker/tambourine never together
   const snareKeys = new Set(['ssnare']); // just the one snare now
-  const soloRareLeadKeys = new Set(['jcmgtr','rhodes','sprkls','boog','dulc']); // max one of these — JINX/SPACE KOTO/SPARKLES/DREAM PIANO/BOOBOO (XYLOPHONE's old slot, sflute, removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era solo restriction)
+  const soloRareLeadKeys = new Set(['rhodes','sprkls','boog']); /* JINX removed too, per direct request — as likely as DAMASK now */ /* BROOTH (dulc) removed from this group, per direct request — it now only follows YAMASK's one-of rule */ // max one of these — JINX/SPACE KOTO/SPARKLES/DREAM PIANO/BOOBOO (XYLOPHONE's old slot, sflute, removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era solo restriction)
   const jinxClashKeys = new Set(['jcmgtr', 'damask', 'yamask']); // JINX never coexists with DAMASK or YAMASK specifically
   const padKeys = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic']); // max one PAD-classified instrument per pattern — HASSELL/STRINGS/etc. never together
   // Exclude instruments already locked on other tracks
@@ -15427,7 +15467,7 @@ function randAll(mode, opts) {
   // forcing code further down still adds these keys back deliberately, on
   // purpose, to its own chosen target track(s) — this only stops a SECOND,
   // accidental occurrence from sneaking in via the general pool.
-  const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && ((k !== 'jcmgtr') || _intensitySliderVal > 80)); /* BROOTH (dulc) no longer held back below 80% intensity */ // JINX and BOOBOO stay out of RAND below 80% INTENSITY — still fully selectable manually from the sound picker regardless
+  const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k)); /* JINX no longer held back below 80% INTENSITY either (per direct request) — BROOTH already wasn't */ // (formerly: JINX and BOOBOO stayed out of RAND below 80% INTENSITY) — still fully selectable manually from the sound picker regardless
   const percKeys = percKeysAll.filter(k => !lockedInstruments.has(k)).length > 0
     ? percKeysAll.filter(k => !lockedInstruments.has(k))
     : percKeysAll;
@@ -16486,7 +16526,7 @@ function randAll(mode, opts) {
     }
     const _tooDense = _maxConsec > 3 || (_onsets.length > 1 && _minGap < 4);
     const _isFull16th = grid[tr].every(v => v > 0);
-    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'dulc') ? 0.75 /* BROOTH: reverb 75% of the time, per direct request */ : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? (_jinxComboRoll[tr] ? 1 : 0) : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
+    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'dulc') ? 0.75 /* BROOTH: reverb 75% of the time, per direct request */ : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? 0.7 /* JINX: reverb 70% of the time on its own roll, per direct request (was tied 50/50 to its FX roll) */ : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
     const delayOn = Math.random() < delayChance;
     _setTrackReverb(tr, delayOn);
     const db = document.getElementById(`delaybtn-${tr}`);
