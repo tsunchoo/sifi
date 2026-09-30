@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 22:45:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 23:04:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1116,7 +1116,7 @@ body.failsafe-hl {
      back down to rest over 216ms — the note-marker timing. */
 .lock-ast { display: none; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; filter: none !important; opacity: 1 !important;
-  background: color-mix(in srgb, color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) calc(var(--track-default-opacity, 1) * 100%), transparent) !important; }
+  background: color-mix(in srgb, color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) calc(var(--track-default-opacity, 1) * 100%), transparent); } /* not !important, so the press animation's dark background can play over it */
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--track-btn-on-color, #0081FE) !important; }
 html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--top-row-pressed-bg) !important; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { display: none !important; } /* !important: the padlock svg has an inline display:block */
@@ -1134,9 +1134,17 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
 }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 288ms ease-out; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 288ms ease-out; }
-@keyframes lock-ast-pop {
-  25% { transform: translate(-50%, -50%) scale(1.45); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
+@keyframes lock-ast-pop { /* pop + the turn (a 60deg turn lands back on the same six-point shape) */
+  0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  25%  { transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); }
 }
+/* the button background goes DARK like the + track button's pressed background — held while the finger is down (.glyph-pressed),
+   and also part of the pop so even a quick tap visibly darkens it, easing back with the glyph */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark 288ms ease-out; }
+html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark-lights 288ms ease-out; }
+@keyframes lock-btn-dark { 0%, 40% { background: var(--track-btn-on-color, #0081FE); } }
+@keyframes lock-btn-dark-lights { 0%, 40% { background: var(--top-row-pressed-bg); } }
 @keyframes lock-ast-white { 25% { background-color: #fff; } }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
@@ -1845,10 +1853,10 @@ html body.night-invert .step-cell:not(.on):not(.soft):not(.legato-tail):not(.spl
 }
 html body.night-invert .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   background: var(--play-flash-color, #fff); filter: none;
-  opacity: calc(min(1, var(--empty-marker-opacity-circle, 0.35) * 2.2));
+  opacity: 0.1; /* dark modes: the playhead flash on EMPTY markers at 10% opacity, per direct request (was ~77%) */
 }
 html body.night-invert:not(.note-markers-circle) .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  opacity: calc(min(1, var(--empty-marker-opacity, 0.35) * 2.2));
+  opacity: 0.1;
 }
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
@@ -2626,7 +2634,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:45:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 23:04:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3428,8 +3436,25 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid #ddd;">
       <input type="text" id="settingsNameDisplay" oninput="_updateSongNameFromSettings(this.value)" onkeydown="if(event.key==='Enter') this.blur();" style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;padding:0;width:100%;font-family:'DM Sans',sans-serif;" title="tap to rename">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div id="keyDisplay" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
+        <div id="keyDisplay" style="display:none;font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
         <div id="bpmVal" onclick="hideSettings(); showTempoScreen();" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;" title="tap to open tempo screen">110 BPM</div>
+      </div>
+    </div>
+    <!-- KEY (drop-downs) + COUNT toggle, right under the tempo, per direct request -->
+    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:12px;border-bottom:1px solid #ddd;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">KEY</div>
+        <div style="display:flex;gap:6px;">
+          <select id="keyNoteSelect" onchange="_applyKeyChoice(+this.value, null)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;"></select>
+          <select id="keyScaleSelect" onchange="_applyKeyChoice(null, this.value)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;text-transform:uppercase;"></select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT</div>
+        <label class="wild-toggle">
+          <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
+          <span class="wild-toggle-slider"></span>
+        </label>
       </div>
     </div>
 
@@ -3612,7 +3637,7 @@ const INSTRUMENTS = {
   spiano: { name: 'SCHOOL PIANO', soft: null, accent: null, group: 'tonal' },
   magic:  { name: 'MAGIC',        soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'DENIECE',     soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'ARP',       soft: null, accent: null, group: 'tonal' },
   denial: { name: 'BUCK',        soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'RYTM GTR',     soft: null, accent: null, group: 'tonal' },
   chug:   { name: 'CHUG',        soft: null, accent: null, group: 'tonal' },
@@ -6599,7 +6624,8 @@ function _placeBeatCount() {
   const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent) return;
   const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect();
-  el.style.top = (nr.top - pr.top - 4) + 'px'; // line the numeral up with the tempo number (4px = its top padding)
+  const ncs = getComputedStyle(num); el.style.fontSize = ncs.fontSize; el.style.lineHeight = ncs.lineHeight; // same font size + line box as the tempo number...
+  el.style.top = (nr.top - pr.top - (parseFloat(getComputedStyle(el).paddingTop) || 0) + (parseFloat(ncs.paddingTop) || 0) - (parseFloat(getComputedStyle(el).borderTopWidth) || 0)) + 'px'; // ...placed at the same top (less its own top padding), so the numerals sit exactly level with the tempo digits, per direct request
   // Centred under the Si•Fi logo, per direct request (was right-aligned to
   // its right edge) — measured on the logo's actual ink, not its text box.
   if (!logo || !logo.firstChild) return;
@@ -6867,6 +6893,7 @@ function togglePlay() {
         if (MIDEAST_KEYS.has(trackInstruments[tr]) && !trackScaleMode[tr]) trackScaleMode[tr] = pickOrShareMideastScale(tr);
         trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
         if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
+        if (trackInstruments[tr] === 'rhodes' && typeof _writeArpPattern === 'function') { _writeArpPattern(tr, trackBassScale[tr]); redrawTrackCells(tr, true); } // ARP re-arpeggiates in the new key (its pitches are pinned per step)
       }
     }
     document.body.classList.add('seq-playing');
@@ -7431,8 +7458,35 @@ function getRangeRoots(key) {
 // the usual scattered notes, walk straight up/down/up-down/down-up through
 // the scale on every 8th note. Standalone helper so it's easy to call from
 // both randomizeBassTrack() and anywhere else that might want it later.
-const ARPEGGIO_KEYS = new Set(['rhodes2', 'rhodes', 'spiano']); // DX PIANO, SPACE KOTO, SCHOOL PIANO (DREAM PIANO removed; XYLOPHONE's old slot, sflute, removed too — it's CLUNG now and matches STRINGS+'s criteria instead, not this XYLOPHONE-specific arpeggio quirk)
+const ARPEGGIO_KEYS = new Set(['rhodes2', 'spiano']); /* 'rhodes' (ARP, was SPACE KOTO) now ALWAYS arpeggiates — see _writeArpPattern */ // DX PIANO, SPACE KOTO, SCHOOL PIANO (DREAM PIANO removed; XYLOPHONE's old slot, sflute, removed too — it's CLUNG now and matches STRINGS+'s criteria instead, not this XYLOPHONE-specific arpeggio quirk)
 const BASS_ARPEGGIO_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']); // rarer — 1 in 8, not 1 in 4
+// ARP pattern: every step of the measure filled (no gaps) with the current scale's notes, in one of three feels:
+//  '16th' — a run on every 16th; '8th' — every 8th; 'triplet' — every 16th grouped in threes (3-note broken-chord cells,
+//  accent on each cell's first note), so it rolls over the beat in a 3-against-4 triplet feel.
+function _writeArpPattern(tr, scale) {
+  scale = (scale && scale.length) ? scale : [220];
+  const n = scale.length, feels = ['16th', '8th', 'triplet'];
+  const feel = feels[Math.floor(Math.random() * feels.length)];
+  if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+  for (let s2 = 0; s2 < NUM_STEPS; s2++) { grid[tr][s2] = 0; delete trackPitchOverride[tr][s2]; }
+  const shapes = ['up', 'down', 'updown'], shape = shapes[Math.floor(Math.random() * shapes.length)];
+  const period = Math.max(2, (n - 1) * 2);
+  const walk = i => { if (shape === 'up') return i % n; if (shape === 'down') return (n - 1) - (i % n); const p = i % period; return p < n ? p : period - p; };
+  if (feel === 'triplet') {
+    for (let i = 0; i < NUM_STEPS; i++) {
+      const cell = Math.floor(i / 3), j = i % 3;
+      const idx = (walk(cell) + j * 2) % n; // root / 3rd / 5th of the scale from each cell's starting degree
+      grid[tr][i] = j === 0 ? 2 : 1; trackPitchOverride[tr][i] = scale[idx];
+    }
+  } else {
+    const stepSize = feel === '8th' ? 2 : 1;
+    for (let i = 0, st = 0; st < NUM_STEPS; i++, st += stepSize) {
+      grid[tr][st] = (st % 4 === 0) ? 2 : 1; trackPitchOverride[tr][st] = scale[walk(i)];
+    }
+  }
+  trackArpFeel[tr] = feel;
+}
+const trackArpFeel = {};
 function _writeArpeggioPattern(tr, scale) {
   // Below 100bpm there's room for it to breathe, so sometimes go 16th notes
   // instead of 8ths — never at faster tempos, where it'd turn to mush.
@@ -7562,6 +7616,9 @@ function randomizeBassTrack(tr, level) {
 
   _rebuildTonalScale(tr);
 
+  // ARP (was SPACE KOTO), per direct request: ALWAYS an arpeggio of the current scale across the whole measure (16th, 8th or triplet feel) —
+  // whole-pattern RAND and the track's own + both come through here
+  if (key === 'rhodes') { _writeArpPattern(tr, trackBassScale[tr]); return; }
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
   if (ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
     _writeArpeggioPattern(tr, trackBassScale[tr]);
@@ -7611,6 +7668,7 @@ function randomizeBassTrack(tr, level) {
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
+  if (key === 'dulc') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BROOTH — 4 more notes on its quota, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
   if (BASS_LEGATO_KEYS.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
@@ -8265,46 +8323,27 @@ function _kotoBuf(freq) {
   while (_kotoCache.size > 10) _kotoCache.delete(_kotoCache.keys().next().value);
   return buf;
 }
-function playSpaceKoto(freq, durSec, isAccent, time, tr) {
+function playSpaceKoto(freq, durSec, isAccent, time, tr) { // ARP (was SPACE KOTO) — reworked into a plain synth pluck, per direct request
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.241 : 0.156; // -3dB (was 0.34/0.22) — was getting loud with FX+Reverb
   _rhodesGlide[tr] = freq;
-
-  // Karplus-Strong plucked string, computed directly into a sample buffer —
-  // NOT a live audio-graph feedback loop (those need >=1 render quantum of
-  // delay to stay stable; higher koto notes would violate that and blow up).
-  // The classic 2-point moving-average recursion is unconditionally stable
-  // (output can only ever decay, never grow), so this is safe at any pitch.
-  // The pluck buffer is now rendered ONCE per pitch (full 2.4s) and cached,
-  // instead of a fresh ~330-460KB buffer on every single note — that per-note
-  // allocation was the biggest memory churn in the heavy crash test (tens of
-  // MB per minute with KOTO playing). Shorter notes just fade out early.
-  const sr = ctx.sampleRate;
-  const decayTime = Math.min(durSec + 1.8, 2.4); // long, spacey sustain
-  const buf = _kotoBuf(freq);
-
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const env = ctx.createGain(); env.gain.setValueAtTime(vel, time);
-  if (decayTime < 2.39) { env.gain.setValueAtTime(vel, time + decayTime - 0.06); env.gain.linearRampToValueAtTime(0, time + decayTime); }
-  // Gentle vibrato via a second detuned copy is skipped — keep it simple/safe.
-  src.connect(env); env.connect(dest);
-  src.start(time); src.stop(time + decayTime + 0.01);
-  src.onended = () => { try { src.disconnect(); env.disconnect(); } catch(e) {} };
-
-  // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
-  const shimLen = 0.5;
-  const shimBuf = _noiseBuf(Math.ceil(ctx.sampleRate * shimLen), 1.5); // shared/cached noise (see _noiseBuf)
-  const shim = ctx.createBufferSource(); shim.buffer = shimBuf;
-  const shimBP = ctx.createBiquadFilter(); shimBP.type = 'bandpass';
-  shimBP.frequency.value = Math.min(freq * 8, 9000); shimBP.Q.value = 6;
-  const shimEnv = ctx.createGain();
-  shimEnv.gain.setValueAtTime(0, time);
-  shimEnv.gain.linearRampToValueAtTime(vel * 0.16, time + 0.01);
-  shimEnv.gain.exponentialRampToValueAtTime(0.0001, time + shimLen);
-  shim.connect(shimBP); shimBP.connect(shimEnv); shimEnv.connect(dest);
-  shim.start(time);
-  shim.onended = () => { try { shimBP.disconnect(); shimEnv.disconnect(); } catch(e) {} };
+  let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // arp register
+  const vel = isAccent ? 0.105 : 0.075;
+  const len = Math.max(0.09, Math.min(durSec * 0.9 + 0.06, 0.32)); // short and clipped — an arpeggiator, not a ringing string
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(f, time);
+  const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.setValueAtTime(f, time); o2.detune.value = 7;
+  const g2 = ctx.createGain(); g2.gain.value = 0.55;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 7; // resonant filter blip
+  lp.frequency.setValueAtTime(Math.min(f * (isAccent ? 14 : 10), 12000), time);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.6, 200), time + len * 0.8);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.003);
+  env.gain.exponentialRampToValueAtTime(vel * 0.35, time + len * 0.45);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + len);
+  o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(env); env.connect(dest);
+  o1.start(time); o2.start(time); o1.stop(time + len + 0.02); o2.stop(time + len + 0.02);
+  o1.onended = () => { try { o1.disconnect(); o2.disconnect(); g2.disconnect(); lp.disconnect(); env.disconnect(); } catch(e) {} };
 }
 // ── Acid Pluck: resonant filtered saw with a fast downward filter/pitch sweep — 303-style squelch ──
 function playAcidPluck(freq, durSec, isAccent, time, tr) {
@@ -10552,7 +10591,12 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend, breathMul =
 // legato phrases are set in RAND (see 'dulc' in the reverb chance and the
 // legato pass).
 function playBrooth(freq, durSec, isAccent, time, tr) {
-  playYamask(freq / 2, durSec, isAccent, time, tr, _yamaskPhraseTick('b' + tr), 3.5, 1.41);
+  // Unison an octave apart, staggered in time, per direct request: the low voice on the beat, the upper octave entering a 32nd
+  // later (half a step). Each voice ~3dB down (gain 1.41 -> 1.0) so the pair sits at about the old level. One phrase tick per note.
+  const tick = _yamaskPhraseTick('b' + tr);
+  const stagger = stepDuration() * 0.5;
+  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 1.0);
+  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 1.0);
 }
 // stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
 function markStepAsSplit32(tr, stepNow) {
@@ -18359,6 +18403,8 @@ function showSettings() {
   const snd = document.getElementById('settingsNameDisplay');
   if (snd) snd.value = _currentSpecies || '';
   syncSettingsPanel();
+  if (window._syncKeySelects) window._syncKeySelects();
+  { const bc = document.getElementById('beatCount'), ct = document.getElementById('countToggle'); if (bc && ct) ct.checked = !bc.classList.contains('beat-count-hidden'); }
   _settingsOpenedAt = Date.now();
 }
 function hideSettings() {
@@ -21852,7 +21898,27 @@ function stopRecallLoop() {
     noteIdx = (noteIdx + 1) % NOTE_NAMES.length;
     applyKey();
   });
+  // KEY drop-downs in SETTINGS, per direct request — same applyKey() as the old tap-to-cycle readout.
+  const ns = document.getElementById('keyNoteSelect'), ss = document.getElementById('keyScaleSelect');
+  if (ns) NOTE_NAMES.forEach((n2, i) => { const o2 = document.createElement('option'); o2.value = i; o2.textContent = n2; ns.appendChild(o2); });
+  if (ss) scaleNames.forEach(n2 => { const o2 = document.createElement('option'); o2.value = n2; o2.textContent = n2.replace(/-/g, ' '); ss.appendChild(o2); });
+  window._applyKeyChoice = (note, scale) => {
+    if (note !== null && note !== undefined) noteIdx = note;
+    if (scale) scaleIdx = Math.max(0, scaleNames.indexOf(scale));
+    applyKey(); markModified();
+  };
+  window._syncKeySelects = () => { // reflect the song's CURRENT key (RAND changes it) whenever SETTINGS opens
+    if (globalScaleRoot) { const midi = Math.round(12 * Math.log2(globalScaleRoot / 440)) + 69; noteIdx = ((midi % 12) + 12) % 12; }
+    const si = scaleNames.indexOf(currentScaleName); if (si >= 0) scaleIdx = si;
+    if (ns) ns.value = String(noteIdx); if (ss) ss.value = scaleNames[scaleIdx];
+  };
 })();
+// COUNT toggle in SETTINGS — shows / hides the beat count (same states as tapping the count itself)
+function _setBeatCountShown(on) {
+  const el = document.getElementById('beatCount'); if (!el) return;
+  if (on) { el.classList.remove('beat-count-hidden'); if (typeof _placeBeatCount === 'function') _placeBeatCount(); }
+  else { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
+}
 
 
 // Tape hiss/crackle/rumble system removed — dead code (startHiss() was
