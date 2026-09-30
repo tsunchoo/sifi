@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 22:27:53 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 22:45:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1099,31 +1099,45 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
 /* LOCK BUTTONS = NEW SOUND: the padlock is swapped for the asterisk glyph (same shape as + BUTTON = ASTERISK), white, lock state not shown */
-/* LOCK BUTTONS = NEW SOUND: the lock button takes the + track button's look — same resting background, opacity and glyph colour,
-   the same pressed background (FX-engaged colour / top row pressed shade in lights mode) — with the padlock swapped for the asterisk.
-   On press the asterisk flashes WHITE with a glow and a pop, then eases back like a note marker as the playhead passes
-   (peak in the first 72ms, 216ms release), with a small turn. Per direct request. */
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; filter: none !important;
-  background: color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) !important;
-  opacity: var(--track-default-opacity, 1); color: var(--track-btn-text-color, #fff) !important; }
+/* FAILSAFE HIGHLIGHTS (LOOK AND FEEL toggle), per direct request — every track button uses just two fixed highlights, whatever the
+   colour scheme: ORANGE #ff8b00 = on (FX 1, reverb, sweep, lit glyphs) and RED #ff1100 = super-on (FX 2 / BLAST, + AUTO). Set on
+   <body> so they override the scheme's own values, which live on the root element. */
+body.failsafe-hl {
+  --lit-glyph: #ff8b00; --lit-glyph-hot: #ff1100;
+  --track-btn-on-color: #ff8b00; --track-btn-on-text: #ffffff;
+  --track-btn-blast-color: #ff1100; --track-btn-blast-text: #ffffff;
+}
+/* LOCK BUTTONS = NEW SOUND, per direct request:
+   - button: the + track button's background (incl. its see-through level, done in the colour itself so the glyph stays fully opaque)
+     and the + button's pressed background;
+   - glyph (asterisk) at rest: EXACTLY the FX button's glyph in FX 1 — the lit-glyph colour, fully opaque, with the same glow
+     (same size/strength formula as the lit FX text glow, scaled by TRACK GLOW);
+   - on press: the glow amps right up and the glyph fades UP to full white at 100% opacity (first 72ms), then fades and scales
+     back down to rest over 216ms — the note-marker timing. */
+.lock-ast { display: none; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; filter: none !important; opacity: 1 !important;
+  background: color-mix(in srgb, color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) calc(var(--track-default-opacity, 1) * 100%), transparent) !important; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--track-btn-on-color, #0081FE) !important; }
 html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--top-row-pressed-bg) !important; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { visibility: hidden; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none;
-  /* resting glyph = the FX button's lit (FX 1) glyph: the lit-glyph colour with the same glow as an engaged FX glyph (per direct request) */
-  --ast-col: var(--lit-glyph, var(--play-flash-color, #f17d21)); background-color: var(--ast-col);
-  filter: drop-shadow(0 0 calc(4.95px * var(--tglow, 1)) color-mix(in srgb, var(--ast-col) calc(min(100%, 100% * var(--tglow, 1))), transparent));
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { display: none !important; } /* !important: the padlock svg has an inline display:block */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast {
+  display: block; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none;
+  --ast-col: var(--lit-glyph, var(--play-flash-color, #f17d21));
+  filter: drop-shadow(0 0 calc(7.9px * var(--tglow, 1)) color-mix(in srgb, var(--ast-col) calc(min(100%, 100% * var(--tglow, 1))), transparent));
+}
+html body.lock-swap:not(.track-btn-lights) .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast { --ast-col: var(--track-btn-on-text, #fff); filter: none; } /* FX 1 without lights = plain on-text glyph, no glow */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast-shape {
+  display: block; width: 100%; height: 100%; background-color: var(--ast-col);
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
-  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL)::before { animation: lock-swap-pop 288ms ease-out; } /* starts on PRESS, same as the + glyph's flash */
-@keyframes lock-swap-pop { /* press: fades UP to full white at 100% opacity, glow amped right up and a pop in size, then fades + scales back (72ms up, 216ms release — the note-marker timing) */
-  0%   { transform: translate(-50%, -50%) scale(1); }
-  25%  { background-color: #fff; transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(9px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(3px * var(--tglow, 1)) #fff); }
-  100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); }
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
 }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-swap-btn-opaque 288ms ease-out; }
-@keyframes lock-swap-btn-opaque { 25% { opacity: 1; } } /* the button itself goes fully opaque at the peak, so the white really is 100% */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 288ms ease-out; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 288ms ease-out; }
+@keyframes lock-ast-pop {
+  25% { transform: translate(-50%, -50%) scale(1.45); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
+}
+@keyframes lock-ast-white { 25% { background-color: #fff; } }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2612,7 +2626,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:27:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:45:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2929,6 +2943,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW SOUND</div>
       <label class="wild-toggle">
         <input type="checkbox" id="lockSwapToggle" onchange="setLockSwap(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FAILSAFE HIGHLIGHTS</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="failsafeHlToggle" onchange="document.body.classList.toggle('failsafe-hl', this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -5713,7 +5734,7 @@ const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
 // "L" text everywhere it gets (re)assigned below. currentColor picks up
 // whatever text color the button already has (white, per its grayscale
 // styling), so it doesn't need its own color logic.
-const LOCK_ICON_SVG = '<svg width="20.35" height="20.35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>';
+const LOCK_ICON_SVG = '<svg width="20.35" height="20.35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>' + '<span class="lock-ast"><span class="lock-ast-shape"></span></span>'; // asterisk glyph for LOCK BUTTONS = NEW SOUND (hidden otherwise) — a wrapper + masked shape, so the glow (a filter on the wrapper) isn't masked away
 
 const trackInstruments = [(Math.random() < 0.5 ? 'drone' : 'amlgm'),'sleg','sparkle','sbass3','congHi','congLo']; // DRONE/TEXTURE share slot 0, 50/50
 const grid        = Array.from({length: NUM_TRACKS}, () => new Array(NUM_STEPS).fill(0));
