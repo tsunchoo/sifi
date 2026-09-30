@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 06:57:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 21:20:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2289,7 +2289,7 @@ body.performance-mode header { padding-bottom: 10px; }
    the last (6th) track, full screen width. Drawn on the track container so
    it follows whichever track is currently last. */
 body.performance-mode #seqWrap { position: relative; }
-body.performance-mode #seqWrap::after { content: ''; display: block; position: absolute; left: calc(50% - 50vw); width: 100vw; bottom: -10px; height: 4px; /* 6px below the time ruler line (was directly under it), per direct request */ pointer-events: none; background: color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black); opacity: max(var(--track-row-bg-opacity, 1), 0.2); } /* shown in EVERY performance-mode display mode, 6px higher than before, per direct request — TRACK ROW BG colour, its opacity but never below 20% so it can't vanish (mode 3 sets that BG to 0%) */
+body.performance-mode #seqWrap::after { content: ''; display: block; position: absolute; left: calc(50% - 50vw); width: 100vw; bottom: -4px; height: 4px; /* directly under the note (time) ruler line with NO gap — back from 6px below, per direct request; same spot whether the ruler is showing or not (it's anchored to the track area's bottom edge, where the ruler line ends) */ pointer-events: none; background: color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black); opacity: max(var(--track-row-bg-opacity, 1), 0.2); } /* shown in EVERY performance-mode display mode, 6px higher than before, per direct request — TRACK ROW BG colour, its opacity but never below 20% so it can't vanish (mode 3 sets that BG to 0%) */
 .slot-btn {
   flex: 1; min-width: 0;
   background: transparent; border: 2px solid #555; color: #b0b0b0;
@@ -2349,6 +2349,34 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   function crumb(s){ crumbs.push(now() + ' ' + s); if (crumbs.length > 40) crumbs.shift(); }
   window._crashCrumb = crumb;
   window._crashStats = stats; // read by the LOAD METER's audio estimate
+  // VOICE LIMITER, per direct request (after crash reports showing ~124
+  // sounds playing at once — mostly many-oscillator voices like DAMASK /
+  // BUCK — right after a + tap stacked a new pattern on the old one's
+  // tails). Every note source is tracked from start to 'ended'; when more
+  // than VOICE_CAP notes are sounding, the OLDEST ones (by then mostly
+  // decayed tails) are stopped ~30ms out until we're back to VOICE_KEEP.
+  // Sources with no stop time scheduled (FX LFOs, beds etc.) never count.
+  var VOICE_CAP = 72, VOICE_KEEP = 64, voices = new Set(), pend = false; // conservative, per direct request (graphics share the budget): was 100 / 88. Normal patterns sat around 20-90 in the crash reports, the fatal spike was 124
+  stats.voicesCut = 0;
+  function enforceVoices(){
+    pend = false;
+    var list = []; voices.forEach(function(v){ if (v.end !== Infinity) list.push(v); });
+    if (list.length <= VOICE_CAP) return;
+    var c = list[0].src.context, t = c.currentTime;
+    list.sort(function(a, b){ return a.t0 - b.t0; });
+    var n = list.length - VOICE_KEEP;
+    for (var i = 0; i < list.length && n > 0; i++) {
+      var v = list[i]; if (v.cut || v.end <= t + 0.05) continue;
+      v.cut = true; v.end = t + 0.03; n--; stats.voicesCut++;
+      try { v.src.stop(t + 0.03); } catch (e) {}
+    }
+  }
+  window._voiceTrack = function(src){
+    var v = { src: src, t0: src.context.currentTime, end: Infinity, cut: false };
+    src._v = v; voices.add(v);
+    src.addEventListener('ended', function(){ voices.delete(v); src._v = null; }, { once: true });
+    if (!pend) { pend = true; Promise.resolve().then(enforceVoices); } // after the caller has scheduled its stop()
+  };
 
   // --- memory proxies: count what the page creates ---
   try {
@@ -2368,7 +2396,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           else if (r && typeof r === 'object') { stats.liveNodes++; if (FR) FR.register(r, 0); }
           if (isSrc && r && r.start) {
             var st = r.start;
-            r.start = function(){ stats.sounding++; var fn = 'unknown'; try { var fr0 = (new Error().stack || '').split('\n'); for (var q = 1; q < fr0.length; q++) { var m0 = fr0[q].match(/(?:at\s+)?([A-Za-z_$][\w$]*)[@\s(]/); if (m0 && m0[1] !== 'Error' && !/^(r|start|at)$/.test(m0[1])) { fn = m0[1]; break; } } } catch (e) {} stats.soundBy[fn] = (stats.soundBy[fn] || 0) + 1; r.addEventListener('ended', function(){ stats.sounding--; stats.soundBy[fn]--; if (!stats.soundBy[fn]) delete stats.soundBy[fn]; }, { once: true }); r.start = st; return st.apply(r, arguments); };
+            r.start = function(){ stats.sounding++; var fn = 'unknown'; try { var fr0 = (new Error().stack || '').split('\n'); for (var q = 1; q < fr0.length; q++) { var m0 = fr0[q].match(/(?:at\s+)?([A-Za-z_$][\w$]*)[@\s(]/); if (m0 && m0[1] !== 'Error' && !/^(r|start|at)$/.test(m0[1])) { fn = m0[1]; break; } } } catch (e) {} stats.soundBy[fn] = (stats.soundBy[fn] || 0) + 1; r.addEventListener('ended', function(){ stats.sounding--; stats.soundBy[fn]--; if (!stats.soundBy[fn]) delete stats.soundBy[fn]; }, { once: true }); r.start = st; var ret = st.apply(r, arguments); try { if (window._voiceTrack) window._voiceTrack(r); } catch (e) {} return ret; };
+            var sp = r.stop; if (sp) r.stop = function(when){ if (r._v) r._v.end = (typeof when === 'number' ? when : 0); return sp.apply(r, arguments); };
           }
           return r; };
       });
@@ -2419,6 +2448,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       playing: g(function(){ return playing; }), bpm: g(function(){ return bpm; }), beat: g(function(){ return _beatType; }),
       audio: g(function(){ return ctx && ctx.state; }), audioTime: g(function(){ return ctx && +ctx.currentTime.toFixed(1); }),
       inst: g(function(){ return trackInstruments.join(','); }),
+      intensity: g(function(){ return _intensitySliderVal; }),
+      balance: g(function(){ var t = window._tonalPercBalance; return t + '/' + (6 - t); }),
+      beatVol: g(function(){ var e = document.getElementById('beatVolBar'); return e ? e.value : '?'; }),
+      masterVol: g(function(){ var e = document.getElementById('masterVolBar'); return e ? e.value : '?'; }),
       visible: document.visibilityState, body: document.body ? document.body.className : ''
     };
   }
@@ -2441,6 +2474,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     L.push('nav type on reload: ' + (r.navType || '?') + ' | ' + r.ua);
     var a = r.app || {};
     L.push('STATE: playing=' + a.playing + ' bpm=' + a.bpm + ' beat=' + a.beat + ' audio=' + a.audio + ' t=' + a.audioTime + ' page=' + a.visible);
+    L.push('MIX: intensity=' + a.intensity + ' tonal/perc=' + a.balance + ' beatVol=' + a.beatVol + ' masterVol=' + a.masterVol + ' voicesCut=' + ((r.stats && r.stats.voicesCut) || 0));
     L.push('tracks: ' + a.inst);
     L.push('modes: ' + a.body);
     var s = r.stats || {};
@@ -2546,7 +2580,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 06:57:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:20:41 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2888,6 +2922,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
          itself is back below, now that it's wanted again. -->
     <!-- TRACK ROW BG DARKNESS / OPACITY moved to the bottom of the DEV section, per direct request -->
 
+      <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
+        <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">DIAGNOSTICS</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+          <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
+        </label>
+        <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
+        <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:1.5px;color:#111;">GLOW</div>
@@ -2895,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
             <input type="checkbox" id="glowsOnToggle" checked onchange="document.body.classList.toggle('no-glow', !this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOWS ON
           </label>
         </div>
-        <div style="font-size:0.58rem;color:#666;line-height:1.35;">Each slider sets size and strength together (100% = standard). SAFE GFX (DEV › DIAGNOSTICS) also switches every glow off while it's ticked.</div>
+        <div style="font-size:0.58rem;color:#666;line-height:1.35;">Each slider sets size and strength together (100% = standard). SAFE GFX (DIAGNOSTICS, above) also switches every glow off while it's ticked.</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">TOP ROW BUTTONS</div>
@@ -3070,14 +3112,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO IS MOMENTARY
         </label>
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
-        <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">DIAGNOSTICS</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
-        </label>
-        <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
-        <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
-      </div>
+      <!-- DIAGNOSTICS moved up to where the GLOW section was (just above it), per direct request -->
       <!-- Moved here from SETTINGS (everything from OFFSET STEP SIZE down to SOLO IS MOMENTARY), per direct request -->
       <!-- AUTO RANDOM PERIOD moved to the RANDOMIZE menu as NEW PATTERN EVERY..., per direct request -->
       <!-- SWAP TAPE SPOOLS, ALT TAPE SPOOLS, and RAND OFFSET all removed
@@ -11114,27 +11149,17 @@ function commitBeatMenuSelection(item) {
   const menu = document.getElementById('beatTypeMenu');
   if (!btn || !menu) return;
   btn.removeAttribute('onclick');
-  // NEW GESTURES, per direct request: DRAG DOWN opens the BEAT menu (like
-  // the rainbow icon), and the same drag carries on to pick a beat; HOLD
-  // (without moving) switches DRUMS AUTO mode on/off, with a notice box;
-  // plain tap still toggles DRUMS.
+  // GESTURES, per direct request: back to PRESS-AND-HOLD to open the BEAT
+  // menu (the drag-down version didn't work well), and the same touch can
+  // then drag onto a beat to pick it. DRUMS AUTO is no longer on this
+  // button at all (per direct request). Plain tap still toggles DRUMS.
   const HOLD_MS = 500;
-  const MOVE_OPEN_PX = 12, DRAG_DOWN_PX = 30;
+  const MOVE_OPEN_PX = 12;
   let holdTimer = null, startX = 0, startY = 0, dragCancelled = false, holdDone = false;
-  const _drumsAutoToggle = () => {
+  const _holdOpen = () => {
     holdDone = true;
-    if (_beatAutoRandActive) {
-      _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
-      btn.classList.remove('beat-auto-active');
-      _showNotice('DRUMS AUTO OFF');
-    } else {
-      _beatAutoRandActive = true; _beatAutoRandBarCount = 0;
-      if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
-      if (!beatPlaying && !_beatPending) toggleBeat(); // auto mode needs the DRUMS on
-      _showNotice('DRUMS AUTO ON');
-    }
-    updateBeatCtrlRow();
-    btn.classList.remove('menu-open');
+    try { playUiSound('tinyclick'); } catch (err) {}
+    openBeatMenu();
   };
 
   btn.addEventListener('touchstart', e => {
@@ -11144,25 +11169,15 @@ function commitBeatMenuSelection(item) {
     startX = e.touches[0].clientX; startY = e.touches[0].clientY;
     clearTimeout(holdTimer); holdDone = false;
     btn.classList.add('menu-open'); // lock the black background in immediately, no grey flash during hold-detection
-    holdTimer = setTimeout(_drumsAutoToggle, HOLD_MS);
+    holdTimer = setTimeout(_holdOpen, HOLD_MS);
   }, { passive: false });
 
   btn.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (!_beatMenuOpen) {
-      // A drag BEFORE the hold completes no longer opens the menu (per
-      // direct request — only a genuine press-and-hold does). Moving past
-      // the threshold just cancels the pending hold, and letting go after
-      // that does nothing (no BEAT toggle either).
-      if (holdDone) return;
-      if (t.clientY - startY > DRAG_DOWN_PX) { // drag DOWN = open the menu; the drag carries on to pick
-        clearTimeout(holdTimer); dragCancelled = false;
-        try { playUiSound('tinyclick'); } catch (err) {}
-        openBeatMenu();
-        return;
-      }
+      // Moving before the hold completes just cancels it (and the tap) — only a genuine press-and-hold opens the menu.
       if (Math.abs(t.clientY - startY) > MOVE_OPEN_PX || Math.abs(t.clientX - startX) > MOVE_OPEN_PX) {
-        clearTimeout(holdTimer); // any other movement just cancels the hold (and the tap)
+        clearTimeout(holdTimer);
         if (!dragCancelled) { dragCancelled = true; btn.classList.remove('menu-open'); }
       }
       return;
@@ -15229,8 +15244,9 @@ function intensityMult() {
   // they were, only the very top end changed: MENTAL (100) brought down
   // 10%, from 1.7 to 1.53.
   const v = _intensitySliderVal;
-  if (v <= 50) return 0.3 + 0.7 * (v / 50); // 0.3 → 1.0
-  return 1.0 + 0.53 * ((v - 50) / 50); // 1.0 → 1.53
+  const INTENSITY_CEILING = 0.9; // ACROSS-THE-BOARD 10% cut in note density at every INTENSITY setting, per direct request (crash hunting — fewer notes = fewer voices); set back to 1 to undo
+  if (v <= 50) return (0.3 + 0.7 * (v / 50)) * INTENSITY_CEILING; // 0.27 → 0.9 (was 0.3 → 1.0)
+  return (1.0 + 0.53 * ((v - 50) / 50)) * INTENSITY_CEILING; // 0.9 → 1.377 (was 1.0 → 1.53)
 }
 // Same INTENSITY slider also raises the ceiling on how many tracks can
 // have FX, REVERB, or per-track AUTO NOTES active at once — 3 tracks at
@@ -19620,12 +19636,13 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: true,  bg0: false },
   { perf: true,  ruler: false, bg0: false },
   { perf: true,  ruler: false, bg0: true, jt: false }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'KNIGHT FLYER' }, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'KNIGHT FLYER' }, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true  },
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "20"}, palette: 'groovy', name: 'GROOVY' } /* + per direct request: background lightness 20%, FADER TIP = PLAY COLOUR, and the dark-mode header flip (night-invert) */, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgLightSlider": "20"}, palette: 'groovy', name: 'GROOVY' } /* + per direct request: background lightness 20%, FADER TIP = PLAY COLOUR, and the dark-mode header flip (night-invert) */, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-two-tone': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "18", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-two-tone': true, 'tape-from-fill': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "18", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: false, bg0: true, jt: false, safeGfx: true, name: 'SAFE GFX' }, // mode 10 "SAFE GFX", per direct request — the start-up mode 3 look with SAFE GFX switched on (no track-button lights, no WIDE METER, lighter graphics); leaving it puts SAFE GFX back how it was
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -19722,11 +19739,23 @@ function _syncSquarePop() {
   const c = 1 - 2 * ci / 100, q = 1 - 2 * si / 100; if (q <= 0) return;
   document.documentElement.style.setProperty('--sq-pop', (1 + 0.72 * c / q).toFixed(3));
 }
+function _cssColToHex(c) { // '#abc' / '#aabbcc' / 'rgb(r, g, b)' -> '#rrggbb' (else '')
+  if (!c) return ''; c = c.trim();
+  let m = c.match(/^#([0-9a-f]{6})/i); if (m) return '#' + m[1].toLowerCase();
+  m = c.match(/^#([0-9a-f])([0-9a-f])([0-9a-f])$/i); if (m) return '#' + m[1] + m[1] + m[2] + m[2] + m[3] + m[3];
+  m = c.match(/rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i); if (m) return '#' + [m[1], m[2], m[3]].map(v => Math.round(+v).toString(16).padStart(2, '0')).join('');
+  return '';
+}
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
   const on = document.body.classList.contains('night-invert'), two = on && document.body.classList.contains('tape-two-tone');
-  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color') || '').trim(); // the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
+  const _rs = getComputedStyle(document.documentElement);
+  let hex = (_rs.getPropertyValue('--top-row-pressed-text-color') || '').trim(); // default: the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
+  // Per-mode tape colour source, per direct request: KNIGHT FLYER = the song-name bar's background, GROOVY + TWILIGHT = the vol fill colour
+  // (the WIDE METER fill is the PLAY FLASH colour). The name bar's own inline colour is read, not its computed one, so its 0.5s highlight flash is ignored.
+  if (document.body.classList.contains('tape-from-name')) { const nb = document.getElementById('nameBar'); const h = nb && _cssColToHex(nb.style.backgroundColor || nb.style.background); if (h) hex = h; }
+  else if (document.body.classList.contains('tape-from-fill')) { const h = _cssColToHex((_rs.getPropertyValue('--play-flash-color') || '').trim()); if (h) hex = h; }
   const key = on + '|' + two + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
   const f = on && hex ? _cssTintFor(hex) : '';
   const wraps = document.querySelectorAll('#tapeReels .reel-wrap');
@@ -19745,7 +19774,9 @@ function _syncTapeTint() {
 }
 (function () { const go = () => { _syncTapeTint(); _syncSquarePop(); let t = null; const kick = () => { clearTimeout(t); t = setTimeout(() => { _syncTapeTint(); _syncSquarePop(); }, 50); };
     new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
-    new MutationObserver(kick).observe(document.body, { attributes: true, attributeFilter: ['class'] }); };
+    new MutationObserver(kick).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    const nb = document.getElementById('nameBar'); let t2 = null; // song-name bar colour (KNIGHT FLYER's tape source) — 700ms settle so its 0.5s highlight flash collapses into one check
+    if (nb) new MutationObserver(() => { if (!document.body.classList.contains('tape-from-name')) return; clearTimeout(t2); t2 = setTimeout(_syncTapeTint, 700); }).observe(nb, { attributes: true, attributeFilter: ['style'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
   if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
@@ -19822,6 +19853,15 @@ function _applyRainbowState(m) {
     b.toggle('glow-tip-only', window._glowTipBeforeMode); window._glowTipBeforeMode = undefined;
   }
   const gt = document.getElementById('glowTipOnlyToggle'); if (gt) gt.checked = b.contains('glow-tip-only');
+  // SAFE GFX per mode (m.safeGfx), remembered/restored like the others — goes through setSafeGfx so the lights / WIDE METER it
+  // switches off are put back exactly as they were when the cycle leaves the mode.
+  if (m.safeGfx !== undefined) {
+    if (window._safeGfxBeforeMode === undefined) window._safeGfxBeforeMode = b.contains('safe-gfx');
+    if (typeof setSafeGfx === 'function' && b.contains('safe-gfx') !== !!m.safeGfx) setSafeGfx(!!m.safeGfx);
+  } else if (window._safeGfxBeforeMode !== undefined) {
+    const was = window._safeGfxBeforeMode; window._safeGfxBeforeMode = undefined;
+    if (typeof setSafeGfx === 'function' && b.contains('safe-gfx') !== was) setSafeGfx(was);
+  }
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
 // DEV slider was set to is remembered on the way in and put back on the
