@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 23:04:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 23:11:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2634,7 +2634,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 23:04:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 23:11:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3599,6 +3599,31 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 </div>
 
 <script>
+// FAST ROOT CSS-VARIABLE READS (crash hunt, per direct request): every colour change used to read custom properties back with
+// getComputedStyle(root) straight after writing others — each read forced a FULL-PAGE style recalculation, ~550ms of a 710ms
+// profile of five + presses on desktop (many times that on an iPhone, all landing on the bar where the new pattern starts).
+// The app writes its variables inline on <html>, so read them straight from there (no recalc); only fall back to the computed
+// value for variables that aren't set inline or that hold a var(...) reference needing resolution.
+function _rootCS() {
+  const root = document.documentElement, inl = root.style;
+  let real = null; const comp = () => real || (real = getComputedStyle(root));
+  return {
+    getPropertyValue(name) {
+      if (name && name[0] === '-' && name[1] === '-') {
+        let v = inl.getPropertyValue(name), hops = 0;
+        while (v && hops++ < 4) { // resolve a plain 'var(--x, fallback)' alias through the inline values too
+          const m = v.trim().match(/^var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*))?\)$/);
+          if (!m) break;
+          v = inl.getPropertyValue(m[1]) || (m[2] || '').trim();
+        }
+        if (v && v.indexOf('var(') < 0) return v;
+      }
+      return comp().getPropertyValue(name);
+    }
+  };
+}
+window._rootCS = _rootCS;
+
 let _bgPulseEnabled = false, _bgStaticEnabled = false, _bgPulseSteps = 4, _bgPulseCounter = 0;
 window._wildColorsEnabled = true; // WILD toggle in settings — randomizes app colors alongside every new whole-pattern RAND, on by default
 window._soloFlashMode = true; // SOLO FLASH toggle in settings — track SOLO buttons work as press-and-hold (solo only while held) rather than click-to-toggle, on by default
@@ -3765,7 +3790,7 @@ function updateBgPulseSpeedReadout() {
 // declaration (not const), so it's hoisted and safely callable from
 // anywhere in the script regardless of source order.
 function _highlightColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--playhead-color').trim();
+  const v = _rootCS().getPropertyValue('--playhead-color').trim();
   return v || '#f71aff';
 }
 // Same idea, second slot — HIGHLIGHT 2 (default blue) replaces what used
@@ -3773,7 +3798,7 @@ function _highlightColor() {
 // auto-mode flash, the N track buttons in auto mode, and the N buttons'
 // single-click flash.
 function _highlight2Color() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--highlight2-color').trim();
+  const v = _rootCS().getPropertyValue('--highlight2-color').trim();
   return v || '#0078ff';
 }
 // Third slot — collects the green (#adff00) used across the top row's
@@ -3781,15 +3806,15 @@ function _highlight2Color() {
 // when active or flashed. RECORD deliberately excluded (its own states
 // use a different color entirely).
 function _highlight3Color() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim();
+  const v = _rootCS().getPropertyValue('--highlight3-color').trim();
   return v || '#adff00';
 }
 function _topRowHighlightColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color').trim();
+  const v = _rootCS().getPropertyValue('--top-row-highlight-color').trim();
   return v || '#adff00';
 }
 function _eqMeterColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--eq-meter-color').trim();
+  const v = _rootCS().getPropertyValue('--eq-meter-color').trim();
   return v || '#f8ff00';
 }
 // ── Shared color helpers for the consolidated COLORS settings section ──
@@ -3891,7 +3916,7 @@ function _applyTopColor(hex) {
   const sw = document.getElementById('topColorSwatch'); if (sw) sw.style.background = hex;
   _deriveInstrumentColorsFromTop(hex);
   _applyFlashFromTop();
-  if (!document.body.classList.contains('flash-from-top') && typeof _updatePlayFlashHot === 'function') _updatePlayFlashHot(getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim()); // keeps the white-PLAY-FLASH hot colour following TOP ROW
+  if (!document.body.classList.contains('flash-from-top') && typeof _updatePlayFlashHot === 'function') _updatePlayFlashHot(_rootCS().getPropertyValue('--play-flash-color').trim()); // keeps the white-PLAY-FLASH hot colour following TOP ROW
   if (typeof _updateLitGlyph === 'function') _updateLitGlyph();
 }
 // PLAY FLASH FROM TOP ROW (toggle, on by default), per direct request —
@@ -3901,7 +3926,7 @@ function _applyTopColor(hex) {
 // full saturation. Re-derived every time TOP ROW changes (incl. WILD).
 function _applyFlashFromTop() {
   if (!document.body || !document.body.classList.contains('flash-from-top')) return;
-  const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+  const top = _rootCS().getPropertyValue('--neutral-top').trim();
   if (!/^#[0-9a-f]{6}$/i.test(top) || typeof setPlayFlashColor !== 'function') return;
   const [h] = _hexToHsl(top);
   const hex = _hslToHex(h + 150, (window._flashSatPct != null ? window._flashSatPct : 100) / 100, 0.55); // saturation from the PLAY FLASH SATURATION slider
@@ -4142,7 +4167,7 @@ function _bgCtlPreview() {
 }
 function _bgCtlApply() { window._bgLightPct = +document.getElementById('bgLightSlider').value; _applyBgColor(_bgCtlHex(), true); }
 function _bgCtlSync() {
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const hex = _rootCS().getPropertyValue('--bg').trim();
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.getElementById('bgHueSlider').value = Math.round(h);
@@ -4365,7 +4390,7 @@ function _reapplySaturationCeilingLive() {
   const base = window._colorBaseSat;
   if (!base) return; // nothing's been randomized yet this session — nothing to re-blend
   const cap = window._colorSaturationCeiling;
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const recolor = (currentHex, baseSatKey, applyFn) => {
     if (!currentHex || currentHex[0] !== '#') return;
     const [h, , l] = _hexToHsl(currentHex);
@@ -4609,7 +4634,7 @@ function setTopRowColorFromHue(hue) {
   const EMPTY_CELL_HUE_SATURATION = 0.16;
   const EMPTY_CELL_LIGHTNESS_DELTA = 0.14;
   function applyEmptyCellColor() {
-    const bgHex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f0e8';
+    const bgHex = _rootCS().getPropertyValue('--bg').trim() || '#f5f0e8';
     const [bgH, , bgL] = _hexToHsl(bgHex);
     const variantL = bgL > 0.5 ? Math.max(0, bgL - EMPTY_CELL_LIGHTNESS_DELTA) : Math.min(1, bgL + EMPTY_CELL_LIGHTNESS_DELTA);
     document.documentElement.style.setProperty('--empty-cell-color', _hslToHex(bgH, EMPTY_CELL_HUE_SATURATION, variantL));
@@ -11467,7 +11492,7 @@ function setJustTrack(on) {
 }
 function _thinVolFillPct() {
   const bar = document.querySelector('.track-vol-bar');
-  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
+  const px = parseFloat(_rootCS().getPropertyValue('--vol-scale-thickness')) || 4;
   const h = bar ? bar.getBoundingClientRect().height : 29;
   return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
 }
@@ -11789,7 +11814,7 @@ function setTrackNameColor(tr, key) {
   const btn = document.getElementById(`tbtn-${tr}`); if (!btn) return;
   btn.classList.remove('inst-kit','inst-perc','inst-tonal','inst-bass','inst-pad','names-uniform');
   const g = INSTRUMENTS[key]?.group || 'perc';
-  const _cs = getComputedStyle(document.documentElement);
+  const _cs = _rootCS();
   const _laneColors = {
     'kit':   _cs.getPropertyValue('--lane-color-kit').trim()   || '#0b5394',
     'perc':  _cs.getPropertyValue('--lane-color-perc').trim()  || '#85A838',
@@ -13440,7 +13465,7 @@ function flashBtnOrange(id) {
   // get the new unified "slightly darker when pressed" treatment;
   // beatCtrlShift isn't in scope for that.
   const isTopRowBtn = ['randBtn','clearBtn','playBtn','beatBtn','scratchBtn','saveBtn'].includes(id);
-  btn.style.background = isTopRowBtn ? (getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-bg').trim() || '#333') : '#111';
+  btn.style.background = isTopRowBtn ? (_rootCS().getPropertyValue('--top-row-pressed-bg').trim() || '#333') : '#111';
   btn.style.color = isTopRowBtn ? '#fff' : _highlight3Color();
   setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
 }
@@ -13457,7 +13482,7 @@ function setBtnBlueHeld(id) {
   const b = document.getElementById(id); if (!b) return;
   b.classList.add('btn-flash-blue');
   if (id === 'randBtn') {
-    b.style.setProperty('background', getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-bg').trim() || '#333', 'important');
+    b.style.setProperty('background', _rootCS().getPropertyValue('--top-row-pressed-bg').trim() || '#333', 'important');
     b.style.setProperty('color', '#fff', 'important');
   }
 }
@@ -13659,7 +13684,7 @@ setTrackRowBgOpacity(10); // startup default 10% (was 15%), per direct request
 // version of the same hue was the right amount of "less washed-out"
 // without losing the hue's actual identity.
 function _autoPickVolSliderColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const songColor = cs.getPropertyValue('--bar-color').trim() || _currentBarColor || '#aa64a6';
   const contrasted = _ensureContrast(songColor, bg);
@@ -13703,7 +13728,7 @@ function setEqMeterColor(n) {
   document.documentElement.style.setProperty('--eq-meter-color', map[n] || map[3]);
 }
 function _autoPickEqMeterColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--bg').trim() || '#f5f0e8';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13727,7 +13752,7 @@ function _autoPickEqMeterColor() {
 // randomizeAppColors() below). Negligible cost either way — a handful of
 // luminance calculations, done once per randomize, not per frame.
 function _autoPickTopRowHighlight() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13766,7 +13791,7 @@ function setTopRowTextColor(n) {
     hex = document.getElementById('topRowTextColorPicker')?.value || '#ffffff';
   } else {
     const map = { 1: '--playhead-color', 2: '--highlight2-color', 3: '--highlight3-color' };
-    hex = getComputedStyle(document.documentElement).getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
+    hex = _rootCS().getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
   }
   document.documentElement.style.setProperty('--top-row-text-color', hex);
   recolorTopRowIcons(hex);
@@ -13774,7 +13799,7 @@ function setTopRowTextColor(n) {
   // --top-row-pressed-bg BEAT/etc. show text on — nudged toward
   // white/black from the same chosen hue rather than silently swapped
   // for something else entirely.
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555';
+  const bg = _rootCS().getPropertyValue('--neutral-top').trim() || '#555555';
   document.documentElement.style.setProperty('--top-row-pressed-text-color', _ensureContrast(hex, _mixTowardBlack(bg, 0.67)));
   _updatePlayHl();
 }
@@ -13797,7 +13822,7 @@ function setTopRowTextColor(n) {
 // in play-colour mode.
 function _repaintFaderTips() {
   const on = document.body && document.body.classList.contains('fader-tip-hl');
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--fader-hl').trim();
+  const hex = _rootCS().getPropertyValue('--fader-hl').trim();
   document.querySelectorAll('.track-vol-tip').forEach(t => {
     if (on && hex) t.style.setProperty('background', hex, 'important');
     else t.style.removeProperty('background');
@@ -13810,7 +13835,7 @@ function _repaintFaderTips() {
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
 function _updatePlayHl() {
-  let hex = getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color').trim();
+  let hex = _rootCS().getPropertyValue('--top-row-pressed-text-color').trim();
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.documentElement.style.setProperty('--play-hl', _hslToHex(h, Math.min(1, sat + 0.2), l));
@@ -13822,7 +13847,7 @@ function _updatePlayHl() {
   _repaintFaderTips();
 }
 function _autoPickTopRowTextColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13861,14 +13886,14 @@ function setTrackBtnTextColor(n) {
     hex = document.getElementById('trackBtnTextColorPicker')?.value || '#ffffff';
   } else {
     const map = { 1: '--playhead-color', 2: '--highlight2-color', 3: '--highlight3-color' };
-    hex = getComputedStyle(document.documentElement).getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
+    hex = _rootCS().getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
   }
   document.documentElement.style.setProperty('--track-btn-text-color', hex);
 }
 // AUTO (BEST CONTRAST) — same approach, checked against the track
 // buttons' own resting background (--track-ctrl-btn-color).
 function _autoPickTrackBtnTextColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--track-ctrl-btn-color').trim() || cs.getPropertyValue('--neutral-track').trim() || '#b0b0b0';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13891,7 +13916,7 @@ function setTrackCtrlBtnColor(n) {
   // be stale or missing depending on setup order) or a flat hardcoded
   // '#111' for HIGHLIGHT 3 — that flat fallback is what let a dark navy
   // HIGHLIGHT/HIGHLIGHT 3 slip through with unreadable black text.
-  const resolvedHex = getComputedStyle(document.documentElement).getPropertyValue('--track-ctrl-btn-color').trim();
+  const resolvedHex = _rootCS().getPropertyValue('--track-ctrl-btn-color').trim();
   document.documentElement.style.setProperty('--track-ctrl-btn-text', _contrastText(resolvedHex));
 }
 // TRACK BUTTON ON (FX/REVERB/SOLO) — previously 3 independent hardcoded
@@ -13917,7 +13942,7 @@ function setTrackBtnOnColor(n) {
   if (n === 'auto') { _autoPickTrackBtnOnColor(); return; }
   const map = { 1: 'var(--playhead-color, #f8ff00)', 2: 'var(--highlight2-color, #0078ff)', 3: 'var(--highlight3-color, #adff00)', top: 'var(--neutral-top, #555)' };
   document.documentElement.style.setProperty('--track-btn-on-color', map[n] || map.top);
-  const resolvedHex = getComputedStyle(document.documentElement).getPropertyValue('--track-btn-on-color').trim();
+  const resolvedHex = _rootCS().getPropertyValue('--track-btn-on-color').trim();
   const darkHex = _darkenHex(resolvedHex, 0.85); // a little darker than the raw highlight/base color
   document.documentElement.style.setProperty('--track-btn-on-color', darkHex);
   document.documentElement.style.setProperty('--track-btn-on-text', _contrastText(darkHex));
@@ -13949,7 +13974,7 @@ function _applyBlastColorFrom(onColorHex) {
   document.documentElement.style.setProperty('--track-btn-blast-text', _contrastText(blastHex));
 }
 function _autoPickTrackBtnOnColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--track-ctrl-btn-color').trim() || cs.getPropertyValue('--neutral-track').trim() || '#b0b0b0';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -14612,7 +14637,7 @@ function setBgFollowsBarColor(on) {
 // saturation/lightness, so it always reads as "part of the same family"
 // as whatever HIGHLIGHT 3 currently is instead of an unrelated color.
 function _analogousToHighlightColor() {
-  const hlHex = getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim() || '#adff00';
+  const hlHex = _rootCS().getPropertyValue('--highlight3-color').trim() || '#adff00';
   const [h, s, l] = _hexToHsl(hlHex);
   const offset = (20 + Math.random() * 25) * (Math.random() < 0.5 ? -1 : 1);
   return _hslToHex(h + offset, s, l);
@@ -14624,7 +14649,7 @@ function _analogousToHighlightColor() {
 // landing close enough to be mistaken for them, and doesn't collide with
 // whatever _analogousToHighlightColor above might independently produce.
 function _analogousToNeutralTopColor() {
-  const topHex = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555';
+  const topHex = _rootCS().getPropertyValue('--neutral-top').trim() || '#555555';
   const [h, s, l] = _hexToHsl(topHex);
   const offset = (60 + Math.random() * 30) * (Math.random() < 0.5 ? -1 : 1);
   const lighter = Math.min(0.85, l + 0.18);
@@ -14668,9 +14693,10 @@ function _setSongNameDisplay(text) {
   if (!nd) return;
   nd.textContent = text || '';
   _SONG_NAME_SCROLL_STYLES.forEach(c => nd.classList.remove(c));
-  void nd.offsetWidth; // force reflow so the class below is treated as a fresh addition, restarting the animation
+  // restart the scroll-in on the next frame instead of forcing a synchronous reflow (void offsetWidth) — that forced a full-page
+  // style + layout pass right in the middle of a new pattern's colour changes (crash hunt)
   const style = _SONG_NAME_SCROLL_STYLES[Math.floor(Math.random() * _SONG_NAME_SCROLL_STYLES.length)];
-  nd.classList.add(style);
+  requestAnimationFrame(() => nd.classList.add(style));
 }
 function getKeyName() {
   if (!globalScaleRoot) return null;
@@ -15461,10 +15487,11 @@ function _randomizeReverbSettings() {
 function _newPatternPulse() {
   const b = document.getElementById('randBtn'); if (!b) return;
   document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's'); // two beats + a white lead-in a quarter of that long (half a beat), per direct request
-  b.classList.remove('new-pattern', 'rand-building'); void b.offsetWidth; b.classList.add('new-pattern');
+  b.classList.remove('new-pattern', 'rand-building'); requestAnimationFrame(() => b.classList.add('new-pattern')); // next-frame restart, no forced reflow (crash hunt)
   clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
 }
 function randAll(mode, opts) {
+  const _raT0 = performance.now(); setTimeout(() => { try { window._crashCrumb && window._crashCrumb('new pattern (' + Math.round(performance.now() - _raT0) + 'ms to next task)'); } catch (e) {} }, 0); // crash log: when each new pattern lands and how long it blocked
   try { _newPatternPulse(); } catch (e) {}
   opts = opts || {};
   _clearAllSolo(); // a new pattern replaces every track — solo state from the old one isn't meaningful anymore
@@ -17057,12 +17084,12 @@ function snapshotState() {
     // WILD). Saved and restored right alongside everything else — a slot,
     // a saved tape, or a tape link now brings its colors back with it too.
     colors: {
-      top: getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555',
-      track: getComputedStyle(document.documentElement).getPropertyValue('--neutral-track').trim() || '#b0b0b0',
-      highlight: getComputedStyle(document.documentElement).getPropertyValue('--playhead-color').trim() || '#f8ff00',
-      highlight2: getComputedStyle(document.documentElement).getPropertyValue('--highlight2-color').trim() || '#0078ff',
-      highlight3: getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim() || '#adff00',
-      bg: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f0e8',
+      top: _rootCS().getPropertyValue('--neutral-top').trim() || '#555555',
+      track: _rootCS().getPropertyValue('--neutral-track').trim() || '#b0b0b0',
+      highlight: _rootCS().getPropertyValue('--playhead-color').trim() || '#f8ff00',
+      highlight2: _rootCS().getPropertyValue('--highlight2-color').trim() || '#0078ff',
+      highlight3: _rootCS().getPropertyValue('--highlight3-color').trim() || '#adff00',
+      bg: _rootCS().getPropertyValue('--bg').trim() || '#f5f0e8',
     }
   };
 }
@@ -19642,7 +19669,7 @@ function setPerformanceMode(on) {
     if (_perfModeVisualsBefore === null) {
       _perfModeVisualsBefore = {
         satCeiling: (window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 0.4) * 100,
-        faderWidth: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--simple-fader-width')) || 10 // FADER WIDTH — stashed so it can be put back exactly on exit, same pattern as satCeiling just above
+        faderWidth: parseFloat(_rootCS().getPropertyValue('--simple-fader-width')) || 10 // FADER WIDTH — stashed so it can be put back exactly on exit, same pattern as satCeiling just above
       };
     }
     setColorSaturationCeiling(20); // was 10, up 10% per direct request
@@ -19874,7 +19901,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 // Resting sizes come from the marker-size insets: size = cell * (1 - 2 * inset).
 let _sqPopKey = null;
 function _syncSquarePop() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const ci = parseFloat(cs.getPropertyValue('--note-marker-circle-inset')), si = parseFloat(cs.getPropertyValue('--note-marker-square-inset'));
   if (!isFinite(ci) || !isFinite(si)) return;
   const key = ci + '|' + si; if (key === _sqPopKey) return; _sqPopKey = key;
@@ -19892,7 +19919,7 @@ let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
   const on = document.body.classList.contains('night-invert'), two = on && document.body.classList.contains('tape-two-tone');
-  const _rs = getComputedStyle(document.documentElement);
+  const _rs = _rootCS();
   let hex = (_rs.getPropertyValue('--top-row-pressed-text-color') || '').trim(); // default: the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
   // Per-mode tape colour source, per direct request: KNIGHT FLYER = the song-name bar's background, GROOVY + TWILIGHT = the vol fill colour
   // (the WIDE METER fill is the PLAY FLASH colour). The name bar's own inline colour is read, not its computed one, so its 0.5s highlight flash is ignored.
@@ -19920,7 +19947,7 @@ function _syncTapeTint() {
     if (nb) new MutationObserver(() => { if (!document.body.classList.contains('tape-from-name')) return; clearTimeout(t2); t2 = setTimeout(_syncTapeTint, 700); }).observe(nb, { attributes: true, attributeFilter: ['style'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
-  if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
+  if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = _rootCS().getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
   // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
   if (m.flashTop !== undefined) {
     if (window._flashTopBeforeMode === undefined) window._flashTopBeforeMode = document.body.classList.contains('flash-from-top');
@@ -20258,8 +20285,8 @@ function _recomputeMarkerTierInsets() {
   // initial value `auto`, collapsing several markers (empty, soft, legato-tail,
   // in both square and circle mode) to zero width. Guarding each read here with
   // `?? default` makes this resilient regardless of call order.
-  const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
-  const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
+  const baseInsetPct = parseFloat(_rootCS().getPropertyValue('--note-marker-circle-inset')) || 12;
+  const baseInsetSquare = parseFloat(_rootCS().getPropertyValue('--note-marker-square-inset')) || 12;
   // EMPTY — BUGFIX: this used to blend toward the accent's own base inset
   // (inset=(100-S)/2 + baseInset*(S/100)), which meant S=100 only ever
   // reached the ACCENT marker's size, not the full cell — so the slider's
@@ -20460,7 +20487,7 @@ function setPlayFlashColor(hex) {
 // lightened as far as needed to reach a clear 4.5:1 contrast against that
 // background — bright hues like the old orange are left untouched.
 function _updateLitGlyph() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const top = cs.getPropertyValue('--neutral-top').trim();
   const flash = cs.getPropertyValue('--play-flash-color').trim();
   const hot = cs.getPropertyValue('--play-flash-hot').trim();
@@ -20493,7 +20520,7 @@ function _updatePlayFlashHot(hex) {
   // hot colour comes from the TOP ROW hue turned 150deg at full saturation —
   // the colour PLAY FLASH FROM TOP ROW would pick — so BLAST / + AUTO still pop.
   if (s0 < 0.08) {
-    const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+    const top = _rootCS().getPropertyValue('--neutral-top').trim();
     if (/^#[0-9a-f]{6}$/i.test(top) && typeof _hexToHsl === 'function') { h = (_hexToHsl(top)[0] + 150) % 360; sat = 1; l = 0.6; }
   }
   document.documentElement.style.setProperty('--play-flash-hot', _hslToHex(h, sat, l));
