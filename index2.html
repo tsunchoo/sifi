@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 05:16:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 05:25:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -103,6 +103,10 @@ html body.night-invert #siFiTitle, html body.night-invert #tapeReels { filter: i
    inside #tapeReels' invert+tint filter chain, which turns black into exactly the tape tint colour, so the glow always matches. */
 html body.night-invert:not(.no-glow):not(.safe-gfx) .reel-wrap::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; pointer-events: none; z-index: -1;
   background: var(--reel-glow-img, none) center / 100% 100% no-repeat; }
+/* TWO-TONE tape window (NIGHT CITY, per direct request): #tapeReels' filter is moved onto the reels by _syncTapeTint, so the window's
+   frame and glow are coloured directly with the tint colour here instead of being drawn black and filtered. */
+html body.night-invert.tape-two-tone .tape-window { background: var(--tape-tint-col, #c28671); border-color: var(--tape-tint-col, #c28671); }
+html body.night-invert.tape-two-tone:not(.no-glow):not(.safe-gfx) .tape-window { box-shadow: 0 0 7px 1px color-mix(in srgb, var(--tape-tint-col, #c28671) 55%, transparent); }
 /* --reel-glow-img is a bitmap made ONCE by _buildReelGlow(): the spool's own silhouette, blurred (canvas shadowBlur), with the disc inside
    the teeth tips punched out — so the glow follows the teeth outward and the notches/spokes stay dark. It rotates with the reel as a plain
    image, so spinning costs nothing extra (no live blur). Per direct request: the old ring glow ignored the spool's shape. */
@@ -2542,7 +2546,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:16:29 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:25:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3956,8 +3960,20 @@ function _applyHighlight3Color(hex) {
 // compounding on a previously-recolored version.
 let _tapeWindowOrigImageData = null;
 let _tapeWindowPendingBg = null;
+let _tapeWindowLastBg = null, _tapeTwoTone = null; // _tapeTwoTone: [packRGB, windowRGB] while a TWO-TONE tape window is active (see _syncTapeTint)
 function recolorTapeWindowImg(bgHex) {
+  if (bgHex) _tapeWindowLastBg = bgHex; else bgHex = _tapeWindowLastBg || '#ffffff';
   if (!_tapeWindowOrigImageData) { _tapeWindowPendingBg = bgHex; return; } // original not captured yet — apply once it is
+  if (_tapeTwoTone) { // TWO-TONE (per direct request): the dark tape packs one colour, the clear window between them another — a gradient
+    // map on the photo's own brightness, so grain/edges/marks keep their shading. Built once per colour change; free while playing.
+    const img2 = document.getElementById('tapeWindowImg'); if (!img2) return;
+    const [P, Wc] = _tapeTwoTone, src2 = _tapeWindowOrigImageData;
+    const cv2 = _recolorCanvas('tapeWindowImg', src2.width, src2.height), c2 = cv2.getContext('2d'), out2 = c2.createImageData(src2.width, src2.height);
+    const a = src2.data, o2 = out2.data;
+    for (let i = 0; i < a.length; i += 4) { const lum = 0.299 * a[i] + 0.587 * a[i+1] + 0.114 * a[i+2]; const t = Math.max(0, Math.min(1, (lum - 25) / 190));
+      o2[i] = P[0] + (Wc[0] - P[0]) * t; o2[i+1] = P[1] + (Wc[1] - P[1]) * t; o2[i+2] = P[2] + (Wc[2] - P[2]) * t; o2[i+3] = a[i+3]; }
+    c2.putImageData(out2, 0, 0); _setImgFromCanvas(img2, 'tapeWindowImg', cv2); return;
+  }
   const img = document.getElementById('tapeWindowImg');
   if (!img) return;
   const hex = bgHex.replace('#', '');
@@ -19573,7 +19589,7 @@ const _RAINBOW_CYCLE = [
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, palette: 'groovy', name: 'GROOVY' }, // mode 10 "GROOVY", from the display snapshot, per direct request — mode 4 with JUST TRACK off (fill 60%), PLAY FLASH FROM TOP ROW on, and the snapshot's colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: false, rowBg: 25, jt: true, tipHl: true, classes: { 'drums-pulse': true }, sliders: {"lockBtnDarknessSlider": "25", "trackBtnShadeSlider": "-50"}, palette: 'darker', name: 'DARKER' }, // mode 12 "DARKER", from the display snapshot, per direct request — mode 4 with track row BG 25%, TEST DRUMS PULSE on, lock buttons 25% darker, track buttons shaded -50, and its colour scheme
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "17"}, palette: 'night', name: 'NIGHT CITY' }, // mode 13 "NIGHT CITY", from the display snapshot, per direct request — mode 4 on a near-black background (lightness 10%), its colour scheme, and the Si•Fi logo + tape graphics inverted
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, classes: { 'night-invert': true, 'tape-two-tone': true }, sliders: {"bgLightSlider": "17"}, palette: 'night', name: 'NIGHT CITY' }, // mode 13 "NIGHT CITY", from the display snapshot, per direct request — mode 4 on a near-black background (lightness 10%), its colour scheme, and the Si•Fi logo + tape graphics inverted
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -19661,11 +19677,23 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
-  const on = document.body.classList.contains('night-invert');
+  const on = document.body.classList.contains('night-invert'), two = on && document.body.classList.contains('tape-two-tone');
   const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color') || '').trim(); // the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
-  const key = on + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
+  const key = on + '|' + two + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
   const f = on && hex ? _cssTintFor(hex) : '';
-  if (f) el.style.setProperty('filter', 'invert(1) ' + f, 'important'); else el.style.removeProperty('filter');
+  const wraps = document.querySelectorAll('#tapeReels .reel-wrap');
+  if (two && f) { // TWO-TONE tape window: the tint filter moves off the whole group onto the two reels only, so the window photo can carry its own two colours
+    el.style.setProperty('filter', 'none', 'important');
+    wraps.forEach(w => w.style.setProperty('filter', 'invert(1) ' + f, 'important'));
+    el.style.setProperty('--tape-tint-col', hex);
+    const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i), W = m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : [200, 150, 130];
+    _tapeTwoTone = [W.map(v => Math.round(v * 0.28)), W]; // packs: a deep, dark shade of the highlight (oxide tape); window: the highlight itself
+  } else {
+    wraps.forEach(w => w.style.removeProperty('filter')); el.style.removeProperty('--tape-tint-col');
+    if (f) el.style.setProperty('filter', 'invert(1) ' + f, 'important'); else el.style.removeProperty('filter');
+    _tapeTwoTone = null;
+  }
+  if (typeof recolorTapeWindowImg === 'function') recolorTapeWindowImg();
 }
 (function () { const go = () => { _syncTapeTint(); let t = null; const kick = () => { clearTimeout(t); t = setTimeout(_syncTapeTint, 50); };
     new MutationObserver(kick).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
