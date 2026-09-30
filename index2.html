@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 04:11:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 04:24:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -96,6 +96,8 @@ body.menu-open #seqWrap { visibility: hidden !important; }
 body.menu-open header *, body.menu-open .transport, body.menu-open .transport *, body.menu-open #songNameBar, body.menu-open #songNameBar * { animation-play-state: paused !important; }
 /* NIGHT CITY (mode 13): the Si•Fi logo and all the tape graphics (reels + tape window) inverted, per direct request */
 html body.night-invert #siFiTitle, html body.night-invert #tapeReels { filter: invert(1) !important; }
+/* ...and in those dark modes the (inverted, now white) tape graphics are tinted the TOP ROW highlight colour, per direct request — an SVG colour-multiply filter (#tapeTint, kept in step with --top-row-highlight-color by _syncTapeTint) */
+html body.night-invert #tapeReels { filter: invert(1) url(#tapeTint) !important; }
 /* ...and the dark header text (beat count, tempo + 'bpm', MODE label) goes light so it reads on the near-black background — scoped variable, so the beat count's pulse still works */
 html body.night-invert #beatCount, html body.night-invert #topTempoReadout, html body.night-invert #modeLabel { --header-text-color: #ececec; }
 #beatCount { -webkit-tap-highlight-color: transparent; outline: none; } /* no iOS grey tap flash over the numeral's box, per direct request */
@@ -2508,7 +2510,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 04:11:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 04:24:38 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19530,7 +19532,7 @@ const _RAINBOW_CYCLE = [
   { perf: true,  ruler: true,  bg0: false },
   { perf: true,  ruler: false, bg0: false },
   { perf: true,  ruler: false, bg0: true, jt: false }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false }, // mode 4 — vol slider now styled as in mode 7, per direct request; — same as 3 but TRACK ROW BG OPACITY 20%
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'KNIGHT FLYER' }, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: false, bg0: false },
   { perf: false, ruler: true,  bg0: false },
   { perf: false, ruler: true,  bg0: true  },
@@ -19540,7 +19542,6 @@ const _RAINBOW_CYCLE = [
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: false, rowBg: 25, jt: true, tipHl: true, classes: { 'drums-pulse': true }, sliders: {"lockBtnDarknessSlider": "25", "trackBtnShadeSlider": "-50"}, palette: 'darker', name: 'DARKER' }, // mode 12 "DARKER", from the display snapshot, per direct request — mode 4 with track row BG 25%, TEST DRUMS PULSE on, lock buttons 25% darker, track buttons shaded -50, and its colour scheme
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "10"}, palette: 'night', name: 'NIGHT CITY' }, // mode 13 "NIGHT CITY", from the display snapshot, per direct request — mode 4 on a near-black background (lightness 10%), its colour scheme, and the Si•Fi logo + tape graphics inverted
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'KNIGHT FLYER' }, // mode 14 "KNIGHT FLYER", from the display snapshot, per direct request — mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -19579,6 +19580,25 @@ function _showModeLabel(m) {
   el.style.opacity = '1';
   clearTimeout(_modeLabelT); _modeLabelT = setTimeout(() => { el.style.opacity = '0'; }, 1600);
 }
+// TAPE TINT (dark modes): a tiny inline SVG filter that multiplies the
+// inverted tape graphics by the top-row highlight colour. Its matrix is
+// rewritten whenever the colour changes (WILD, snapshots, colour menu).
+function _syncTapeTint() {
+  let svg = document.getElementById('tapeTintSvg');
+  if (!svg) {
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.id = 'tapeTintSvg';
+    svg.setAttribute('width', '0'); svg.setAttribute('height', '0'); svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;';
+    svg.innerHTML = '<filter id="tapeTint" color-interpolation-filters="sRGB"><feColorMatrix id="tapeTintMatrix" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/></filter>';
+    document.body.appendChild(svg);
+  }
+  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color') || '').trim();
+  const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); if (!m) return;
+  const [r, g, b] = [m[1], m[2], m[3]].map(x => (parseInt(x, 16) / 255).toFixed(3));
+  const vals = r + ' 0 0 0 0  0 ' + g + ' 0 0 0  0 0 ' + b + ' 0 0  0 0 0 1 0';
+  const fm = document.getElementById('tapeTintMatrix'); if (fm && fm.getAttribute('values') !== vals) fm.setAttribute('values', vals);
+}
+(function () { const go = () => { _syncTapeTint(); let t = null; new MutationObserver(() => { clearTimeout(t); t = setTimeout(_syncTapeTint, 50); }).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] }); };
+  if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
   if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
   // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
