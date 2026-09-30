@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 23:22:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-29 23:56:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2504,7 +2504,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 23:22:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 23:56:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3487,7 +3487,7 @@ const INSTRUMENTS = {
   sflute: { name: 'SPARP',   soft: null, accent: null, group: 'tonal' }, // SPARP (was SPOOG) — short UNDERPASS-style struck-tube tone playing triplet arpeggio fragments, per direct request; see playSparp. // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
   yamask: { name: 'YAMASK',      soft: null, accent: null, group: 'tonal' },
-  dulc:   { name: 'BOOBOO',      soft: null, accent: null, group: 'tonal' },
+  dulc:   { name: 'BROOTH',      soft: null, accent: null, group: 'tonal' }, // BOOBOO's slot, now BROOTH (a breathier YAMASK an octave down), per direct request
   opening:{ name: 'OPENING',     soft: null, accent: null, group: 'tonal' },
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   amlgm:  { name: 'TEXTURE',     soft: null, accent: null, group: 'tonal' },
@@ -5118,7 +5118,7 @@ function randomizeCurrentInstruments() {
   };
   const oneOf = [
     new Set(['tamb','shak','ngate','clap','guiro']),
-    new Set(['fflute','damask','yamask']),
+    new Set(['fflute','damask','yamask','dulc']),
     new Set(['jcmgtr','clar','boog']),
     new Set(['shihat','tamb','shak']),
     new Set(['jcmgtr','rhodes','sprkls','boog','dulc']),
@@ -6105,7 +6105,7 @@ function fireStepAudio(step, t) {
           if (key === 'magic')   playMagic(freq, dur, val === 2, t, tr);
           if (key === 'damask')  playDamask(freq, dur, val === 2, t, tr);
           if (key === 'yamask')  playYamask(freq, dur, val === 2, t, tr, _yamaskPhraseTick(tr));
-          if (key === 'dulc')    playBooboo(freq, dur, val === 2, t, tr);
+          if (key === 'dulc')    playBrooth(freq, dur, val === 2, t, tr);
           if (key === 'opening') playOpening(freq, dur, val === 2, t, tr);
           if (key === 'drone')   playAtmos(freq, dur, val === 2, t, tr);
           if (key === 'dronePlus') playAtmosPortamento(freq, dur, val === 2, t, tr);
@@ -6191,7 +6191,7 @@ function fireStepAudio(step, t) {
             if (key === 'clar')    playSteelGuitar(freq2, dur2, false, t2, tr);
             if (key === 'rhodes')  playSpaceKoto(freq2, dur2, false, t2, tr);
             if (key === 'rhodes2') playRhodes2(freq2, dur2, false, t2, tr);
-            if (key === 'dulc')    playBooboo(freq2, dur2, false, t2, tr);
+            if (key === 'dulc')    playBrooth(freq2, dur2, false, t2, tr);
             if (key === 'sflute')  playSparp(freq2, dur2, false, t2, tr);
             if (key === 'underpass') playUnderpass(freq2, dur2, false, t2, tr);
             if (key === 'spiano')  playSchoolPiano(freq2, dur2, false, t2, tr);
@@ -7453,10 +7453,10 @@ function randomizeBassTrack(tr, level) {
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     onsets.forEach((s, i) => {
-      if (Math.random() < 0.7) { // most of its notes now get connected into a run (was 35%)
+      if (Math.random() < 0.9) { // BROOTH: nearly every note joins a legato run, per direct request (was 70% for BOOBOO)
         const nextOnset = onsets[i + 1];
         const gapToNext = nextOnset !== undefined ? nextOnset - s : NUM_STEPS - s;
-        const span = Math.min(gapToNext, 2 + Math.floor(Math.random() * 4)); // 3-6 steps, never overlapping the next note
+        const span = Math.min(gapToNext, 3 + Math.floor(Math.random() * 6)); // BROOTH: 3-8 steps (was 2-5), never overlapping the next note
         if (span > 1) trackLegatoLen[tr][s] = span;
       }
     });
@@ -7594,7 +7594,7 @@ function randomizeBassTrack(tr, level) {
 
   // RAND-time only: chance to promote a soft hit to a 32nd-split for select instruments.
   // This is the ONLY place split-32 notes are ever assigned — never during live playback.
-  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','spiano','jcmgtr']); // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
+  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','shak','spiano','jcmgtr']); /* 'dulc' removed — BROOTH is a breathy legato voice, no 32nd splits */ // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
   if (split32Keys.has(key)) {
     let splitCount = 0;
     const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'spiano') ? 3 : 99;
@@ -10234,10 +10234,10 @@ function _yamaskPhraseTick(tr) {
 // no beating unison, lowpass instead of bandpass (rounder, fewer upper
 // harmonics), a quick noisy "chiff" right at the attack, louder sustained
 // breath noise throughout, and a slower vibrato that eases in later.
-function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
+function playYamask(freq, durSec, isAccent, time, tr, phraseDescend, breathMul = 1, velMul = 1) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.078 : 0.052;
+  const vel = (isAccent ? 0.078 : 0.052) * velMul;
   const attack = 0.08; // slower entrance — more world-weary, less quick-speaking
   // A phrase-end note lingers far longer than a normal one — the whole point
   // is a long, slow slide down, not a quick blip.
@@ -10295,7 +10295,7 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
   const chiff = ctx.createBufferSource(); chiff.buffer = chiffBuf;
   const chiffBP = ctx.createBiquadFilter(); chiffBP.type = 'bandpass'; chiffBP.frequency.value = freq * 3; chiffBP.Q.value = 0.8;
   const chiffEnv = ctx.createGain();
-  chiffEnv.gain.setValueAtTime(vel * 0.3, time);
+  chiffEnv.gain.setValueAtTime(vel * 0.3 * Math.sqrt(breathMul), time);
   chiffEnv.gain.exponentialRampToValueAtTime(0.0001, time + chiffLen);
   chiff.connect(chiffBP); chiffBP.connect(chiffEnv); chiffEnv.connect(dest);
   chiff.start(time); chiff.stop(time + chiffLen + 0.01);
@@ -10311,8 +10311,8 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
   const noiseBP = ctx.createBiquadFilter(); noiseBP.type = 'bandpass'; noiseBP.frequency.value = freq * 2.1; noiseBP.Q.value = 0.45;
   const noiseEnv = ctx.createGain();
   noiseEnv.gain.setValueAtTime(0, time);
-  noiseEnv.gain.linearRampToValueAtTime(vel * 0.06, time + attack * 1.2);
-  noiseEnv.gain.setValueAtTime(vel * 0.048, time + Math.max(attack, decay - release));
+  noiseEnv.gain.linearRampToValueAtTime(vel * 0.06 * breathMul, time + attack * 1.2);
+  noiseEnv.gain.setValueAtTime(vel * 0.048 * breathMul, time + Math.max(attack, decay - release));
   noiseEnv.gain.linearRampToValueAtTime(0.0001, time + decay);
   noise.connect(noiseBP); noiseBP.connect(noiseEnv); noiseEnv.connect(dest);
   noise.start(time); noise.stop(time + decay + 0.1);
@@ -10325,6 +10325,15 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend) {
       oscs.forEach(({ g }) => { try { g.disconnect(); } catch(e) {} });
     } catch(e) {}
   };
+}
+// BROOTH (BOOBOO's old slot), per direct request — YAMASK's voice an octave
+// lower with a lot more breath (breath noise x3.5, attack chiff x1.9), +3dB
+// to make up for the lower register, and its own every-3rd-or-4th-note
+// downward phrase glide like YAMASK. Reverb 75% of the time and lots of
+// legato phrases are set in RAND (see 'dulc' in the reverb chance and the
+// legato pass).
+function playBrooth(freq, durSec, isAccent, time, tr) {
+  playYamask(freq / 2, durSec, isAccent, time, tr, _yamaskPhraseTick('b' + tr), 3.5, 1.41);
 }
 // stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
 function markStepAsSplit32(tr, stepNow) {
@@ -12184,7 +12193,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'magic')   playMagic(freq, dur, isAccent, t, tr);
     else if (key === 'damask')  playDamask(freq, dur, isAccent, t, tr);
     else if (key === 'yamask')  playYamask(freq, dur, isAccent, t, tr);
-    else if (key === 'dulc')    playBooboo(freq, dur, isAccent, t, tr);
+    else if (key === 'dulc')    playBrooth(freq, dur, isAccent, t, tr);
     else if (key === 'opening') playOpening(freq, dur, isAccent, t, tr);
     else if (key === 'drone')   playAtmos(freq, dur, isAccent, t, tr);
     else if (key === 'fflute')  playGlassBell(freq, dur, isAccent, t, tr);
@@ -15313,7 +15322,7 @@ function randAll(mode, opts) {
   globalScaleRoot = allRoots[Math.floor(Math.random() * allRoots.length)];
   const bassKeys = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge']);
   const soloPercKeys = new Set(['tamb','shak','ngate','clap','guiro']); // max one of these
-  const soloLeadKeys = new Set(['fflute', 'damask', 'yamask']); // max one of these
+  const soloLeadKeys = new Set(['fflute', 'damask', 'yamask', 'dulc']); // max one of these (BROOTH added — it's a YAMASK relative)
   const soloUniqueKeys = new Set(['jcmgtr','clar','boog']); // max one of these — JCX GUITAR / JENNY / BOOG
   const soloHatKeys = new Set(['shihat','tamb','shak']); // max one of these — hihat/shaker/tambourine never together
   const snareKeys = new Set(['ssnare']); // just the one snare now
@@ -15338,7 +15347,7 @@ function randAll(mode, opts) {
   // forcing code further down still adds these keys back deliberately, on
   // purpose, to its own chosen target track(s) — this only stops a SECOND,
   // accidental occurrence from sneaking in via the general pool.
-  const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && ((k !== 'jcmgtr' && k !== 'dulc') || _intensitySliderVal > 80)); // JINX and BOOBOO stay out of RAND below 80% INTENSITY — still fully selectable manually from the sound picker regardless
+  const tonalKeysAll = Object.keys(INSTRUMENTS).filter(k => TONAL_KEYS.has(k) && ((k !== 'jcmgtr') || _intensitySliderVal > 80)); /* BROOTH (dulc) no longer held back below 80% intensity */ // JINX and BOOBOO stay out of RAND below 80% INTENSITY — still fully selectable manually from the sound picker regardless
   const percKeys = percKeysAll.filter(k => !lockedInstruments.has(k)).length > 0
     ? percKeysAll.filter(k => !lockedInstruments.has(k))
     : percKeysAll;
@@ -16397,7 +16406,7 @@ function randAll(mode, opts) {
     }
     const _tooDense = _maxConsec > 3 || (_onsets.length > 1 && _minGap < 4);
     const _isFull16th = grid[tr].every(v => v > 0);
-    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? (_jinxComboRoll[tr] ? 1 : 0) : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
+    const delayChance = (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'dulc') ? 0.75 /* BROOTH: reverb 75% of the time, per direct request */ : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? (_jinxComboRoll[tr] ? 1 : 0) : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : (trackInstruments[tr] === 'opening') ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
     const delayOn = Math.random() < delayChance;
     _setTrackReverb(tr, delayOn);
     const db = document.getElementById(`delaybtn-${tr}`);
@@ -17626,7 +17635,7 @@ function randomizeTrack(tr) {
 
   // RAND-time only: chance to promote a soft hit to a 32nd-split for select instruments.
   // This is the ONLY place split-32 notes are ever assigned — never during live playback.
-  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','dulc','shak','spiano','jcmgtr']); // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
+  const split32Keys = new Set(['shihat','congHi','bongHi','timbHi','timbMid','timbLo','rhodes','rhodes2','shak','spiano','jcmgtr']); /* 'dulc' removed — BROOTH is a breathy legato voice, no 32nd splits */ // 'sflute' removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era split mechanic
   if (split32Keys.has(key)) {
     let splitCount = 0;
     const maxSplits = (key === 'rhodes' || key === 'rhodes2' || key === 'dulc' || key === 'spiano') ? 3 : 99;
@@ -20623,6 +20632,13 @@ function fullReset() {
       updateTrackMute(_nameHoldTr);
       markModified();
     }
+    // Hold-and-drag across track names is now MOMENTARY, per direct request:
+    // the mutes apply while the finger is down, and letting go unmutes ALL
+    // tracks.
+    if (_isDragging) {
+      for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackMuted[tr]) { trackMuted[tr] = false; _syncSoloOnUnmute(tr); updateTrackMute(tr); } }
+      markModified();
+    }
     _dragActive = false; _isDragging = false; _dragVisited = new Set();
   };
   document.addEventListener('touchend', endDrag);
@@ -22216,9 +22232,21 @@ document.querySelectorAll('.tape-window').forEach(r => {
     const box = el.parentElement; if (!box) return null;
     return box.querySelector('[id$="Val"], [id$="Readout"]');
   };
+  // LOOK AND FEEL: every control now waits for the menu to close, not just
+  // sliders — tick boxes, radio buttons and the colour picker too, per
+  // direct request. (SETTINGS keeps deferring only its sliders.)
+  const lookMenu = document.getElementById('devMenuOverlay');
+  const DEFER_TYPES = new Set(['checkbox', 'radio', 'color']);
+  const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
-    if (flushing || !el || el.type !== 'range' || !inMenu(el)) return;
+    if (flushing || !el || !inMenu(el)) return;
+    if (el.type !== 'range') {
+      if (!DEFER_TYPES.has(el.type) || !lookMenu || !lookMenu.contains(el)) return;
+      e.stopImmediatePropagation(); e.stopPropagation();
+      if (el.type === 'radio') radioPending.set(el.name, el); else pending.add(el);
+      return; // the box / dot itself still shows the new state; the setting applies on close
+    }
     const readoutOnlyInput = e.type === 'input' && el.hasAttribute('onchange');
     if (readoutOnlyInput) return; // let its own readout update run
     e.stopImmediatePropagation(); e.stopPropagation();
@@ -22237,18 +22265,27 @@ document.querySelectorAll('.tape-window').forEach(r => {
   // glow switching back on at once. Now: sliders dragged back to where they
   // started are skipped; the rest apply ONE PER FRAME; and glows only come
   // back ~150ms after the last one has landed.
+  const changed = el => el.type === 'checkbox' ? el.checked !== el._menuStartChecked
+    : el.type === 'radio' ? (el.checked && !el._menuStartChecked)
+    : (el._menuStartVal === undefined || el.value !== el._menuStartVal);
   const flush = (done) => {
-    const list = [...pending].filter(el => el._menuStartVal === undefined || el.value !== el._menuStartVal);
+    radioPending.forEach(el => { const cur = document.querySelector('input[type=radio][name="' + el.name + '"]:checked'); if (cur) pending.add(cur); });
+    radioPending.clear();
+    const list = [...pending].filter(changed);
     pending.clear();
-    if (!list.length) { if (done) done(); return; }
+    if (!list.length) { if (done) done(false); return; }
+    const look = !!lookMenu && list.some(el => lookMenu.contains(el));
     const step = () => {
       const el = list.shift();
       if (el) {
         flushing = true;
-        try { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
+        try {
+          if (el.type === 'range' || el.type === 'color') el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        } catch (e) {}
         flushing = false;
       }
-      if (list.length) requestAnimationFrame(step); else if (done) done();
+      if (list.length) requestAnimationFrame(step); else if (done) done(look);
     };
     requestAnimationFrame(step);
   };
@@ -22259,15 +22296,30 @@ document.querySelectorAll('.tape-window').forEach(r => {
   // GLOWS ON (GLOW panel); on close the GLOWS ON tick box decides again.
   const glowMenus = menus.concat(['randMenuOverlay'].map(id => document.getElementById(id)).filter(Boolean));
   const isOpen = m => getComputedStyle(m).display !== 'none' && getComputedStyle(m).visibility !== 'hidden';
-  let wasOpen = false, glowT = null;
+  let wasOpen = false, glowT = null, restartT = null;
   const check = () => {
     const open = glowMenus.some(isOpen);
     if (open === wasOpen) return;
     wasOpen = open;
     const b = document.body.classList;
-    if (open) { clearTimeout(glowT); b.add('menu-open', 'no-glow'); menus.forEach(m => m.querySelectorAll('input[type=range]').forEach(el => { if (!pending.has(el)) el._menuStartVal = el.value; })); return; }
+    if (open) {
+      clearTimeout(glowT); clearTimeout(restartT); b.add('menu-open', 'no-glow');
+      menus.forEach(m => m.querySelectorAll('input').forEach(el => {
+        if (el.type === 'range' || el.type === 'color') { if (!pending.has(el)) el._menuStartVal = el.value; }
+        else if (el.type === 'checkbox' || el.type === 'radio') { if (!pending.has(el)) el._menuStartChecked = el.checked; }
+      }));
+      return;
+    }
     b.remove('menu-open');
-    flush(() => {
+    // LOOK AND FEEL changes: playback is stopped while they're applied, then
+    // restarted after a short breather, per direct request — gives the
+    // browser a clean moment to rebuild the screen without the sequencer
+    // hammering it at the same time.
+    const hasLook = !!lookMenu && [...pending, ...radioPending.values()].some(el => lookMenu.contains(el) && (el.type === 'radio' ? true : changed(el)));
+    const wasPlaying = hasLook && typeof playing !== 'undefined' && playing;
+    if (wasPlaying) { try { togglePlay(); } catch (e) {} }
+    flush((look) => {
+      if (wasPlaying) { clearTimeout(restartT); restartT = setTimeout(() => { if (!wasOpen && typeof playing !== 'undefined' && !playing) { try { togglePlay(); } catch (e) {} } }, 450); }
       clearTimeout(glowT);
       glowT = setTimeout(() => {
         if (wasOpen) return;
