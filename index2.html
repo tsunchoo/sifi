@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 22:21:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 22:27:53 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1109,16 +1109,21 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--track-btn-on-color, #0081FE) !important; }
 html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--top-row-pressed-bg) !important; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { visibility: hidden; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%) rotate(var(--ast-rot, 0deg)); background-color: currentColor; pointer-events: none;
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); pointer-events: none;
+  /* resting glyph = the FX button's lit (FX 1) glyph: the lit-glyph colour with the same glow as an engaged FX glyph (per direct request) */
+  --ast-col: var(--lit-glyph, var(--play-flash-color, #f17d21)); background-color: var(--ast-col);
+  filter: drop-shadow(0 0 calc(4.95px * var(--tglow, 1)) color-mix(in srgb, var(--ast-col) calc(min(100%, 100% * var(--tglow, 1))), transparent));
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL)::before { animation: lock-swap-pop 288ms ease-out; } /* starts on PRESS, same as the + glyph's flash */
-@keyframes lock-swap-pop {
-  0%   { background-color: #fff; transform: translate(-50%, -50%) scale(1) rotate(var(--ast-rot, 0deg)); filter: drop-shadow(0 0 calc(3px * var(--mglow, 1.5)) rgba(255,255,255,0.95)); }
-  25%  { background-color: #fff; transform: translate(-50%, -50%) scale(1.45) rotate(calc(var(--ast-rot, 0deg) + 30deg)); filter: drop-shadow(0 0 calc(4px * var(--mglow, 1.5)) rgba(255,255,255,0.95)); }
-  100% { transform: translate(-50%, -50%) scale(1) rotate(calc(var(--ast-rot, 0deg) + 60deg)); filter: none; }
+@keyframes lock-swap-pop { /* press: fades UP to full white at 100% opacity, glow amped right up and a pop in size, then fades + scales back (72ms up, 216ms release — the note-marker timing) */
+  0%   { transform: translate(-50%, -50%) scale(1); }
+  25%  { background-color: #fff; transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(9px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(3px * var(--tglow, 1)) #fff); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); }
 }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-swap-btn-opaque 288ms ease-out; }
+@keyframes lock-swap-btn-opaque { 25% { opacity: 1; } } /* the button itself goes fully opaque at the peak, so the white really is 100% */
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2607,7 +2612,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:21:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:27:53 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2672,7 +2677,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <!-- BEAT COUNT (1-2-3-4), per direct request: left side, same size and
        height as the tempo number; "-" when stopped; tap to hide (it stays
        tappable while hidden, so another tap brings it back). -->
-  <div id="beatCount" onclick="_cycleBeatCountMode()" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;width:1.2em;text-align:center;padding:4px 0 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
+  <div id="beatCount" class="beat-count-hidden" onclick="_cycleBeatCountMode()" style="position:absolute;left:6px;top:0;font-family:'DM Sans',sans-serif;font-size:2.016rem;font-weight:700;line-height:1;color:var(--header-text-color,#111);font-variant-numeric:tabular-nums;width:1.2em;text-align:center;padding:4px 0 4px 0;cursor:pointer;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation;z-index:3;">-</div>
   <div id="tapeReels" class="tape-reels">
     <div class="reel-wrap" id="leftReelWrap" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;">
       <img class="reel" id="reel1" src="tape_spool.png" alt="" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:none;">
