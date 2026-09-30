@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-29 23:56:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 00:06:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2504,7 +2504,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-29 23:56:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 00:06:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -11020,18 +11020,37 @@ function commitBeatMenuSelection(item) {
   const menu = document.getElementById('beatTypeMenu');
   if (!btn || !menu) return;
   btn.removeAttribute('onclick');
-  const HOLD_MS = 320;
-  const MOVE_OPEN_PX = 12;
-  let holdTimer = null, startX = 0, startY = 0, dragCancelled = false;
+  // NEW GESTURES, per direct request: DRAG DOWN opens the BEAT menu (like
+  // the rainbow icon), and the same drag carries on to pick a beat; HOLD
+  // (without moving) switches DRUMS AUTO mode on/off, with a notice box;
+  // plain tap still toggles DRUMS.
+  const HOLD_MS = 500;
+  const MOVE_OPEN_PX = 12, DRAG_DOWN_PX = 30;
+  let holdTimer = null, startX = 0, startY = 0, dragCancelled = false, holdDone = false;
+  const _drumsAutoToggle = () => {
+    holdDone = true;
+    if (_beatAutoRandActive) {
+      _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
+      btn.classList.remove('beat-auto-active');
+      _showNotice('DRUMS AUTO OFF');
+    } else {
+      _beatAutoRandActive = true; _beatAutoRandBarCount = 0;
+      if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
+      if (!beatPlaying && !_beatPending) toggleBeat(); // auto mode needs the DRUMS on
+      _showNotice('DRUMS AUTO ON');
+    }
+    updateBeatCtrlRow();
+    btn.classList.remove('menu-open');
+  };
 
   btn.addEventListener('touchstart', e => {
     dragCancelled = false;
     e.preventDefault();
     _pressPulse('beatBtn');
     startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-    clearTimeout(holdTimer);
+    clearTimeout(holdTimer); holdDone = false;
     btn.classList.add('menu-open'); // lock the black background in immediately, no grey flash during hold-detection
-    holdTimer = setTimeout(openBeatMenu, HOLD_MS);
+    holdTimer = setTimeout(_drumsAutoToggle, HOLD_MS);
   }, { passive: false });
 
   btn.addEventListener('touchmove', e => {
@@ -11041,8 +11060,15 @@ function commitBeatMenuSelection(item) {
       // direct request — only a genuine press-and-hold does). Moving past
       // the threshold just cancels the pending hold, and letting go after
       // that does nothing (no BEAT toggle either).
+      if (holdDone) return;
+      if (t.clientY - startY > DRAG_DOWN_PX) { // drag DOWN = open the menu; the drag carries on to pick
+        clearTimeout(holdTimer); dragCancelled = false;
+        try { playUiSound('tinyclick'); } catch (err) {}
+        openBeatMenu();
+        return;
+      }
       if (Math.abs(t.clientY - startY) > MOVE_OPEN_PX || Math.abs(t.clientX - startX) > MOVE_OPEN_PX) {
-        clearTimeout(holdTimer);
+        clearTimeout(holdTimer); // any other movement just cancels the hold (and the tap)
         if (!dragCancelled) { dragCancelled = true; btn.classList.remove('menu-open'); }
       }
       return;
@@ -11072,7 +11098,7 @@ function commitBeatMenuSelection(item) {
       // themselves (see _wireBeatMenuItemTaps below) rather than closing.
     } else {
       btn.classList.remove('menu-open');
-      if (!dragCancelled) toggleBeat();
+      if (!dragCancelled && !holdDone) toggleBeat();
     }
   }, { passive: false });
 
@@ -16652,7 +16678,24 @@ function stopAllAutoRand() {
     _pressActive = true;
     clearTimeout(holdTimer);
     btn.classList.add('rand-holding'); // fast pulse while held, so it's clear the press is registering
-    holdTimer = setTimeout(() => { holdFired = true; btn.classList.remove('rand-holding'); showRandMenu(); }, HOLD_MS);
+    // NEW GESTURES, per direct request: HOLD = AUTO MODE on/off (with the
+    // notice box); DRAG DOWN = the RANDOMIZE menu (like the rainbow icon's
+    // drag-down); plain tap still = one new pattern.
+    holdTimer = setTimeout(() => {
+      holdFired = true; btn.classList.remove('rand-holding');
+      if (_autoRandLoopActive) { setAutomate(false); _showNotice('AUTO MODE OFF'); }
+      else { setAutomate(true); _showNotice('AUTO MODE ON'); }
+    }, HOLD_MS);
+  };
+  const RAND_DRAG_DOWN_PX = 30;
+  let _randDownY = null;
+  const dragCheck = (y) => {
+    if (!_pressActive || holdFired || _randDownY === null) return;
+    if (y - _randDownY > RAND_DRAG_DOWN_PX) {
+      clearTimeout(holdTimer); holdFired = true; btn.classList.remove('rand-holding');
+      try { playUiSound('tinyclick'); } catch (e) {}
+      showRandMenu(); // the same press can carry on onto CURRENT INSTRUMENTS (see holdMove / endPress)
+    }
   };
   const endPress = (x, y) => {
     if (!_pressActive) return; // nothing actually held on this button — don't let an unrelated mouseup elsewhere on the page fire a RAND
@@ -16682,8 +16725,9 @@ function stopAllAutoRand() {
     e.preventDefault();
     _lastTouchTime = Date.now();
     beginPress();
+    _randDownY = e.touches[0] ? e.touches[0].clientY : null;
   }, { passive: false });
-  btn.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; holdMove(t.clientX, t.clientY); }, { passive: false });
+  btn.addEventListener('touchmove', e => { e.preventDefault(); const t = e.touches[0]; dragCheck(t.clientY); holdMove(t.clientX, t.clientY); }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault();
     const t = e.changedTouches && e.changedTouches[0];
@@ -16693,8 +16737,9 @@ function stopAllAutoRand() {
   btn.addEventListener('mousedown', e => {
     if (Date.now() - _lastTouchTime < 500) return; // ignore synthetic mouse events following a real touch
     beginPress();
+    _randDownY = e.clientY;
   });
-  document.addEventListener('mousemove', e => { if (_pressActive) holdMove(e.clientX, e.clientY); });
+  document.addEventListener('mousemove', e => { if (_pressActive) { dragCheck(e.clientY); holdMove(e.clientX, e.clientY); } });
   // Document-wide, not button-only — mouseup fires on whatever element is
   // currently under the pointer at release time (unlike touchend, which
   // stays bound to wherever the touch started), so if the pointer drifted
