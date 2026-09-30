@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 05:00:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 05:16:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -101,8 +101,11 @@ html body.night-invert #siFiTitle, html body.night-invert #tapeReels { filter: i
    every frame while the reels spin). Instead a static ring gradient behind each reel (radially symmetric, so the spin never needs a
    repaint of it) and a plain box-shadow round the tape window — both painted once and cached. They're drawn BLACK because they sit
    inside #tapeReels' invert+tint filter chain, which turns black into exactly the tape tint colour, so the glow always matches. */
-html body.night-invert:not(.no-glow):not(.safe-gfx) .reel-wrap::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; border-radius: 50%; pointer-events: none; z-index: -1;
-  background: radial-gradient(closest-side, rgba(0,0,0,0) 52%, rgba(0,0,0,0.55) 64%, rgba(0,0,0,0.18) 80%, rgba(0,0,0,0) 100%); }
+html body.night-invert:not(.no-glow):not(.safe-gfx) .reel-wrap::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; pointer-events: none; z-index: -1;
+  background: var(--reel-glow-img, none) center / 100% 100% no-repeat; }
+/* --reel-glow-img is a bitmap made ONCE by _buildReelGlow(): the spool's own silhouette, blurred (canvas shadowBlur), with the disc inside
+   the teeth tips punched out — so the glow follows the teeth outward and the notches/spokes stay dark. It rotates with the reel as a plain
+   image, so spinning costs nothing extra (no live blur). Per direct request: the old ring glow ignored the spool's shape. */
 html body.night-invert:not(.no-glow):not(.safe-gfx) .tape-window { box-shadow: 0 0 7px 1px rgba(0,0,0,0.55); }
 html body.night-invert:not(.no-glow):not(.safe-gfx) #tapeReels { isolation: isolate; }
 /* tint is applied by _syncTapeTint as an INLINE !important filter on #tapeReels; if Safari ever rejects it, this plain invert(1) above still shows the tapes (white) instead of black */
@@ -1788,6 +1791,7 @@ body.marker-left-justify-squares .step-cell.soft::after {
    request. Here: empty markers are a light tint of the TOP ROW highlight colour, and the playhead BRIGHTENS them (PLAY FLASH colour). */
 html body.night-invert .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32):not(.playing)::after {
   background: color-mix(in srgb, var(--top-row-highlight-color, #ccc) 60%, var(--bg, #000));
+  opacity: 0.15; /* empty-marker opacity 15% in the dark modes, per direct request */
 }
 html body.night-invert .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   background: var(--play-flash-color, #fff); filter: none;
@@ -1866,6 +1870,13 @@ body.notes-grayscale .step-cell.split32::after {
   background: repeating-linear-gradient(to right, #555 0%, #555 45%, transparent 45%, transparent 55%, #555 55%, #555 100%) !important;
   opacity: 0.7 !important;
   filter: none;
+}
+/* ...but that striped (square-style) grey 32nd also overrode CIRCLES mode's own two-dot drawing, so in mode 11 (grayscale markers, circles)
+   32nds showed as squares — per direct request: in circles mode the grey 32nd is the same two dots, just grey. */
+html body.notes-grayscale.note-markers-circle .step-cell.split32::after {
+  background:
+    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, #555 100%, transparent 100%),
+    radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, #555 100%, transparent 100%) !important;
 }
 body.notes-grayscale .step-cell.legato-tail::after { background: #999 !important; opacity: 0.7 !important; filter: none; }
 /* The pop now animates the NOTE MARKER (::after) directly instead of
@@ -2531,7 +2542,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:00:12 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:16:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19632,6 +19643,21 @@ function _cssTintFor(hex) {
     if (l < bestL) { bestL = l; best = p; } }
   return 'brightness(' + best[5].toFixed(3) + ') sepia(' + best[4].toFixed(3) + ') saturate(' + best[0].toFixed(3) + ') hue-rotate(' + best[1].toFixed(1) + 'deg) saturate(' + best[2].toFixed(3) + ') brightness(' + best[3].toFixed(3) + ')';
 }
+// Tape-spool glow bitmap for the dark modes (see .reel-wrap::before CSS). Built once from tape_spool.png.
+function _buildReelGlow() {
+  const img = new Image();
+  img.onload = () => { try {
+    const k = 3, reel = 40 * k, pad = 12 * k, W = reel + pad * 2;
+    const c = document.createElement('canvas'); c.width = W; c.height = W; const g = c.getContext('2d');
+    g.shadowColor = 'rgba(0,0,0,1)'; g.shadowBlur = 7 * k; g.shadowOffsetX = W * 2;
+    for (let i = 0; i < 3; i++) g.drawImage(img, pad - W * 2, pad, reel, reel); // shadow only (the image itself is drawn off-canvas); 3 passes = stronger
+    g.shadowColor = 'transparent'; g.globalCompositeOperation = 'destination-out';
+    g.beginPath(); g.arc(W / 2, W / 2, reel * 0.485, 0, Math.PI * 2); g.fill(); // punch out everything inside the teeth tips
+    c.toBlob(bl => { if (bl) document.documentElement.style.setProperty('--reel-glow-img', 'url(' + URL.createObjectURL(bl) + ')'); });
+  } catch (e) {} };
+  img.src = 'tape_spool.png';
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _buildReelGlow, { once: true }); else _buildReelGlow();
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
