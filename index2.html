@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 21:35:53 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 21:47:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -299,6 +299,7 @@ body.seq-playing.logo-flash-mode #siFiTitle.press-pulse { animation: press-pulse
    always outranks a plain (non-!important) inline style. */
 body.logo-pulse-expired #siFiTitle,
 body.logo-pulse-expired #siFiTitle.press-pulse { animation: none !important; color: #000 !important; }
+html body.night-invert.logo-pulse-expired #siFiTitle, html body.night-invert.logo-pulse-expired #siFiTitle.press-pulse { color: var(--top-row-text-color, #ececec) !important; } /* DARK MODES: after the 6s colour cycle the logo settles on the top-row glyph colour, not black (was invisible on KNIGHT FLYER's black), per direct request */
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -1097,6 +1098,15 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
+/* LOCK BUTTONS = NEW SOUND: the padlock is swapped for the asterisk glyph (same shape as + BUTTON = ASTERISK), white, lock state not shown */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; color: #fff !important; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { visibility: hidden; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL)::before { content: ''; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); background-color: #fff; pointer-events: none;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.swap-pop:not(#beatCtrlL)::before { animation: lock-swap-pop 0.3s ease-out; }
+@keyframes lock-swap-pop { 0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); } 40% { transform: translate(-50%, -50%) scale(1.35) rotate(30deg); } 100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); } }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2585,7 +2595,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:35:53 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 21:47:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2895,6 +2905,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PERFORMANCE MODE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="performanceModeToggle" onchange="setPerformanceMode(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW SOUND</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="lockSwapToggle" onchange="setLockSwap(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -5241,6 +5258,35 @@ function randomizeCurrentInstruments() {
   for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr, true); // repaint markers in each track's new instrument colour, without re-sorting the layout
   markModified();
   return changed;
+}
+// LOCK BUTTONS = NEW SOUND (LOOK AND FEEL toggle under PERFORMANCE MODE), per direct request — the track's lock button shows the
+// asterisk glyph and each press swaps THAT track's instrument for another from the same sound-picker group (KIT / PERC / LEAD /
+// PAD / BASS), same one-of-a-kind rules as RANDOMIZE CURRENT INSTRUMENTS. Notes, volume, FX and mute are left as they are.
+function setLockSwap(on) { document.body.classList.toggle('lock-swap', !!on); const c = document.getElementById('lockSwapToggle'); if (c) c.checked = !!on; }
+function swapTrackInstrumentInGroup(tr) {
+  const cur = trackInstruments[tr]; if (!cur || !INSTRUMENTS[cur]) return false;
+  const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
+  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
+  const groupOf = k => { const g = INSTRUMENTS[k] && INSTRUMENTS[k].group; if (g === 'kit') return 'kit'; if (g === 'perc') return 'perc'; if (isBass(k)) return 'bass'; if (isPad(k)) return 'pad'; return 'lead'; };
+  const oneOf = [
+    new Set(['tamb','shak','ngate','clap','guiro']),
+    new Set(['fflute','damask','yamask','dulc']),
+    new Set(['jcmgtr','clar','boog']),
+    new Set(['shihat','tamb','shak']),
+    new Set(['rhodes','sprkls','boog']),
+    new Set(['jcmgtr','damask','yamask']),
+  ];
+  const clashes = k => trackInstruments.some((other, t) => t !== tr && other && (other === k || oneOf.some(set => set.has(k) && set.has(other))));
+  const grp = groupOf(cur);
+  let options = INSTRUMENT_KEYS.filter(k => k !== cur && groupOf(k) === grp && !clashes(k));
+  if (!options.length) options = INSTRUMENT_KEYS.filter(k => k !== cur && groupOf(k) === grp && !trackInstruments.includes(k)); // one-of rules would leave nothing — still never duplicate a track
+  if (!options.length) return false;
+  const wasMuted = trackMuted[tr];
+  selectSound(tr, options[Math.floor(Math.random() * options.length)]);
+  if (wasMuted) { trackMuted[tr] = true; updateTrackMute(tr); }
+  redrawTrackCells(tr, true);
+  markModified();
+  return true;
 }
 // Thin on/off wrapper kept for anything still calling the old boolean API
 // (e.g. the logo tap turning this back off) — maps straight to the mix
@@ -11842,6 +11888,11 @@ function buildUI() {
     sweepBtnL.classList.toggle('sweep-on', !!trackSweep[tr]);
     sweepBtnL.addEventListener('mouseup', (e) => {
       if (e.isTrusted && Date.now() - _lastRealTouchTimeGlobal < 500) return; // ignore genuine synthetic mouseup following a real touch, but let the drag system's own dispatched (untrusted) event through
+      if (document.body.classList.contains('lock-swap')) { // LOCK BUTTONS = NEW SOUND mode: the button picks a new instrument from the same group instead of locking
+        swapTrackInstrumentInGroup(tr);
+        sweepBtnL.classList.remove('swap-pop'); void sweepBtnL.offsetWidth; sweepBtnL.classList.add('swap-pop');
+        return;
+      }
       trackSweep[tr] = !trackSweep[tr];
       sweepBtnL.classList.toggle('sweep-on', !!trackSweep[tr]);
       // Pin this track's current root the moment it locks, so if it's
