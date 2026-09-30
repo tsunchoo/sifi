@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 04:49:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-09-30 05:00:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -96,7 +96,15 @@ body.menu-open #seqWrap { visibility: hidden !important; }
 body.menu-open header *, body.menu-open .transport, body.menu-open .transport *, body.menu-open #songNameBar, body.menu-open #songNameBar * { animation-play-state: paused !important; }
 /* NIGHT CITY (mode 13): the Si•Fi logo and all the tape graphics (reels + tape window) inverted, per direct request */
 html body.night-invert #siFiTitle, html body.night-invert #tapeReels { filter: invert(1) !important; }
-/* ...and in those dark modes the (inverted, now white) tape graphics are tinted the TOP ROW highlight colour, per direct request — plain CSS filter functions set inline by _syncTapeTint, kept in step with --top-row-highlight-color */
+/* ...and in those dark modes the (inverted, now white) tape graphics are tinted the ENGAGED top-row highlight colour, per direct request — plain CSS filter functions set inline by _syncTapeTint, kept in step with --top-row-pressed-text-color */
+/* TAPE GLOW in the dark modes, per direct request — made as cheap as possible: NO blur filter / drop-shadow at all (those would re-blur
+   every frame while the reels spin). Instead a static ring gradient behind each reel (radially symmetric, so the spin never needs a
+   repaint of it) and a plain box-shadow round the tape window — both painted once and cached. They're drawn BLACK because they sit
+   inside #tapeReels' invert+tint filter chain, which turns black into exactly the tape tint colour, so the glow always matches. */
+html body.night-invert:not(.no-glow):not(.safe-gfx) .reel-wrap::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; border-radius: 50%; pointer-events: none; z-index: -1;
+  background: radial-gradient(closest-side, rgba(0,0,0,0) 52%, rgba(0,0,0,0.55) 64%, rgba(0,0,0,0.18) 80%, rgba(0,0,0,0) 100%); }
+html body.night-invert:not(.no-glow):not(.safe-gfx) .tape-window { box-shadow: 0 0 7px 1px rgba(0,0,0,0.55); }
+html body.night-invert:not(.no-glow):not(.safe-gfx) #tapeReels { isolation: isolate; }
 /* tint is applied by _syncTapeTint as an INLINE !important filter on #tapeReels; if Safari ever rejects it, this plain invert(1) above still shows the tapes (white) instead of black */
 /* ...and the dark header text (beat count, tempo + 'bpm', MODE label) goes light so it reads on the near-black background — scoped variable, so the beat count's pulse still works */
 html body.night-invert #beatCount, html body.night-invert #topTempoReadout, html body.night-invert #modeLabel { --header-text-color: #ececec; }
@@ -1775,6 +1783,19 @@ body.marker-left-justify-squares .step-cell.soft::after {
   left: var(--note-marker-square-inset, 12%);
   right: calc(2 * var(--marker-soft-inset, 19.6%) - var(--note-marker-square-inset, 12%));
 }
+/* DARK MODES (night-invert: KNIGHT FLYER, NIGHT CITY) — the empty-marker colour is worked out from the background (a dark, desaturated
+   step from it) and the playhead DARKENS empty markers, so on a black/navy background they were invisible, playing or not — per direct
+   request. Here: empty markers are a light tint of the TOP ROW highlight colour, and the playhead BRIGHTENS them (PLAY FLASH colour). */
+html body.night-invert .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32):not(.playing)::after {
+  background: color-mix(in srgb, var(--top-row-highlight-color, #ccc) 60%, var(--bg, #000));
+}
+html body.night-invert .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
+  background: var(--play-flash-color, #fff); filter: none;
+  opacity: calc(min(1, var(--empty-marker-opacity-circle, 0.35) * 2.2));
+}
+html body.night-invert:not(.note-markers-circle) .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
+  opacity: calc(min(1, var(--empty-marker-opacity, 0.35) * 2.2));
+}
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
      that a compound "two notes side by side" marker shouldn't be a
@@ -2510,7 +2531,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 04:49:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 05:00:12 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19615,7 +19636,7 @@ let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
   const on = document.body.classList.contains('night-invert');
-  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color') || '').trim();
+  const hex = (getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color') || '').trim(); // the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
   const key = on + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
   const f = on && hex ? _cssTintFor(hex) : '';
   if (f) el.style.setProperty('filter', 'invert(1) ' + f, 'important'); else el.style.removeProperty('filter');
