@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 06:40:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 06:58:55 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1976,6 +1976,8 @@ body.note-markers-circle .step-cell.on::after {
   opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732));
 }
 .step-cell.soft::after { background: var(--track-color, var(--text)); opacity: calc(var(--note-marker-opacity, 1) * 0.4); }
+/* SOFT FULL (mode 3 XWING), per direct request: un-accented notes at 100% opacity — at the usual 40% they matched the empty markers */
+html body.soft-full .step-cell.soft::after, html body.soft-full .step-cell.legato-tail.legato-tail-soft::after { opacity: 1 !important; }
 .step-cell.on::after   { background: var(--track-color, var(--text)); opacity: var(--note-marker-opacity, 1); }
 .step-lane.lane-muted .step-cell::after { opacity: 0.075 !important; filter: grayscale(1); }
 /* Hides only genuinely empty cells' resting marker — .soft/.on (actual
@@ -2704,7 +2706,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 06:40:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 06:58:55 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19940,7 +19942,7 @@ function _cycleRainbowMode() {
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
   { perf: true,  ruler: true,  bg0: false, name: 'SCIENCE' },
   { perf: true,  ruler: false, bg0: false, name: 'ALICE' },
-  { perf: true,  ruler: false, bg0: true, jt: false, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
+  { perf: true,  ruler: false, bg0: true, jt: false, classes: { 'soft-full': true }, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
   { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"} }, // + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
@@ -19949,7 +19951,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "22", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: false, wide: true, markers: 'circle', classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': true, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'biggy', name: 'BIGGY' }, // mode 11 "BIGGY", from the display snapshot, per direct request — clear MORTAR at 6px, LOCK BUTTONS = NEW INST, FAILSAFE HIGHLIGHTS, WIDE METER, big circle markers, its colour scheme
-  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, palette: 'blerrin', name: 'BLERRIN' }, // mode 12 "BLERRIN", from the display snapshot, per direct request — mode 6 (white background, MASTER 130%, JUST TRACK) with the snapshot's colour scheme
+  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, palette: 'blerrin', name: 'SHERBET' }, // mode 12 "SHERBET" (snapshot was named Blerrin), from the display snapshot, per direct request — mode 6 (white background, MASTER 130%, JUST TRACK) with the snapshot's colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
