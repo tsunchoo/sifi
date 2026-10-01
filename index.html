@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 02:32:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 02:45:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1186,7 +1186,14 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(
 html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark-lights 576ms ease-out; }
 @keyframes lock-btn-dark { 0%, 40% { background: var(--track-btn-on-color, #0081FE); } }
 @keyframes lock-btn-dark-lights { 0%, 40% { background: var(--top-row-pressed-bg); } }
-@keyframes lock-ast-white { 25% { background-color: #fff; } }
+@keyframes lock-ast-white { 0% { background-color: var(--ast-from, var(--ast-col)); } 25% { background-color: #fff; } } /* starts from whatever colour the glyph is at that moment (read on press), per direct request */
+/* While playing, the asterisk pulses every QUARTER NOTE: it hits the hot highlight (red in FAILSAFE) on the beat and eases back to
+   the normal lit highlight (orange in FAILSAFE) over the beat, per direct request. Two identical animations alternate beat to beat
+   so each one restarts cleanly (driven from the beat counter, see _pulseAsterisks). */
+@keyframes ast-beat-a { 0% { background-color: var(--lit-glyph-hot, #ff1100); } 100% { background-color: var(--ast-col); } }
+@keyframes ast-beat-b { 0% { background-color: var(--lit-glyph-hot, #ff1100); } 100% { background-color: var(--ast-col); } }
+body.lock-swap.seq-playing .lock-ast-shape.ast-beat-a { animation: ast-beat-a var(--ast-beat-dur, 0.5s) ease-out forwards; }
+body.lock-swap.seq-playing .lock-ast-shape.ast-beat-b { animation: ast-beat-b var(--ast-beat-dur, 0.5s) ease-out forwards; }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2676,7 +2683,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 02:32:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 02:45:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6719,6 +6726,7 @@ function fireStepAudio(step, t) {
 let _beatCountLast = null;
 function _setBeatCount(v) {
   if (v === _beatCountLast) return; _beatCountLast = v;
+  if (v !== '-' && v !== 'X') _pulseAsterisks();
   const el = document.getElementById('beatCount'); if (!el) return;
   el.textContent = v;
   if (v !== '-' && el.classList.contains('beat-count-pulse')) { el.classList.remove('beat-pop'); void el.offsetWidth; el.classList.add('beat-pop'); } // restart the pop on every new beat
@@ -18310,6 +18318,7 @@ function wireShiftButton(btn, tr, dir) {
     const b = e.target.closest && e.target.closest(document.body.classList.contains('lock-swap') ? '.shift-btn:not(.right), .rand-btn, .track-ctrl-row .lock-btn:not(#beatCtrlL)' : '.shift-btn:not(.right), .rand-btn'); // LOCK BUTTONS = NEW SOUND: the lock button gets the + button's pressed look too
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
+    if (b.classList.contains('lock-btn')) { const sh = b.querySelector('.lock-ast-shape'); if (sh) b.style.setProperty('--ast-from', getComputedStyle(sh).backgroundColor); } // asterisk: fade to white from the colour it's showing right now
     b.classList.remove('glyph-pop'); void b.offsetWidth; b.classList.add('glyph-pop'); // restart the white flash + fade on every press
     clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), b.classList.contains('lock-btn') ? 620 : 320); // asterisk button's pop runs twice as long (576ms), per direct request
   }, true);
@@ -20036,6 +20045,14 @@ function setMortarColour(which) { document.body.classList.toggle('mortar-line', 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go, { once: true }); else go();
 })();
 function setMasterBright(v) { v = Math.max(40, Math.min(160, +v || 100)); document.documentElement.style.setProperty('--master-bright', (v / 100).toFixed(2)); document.body.classList.toggle('master-bright', v !== 100); const r = document.getElementById('masterBrightVal'); if (r) r.textContent = v + '%'; }
+// Quarter-note pulse for the LOCK BUTTONS = NEW INST asterisks (see the ast-beat CSS) — called on every beat by _setBeatCount.
+let _astBeatFlip = false;
+function _pulseAsterisks() {
+  if (!document.body.classList.contains('lock-swap')) return;
+  _astBeatFlip = !_astBeatFlip;
+  document.documentElement.style.setProperty('--ast-beat-dur', (60 / (bpm || 110)).toFixed(3) + 's');
+  document.querySelectorAll('.track-ctrl-row .lock-ast-shape').forEach(el => { el.classList.toggle('ast-beat-a', _astBeatFlip); el.classList.toggle('ast-beat-b', !_astBeatFlip); });
+}
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
