@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 05:47:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 06:19:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1690,6 +1690,8 @@ html body.name-tag .track-ctrl-row .track-ctrl-icon-btn.lock-btn svg { width: 16
 /* ...and the name text stops short of the padlock with an ellipsis (block
    layout so text-overflow works; line-height re-centres it vertically) */
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn { display: block !important; padding-right: 24px !important; overflow: hidden !important; white-space: nowrap !important; text-overflow: ellipsis !important; line-height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1) - 4px) !important; text-align: left !important; }
+/* LOCKED track (swipe left-to-right on the name, or the L button): the name button goes a medium grey, per direct request */
+html body .track-ctrl-row:has(> .lock-btn.sweep-on) > .track-name-btn.track-name-btn { background: #808080 !important; }
 .track-name-btn.names-uniform { background: var(--neutral-top, #555); color: #fff; }
 
 /* ── Vol overlay ── */
@@ -2373,8 +2375,9 @@ body.note-markers-asterisk .step-cell.legato-tail.playing::after {
 /* ── Slot bar ── */
 .slot-bar {
   width: 100%; max-width: 960px; display: flex;
-  gap: 4px; margin-top: 4px; margin-bottom: 0;
+  gap: 4px; margin-top: 2px; margin-bottom: 0; /* gap above halved (was 4px), per direct request */
 }
+body.mortar .slot-bar { margin-top: calc((4px - var(--mortar-h, 8px)) / 2); } /* with MORTAR the last lane's bottom mortar adds to the gap — halve the whole thing: (mortar + 4px) / 2 */
 /* PERFORMANCE MODE (COLOR MENU toggle, under WILD) — removes the save
    slot row entirely and hands its exact height straight to the top row
    buttons instead, per direct request: "get rid of the save slot
@@ -2701,7 +2704,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:47:57 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 06:19:25 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -12099,6 +12102,16 @@ window.addEventListener('mouseup', e => {
 function updateVolMuteCol(tr) { updateTrackMute(tr); }
 function attachVolMuteEvents() {}
 
+// Lock / unlock a track from RAND — the L button (when LOCK BUTTONS = NEW INST is off) and a left-to-right swipe on the track name.
+function _toggleTrackLock(tr) {
+  trackSweep[tr] = !trackSweep[tr];
+  const sb = document.getElementById(`swpbtn-${tr}`); if (sb) sb.classList.toggle('sweep-on', !!trackSweep[tr]);
+  // Pin this track's current root the moment it locks, so if it's individually re-randomized later via its own + (locking only
+  // protects it from the whole-pattern RAND sweep), new notes still come from the key it actually had when it was locked.
+  if (trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr]) && trackBassScale[tr]?.[0]) trackLockedRoot[tr] = trackBassScale[tr][0];
+  else if (!trackSweep[tr]) delete trackLockedRoot[tr];
+  markModified();
+}
 function buildUI() {
   // Sequencer rows — each track has: [ctrl-row] + [step-row]
   const seqWrap = document.getElementById('seqWrap'); seqWrap.innerHTML = '';
@@ -12129,20 +12142,7 @@ function buildUI() {
         swapTrackInstrumentInGroup(tr);
         return;
       }
-      trackSweep[tr] = !trackSweep[tr];
-      sweepBtnL.classList.toggle('sweep-on', !!trackSweep[tr]);
-      // Pin this track's current root the moment it locks, so if it's
-      // individually re-randomized later via its own + (locking only
-      // protects it from the whole-pattern RAND sweep, not a direct press
-      // on its own button), new notes still come from the key it actually
-      // had when it was locked — not whatever the shared global key has
-      // drifted to since, from other tracks getting regenerated meanwhile.
-      if (trackSweep[tr] && TONAL_KEYS.has(trackInstruments[tr]) && trackBassScale[tr]?.[0]) {
-        trackLockedRoot[tr] = trackBassScale[tr][0];
-      } else if (!trackSweep[tr]) {
-        delete trackLockedRoot[tr];
-      }
-      markModified();
+      _toggleTrackLock(tr);
     });
     ctrlRow.appendChild(sweepBtnL);
 
@@ -19949,6 +19949,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "22", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 4, sliders: {"squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "150", "emptyMarkerSizeSquareSlider": "100", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: false, wide: true, markers: 'circle', classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': true, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'biggy', name: 'BIGGY' }, // mode 11 "BIGGY", from the display snapshot, per direct request — clear MORTAR at 6px, LOCK BUTTONS = NEW INST, FAILSAFE HIGHLIGHTS, WIDE METER, big circle markers, its colour scheme
+  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, palette: 'blerrin', name: 'BLERRIN' }, // mode 12 "BLERRIN", from the display snapshot, per direct request — mode 6 (white background, MASTER 130%, JUST TRACK) with the snapshot's colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -19959,6 +19960,7 @@ const _DISPLAY_PALETTES = {
   darker: {"--track-text-invert": "0", "--neutral-top": "#6f4a67", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c3f", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a5a63f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d762", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#336f99", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b563e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff5d", "--play-flash-dark": "#19330f", "--lit-glyph": "#5bff1a", "--lit-glyph-hot": "#47ff5d", "--neutral-track": "#b28caa", "--neutral-track-text": "#ffffff", "--playhead-color": "#cd9789", "--highlight-text": "#ffffff", "--highlight2-color": "#bdcd89", "--highlight2-text": "#111111", "--highlight3-color": "#4db362", "--bg": "#bbcacd", "--bar-color": "#8379a6", "--empty-cell-color": "#91aaaf", "--vol-slider-color": "#907ecd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#bdcd89", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a1ae74", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#9ac600", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#2e6c3b", "--top-row-text-color": "#bdcd89", "--top-row-pressed-text-color": "#bdcd89", "--play-hl": "#c6de78", "--fader-hl": "#e0f797", "--fader-glow": "#1f0868", "--track-btn-text-color": "#bdcd89", "--play-flash-color": "#5bff1a", "--tbtn-shade-col": "#000"},
   aubergine: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b2604e", "--bg": "#28214f", "--bar-color": "#9f6f9c", "--empty-cell-color": "#4d4965", "--vol-slider-color": "#dda9dd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#c578b5", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63", "--tbtn-shade-col": "#fff"},
   bigschool: {"--track-text-invert": "0", "--neutral-top": "#476a46", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c9669", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#3f57a6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d342d7", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#994533", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b7e963", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#9333ff", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#c999ff", "--neutral-track": "#87ae86", "--neutral-track-text": "#ffffff", "--playhead-color": "#409492", "--highlight-text": "#ffffff", "--highlight2-color": "#404094", "--highlight2-text": "#ffffff", "--highlight3-color": "#b04db3", "--bg": "#d0b9b9", "--bar-color": "#a5a478", "--empty-cell-color": "#b09292", "--vol-slider-color": "#c7c771", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#76c4c2", "--top-row-highlight-text": "#ffffff", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#64a7a5", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#00afaa", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#404094", "--top-row-text-color": "#76c4c2", "--top-row-pressed-text-color": "#48a6a4", "--play-hl": "#30bebb", "--fader-hl": "#46efec", "--fader-glow": "#b91013", "--track-btn-text-color": "#76c4c2", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
+  blerrin: {"--track-text-invert": "0", "--neutral-top": "#704197", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c87", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a6633f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#85d742", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#33997f", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#636ae9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#f6ff33", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#f6ff33", "--neutral-track": "#b18ece", "--neutral-track-text": "#ffffff", "--playhead-color": "#ec5498", "--highlight-text": "#ffffff", "--highlight2-color": "#eca854", "--highlight2-text": "#ffffff", "--highlight3-color": "#74e51b", "--bg": "#ffffff", "--bar-color": "#85a5cb", "--empty-cell-color": "#e1d6d6", "--vol-slider-color": "#99e49e", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#e3e2f8", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c1c0d3", "--track-btn-on-text": "#111111", "--track-btn-blast-color": "#4338ff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#3b31c3", "--top-row-text-color": "#e3e2f8", "--top-row-pressed-text-color": "#e390de", "--play-hl": "#f182ea", "--fader-hl": "#ff8ff8", "--fader-glow": "#007007", "--track-btn-text-color": "#e3e2f8", "--play-flash-color": "#ffffff"},
   biggy: {"--track-text-invert": "0", "--neutral-top": "#4b714b", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c966c", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#3f54a6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d742d7", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#994733", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b3e963", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#9933ff", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#d9b3ff", "--neutral-track": "#8eb38e", "--neutral-track-text": "#ffffff", "--playhead-color": "#a5d9d9", "--highlight-text": "#111111", "--highlight2-color": "#a5a5d9", "--highlight2-text": "#ffffff", "--highlight3-color": "#b34db2", "--bg": "#d0b9b9", "--bar-color": "#a9a97e", "--empty-cell-color": "#b09292", "--vol-slider-color": "#cfcf82", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#a5d9d9", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#8cb8b8", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#00e8e8", "--track-btn-blast-text": "#111111", "--eq-meter-color": "#903d8f", "--top-row-text-color": "#a5d9d9", "--top-row-pressed-text-color": "#a5d9d9", "--play-hl": "#98e6e6", "--fader-hl": "#97f7f7", "--fader-glow": "#680808", "--track-btn-text-color": "#a5d9d9", "--play-flash-color": "#ffffff"},
   twilight: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#14365d", "--bar-color": "#8fb59e", "--empty-cell-color": "#45515f", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
@@ -20812,18 +20814,7 @@ function setTonalPercBalance(v) {
     }, 120);
   }, { passive: false });
 
-  nb.addEventListener('touchmove', e => {
-    if (_swipeHandled || _mapShown) return; // already committed one way or the other
-    const touch = e.touches[0];
-    if (!touch) return;
-    const dx = touch.clientX - _startX;
-    const dy = touch.clientY - _startY;
-    if (Math.abs(dx) > 40 && Math.abs(dy) < Math.abs(dx) * 0.6) {
-      _swipeHandled = true;
-      if (_mapDelayTimer) { clearTimeout(_mapDelayTimer); _mapDelayTimer = null; }
-      if (dx > 0) _slotAdvanceOrRand(); else if (window._doRecall) window._doRecall();
-    }
-  }, { passive: true });
+  // (swipe left/right on the name bar for RECALL / next slot removed, per direct request — it never worked reliably)
 
   nb.addEventListener('touchend', e => {
     e.preventDefault();
@@ -21196,9 +21187,12 @@ function fullReset() {
         _swipeHandled = true;
         _dragActive = false;
         if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-        if (dx > 0) _slotAdvanceOrRand(); else if (window._doRecall) window._doRecall();
+        if (dx > 0) _toggleTrackLock(_nameHoldTr); // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
         return;
       }
+      // Mostly-horizontal movement that hasn't reached the swipe distance yet: wait for it rather than committing to a mute-drag
+      // (that used to kick in at 10px, so a swipe almost never got the chance to register)
+      if (Math.abs(dx) >= 10 && Math.abs(dx) > Math.abs(dy)) { if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; } return; }
       // A real finger almost never stays at exactly zero delta during a
       // tap — a couple of pixels of jitter is normal and shouldn't get
       // misread as a drag (which used to happen here on literally any
