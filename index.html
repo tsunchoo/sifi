@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 09:01:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 18:19:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2708,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 09:01:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 18:19:20 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3619,6 +3619,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
         </div>
         <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <!-- CLICK LEVEL, per direct request: the COUNT click (on from the 2nd tap on the count numerals) -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CLICK LEVEL</div>
+          <div id="clickLevelReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+        </div>
+        <input type="range" id="clickLevelSlider" min="0" max="200" value="100" oninput="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
 
@@ -6594,7 +6602,9 @@ function fireStepAudio(step, t) {
       }
     }
     // Metronome: fire on every beat when all tracks silent and beat not engaged
-    if (step % 4 === 0 && !beatPlaying) {
+    // COUNT CLICK, per direct request: the same woodblock click on every beat while the COUNT is in its 2nd-tap (pulse) state, at CLICK LEVEL
+    if (step % 4 === 0 && window._countClickOn) playMetronome(t, step === 0, window._clickLevel === undefined ? 1 : window._clickLevel);
+    else if (step % 4 === 0 && !beatPlaying) {
       const allEmpty = grid.every(row => row.every(v => v === 0));
       if (allEmpty) playMetronome(t, step === 0);
     }
@@ -6787,7 +6797,12 @@ function _setBeatCount(v) {
 }
 // Tap cycle, per direct request: 1st tap = PULSE (pops like a note marker on
 // each beat), 2nd = HIDDEN (still tappable), 3rd = back to the plain count.
+function setClickLevel(v) { window._clickLevel = Math.max(0, +v || 0) / 100; const r = document.getElementById('clickLevelReadout'); if (r) r.textContent = Math.round(+v) + '%'; }
+function _syncCountClick() { const el = document.getElementById('beatCount'); window._countClickOn = !!(el && el.classList.contains('beat-count-pulse') && !el.classList.contains('beat-count-hidden')); }
 function _cycleBeatCountMode() {
+  try { _cycleBeatCountModeInner(); } finally { _syncCountClick(); } // the click is on exactly while the count is in its 2nd-tap (pulse) state
+}
+function _cycleBeatCountModeInner() {
   const el = document.getElementById('beatCount'); if (!el) return;
   if (el._xHold) { clearTimeout(el._offT); el._xHold = false; el.classList.add('beat-count-hidden'); } // tapped again during the X — finish hiding first
   if (el.classList.contains('beat-count-hidden')) { el.classList.remove('beat-count-hidden'); }
@@ -9656,9 +9671,10 @@ function playRhodes2(freq, durSec, isAccent, time, tr, extLevelMul) {
 }
 
 // ── Metronome: warm woodblock click ──
-function playMetronome(t, isAccent) {
+function playMetronome(t, isAccent, gainMul) {
   if (!ctx) return;
-  const vol = isAccent ? 0.28 : 0.16;
+  const vol = (isAccent ? 0.28 : 0.16) * (gainMul === undefined ? 1 : gainMul);
+  if (vol <= 0) return;
   const freq = isAccent ? 1200 : 900;
 
   // Sine transient — the "tok"
@@ -22203,6 +22219,7 @@ function _setBeatCountShown(on) {
   if (el._xHold) { clearTimeout(el._offT); el._xHold = false; _beatCountLast = null; }
   if (on) { el.classList.remove('beat-count-hidden'); if (typeof _placeBeatCount === 'function') _placeBeatCount(); }
   else { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
+  _syncCountClick();
 }
 
 
