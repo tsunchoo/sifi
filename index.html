@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 07:30:27 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 07:41:55 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1917,12 +1917,14 @@ body.marker-left-justify-squares .step-cell.soft::after {
    request. Here: empty markers are a light tint of the TOP ROW highlight colour, and the playhead BRIGHTENS them (PLAY FLASH colour). */
 html body.night-invert .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32):not(.playing)::after {
   background: color-mix(in srgb, var(--top-row-highlight-color, #ccc) 60%, var(--bg, #000));
-  opacity: 0.15; /* empty-marker opacity 15% in the dark modes, per direct request */
+  opacity: calc(0.15 * var(--empty-marker-opacity, 0.35) / 0.35); /* 15% in the dark modes at the default slider setting (35%), per direct request — now scaled by the EMPTY MARKER OPACITY slider (was a fixed 0.15 that ignored it) */
 }
+html body.night-invert.note-markers-circle .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32):not(.playing)::after { opacity: calc(0.15 * var(--empty-marker-opacity-circle, 0.35) / 0.35); }
 html body.night-invert .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   background: var(--play-flash-color, #fff); filter: none;
-  opacity: 0.1; /* dark modes: the playhead flash on EMPTY markers at 10% opacity, per direct request (was ~77%) */
+  opacity: calc(0.1 * var(--empty-marker-opacity, 0.35) / 0.35); /* dark modes: the playhead flash on EMPTY markers at 10% opacity (at the default slider setting), per direct request (was ~77%) — follows the slider like the resting markers */
 }
+html body.night-invert.note-markers-circle .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after { opacity: calc(0.1 * var(--empty-marker-opacity-circle, 0.35) / 0.35); }
 html body.night-invert:not(.note-markers-circle) .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   opacity: 0.1;
 }
@@ -2706,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:30:27 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:41:55 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
