@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 23:11:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 00:00:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1132,8 +1132,8 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
 }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 288ms ease-out; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 288ms ease-out; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 576ms ease-out; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 576ms ease-out; }
 @keyframes lock-ast-pop { /* pop + the turn (a 60deg turn lands back on the same six-point shape) */
   0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
   25%  { transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
@@ -1141,8 +1141,8 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(
 }
 /* the button background goes DARK like the + track button's pressed background — held while the finger is down (.glyph-pressed),
    and also part of the pop so even a quick tap visibly darkens it, easing back with the glyph */
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark 288ms ease-out; }
-html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark-lights 288ms ease-out; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark 576ms ease-out; }
+html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark-lights 576ms ease-out; }
 @keyframes lock-btn-dark { 0%, 40% { background: var(--track-btn-on-color, #0081FE); } }
 @keyframes lock-btn-dark-lights { 0%, 40% { background: var(--top-row-pressed-bg); } }
 @keyframes lock-ast-white { 25% { background-color: #fff; } }
@@ -2634,7 +2634,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 23:11:54 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 00:00:05 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9138,6 +9138,7 @@ function playChug(freq, durSec, isAccent, time, tr) {
 // notes, delayed vibrato, and a slow drift of about a semitone across the
 // measure. Punchy when staccato; big and sustained when played legato. ──
 const _jcmGlide = {};
+let _pipeToneMul = 1.25, _pipeNoiseMul = 0.68; // PIPE balance: pitched part vs breath+crunch noise (set for a 75% / 25% energy split, per direct request)
 function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
@@ -9219,7 +9220,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
     env.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(Math.min(durSec, 0.22), 0.09));
   }
 
-  const mix = ctx.createGain(); mix.gain.value = 0.35; // two squares run hot — pulled back (was 0.5) so the breath + crunch layers below share the space (JINX rework, per direct request)
+  const mix = ctx.createGain(); mix.gain.value = 0.35 * _pipeToneMul; // two squares run hot — pulled back (was 0.5) so the breath + crunch layers below share the space (JINX rework, per direct request)
   osc1.connect(mix); osc2.connect(mix); mix.connect(lp); lp.connect(env); env.connect(dest);
 
   // ── JINX rework, per direct request: SUPER BREATHY, half tonal / half
@@ -9237,7 +9238,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   bbp.frequency.setValueAtTime(Math.max(f * 2, 60), time);
   if (doSlideIn) { bbp.frequency.setValueAtTime(Math.max(f * 2 * 1.19, 60), time); bbp.frequency.exponentialRampToValueAtTime(Math.max(f * 2, 60), time + slideInLen); }
   const bhp = ctx.createBiquadFilter(); bhp.type = 'highpass'; bhp.frequency.value = 700; // keep the breath airy, not rumbly
-  const bEnv = ctx.createGain(); const bVel = vel * (legato ? 5.5 : 4.5);
+  const bEnv = ctx.createGain(); const bVel = vel * (legato ? 5.5 : 4.5) * _pipeNoiseMul;
   bEnv.gain.setValueAtTime(0, time);
   bEnv.gain.linearRampToValueAtTime(bVel * 0.55, time + 0.02);
   bEnv.gain.linearRampToValueAtTime(bVel, time + Math.min(Math.max(durSec * 0.35, 0.05), 0.4)); // swells in like a breath
@@ -9253,7 +9254,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   blastBp.frequency.exponentialRampToValueAtTime(900, time + blastLen);
   const blastDrive = ctx.createGain(); blastDrive.gain.value = 6; // slam into the clipper
   const crunch = ctx.createWaveShaper(); crunch.oversample = 'none'; crunch.curve = _jinxCrunchCurve || (_jinxCrunchCurve = makeDistCurve(0.9));
-  const blastEnv = ctx.createGain(); const blastVel = vel * (isAccent ? 1.5 : 1.0);
+  const blastEnv = ctx.createGain(); const blastVel = vel * (isAccent ? 1.5 : 1.0) * _pipeNoiseMul;
   blastEnv.gain.setValueAtTime(0, time);
   blastEnv.gain.linearRampToValueAtTime(blastVel, time + 0.003);
   blastEnv.gain.exponentialRampToValueAtTime(0.0001, time + blastLen);
@@ -11263,6 +11264,7 @@ function openBeatMenu() {
   const menu = document.getElementById('beatTypeMenu');
   const btn = document.getElementById('beatBtn');
   if (!menu || !btn) return;
+  window._beatAutoAtMenuOpen = !!_beatAutoRandActive; // remembered so closing the menu can announce a DRUMS AUTO change
   _beatMenuOpen = true;
   refreshBeatMenuHighlight();
   updateBeatLockVisual();
@@ -11280,6 +11282,9 @@ function openBeatMenu() {
 function closeBeatMenu() {
   const menu = document.getElementById('beatTypeMenu');
   const btn = document.getElementById('beatBtn');
+  // DRUMS AUTO switched on/off from inside the menu -> the little notice box once the menu closes, per direct request
+  if (_beatMenuOpen && window._beatAutoAtMenuOpen !== undefined && window._beatAutoAtMenuOpen !== !!_beatAutoRandActive && typeof _showNotice === 'function') _showNotice(_beatAutoRandActive ? 'DRUMS AUTO ON' : 'DRUMS AUTO OFF');
+  window._beatAutoAtMenuOpen = undefined;
   _beatMenuOpen = false;
   if (menu) { menu.classList.remove('visible'); menu.querySelectorAll('.beat-type-item, .beat-ctrl-row button').forEach(it => it.classList.remove('drag-hover')); }
   if (btn) btn.classList.remove('menu-open');
@@ -18203,7 +18208,7 @@ function wireShiftButton(btn, tr, dir) {
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
     b.classList.remove('glyph-pop'); void b.offsetWidth; b.classList.add('glyph-pop'); // restart the white flash + fade on every press
-    clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), 320);
+    clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), b.classList.contains('lock-btn') ? 620 : 320); // asterisk button's pop runs twice as long (576ms), per direct request
   }, true);
   document.addEventListener('pointerup', release, true);
   document.addEventListener('pointercancel', release, true);
