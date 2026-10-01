@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 07:18:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 07:23:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1691,7 +1691,7 @@ html body.name-tag .track-ctrl-row .track-ctrl-icon-btn.lock-btn svg { width: 16
    layout so text-overflow works; line-height re-centres it vertically) */
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn { display: block !important; padding-right: 24px !important; overflow: hidden !important; white-space: nowrap !important; text-overflow: ellipsis !important; line-height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1) - 4px) !important; text-align: left !important; }
 /* LOCKED track (swipe left-to-right on the name, or the L button): the name button goes a medium grey, per direct request */
-html body .track-ctrl-row:has(> .lock-btn.sweep-on) > .track-name-btn.track-name-btn { background: #808080 !important; }
+html body .track-ctrl-row:has(> .lock-btn.sweep-on) > .track-name-btn.track-name-btn { background: #606060 !important; } /* was #808080 — taken halfway to dark grey, per direct request */
 .track-name-btn.names-uniform { background: var(--neutral-top, #555); color: #fff; }
 
 /* ── Vol overlay ── */
@@ -2706,7 +2706,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:18:07 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:23:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5475,7 +5475,7 @@ function randomizeCurrentInstruments() {
 // asterisk glyph and each press swaps THAT track's instrument for another from the same sound-picker group (KIT / PERC / LEAD /
 // PAD / BASS), same one-of-a-kind rules as RANDOMIZE CURRENT INSTRUMENTS. Notes, volume, FX and mute are left as they are.
 function setLockSwap(on) { document.body.classList.toggle('lock-swap', !!on); const c = document.getElementById('lockSwapToggle'); if (c) c.checked = !!on; }
-function swapTrackInstrumentInGroup(tr, anyGroup) { // anyGroup (double-tap): pick from EVERY instrument, whatever its group — drums <-> percussion <-> tonal
+function swapTrackInstrumentInGroup(tr, anyGroup, avoidKey) { // anyGroup (double-tap): pick from EVERY instrument, whatever its group — drums <-> percussion <-> tonal
   const cur = trackInstruments[tr]; if (!cur || !INSTRUMENTS[cur]) return false;
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
   const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
@@ -5490,7 +5490,10 @@ function swapTrackInstrumentInGroup(tr, anyGroup) { // anyGroup (double-tap): pi
   ];
   const clashes = k => trackInstruments.some((other, t) => t !== tr && other && (other === k || oneOf.some(set => set.has(k) && set.has(other))));
   const grp = groupOf(cur);
-  const inGrp = k => anyGroup ? ['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) : groupOf(k) === grp; // any group = everything the sound picker offers
+  const otherBass = trackInstruments.some((o, t) => t !== tr && o && isBass(o));
+  // any group = everything the sound picker offers, but never the instrument the track had before the double-tap (avoidKey) and
+  // never a second bass when another track already has one, per direct request
+  const inGrp = k => anyGroup ? (['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) && k !== avoidKey && !(otherBass && isBass(k))) : groupOf(k) === grp;
   let options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !clashes(k));
   if (!options.length) options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !trackInstruments.includes(k)); // one-of rules would leave nothing — still never duplicate a track
   if (!options.length) return false;
@@ -12146,7 +12149,8 @@ function buildUI() {
         // DOUBLE-TAP, per direct request: a second tap within 350ms picks from ANY group instead (the first tap's same-group swap is simply replaced)
         const now = Date.now(), dbl = now - (sweepBtnL._lastSwapTap || 0) < 350;
         sweepBtnL._lastSwapTap = dbl ? 0 : now;
-        swapTrackInstrumentInGroup(tr, dbl);
+        if (!dbl) sweepBtnL._preSwapInst = trackInstruments[tr]; // what the track was before this tap — a double-tap must not land back on it
+        swapTrackInstrumentInGroup(tr, dbl, dbl ? sweepBtnL._preSwapInst : undefined);
         return;
       }
       _toggleTrackLock(tr);
