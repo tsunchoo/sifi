@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 05:11:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 05:31:22 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -257,6 +257,7 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-de
 @keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes song-name-scroll-down  { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 #nameDisplay { display: inline-block; }
+.track-name-btn > .tname-slide { display: inline-block; animation: song-name-scroll-left 576ms ease-out both; } /* NEW INST swap — matches the asterisk's 576ms */
 #nameDisplay.song-name-scroll-left  { animation: song-name-scroll-left  0.5s ease-out; }
 #nameDisplay.song-name-scroll-right { animation: song-name-scroll-right 0.5s ease-out; }
 #nameDisplay.song-name-scroll-up    { animation: song-name-scroll-up    0.5s ease-out; }
@@ -2438,7 +2439,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
+<body class="lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2695,7 +2696,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:11:29 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:31:22 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3058,7 +3059,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW INST</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="lockSwapToggle" onchange="setLockSwap(this.checked)">
+        <input type="checkbox" id="lockSwapToggle" checked onchange="setLockSwap(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -5485,6 +5486,9 @@ function swapTrackInstrumentInGroup(tr) {
   selectSound(tr, options[Math.floor(Math.random() * options.length)]);
   if (wasMuted) { trackMuted[tr] = true; updateTrackMute(tr); }
   redrawTrackCells(tr, true);
+  // the old name vanishes and the new one slides in from the left over the asterisk animation's length (same slide as the song name's scroll-left)
+  const nb = document.getElementById(`tbtn-${tr}`);
+  if (nb) { const s = document.createElement('span'); s.className = 'tname-slide'; s.textContent = nb.textContent; nb.textContent = ''; nb.appendChild(s); }
   markModified();
   return true;
 }
@@ -15518,7 +15522,7 @@ let _split32CycleCount = 0; // resets each RAND cycle, caps flam-promoted splits
 // and still scales the same way; only the number of values the slider
 // can actually land on changed.
 let _intensitySliderVal = 25; // one notch toward MELLOW from the previous default (MEDIUM/50)
-const _intensityLevelNames = { 0: 'MELLOW', 25: 'LOW', 50: 'MEDIUM', 75: 'HIGH', 100: 'MENTAL' };
+const _intensityLevelNames = { 0: 'CALM', 25: 'LOW', 50: 'MEDIUM', 75: 'HIGH', 100: 'CRAZED' };
 function setIntensity(v) {
   _intensitySliderVal = +v;
   const readout = document.getElementById('intensityReadout');
