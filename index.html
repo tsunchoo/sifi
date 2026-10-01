@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 05:31:22 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 05:47:57 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -299,8 +299,9 @@ body.seq-playing.logo-flash-mode #siFiTitle.press-pulse { animation: press-pulse
    _flashLogoColor()/_jumpLogoColor(), since an !important stylesheet rule
    always outranks a plain (non-!important) inline style. */
 body.logo-pulse-expired #siFiTitle,
-body.logo-pulse-expired #siFiTitle.press-pulse { animation: none !important; color: #000 !important; }
-html body.night-invert.logo-pulse-expired #siFiTitle, html body.night-invert.logo-pulse-expired #siFiTitle.press-pulse { color: var(--top-row-text-color, #ececec) !important; } /* DARK MODES: after the 6s colour cycle the logo settles on the top-row glyph colour, not black (was invisible on KNIGHT FLYER's black), per direct request */
+body.logo-pulse-expired #siFiTitle.press-pulse,
+body.battery-saver-mode #siFiTitle, body.battery-saver-mode #siFiTitle.press-pulse { animation: none !important; color: #000 !important; }
+html body.night-invert.battery-saver-mode #siFiTitle, html body.night-invert.battery-saver-mode #siFiTitle.press-pulse, html body.night-invert.logo-pulse-expired #siFiTitle, html body.night-invert.logo-pulse-expired #siFiTitle.press-pulse { color: var(--top-row-text-color, #ececec) !important; } /* DARK MODES: after the 6s colour cycle the logo settles on the top-row glyph colour, not black (was invisible on KNIGHT FLYER's black), per direct request */
 /* Same smooth sweep as the logo's own non-jump mode above — all 4 chosen
    colors now (TOP ROW/HIGHLIGHT/HIGHLIGHT2/HIGHLIGHT3), not just 3 — just
    animating background-color instead of text color — applied to every
@@ -379,6 +380,10 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 .reel-wrap.compress-on .reel { filter: brightness(0) sepia(1) saturate(6) hue-rotate(20deg) brightness(1.4); }
 .reel-wrap.reel-beat-pulse { animation: reel-pulse 0.12s ease-out; }
 body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-out; }
+/* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
+body.battery-saver-mode.bg-beat-pulse { animation: none !important; }
+html body.battery-saver-mode .lock-ast-shape.ast-beat-a, html body.battery-saver-mode .lock-ast-shape.ast-beat-b { animation: none !important; }
+html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !important; }
 @keyframes bg-pulse {
   0% { background: var(--bg); }
   50% { background: var(--bg-pulse-color, #2a2a2a); }
@@ -2696,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:31:22 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:47:57 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19936,9 +19941,9 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: true,  bg0: false, name: 'SCIENCE' },
   { perf: true,  ruler: false, bg0: false, name: 'ALICE' },
   { perf: true,  ruler: false, bg0: true, jt: false, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "22", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'PENELOPE' } /* was DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
-  { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
+  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"} }, // + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'AUBERGINE' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "22", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
@@ -19949,7 +19954,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
 // that name one (m.palette). Applied once on entering the mode; WILD / +
 // colour changes can re-roll them afterwards like any other colours.
 const _DISPLAY_PALETTES = {
-  knight: {"--track-text-invert": "0", "--neutral-top": "#207a9b", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3a96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bc", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ffb3c4", "--neutral-track": "#61bdde", "--neutral-track-text": "#ffffff", "--playhead-color": "#3b00d0", "--highlight-text": "#ffffff", "--highlight2-color": "#d00095", "--highlight2-text": "#ffffff", "--highlight3-color": "#ff4401", "--bg": "#383838", "--bar-color": "#d539cb", "--empty-cell-color": "#291e1e", "--vol-slider-color": "#f096ec", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ddd0ff", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bcb1d9", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#682fff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#ff4401", "--top-row-text-color": "#ddd0ff", "--top-row-pressed-text-color": "#ff6a34", "--play-hl": "#ff6a34", "--fader-hl": "#ff9e7b", "--fader-glow": "#006184", "--track-btn-text-color": "#ddd0ff", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
+  knight: {"--track-text-invert": "0", "--neutral-top": "#207a9b", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3a96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bc", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ffb3c4", "--neutral-track": "#61bdde", "--neutral-track-text": "#ffffff", "--playhead-color": "#3b00d0", "--highlight-text": "#ffffff", "--highlight2-color": "#d00095", "--highlight2-text": "#ffffff", "--highlight3-color": "#ff4401", "--bg": "#171717", "--bar-color": "#d539cb", "--empty-cell-color": "#291e1e", "--vol-slider-color": "#f096ec", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ddd0ff", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bcb1d9", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#682fff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#ff4401", "--top-row-text-color": "#ddd0ff", "--top-row-pressed-text-color": "#ff6a34", "--play-hl": "#ff6a34", "--fader-hl": "#ff9e7b", "--fader-glow": "#006184", "--track-btn-text-color": "#ddd0ff", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   night: {"--track-text-invert": "0", "--neutral-top": "#4b6670", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3996", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bd", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99b0", "--neutral-track": "#8da8b3", "--neutral-track-text": "#ffffff", "--playhead-color": "#563e92", "--highlight-text": "#ffffff", "--highlight2-color": "#923e7a", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3684d", "--bg": "#0c264b", "--bar-color": "#a3c2ac", "--empty-cell-color": "#483434", "--vol-slider-color": "#7bcc92", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#d9b4a6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#b8998d", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#e94100", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#563e92", "--top-row-text-color": "#d9b4a6", "--top-row-pressed-text-color": "#c28671", "--play-hl": "#d67c5d", "--fader-hl": "#f5a285", "--fader-glow": "#0a5d7a", "--track-btn-text-color": "#d9b4a6", "--play-flash-color": "#ffffff"},
   darker: {"--track-text-invert": "0", "--neutral-top": "#6f4a67", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c3f", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a5a63f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d762", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#336f99", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b563e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff5d", "--play-flash-dark": "#19330f", "--lit-glyph": "#5bff1a", "--lit-glyph-hot": "#47ff5d", "--neutral-track": "#b28caa", "--neutral-track-text": "#ffffff", "--playhead-color": "#cd9789", "--highlight-text": "#ffffff", "--highlight2-color": "#bdcd89", "--highlight2-text": "#111111", "--highlight3-color": "#4db362", "--bg": "#bbcacd", "--bar-color": "#8379a6", "--empty-cell-color": "#91aaaf", "--vol-slider-color": "#907ecd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#bdcd89", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a1ae74", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#9ac600", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#2e6c3b", "--top-row-text-color": "#bdcd89", "--top-row-pressed-text-color": "#bdcd89", "--play-hl": "#c6de78", "--fader-hl": "#e0f797", "--fader-glow": "#1f0868", "--track-btn-text-color": "#bdcd89", "--play-flash-color": "#5bff1a", "--tbtn-shade-col": "#000"},
   aubergine: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b2604e", "--bg": "#28214f", "--bar-color": "#9f6f9c", "--empty-cell-color": "#4d4965", "--vol-slider-color": "#dda9dd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#c578b5", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63", "--tbtn-shade-col": "#fff"},
@@ -22776,6 +22781,7 @@ function toggleBatterySaver() {
     btn.style.background = window._batterySaverOn ? '' : '#555';
   }
   document.body.classList.toggle('battery-saver-mode', window._batterySaverOn); // greys out + disables the per-track REVERB (R) icons — see CSS
+  _batterySaverLook(window._batterySaverOn);
   if (window._batterySaverOn && _wakeLock) {
     try { _wakeLock.release(); } catch (e) {}
     _wakeLock = null;
@@ -22791,6 +22797,39 @@ function toggleBatterySaver() {
   if (window._reverbSendBus && window._reverbConv) {
     try { window._reverbSendBus.disconnect(); } catch (e) {}
     if (!window._batterySaverOn) window._reverbSendBus.connect(window._reverbConv);
+  }
+}
+// BATTERY SAVER look, per direct request: GLOWS off, MASTER 100%, PERFORMANCE MODE on, every pulse off (LIGHTS PULSE, TRACK BUTTON
+// PULSE + text pulse = SOLID, FX/REVERB PULSE, TEST DRUMS PULSE; logo / background / asterisk / + pulses via CSS) except the COUNT and
+// the playhead, and note markers GRAYSCALE. Everything it changed is remembered and put back when battery saver turns off.
+function _batterySaverLook(on) {
+  const B = document.body.classList, $ = id => document.getElementById(id);
+  const radio = (name, v) => { const el = document.querySelector(`input[name="${name}"][value="${v}"]`); if (el) el.checked = true; };
+  const cb = (id, v) => { const el = $(id); if (el) el.checked = v; };
+  if (on) {
+    window._bsPrev = { glow: !B.contains('no-glow'), master: ($('masterBrightSlider') || {}).value || '100', perf: B.contains('performance-mode'),
+      lightsPulse: B.contains('track-btn-lights-pulse'), trackPulse: B.contains('track-pulse-a') ? 'a' : 'solid', textPulse: B.contains('track-text-pulse-a') ? 'a' : 'solid',
+      fxPulse: !B.contains('no-fx-reverb-pulse'), drumsPulse: B.contains('drums-pulse'), gray: B.contains('notes-grayscale') };
+    B.add('no-glow'); cb('glowsOnToggle', false);
+    if ($('masterBrightSlider')) { $('masterBrightSlider').value = 100; setMasterBright(100); }
+    setPerformanceMode(true);
+    B.remove('track-btn-lights-pulse'); cb('trackBtnLightsPulseToggle', false);
+    setTrackPulseMode('solid'); radio('trackPulseMode', 'solid');
+    setTrackTextPulseMode('solid'); radio('trackTextPulseMode', 'solid');
+    setFxReverbPulse(false); cb('fxReverbPulseToggle', false);
+    B.remove('drums-pulse'); cb('drumsPulseToggle', false);
+    setDevNotesGrayscale(true); cb('devNotesGrayscale', true);
+  } else if (window._bsPrev) {
+    const p = window._bsPrev; window._bsPrev = null;
+    B.toggle('no-glow', !p.glow); cb('glowsOnToggle', p.glow);
+    if ($('masterBrightSlider')) { $('masterBrightSlider').value = p.master; setMasterBright(p.master); }
+    setPerformanceMode(p.perf);
+    B.toggle('track-btn-lights-pulse', p.lightsPulse); cb('trackBtnLightsPulseToggle', p.lightsPulse);
+    setTrackPulseMode(p.trackPulse); radio('trackPulseMode', p.trackPulse);
+    setTrackTextPulseMode(p.textPulse); radio('trackTextPulseMode', p.textPulse);
+    setFxReverbPulse(p.fxPulse); cb('fxReverbPulseToggle', p.fxPulse);
+    B.toggle('drums-pulse', p.drumsPulse); cb('drumsPulseToggle', p.drumsPulse);
+    setDevNotesGrayscale(p.gray); cb('devNotesGrayscale', p.gray);
   }
 }
 // ── Boost: hard brickwall limiting ──
