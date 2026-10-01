@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 18:19:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 18:23:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2708,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 18:19:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 18:23:36 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3624,9 +3624,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CLICK LEVEL</div>
-          <div id="clickLevelReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
+          <div id="clickLevelReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0dB</div>
         </div>
-        <input type="range" id="clickLevelSlider" min="0" max="200" value="100" oninput="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="clickLevelSlider" min="0" max="100" value="50" oninput="setClickLevel(this.value)" onchange="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
 
@@ -6797,7 +6797,14 @@ function _setBeatCount(v) {
 }
 // Tap cycle, per direct request: 1st tap = PULSE (pops like a note marker on
 // each beat), 2nd = HIDDEN (still tappable), 3rd = back to the plain count.
-function setClickLevel(v) { window._clickLevel = Math.max(0, +v || 0) / 100; const r = document.getElementById('clickLevelReadout'); if (r) r.textContent = Math.round(+v) + '%'; }
+// CLICK LEVEL in DECIBELS, per direct request (the old 0-200% linear slider barely changed the loudness): the middle (50) is the
+// click's normal level, each step is 0.36dB — far left is OFF, one step up is about -18dB, far right is +18dB.
+function setClickLevel(v) {
+  v = Math.max(0, Math.min(100, +v || 0));
+  const db = (v - 50) * 0.36;
+  window._clickLevel = v === 0 ? 0 : Math.pow(10, db / 20);
+  const r = document.getElementById('clickLevelReadout'); if (r) r.textContent = v === 0 ? 'OFF' : (db > 0 ? '+' : '') + db.toFixed(1).replace(/\.0$/, '') + 'dB';
+}
 function _syncCountClick() { const el = document.getElementById('beatCount'); window._countClickOn = !!(el && el.classList.contains('beat-count-pulse') && !el.classList.contains('beat-count-hidden')); }
 function _cycleBeatCountMode() {
   try { _cycleBeatCountModeInner(); } finally { _syncCountClick(); } // the click is on exactly while the count is in its 2nd-tap (pulse) state
@@ -22994,6 +23001,7 @@ document.querySelectorAll('.tape-window').forEach(r => {
     sweepDecaySpeedSlider: v => (v / 100).toFixed(2) + 'X',
     devOffsetStepSlider: v => (typeof _DEV_OFFSET_STEP_LABELS !== 'undefined' && _DEV_OFFSET_STEP_LABELS[v]) || '16TH',
     trackBtnShadeSlider: v => (v > 0 ? '+' : '') + v,
+    clickLevelSlider: v => v == 0 ? 'OFF' : ((v - 50) * 0.36 > 0 ? '+' : '') + ((v - 50) * 0.36).toFixed(1).replace(/\.0$/, '') + 'dB',
   };
   window._menuSliderPending = el => pending.has(el);
   let flushing = false;
