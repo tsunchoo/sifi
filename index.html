@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 08:11:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 08:20:43 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2708,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 08:11:21 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 08:20:43 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6791,8 +6791,9 @@ function _placeBeatCount() {
   const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), tw = document.getElementById('tapeWindow');
   if (!el || !num || !el.offsetParent) return;
   try { _placeLoadMeter(); } catch (e) {}
-  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.32) + 'px'; el.style.lineHeight = ncs.lineHeight;
-  if (!tw) return;
+  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.518) + 'px'; el.style.lineHeight = ncs.lineHeight; // +15% again (1.32 -> 1.518x the tempo number), per direct request
+  const logo = document.getElementById('siFiTitle');
+  if (!tw && !logo) return;
   const ecs = getComputedStyle(el);
   _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
   _beatMeasureCtx.font = ecs.fontWeight + ' ' + ecs.fontSize + ' ' + ecs.fontFamily;
@@ -6802,7 +6803,15 @@ function _placeBeatCount() {
   const inkBottom = tr.top + m.fontBoundingBoxAscent + m.actualBoundingBoxDescent; // baseline (content-area top + font ascent) + the glyph's descent
   const curLeft = parseFloat(el.style.left) || 0, curTop = parseFloat(el.style.top) || 0;
   el.style.left = (curLeft + window.innerWidth / 2 - inkCentreX) + 'px';
-  el.style.top = (curTop + (tw.getBoundingClientRect().top - 10) - inkBottom) + 'px';
+  // VERTICAL, per direct request: the numeral's ink TOP lined up with the top of the Si•Fi logo's ink (was 10px above the tape window)
+  if (logo && logo.firstChild) {
+    const lcs = getComputedStyle(logo), lr2 = document.createRange(); lr2.selectNodeContents(logo); const lrr = lr2.getBoundingClientRect();
+    _beatMeasureCtx.font = lcs.fontWeight + ' ' + lcs.fontSize + ' ' + lcs.fontFamily;
+    const lm = _beatMeasureCtx.measureText(logo.textContent.trim());
+    const logoInkTop = lrr.top + lm.fontBoundingBoxAscent - lm.actualBoundingBoxAscent;
+    const inkTop = tr.top + m.fontBoundingBoxAscent - m.actualBoundingBoxAscent;
+    el.style.top = (curTop + logoInkTop - inkTop) + 'px';
+  } else el.style.top = (curTop + (tw.getBoundingClientRect().top - 10) - inkBottom) + 'px';
 }
 (function () {
   const start = () => {
@@ -19979,8 +19988,8 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, classes: { 'soft-full': true }, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
-  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, name: 'SPACETIME' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'AUBERGINE' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
+  { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
