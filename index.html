@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 02:45:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 02:51:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1119,13 +1119,15 @@ body.mortar-extra .step-lane { background: transparent !important; }
 body.mortar-extra .track-row::before { content: ''; position: absolute; left: calc(50% - 50vw); width: 100vw; top: 0; bottom: 0; background: var(--lane-x-col); z-index: -1; pointer-events: none; } /* edge-to-edge lane band, behind the markers */
 body.mortar.mortar-extra .track-row::before { top: var(--mortar-h, 8px); bottom: var(--mortar-h, 8px); } /* just the lane, not the mortar margins */
 body.mortar-extra.mortar-line .track-row { --lane-x-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(max(var(--track-row-bg-opacity, 1), 0.2) * 100%), transparent); }
-/* EXTRA PLUS (MORTAR section), per direct request: every track button's resting background (<, FX, R, +, S, lock) takes the MORTAR
-   colour (SONG NAME / BOTTOM LINE toggle). Engaged / lit / pressed states keep their own highlight colours on top. Instrument name
-   buttons keep their instrument colours. */
-/* ...colour = the TRACK ROW BG colour (LOOK AND FEEL › TRACK ROW BG DARKNESS / OPACITY), per direct request — not the MORTAR colour toggle */
-body.mortar-extra-plus { --xplus-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(var(--track-row-bg-opacity, 1) * 100%), transparent); }
-body.mortar-extra-plus .track-ctrl-row { --track-ctrl-btn-color: var(--xplus-col); }
-html body.mortar-extra-plus .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { background: var(--xplus-col); }
+/* EXTRA PLUS (MORTAR section), per direct request: the whole track-button ROW band — the strip behind the buttons AND the volume
+   slider, edge to edge — in the MORTAR colour (SONG NAME / BOTTOM LINE / CLEAR). Together with EXTRA (the note lanes) and the MORTAR
+   lines, that colours the entire area behind the tracks, each part switchable. Replaces the TRACK ROW BG band while on; the buttons
+   themselves keep their own colours. */
+body { --mortar-col: var(--name-bar-bg, var(--bar-color, #a5a478)); }
+body.mortar-line { --mortar-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(max(var(--track-row-bg-opacity, 1), 0.2) * 100%), transparent); }
+html body.mortar-clear { --mortar-col: transparent; }
+body.mortar-extra-plus .track-ctrl-row { position: relative; }
+html body.mortar-extra-plus .track-ctrl-row::before { content: ''; position: absolute; top: 0; bottom: 0; left: calc(-50vw + 50%); right: calc(-50vw + 50%); background: var(--mortar-col) !important; opacity: 1 !important; z-index: -1; pointer-events: none; }
 /* CLEAR colour option: everything keeps its size/space, drawn transparent */
 html body.mortar.mortar-clear .step-lane::before, html body.mortar.mortar-clear .step-lane::after { background: transparent; }
 html body.mortar-clear .track-row { --lane-x-col: transparent; }
@@ -2683,7 +2685,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 02:45:29 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 02:51:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2984,7 +2986,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         </label>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">EXTRA PLUS <span style="font-weight:400;color:#666;">(track buttons in the TRACK ROW BG colour)</span></div>
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">EXTRA PLUS <span style="font-weight:400;color:#666;">(the button / vol-slider row band, edge to edge)</span></div>
         <label class="wild-toggle">
           <input type="checkbox" id="mortarExtraPlusToggle" onchange="document.body.classList.toggle('mortar-extra-plus', this.checked)">
           <span class="wild-toggle-slider"></span>
