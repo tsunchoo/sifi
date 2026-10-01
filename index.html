@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 01:38:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 01:49:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1104,19 +1104,24 @@ html body.pattern-swap *, html body.pattern-swap *::before, html body.pattern-sw
    --mortar-h tall (4-20px slider). Drawn behind the track buttons (they're lifted above it), so where the line is taller than the
    gap it shows between the buttons like mortar between bricks. Colour: the song-name bar's background (default) or the same colour
    as the PERFORMANCE MODE bottom line. */
-body.mortar .step-lane { position: relative; }
+body.mortar .step-lane { position: relative; margin: var(--mortar-h, 8px) 0; } /* the lines now take real space above and below each lane (the track spacing was collapsed to zero, which hid them behind the buttons — and made the HEIGHT slider look dead) */
 body.mortar .step-lane::before, body.mortar .step-lane::after { content: ''; position: absolute; left: calc(50% - 50vw); width: 100vw; height: var(--mortar-h, 8px); pointer-events: none; z-index: 0;
   background: var(--name-bar-bg, var(--bar-color, #a5a478)); }
 body.mortar .step-lane::before { top: calc(-1 * var(--mortar-h, 8px)); }
 body.mortar .step-lane::after { bottom: calc(-1 * var(--mortar-h, 8px)); }
 body.mortar.mortar-line .step-lane::before, body.mortar.mortar-line .step-lane::after {
   background: color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black); opacity: max(var(--track-row-bg-opacity, 1), 0.2); }
-body.mortar .track-ctrl-row { position: relative; z-index: 1; }
+
 /* EXTRA (in the MORTAR section): the note-marker lanes' own background becomes the MORTAR colour and runs to both screen edges
    (a horizontal-only spill — box-shadow spread clipped to the lane's own height). Works with or without the mortar lines. */
-body.mortar-extra .step-lane { --lane-x-col: var(--name-bar-bg, var(--bar-color, #a5a478)); background: var(--lane-x-col) !important;
-  box-shadow: 0 0 0 100vmax var(--lane-x-col); clip-path: inset(0 -100vmax); }
-body.mortar-extra.mortar-line .step-lane { --lane-x-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(max(var(--track-row-bg-opacity, 1), 0.2) * 100%), transparent); }
+body.mortar-extra .track-row { --lane-x-col: var(--name-bar-bg, var(--bar-color, #a5a478)); position: relative; }
+body.mortar-extra .step-lane { background: transparent !important; }
+body.mortar-extra .track-row::before { content: ''; position: absolute; left: calc(50% - 50vw); width: 100vw; top: 0; bottom: 0; background: var(--lane-x-col); z-index: -1; pointer-events: none; } /* edge-to-edge lane band, behind the markers */
+body.mortar.mortar-extra .track-row::before { top: var(--mortar-h, 8px); bottom: var(--mortar-h, 8px); } /* just the lane, not the mortar margins */
+body.mortar-extra.mortar-line .track-row { --lane-x-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(max(var(--track-row-bg-opacity, 1), 0.2) * 100%), transparent); }
+/* EXTRA: empty note markers get their own solid darker dot so they read clearly on the coloured lane (their usual faint, colour-
+   matched marker was getting lost in it) */
+html body.mortar-extra .step-cell:not(.on):not(.soft):not(.legato-tail):not(.split32):not(.playing)::after { background: color-mix(in srgb, var(--lane-x-col, #888) 55%, black) !important; opacity: 0.55 !important; }
 /* MASTER brightness (LOOK AND FEEL, under LIGHTNESS), per direct request — a brightness filter on every on-screen block (header,
    top row, song name, tracks, footer) but never the page background itself. Only applied when it's not 100%, since a filter on
    these big blocks costs graphics work every frame. */
@@ -2660,7 +2665,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 01:38:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 01:49:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
