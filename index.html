@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 07:48:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 08:11:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2708,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:48:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 08:11:21 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6786,38 +6786,23 @@ function _inkRightGap(ch, cs) { // advance width minus the glyph's inked right e
   return m.width - m.actualBoundingBoxRight;
 }
 function _placeBeatCount() {
-  const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
+  // COUNT, per direct request: centred across the screen, its numeral's ink bottom 10px above the tape window, font 10% bigger
+  // again (1.32x the tempo number). Measured on the glyph's actual ink, not its text box.
+  const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), tw = document.getElementById('tapeWindow');
   if (!el || !num || !el.offsetParent) return;
-  const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect();
   try { _placeLoadMeter(); } catch (e) {}
-  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.2) + 'px'; el.style.lineHeight = ncs.lineHeight; // 20% bigger than the tempo number (per direct request), same line box...
-  el.style.top = (nr.top - pr.top - (parseFloat(getComputedStyle(el).paddingTop) || 0) + (parseFloat(ncs.paddingTop) || 0) - (parseFloat(getComputedStyle(el).borderTopWidth) || 0)) + 'px'; // ...placed at the same top (less its own top padding), so the numerals sit exactly level with the tempo digits, per direct request
-  // LEFT EDGE lined up with the SWEEP button's left edge, per direct request (was centred under the Si•Fi logo) — measured on the
-  // numeral's ink, not its text box.
-  const sw = document.getElementById('clearBtn');
-  if (sw && sw.offsetParent) {
-    const ecs = getComputedStyle(el);
-    _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
-    _beatMeasureCtx.font = ecs.fontWeight + ' ' + ecs.fontSize + ' ' + ecs.fontFamily;
-    // where the numeral's ink actually starts (text box start, padding / centring included, plus the glyph's own side bearing)
-    const txt = (el.textContent || '2').trim() || '2', rg = document.createRange(); rg.selectNodeContents(el);
-    const inkLeft = rg.getBoundingClientRect().left - _beatMeasureCtx.measureText(txt[0]).actualBoundingBoxLeft;
-    const curLeft = parseFloat(el.style.left) || (el.getBoundingClientRect().left - pr.left);
-    el.style.left = (curLeft + sw.getBoundingClientRect().left - inkLeft) + 'px';
-    return;
-  }
-  if (!logo || !logo.firstChild) return;
-  const r = document.createRange(); r.selectNodeContents(logo); const lr = r.getBoundingClientRect();
-  const lcs = getComputedStyle(logo);
-  const txt = logo.textContent.trim(), first = txt[0], last = txt.slice(-1);
-  const ls = parseFloat(lcs.letterSpacing) || 0;
+  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.32) + 'px'; el.style.lineHeight = ncs.lineHeight;
+  if (!tw) return;
+  const ecs = getComputedStyle(el);
   _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
-  _beatMeasureCtx.font = lcs.fontWeight + ' ' + lcs.fontSize + ' ' + lcs.fontFamily;
-  const inkLeft = lr.left - _beatMeasureCtx.measureText(first).actualBoundingBoxLeft;
-  const inkRight = lr.right - ls - _inkRightGap(last, lcs);
-  const centre = (inkLeft + inkRight) / 2;
-  const w = el.offsetWidth;
-  el.style.left = (centre - pr.left - w / 2) + 'px';
+  _beatMeasureCtx.font = ecs.fontWeight + ' ' + ecs.fontSize + ' ' + ecs.fontFamily;
+  const txt = (el.textContent || '2').trim() || '2', m = _beatMeasureCtx.measureText(txt);
+  const rg = document.createRange(); rg.selectNodeContents(el); const tr = rg.getBoundingClientRect();
+  const inkCentreX = tr.left + (m.actualBoundingBoxRight - m.actualBoundingBoxLeft) / 2;
+  const inkBottom = tr.top + m.fontBoundingBoxAscent + m.actualBoundingBoxDescent; // baseline (content-area top + font ascent) + the glyph's descent
+  const curLeft = parseFloat(el.style.left) || 0, curTop = parseFloat(el.style.top) || 0;
+  el.style.left = (curLeft + window.innerWidth / 2 - inkCentreX) + 'px';
+  el.style.top = (curTop + (tw.getBoundingClientRect().top - 10) - inkBottom) + 'px';
 }
 (function () {
   const start = () => {
@@ -10786,8 +10771,8 @@ function playBrooth(freq, durSec, isAccent, time, tr) {
   // later (half a step). Each voice ~3dB down (gain 1.41 -> 1.0) so the pair sits at about the old level. One phrase tick per note.
   const tick = _yamaskPhraseTick('b' + tr);
   const stagger = stepDuration() * 0.5;
-  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 1.0);
-  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 1.0);
+  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 0.841); // -1.5dB (was 1.0), per direct request
+  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 0.841); // -1.5dB
 }
 // stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
 function markStepAsSplit32(tr, stepNow) {
@@ -14001,7 +13986,10 @@ function _repaintFaderTips() {
 }
 (function () {
   let was = null;
-  const chk = () => { const on = document.body.classList.contains('fader-tip-hl'); if (on !== was) { was = on; _repaintFaderTips(); } };
+  let wasTop = null;
+  const chk = () => { const on = document.body.classList.contains('fader-tip-hl'), top = document.body.classList.contains('tip-from-top');
+    if (top !== wasTop) { wasTop = top; was = on; if (typeof _updatePlayHl === 'function') _updatePlayHl(); else _repaintFaderTips(); return; } // re-derive the tip colour (_updatePlayHl repaints)
+    if (on !== was) { was = on; _repaintFaderTips(); } };
   const start = () => { chk(); new MutationObserver(chk).observe(document.body, { attributes: true, attributeFilter: ['class'] }); };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
@@ -14011,7 +13999,8 @@ function _updatePlayHl() {
   const [h, sat, l] = _hexToHsl(hex);
   document.documentElement.style.setProperty('--play-hl', _hslToHex(h, Math.min(1, sat + 0.2), l));
   // FADER TIP version: lighter and more saturated still, so the handle pops (per direct request).
-  const _fhl = _hslToHex(h, Math.min(1, sat + 0.45), Math.min(0.78, l + 0.14));
+  // TIP FROM TOP ROW (CLUB, per direct request): the handle is EXACTLY the engaged top-row highlight colour instead
+  const _fhl = document.body && document.body.classList.contains('tip-from-top') ? hex.toLowerCase() : _hslToHex(h, Math.min(1, sat + 0.45), Math.min(0.78, l + 0.14));
   document.documentElement.style.setProperty('--fader-hl', _fhl);
   // ...and its glow is the exact RGB inverse of the handle colour (per direct request).
   document.documentElement.style.setProperty('--fader-glow', '#' + [1, 3, 5].map(i => (255 - parseInt(_fhl.substr(i, 2), 16)).toString(16).padStart(2, '0')).join(''));
@@ -19988,7 +19977,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: true,  bg0: false, name: 'SCIENCE' },
   { perf: true,  ruler: false, bg0: false, name: 'ALICE' },
   { perf: true,  ruler: false, bg0: true, jt: false, classes: { 'soft-full': true }, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
   { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, name: 'SPACETIME' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'AUBERGINE' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
