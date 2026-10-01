@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 03:24:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 05:11:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1145,6 +1145,8 @@ html body .track-wrap { gap: 0; }
 /* FAILSAFE HIGHLIGHTS (LOOK AND FEEL toggle), per direct request — every track button uses just two fixed highlights, whatever the
    colour scheme: ORANGE #ff8b00 = on (FX 1, reverb, sweep, lit glyphs) and RED #ff1100 = super-on (FX 2 / BLAST, + AUTO). Set on
    <body> so they override the scheme's own values, which live on the root element. */
+/* the scheme's own glyph colours, captured on the root element BEFORE failsafe overrides them on <body> — the LOCK asterisk keeps these */
+:root { --ast-base-lit: var(--lit-glyph, var(--play-flash-color, #f17d21)); --ast-base-text: var(--track-btn-on-text, #fff); }
 body.failsafe-hl {
   --lit-glyph: #ff8b00; --lit-glyph-hot: #ff1100;
   --track-btn-on-color: #ff8b00; --track-btn-on-text: #ffffff;
@@ -1168,7 +1170,10 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
   --ast-col: var(--lit-glyph, var(--play-flash-color, #f17d21));
   filter: drop-shadow(0 0 calc(7.9px * var(--tglow, 1)) color-mix(in srgb, var(--ast-col) calc(min(100%, 100% * var(--tglow, 1))), transparent));
 }
-html body.lock-swap:not(.track-btn-lights) .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast { --ast-col: var(--track-btn-on-text, #fff); filter: none; } /* FX 1 without lights = plain on-text glyph, no glow */
+html body.lock-swap:not(.track-btn-lights) .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast { --ast-col: var(--track-btn-on-text, #fff); filter: none; }
+/* FAILSAFE HIGHLIGHTS leaves the asterisk in the scheme's own default colour, per direct request (pulse = white and back, below) */
+html body.lock-swap.failsafe-hl .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast { --ast-col: var(--ast-base-lit); }
+html body.lock-swap.failsafe-hl:not(.track-btn-lights) .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast { --ast-col: var(--ast-base-text); } /* FX 1 without lights = plain on-text glyph, no glow */
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) .lock-ast-shape {
   display: block; width: 100%; height: 100%; background-color: var(--ast-col);
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
@@ -1196,6 +1201,11 @@ html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-b
 @keyframes ast-beat-b { 0% { background-color: var(--lit-glyph-hot, #ff1100); } 100% { background-color: var(--ast-col); } }
 body.lock-swap.seq-playing .lock-ast-shape.ast-beat-a { animation: ast-beat-a var(--ast-beat-dur, 0.5s) ease-out forwards; }
 body.lock-swap.seq-playing .lock-ast-shape.ast-beat-b { animation: ast-beat-b var(--ast-beat-dur, 0.5s) ease-out forwards; }
+/* FAILSAFE: the beat pulse flashes up to WHITE and eases back to the default colour */
+@keyframes ast-beat-wa { 0% { background-color: #fff; } 100% { background-color: var(--ast-col); } }
+@keyframes ast-beat-wb { 0% { background-color: #fff; } 100% { background-color: var(--ast-col); } }
+body.lock-swap.failsafe-hl.seq-playing .lock-ast-shape.ast-beat-a { animation-name: ast-beat-wa; }
+body.lock-swap.failsafe-hl.seq-playing .lock-ast-shape.ast-beat-b { animation-name: ast-beat-wb; }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
    size and color while active — previously these just had a flat, static
@@ -2428,7 +2438,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
+<body class="failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2685,7 +2695,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 03:24:45 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 05:11:29 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2959,7 +2969,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">MORTAR</div>
         <label class="wild-toggle">
-          <input type="checkbox" id="mortarToggle" onchange="setMortar(this.checked)">
+          <input type="checkbox" id="mortarToggle" checked onchange="setMortar(this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
@@ -2973,9 +2983,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">COLOUR</div>
         <div style="display:flex;gap:12px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="name" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="name" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="line" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">BOTTOM LINE</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="clear" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="clear" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -3055,7 +3065,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FAILSAFE HIGHLIGHTS</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="failsafeHlToggle" onchange="document.body.classList.toggle('failsafe-hl', this.checked)">
+        <input type="checkbox" id="failsafeHlToggle" checked onchange="document.body.classList.toggle('failsafe-hl', this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -7749,7 +7759,7 @@ function randomizeBassTrack(tr, level) {
 
   // ARP (was SPACE KOTO), per direct request: ALWAYS an arpeggio of the current scale across the whole measure (16th, 8th or triplet feel) —
   // whole-pattern RAND and the track's own + both come through here
-  if (key === 'rhodes') { _writeArpPattern(tr, trackBassScale[tr]); return; }
+  if (key === 'rhodes') { _writeArpPattern(tr, trackBassScale[tr]); redrawTrackCells(tr); markModified(); return; } // must redraw — this early return used to skip it, so + / auto played new notes without showing them
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
   if (ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
     _writeArpeggioPattern(tr, trackBassScale[tr]);
@@ -21192,6 +21202,9 @@ function fullReset() {
       // a stationary hold. Cancel the picker timer and commit to the
       // mute-drag behavior instead.
       _isDragging = true;
+      // Remember every track's mute state BEFORE the gesture touches
+      // anything, so release can put things back exactly as they were.
+      window._mutesBeforeDrag = trackMuted.slice();
       if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
       trackMuted[_nameHoldTr] = !trackMuted[_nameHoldTr];
       _syncSoloOnUnmute(_nameHoldTr);
@@ -21221,17 +21234,30 @@ function fullReset() {
       markModified();
     }
     // Hold-and-drag across track names is now MOMENTARY, per direct request:
-    // the mutes apply while the finger is down, and letting go unmutes ALL
-    // tracks.
-    if (_isDragging) {
-      for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackMuted[tr]) { trackMuted[tr] = false; _syncSoloOnUnmute(tr); updateTrackMute(tr); } }
-      markModified();
-    }
+    // the mutes apply while the finger is down, and letting go restores
+    // each track to the mute state it had before the gesture began (tracks
+    // that were already muted stay muted).
+    _restoreDragMutes();
     _dragActive = false; _isDragging = false; _dragVisited = new Set();
   };
+  function _restoreDragMutes() {
+    const before = window._mutesBeforeDrag;
+    if (!_isDragging || !before) return;
+    for (let tr = 0; tr < NUM_TRACKS; tr++) {
+      const was = !!before[tr];
+      if (!!trackMuted[tr] !== was) {
+        trackMuted[tr] = was;
+        if (!was) _syncSoloOnUnmute(tr);
+        updateTrackMute(tr);
+      }
+    }
+    window._mutesBeforeDrag = null;
+    markModified();
+  }
   document.addEventListener('touchend', endDrag);
   document.addEventListener('touchcancel', () => {
     if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
+    _restoreDragMutes();
     _dragActive = false; _isDragging = false; _dragVisited = new Set();
   });
 
