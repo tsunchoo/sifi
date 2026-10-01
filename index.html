@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-09-30 22:45:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 01:17:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1099,6 +1099,19 @@ body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
 /* LOCK BUTTONS = NEW SOUND: the padlock is swapped for the asterisk glyph (same shape as + BUTTON = ASTERISK), white, lock state not shown */
+html body.pattern-swap *, html body.pattern-swap *::before, html body.pattern-swap *::after { transition: none !important; } /* see randAll — no transition storm when a new pattern lands */
+/* MORTAR (LOOK AND FEEL), per direct request: a full-width horizontal line immediately above and below every note-marker lane,
+   --mortar-h tall (4-20px slider). Drawn behind the track buttons (they're lifted above it), so where the line is taller than the
+   gap it shows between the buttons like mortar between bricks. Colour: the song-name bar's background (default) or the same colour
+   as the PERFORMANCE MODE bottom line. */
+body.mortar .step-lane { position: relative; }
+body.mortar .step-lane::before, body.mortar .step-lane::after { content: ''; position: absolute; left: calc(50% - 50vw); width: 100vw; height: var(--mortar-h, 8px); pointer-events: none; z-index: 0;
+  background: var(--name-bar-bg, var(--bar-color, #a5a478)); }
+body.mortar .step-lane::before { top: calc(-1 * var(--mortar-h, 8px)); }
+body.mortar .step-lane::after { bottom: calc(-1 * var(--mortar-h, 8px)); }
+body.mortar.mortar-line .step-lane::before, body.mortar.mortar-line .step-lane::after {
+  background: color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black); opacity: max(var(--track-row-bg-opacity, 1), 0.2); }
+body.mortar .track-ctrl-row { position: relative; z-index: 1; }
 /* FAILSAFE HIGHLIGHTS (LOOK AND FEEL toggle), per direct request — every track button uses just two fixed highlights, whatever the
    colour scheme: ORANGE #ff8b00 = on (FX 1, reverb, sweep, lit glyphs) and RED #ff1100 = super-on (FX 2 / BLAST, + AUTO). Set on
    <body> so they override the scheme's own values, which live on the root element. */
@@ -1116,7 +1129,7 @@ body.failsafe-hl {
      back down to rest over 216ms — the note-marker timing. */
 .lock-ast { display: none; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) { position: relative; filter: none !important; opacity: 1 !important;
-  background: color-mix(in srgb, color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) calc(var(--track-default-opacity, 1) * 100%), transparent) !important; }
+  background: color-mix(in srgb, color-mix(in srgb, var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) calc(100% - var(--tbtn-shade-amt, 0%)), var(--tbtn-shade-col, #000)) calc(var(--track-default-opacity, 1) * 100%), transparent); } /* not !important, so the press animation's dark background can play over it */
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--track-btn-on-color, #0081FE) !important; }
 html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pressed:not(#beatCtrlL) { background: var(--top-row-pressed-bg) !important; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL) svg { display: none !important; } /* !important: the padlock svg has an inline display:block */
@@ -1132,11 +1145,19 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
   mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
 }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 288ms ease-out; }
-html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 288ms ease-out; }
-@keyframes lock-ast-pop {
-  25% { transform: translate(-50%, -50%) scale(1.45); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 576ms ease-out; }
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 576ms ease-out; }
+@keyframes lock-ast-pop { /* pop + the turn (a 60deg turn lands back on the same six-point shape) */
+  0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  25%  { transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
+  100% { transform: translate(-50%, -50%) scale(1) rotate(60deg); }
 }
+/* the button background goes DARK like the + track button's pressed background — held while the finger is down (.glyph-pressed),
+   and also part of the pop so even a quick tap visibly darkens it, easing back with the glyph */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark 576ms ease-out; }
+html body.lock-swap.track-btn-lights .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) { animation: lock-btn-dark-lights 576ms ease-out; }
+@keyframes lock-btn-dark { 0%, 40% { background: var(--track-btn-on-color, #0081FE); } }
+@keyframes lock-btn-dark-lights { 0%, 40% { background: var(--top-row-pressed-bg); } }
 @keyframes lock-ast-white { 25% { background-color: #fff; } }
 .track-ctrl-icon-btn.lock-btn { filter: brightness(calc(1 - var(--lock-btn-darkness, 0))); } /* SETTINGS slider — was opacity, changed to a brightness-based darkening per direct request (0 = normal, 1 = fully black) */
 /* Every engaged track button (FX, BLAST, reverb, lock) pulses in both
@@ -1845,10 +1866,10 @@ html body.night-invert .step-cell:not(.on):not(.soft):not(.legato-tail):not(.spl
 }
 html body.night-invert .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
   background: var(--play-flash-color, #fff); filter: none;
-  opacity: calc(min(1, var(--empty-marker-opacity-circle, 0.35) * 2.2));
+  opacity: 0.1; /* dark modes: the playhead flash on EMPTY markers at 10% opacity, per direct request (was ~77%) */
 }
 html body.night-invert:not(.note-markers-circle) .step-cell.playing:not(.on):not(.soft):not(.legato-tail):not(.split32)::after {
-  opacity: calc(min(1, var(--empty-marker-opacity, 0.35) * 2.2));
+  opacity: 0.1;
 }
 .step-cell.split32::after {
   /* was reverted to the original full-height rectangle here, on the idea
@@ -2498,6 +2519,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       balance: g(function(){ var t = window._tonalPercBalance; return t + '/' + (6 - t); }),
       beatVol: g(function(){ var e = document.getElementById('beatVolBar'); return e ? e.value : '?'; }),
       masterVol: g(function(){ var e = document.getElementById('masterVolBar'); return e ? e.value : '?'; }),
+      quietPlus: g(function(){ return !!window._quietPlus; }), wild: g(function(){ return !!window._wildColorsEnabled; }),
       visible: document.visibilityState, body: document.body ? document.body.className : ''
     };
   }
@@ -2520,7 +2542,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     L.push('nav type on reload: ' + (r.navType || '?') + ' | ' + r.ua);
     var a = r.app || {};
     L.push('STATE: playing=' + a.playing + ' bpm=' + a.bpm + ' beat=' + a.beat + ' audio=' + a.audio + ' t=' + a.audioTime + ' page=' + a.visible);
-    L.push('MIX: intensity=' + a.intensity + ' tonal/perc=' + a.balance + ' beatVol=' + a.beatVol + ' masterVol=' + a.masterVol + ' voicesCut=' + ((r.stats && r.stats.voicesCut) || 0));
+    L.push('MIX: intensity=' + a.intensity + ' tonal/perc=' + a.balance + ' beatVol=' + a.beatVol + ' masterVol=' + a.masterVol + ' voicesCut=' + ((r.stats && r.stats.voicesCut) || 0) + ' wild=' + a.wild + ' quietPlus=' + a.quietPlus);
     L.push('tracks: ' + a.inst);
     L.push('modes: ' + a.body);
     var s = r.stats || {};
@@ -2626,7 +2648,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-09-30 22:45:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 01:17:58 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2895,6 +2917,30 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">LOOK AND FEEL</div>
+    <!-- MORTAR, per direct request: horizontal lines right above and below every note-marker lane (same style as the PERFORMANCE MODE bottom line) -->
+    <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">MORTAR</div>
+        <label class="wild-toggle">
+          <input type="checkbox" id="mortarToggle" onchange="setMortar(this.checked)">
+          <span class="wild-toggle-slider"></span>
+        </label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">HEIGHT</div>
+          <div id="mortarHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">8px</div>
+        </div>
+        <input type="range" id="mortarHeightSlider" min="4" max="20" step="1" value="8" oninput="setMortarHeight(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">COLOUR</div>
+        <div style="display:flex;gap:12px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="name" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="line" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">BOTTOM LINE</label>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.2);">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BACKGROUND</div>
@@ -2940,7 +2986,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW SOUND</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW INST</div>
       <label class="wild-toggle">
         <input type="checkbox" id="lockSwapToggle" onchange="setLockSwap(this.checked)">
         <span class="wild-toggle-slider"></span>
@@ -2987,6 +3033,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
           <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
         </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+          <input type="checkbox" id="quietPlusToggle" onchange="window._quietPlus = this.checked; window._crashCrumb && window._crashCrumb('QUIET + ' + (this.checked ? 'on' : 'off'));" style="width:14px;height:14px;cursor:pointer;">QUIET + (CRASH TEST)
+        </label>
+        <div style="font-size:0.58rem;color:#666;line-height:1.35;">QUIET + = a new pattern changes the music only: no new colour scheme (WILD), no name scroll-in, no + flash. If crashes after + stop with this on, the visuals are the cause.</div>
         <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
         <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
       </div>
@@ -3428,8 +3478,25 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid #ddd;">
       <input type="text" id="settingsNameDisplay" oninput="_updateSongNameFromSettings(this.value)" onkeydown="if(event.key==='Enter') this.blur();" style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;padding:0;width:100%;font-family:'DM Sans',sans-serif;" title="tap to rename">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div id="keyDisplay" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
+        <div id="keyDisplay" style="display:none;font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
         <div id="bpmVal" onclick="hideSettings(); showTempoScreen();" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;" title="tap to open tempo screen">110 BPM</div>
+      </div>
+    </div>
+    <!-- KEY (drop-downs) + COUNT toggle, right under the tempo, per direct request -->
+    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:12px;border-bottom:1px solid #ddd;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">KEY</div>
+        <div style="display:flex;gap:6px;">
+          <select id="keyNoteSelect" onchange="_applyKeyChoice(+this.value, null)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;"></select>
+          <select id="keyScaleSelect" onchange="_applyKeyChoice(null, this.value)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;text-transform:uppercase;"></select>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT</div>
+        <label class="wild-toggle">
+          <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
+          <span class="wild-toggle-slider"></span>
+        </label>
       </div>
     </div>
 
@@ -3574,6 +3641,31 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 </div>
 
 <script>
+// FAST ROOT CSS-VARIABLE READS (crash hunt, per direct request): every colour change used to read custom properties back with
+// getComputedStyle(root) straight after writing others — each read forced a FULL-PAGE style recalculation, ~550ms of a 710ms
+// profile of five + presses on desktop (many times that on an iPhone, all landing on the bar where the new pattern starts).
+// The app writes its variables inline on <html>, so read them straight from there (no recalc); only fall back to the computed
+// value for variables that aren't set inline or that hold a var(...) reference needing resolution.
+function _rootCS() {
+  const root = document.documentElement, inl = root.style;
+  let real = null; const comp = () => real || (real = getComputedStyle(root));
+  return {
+    getPropertyValue(name) {
+      if (name && name[0] === '-' && name[1] === '-') {
+        let v = inl.getPropertyValue(name), hops = 0;
+        while (v && hops++ < 4) { // resolve a plain 'var(--x, fallback)' alias through the inline values too
+          const m = v.trim().match(/^var\(\s*(--[\w-]+)\s*(?:,\s*([^()]*))?\)$/);
+          if (!m) break;
+          v = inl.getPropertyValue(m[1]) || (m[2] || '').trim();
+        }
+        if (v && v.indexOf('var(') < 0) return v;
+      }
+      return comp().getPropertyValue(name);
+    }
+  };
+}
+window._rootCS = _rootCS;
+
 let _bgPulseEnabled = false, _bgStaticEnabled = false, _bgPulseSteps = 4, _bgPulseCounter = 0;
 window._wildColorsEnabled = true; // WILD toggle in settings — randomizes app colors alongside every new whole-pattern RAND, on by default
 window._soloFlashMode = true; // SOLO FLASH toggle in settings — track SOLO buttons work as press-and-hold (solo only while held) rather than click-to-toggle, on by default
@@ -3604,7 +3696,7 @@ const INSTRUMENTS = {
   underpass: { name: 'UNDERPASS', soft: null, accent: null, group: 'tonal' },
   guiro:  { name: 'GUIRO',       soft: 'Sounds/Guiro.wav', accent: 'Sounds/Guiro_Scratch.wav', group: 'perc'  },
   // cowb:   { name: 'COWBELL',     soft: 'Sounds/Cowb50.wav',   accent: 'Sounds/Cowb100.wav',   group: 'perc' },
-  jcmgtr: { name: 'PIPE',         soft: null, accent: null, group: 'tonal' },
+  jcmgtr: { name: 'FIST',         soft: null, accent: null, group: 'tonal' },
   clar:   { name: 'JENNY',       soft: null, accent: null, group: 'tonal' },
   boog:   { name: 'DREAM PIANO',  soft: null, accent: null, group: 'tonal' },
   rhodes2:{ name: 'DX PIANO',    soft: null, accent: null, group: 'tonal' },
@@ -3612,7 +3704,7 @@ const INSTRUMENTS = {
   spiano: { name: 'SCHOOL PIANO', soft: null, accent: null, group: 'tonal' },
   magic:  { name: 'MAGIC',        soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'DENIECE',     soft: null, accent: null, group: 'tonal' },
-  rhodes: { name: 'SPACE KOTO',       soft: null, accent: null, group: 'tonal' },
+  rhodes: { name: 'ARP',       soft: null, accent: null, group: 'tonal' },
   denial: { name: 'BUCK',        soft: null, accent: null, group: 'tonal' },
   stab:   { name: 'RYTM GTR',     soft: null, accent: null, group: 'tonal' },
   chug:   { name: 'CHUG',        soft: null, accent: null, group: 'tonal' },
@@ -3740,7 +3832,7 @@ function updateBgPulseSpeedReadout() {
 // declaration (not const), so it's hoisted and safely callable from
 // anywhere in the script regardless of source order.
 function _highlightColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--playhead-color').trim();
+  const v = _rootCS().getPropertyValue('--playhead-color').trim();
   return v || '#f71aff';
 }
 // Same idea, second slot — HIGHLIGHT 2 (default blue) replaces what used
@@ -3748,7 +3840,7 @@ function _highlightColor() {
 // auto-mode flash, the N track buttons in auto mode, and the N buttons'
 // single-click flash.
 function _highlight2Color() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--highlight2-color').trim();
+  const v = _rootCS().getPropertyValue('--highlight2-color').trim();
   return v || '#0078ff';
 }
 // Third slot — collects the green (#adff00) used across the top row's
@@ -3756,15 +3848,15 @@ function _highlight2Color() {
 // when active or flashed. RECORD deliberately excluded (its own states
 // use a different color entirely).
 function _highlight3Color() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim();
+  const v = _rootCS().getPropertyValue('--highlight3-color').trim();
   return v || '#adff00';
 }
 function _topRowHighlightColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--top-row-highlight-color').trim();
+  const v = _rootCS().getPropertyValue('--top-row-highlight-color').trim();
   return v || '#adff00';
 }
 function _eqMeterColor() {
-  const v = getComputedStyle(document.documentElement).getPropertyValue('--eq-meter-color').trim();
+  const v = _rootCS().getPropertyValue('--eq-meter-color').trim();
   return v || '#f8ff00';
 }
 // ── Shared color helpers for the consolidated COLORS settings section ──
@@ -3866,7 +3958,7 @@ function _applyTopColor(hex) {
   const sw = document.getElementById('topColorSwatch'); if (sw) sw.style.background = hex;
   _deriveInstrumentColorsFromTop(hex);
   _applyFlashFromTop();
-  if (!document.body.classList.contains('flash-from-top') && typeof _updatePlayFlashHot === 'function') _updatePlayFlashHot(getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim()); // keeps the white-PLAY-FLASH hot colour following TOP ROW
+  if (!document.body.classList.contains('flash-from-top') && typeof _updatePlayFlashHot === 'function') _updatePlayFlashHot(_rootCS().getPropertyValue('--play-flash-color').trim()); // keeps the white-PLAY-FLASH hot colour following TOP ROW
   if (typeof _updateLitGlyph === 'function') _updateLitGlyph();
 }
 // PLAY FLASH FROM TOP ROW (toggle, on by default), per direct request —
@@ -3876,7 +3968,7 @@ function _applyTopColor(hex) {
 // full saturation. Re-derived every time TOP ROW changes (incl. WILD).
 function _applyFlashFromTop() {
   if (!document.body || !document.body.classList.contains('flash-from-top')) return;
-  const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+  const top = _rootCS().getPropertyValue('--neutral-top').trim();
   if (!/^#[0-9a-f]{6}$/i.test(top) || typeof setPlayFlashColor !== 'function') return;
   const [h] = _hexToHsl(top);
   const hex = _hslToHex(h + 150, (window._flashSatPct != null ? window._flashSatPct : 100) / 100, 0.55); // saturation from the PLAY FLASH SATURATION slider
@@ -4117,7 +4209,7 @@ function _bgCtlPreview() {
 }
 function _bgCtlApply() { window._bgLightPct = +document.getElementById('bgLightSlider').value; _applyBgColor(_bgCtlHex(), true); }
 function _bgCtlSync() {
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  const hex = _rootCS().getPropertyValue('--bg').trim();
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.getElementById('bgHueSlider').value = Math.round(h);
@@ -4340,7 +4432,7 @@ function _reapplySaturationCeilingLive() {
   const base = window._colorBaseSat;
   if (!base) return; // nothing's been randomized yet this session — nothing to re-blend
   const cap = window._colorSaturationCeiling;
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const recolor = (currentHex, baseSatKey, applyFn) => {
     if (!currentHex || currentHex[0] !== '#') return;
     const [h, , l] = _hexToHsl(currentHex);
@@ -4584,7 +4676,7 @@ function setTopRowColorFromHue(hue) {
   const EMPTY_CELL_HUE_SATURATION = 0.16;
   const EMPTY_CELL_LIGHTNESS_DELTA = 0.14;
   function applyEmptyCellColor() {
-    const bgHex = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f0e8';
+    const bgHex = _rootCS().getPropertyValue('--bg').trim() || '#f5f0e8';
     const [bgH, , bgL] = _hexToHsl(bgHex);
     const variantL = bgL > 0.5 ? Math.max(0, bgL - EMPTY_CELL_LIGHTNESS_DELTA) : Math.min(1, bgL + EMPTY_CELL_LIGHTNESS_DELTA);
     document.documentElement.style.setProperty('--empty-cell-color', _hslToHex(bgH, EMPTY_CELL_HUE_SATURATION, variantL));
@@ -6599,7 +6691,8 @@ function _placeBeatCount() {
   const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent) return;
   const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect();
-  el.style.top = (nr.top - pr.top - 4) + 'px'; // line the numeral up with the tempo number (4px = its top padding)
+  const ncs = getComputedStyle(num); el.style.fontSize = ncs.fontSize; el.style.lineHeight = ncs.lineHeight; // same font size + line box as the tempo number...
+  el.style.top = (nr.top - pr.top - (parseFloat(getComputedStyle(el).paddingTop) || 0) + (parseFloat(ncs.paddingTop) || 0) - (parseFloat(getComputedStyle(el).borderTopWidth) || 0)) + 'px'; // ...placed at the same top (less its own top padding), so the numerals sit exactly level with the tempo digits, per direct request
   // Centred under the Si•Fi logo, per direct request (was right-aligned to
   // its right edge) — measured on the logo's actual ink, not its text box.
   if (!logo || !logo.firstChild) return;
@@ -6867,6 +6960,7 @@ function togglePlay() {
         if (MIDEAST_KEYS.has(trackInstruments[tr]) && !trackScaleMode[tr]) trackScaleMode[tr] = pickOrShareMideastScale(tr);
         trackBassScale[tr] = buildScaleFromRoot(root, scaleModeFor(tr), tr); delete trackPitchOverride[tr]; // new scale — any pinned pitches from an old melody no longer apply
         if (trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'sparkle') trackBassScale[tr] = trackBassScale[tr].slice(0, 4); // limited palette — max 4 notes in the scale
+        if (trackInstruments[tr] === 'rhodes' && typeof _writeArpPattern === 'function') { _writeArpPattern(tr, trackBassScale[tr]); redrawTrackCells(tr, true); } // ARP re-arpeggiates in the new key (its pitches are pinned per step)
       }
     }
     document.body.classList.add('seq-playing');
@@ -7431,8 +7525,35 @@ function getRangeRoots(key) {
 // the usual scattered notes, walk straight up/down/up-down/down-up through
 // the scale on every 8th note. Standalone helper so it's easy to call from
 // both randomizeBassTrack() and anywhere else that might want it later.
-const ARPEGGIO_KEYS = new Set(['rhodes2', 'rhodes', 'spiano']); // DX PIANO, SPACE KOTO, SCHOOL PIANO (DREAM PIANO removed; XYLOPHONE's old slot, sflute, removed too — it's CLUNG now and matches STRINGS+'s criteria instead, not this XYLOPHONE-specific arpeggio quirk)
+const ARPEGGIO_KEYS = new Set(['rhodes2', 'spiano']); /* 'rhodes' (ARP, was SPACE KOTO) now ALWAYS arpeggiates — see _writeArpPattern */ // DX PIANO, SPACE KOTO, SCHOOL PIANO (DREAM PIANO removed; XYLOPHONE's old slot, sflute, removed too — it's CLUNG now and matches STRINGS+'s criteria instead, not this XYLOPHONE-specific arpeggio quirk)
 const BASS_ARPEGGIO_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']); // rarer — 1 in 8, not 1 in 4
+// ARP pattern: every step of the measure filled (no gaps) with the current scale's notes, in one of three feels:
+//  '16th' — a run on every 16th; '8th' — every 8th; 'triplet' — every 16th grouped in threes (3-note broken-chord cells,
+//  accent on each cell's first note), so it rolls over the beat in a 3-against-4 triplet feel.
+function _writeArpPattern(tr, scale) {
+  scale = (scale && scale.length) ? scale : [220];
+  const n = scale.length, feels = ['16th', '8th', 'triplet'];
+  const feel = feels[Math.floor(Math.random() * feels.length)];
+  if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+  for (let s2 = 0; s2 < NUM_STEPS; s2++) { grid[tr][s2] = 0; delete trackPitchOverride[tr][s2]; }
+  const shapes = ['up', 'down', 'updown'], shape = shapes[Math.floor(Math.random() * shapes.length)];
+  const period = Math.max(2, (n - 1) * 2);
+  const walk = i => { if (shape === 'up') return i % n; if (shape === 'down') return (n - 1) - (i % n); const p = i % period; return p < n ? p : period - p; };
+  if (feel === 'triplet') {
+    for (let i = 0; i < NUM_STEPS; i++) {
+      const cell = Math.floor(i / 3), j = i % 3;
+      const idx = (walk(cell) + j * 2) % n; // root / 3rd / 5th of the scale from each cell's starting degree
+      grid[tr][i] = j === 0 ? 2 : 1; trackPitchOverride[tr][i] = scale[idx];
+    }
+  } else {
+    const stepSize = feel === '8th' ? 2 : 1;
+    for (let i = 0, st = 0; st < NUM_STEPS; i++, st += stepSize) {
+      grid[tr][st] = (st % 4 === 0) ? 2 : 1; trackPitchOverride[tr][st] = scale[walk(i)];
+    }
+  }
+  trackArpFeel[tr] = feel;
+}
+const trackArpFeel = {};
 function _writeArpeggioPattern(tr, scale) {
   // Below 100bpm there's room for it to breathe, so sometimes go 16th notes
   // instead of 8ths — never at faster tempos, where it'd turn to mush.
@@ -7562,6 +7683,9 @@ function randomizeBassTrack(tr, level) {
 
   _rebuildTonalScale(tr);
 
+  // ARP (was SPACE KOTO), per direct request: ALWAYS an arpeggio of the current scale across the whole measure (16th, 8th or triplet feel) —
+  // whole-pattern RAND and the track's own + both come through here
+  if (key === 'rhodes') { _writeArpPattern(tr, trackBassScale[tr]); return; }
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
   if (ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
     _writeArpeggioPattern(tr, trackBassScale[tr]);
@@ -7611,6 +7735,7 @@ function randomizeBassTrack(tr, level) {
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
+  if (key === 'dulc') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BROOTH — 4 more notes on its quota, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
   if (BASS_LEGATO_KEYS.has(key)) noteCount = Math.min(NUM_STEPS, noteCount + 3); // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
@@ -8265,46 +8390,27 @@ function _kotoBuf(freq) {
   while (_kotoCache.size > 10) _kotoCache.delete(_kotoCache.keys().next().value);
   return buf;
 }
-function playSpaceKoto(freq, durSec, isAccent, time, tr) {
+function playSpaceKoto(freq, durSec, isAccent, time, tr) { // ARP (was SPACE KOTO) — reworked into a plain synth pluck, per direct request
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.241 : 0.156; // -3dB (was 0.34/0.22) — was getting loud with FX+Reverb
   _rhodesGlide[tr] = freq;
-
-  // Karplus-Strong plucked string, computed directly into a sample buffer —
-  // NOT a live audio-graph feedback loop (those need >=1 render quantum of
-  // delay to stay stable; higher koto notes would violate that and blow up).
-  // The classic 2-point moving-average recursion is unconditionally stable
-  // (output can only ever decay, never grow), so this is safe at any pitch.
-  // The pluck buffer is now rendered ONCE per pitch (full 2.4s) and cached,
-  // instead of a fresh ~330-460KB buffer on every single note — that per-note
-  // allocation was the biggest memory churn in the heavy crash test (tens of
-  // MB per minute with KOTO playing). Shorter notes just fade out early.
-  const sr = ctx.sampleRate;
-  const decayTime = Math.min(durSec + 1.8, 2.4); // long, spacey sustain
-  const buf = _kotoBuf(freq);
-
-  const src = ctx.createBufferSource(); src.buffer = buf;
-  const env = ctx.createGain(); env.gain.setValueAtTime(vel, time);
-  if (decayTime < 2.39) { env.gain.setValueAtTime(vel, time + decayTime - 0.06); env.gain.linearRampToValueAtTime(0, time + decayTime); }
-  // Gentle vibrato via a second detuned copy is skipped — keep it simple/safe.
-  src.connect(env); env.connect(dest);
-  src.start(time); src.stop(time + decayTime + 0.01);
-  src.onended = () => { try { src.disconnect(); env.disconnect(); } catch(e) {} };
-
-  // Shimmer: bright bandpassed noise twinkle on the attack, "space glisten"
-  const shimLen = 0.5;
-  const shimBuf = _noiseBuf(Math.ceil(ctx.sampleRate * shimLen), 1.5); // shared/cached noise (see _noiseBuf)
-  const shim = ctx.createBufferSource(); shim.buffer = shimBuf;
-  const shimBP = ctx.createBiquadFilter(); shimBP.type = 'bandpass';
-  shimBP.frequency.value = Math.min(freq * 8, 9000); shimBP.Q.value = 6;
-  const shimEnv = ctx.createGain();
-  shimEnv.gain.setValueAtTime(0, time);
-  shimEnv.gain.linearRampToValueAtTime(vel * 0.16, time + 0.01);
-  shimEnv.gain.exponentialRampToValueAtTime(0.0001, time + shimLen);
-  shim.connect(shimBP); shimBP.connect(shimEnv); shimEnv.connect(dest);
-  shim.start(time);
-  shim.onended = () => { try { shimBP.disconnect(); shimEnv.disconnect(); } catch(e) {} };
+  let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // arp register
+  const vel = isAccent ? 0.105 : 0.075;
+  const len = Math.max(0.09, Math.min(durSec * 0.9 + 0.06, 0.32)); // short and clipped — an arpeggiator, not a ringing string
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(f, time);
+  const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.setValueAtTime(f, time); o2.detune.value = 7;
+  const g2 = ctx.createGain(); g2.gain.value = 0.55;
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 7; // resonant filter blip
+  lp.frequency.setValueAtTime(Math.min(f * (isAccent ? 14 : 10), 12000), time);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(f * 1.6, 200), time + len * 0.8);
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.003);
+  env.gain.exponentialRampToValueAtTime(vel * 0.35, time + len * 0.45);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + len);
+  o1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(env); env.connect(dest);
+  o1.start(time); o2.start(time); o1.stop(time + len + 0.02); o2.stop(time + len + 0.02);
+  o1.onended = () => { try { o1.disconnect(); o2.disconnect(); g2.disconnect(); lp.disconnect(); env.disconnect(); } catch(e) {} };
 }
 // ── Acid Pluck: resonant filtered saw with a fast downward filter/pitch sweep — 303-style squelch ──
 function playAcidPluck(freq, durSec, isAccent, time, tr) {
@@ -9074,6 +9180,7 @@ function playChug(freq, durSec, isAccent, time, tr) {
 // notes, delayed vibrato, and a slow drift of about a semitone across the
 // measure. Punchy when staccato; big and sustained when played legato. ──
 const _jcmGlide = {};
+let _pipeToneMul = 1.25, _pipeNoiseMul = 0.68; // PIPE balance: pitched part vs breath+crunch noise (set for a 75% / 25% energy split, per direct request)
 function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
@@ -9155,7 +9262,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
     env.gain.exponentialRampToValueAtTime(0.0001, time + Math.max(Math.min(durSec, 0.22), 0.09));
   }
 
-  const mix = ctx.createGain(); mix.gain.value = 0.35; // two squares run hot — pulled back (was 0.5) so the breath + crunch layers below share the space (JINX rework, per direct request)
+  const mix = ctx.createGain(); mix.gain.value = 0.35 * _pipeToneMul; // two squares run hot — pulled back (was 0.5) so the breath + crunch layers below share the space (JINX rework, per direct request)
   osc1.connect(mix); osc2.connect(mix); mix.connect(lp); lp.connect(env); env.connect(dest);
 
   // ── JINX rework, per direct request: SUPER BREATHY, half tonal / half
@@ -9173,7 +9280,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   bbp.frequency.setValueAtTime(Math.max(f * 2, 60), time);
   if (doSlideIn) { bbp.frequency.setValueAtTime(Math.max(f * 2 * 1.19, 60), time); bbp.frequency.exponentialRampToValueAtTime(Math.max(f * 2, 60), time + slideInLen); }
   const bhp = ctx.createBiquadFilter(); bhp.type = 'highpass'; bhp.frequency.value = 700; // keep the breath airy, not rumbly
-  const bEnv = ctx.createGain(); const bVel = vel * (legato ? 5.5 : 4.5);
+  const bEnv = ctx.createGain(); const bVel = vel * (legato ? 5.5 : 4.5) * _pipeNoiseMul;
   bEnv.gain.setValueAtTime(0, time);
   bEnv.gain.linearRampToValueAtTime(bVel * 0.55, time + 0.02);
   bEnv.gain.linearRampToValueAtTime(bVel, time + Math.min(Math.max(durSec * 0.35, 0.05), 0.4)); // swells in like a breath
@@ -9189,7 +9296,7 @@ function playJcmGuitar(freq, durSec, isAccent, time, tr) {
   blastBp.frequency.exponentialRampToValueAtTime(900, time + blastLen);
   const blastDrive = ctx.createGain(); blastDrive.gain.value = 6; // slam into the clipper
   const crunch = ctx.createWaveShaper(); crunch.oversample = 'none'; crunch.curve = _jinxCrunchCurve || (_jinxCrunchCurve = makeDistCurve(0.9));
-  const blastEnv = ctx.createGain(); const blastVel = vel * (isAccent ? 1.5 : 1.0);
+  const blastEnv = ctx.createGain(); const blastVel = vel * (isAccent ? 1.5 : 1.0) * _pipeNoiseMul;
   blastEnv.gain.setValueAtTime(0, time);
   blastEnv.gain.linearRampToValueAtTime(blastVel, time + 0.003);
   blastEnv.gain.exponentialRampToValueAtTime(0.0001, time + blastLen);
@@ -10552,7 +10659,12 @@ function playYamask(freq, durSec, isAccent, time, tr, phraseDescend, breathMul =
 // legato phrases are set in RAND (see 'dulc' in the reverb chance and the
 // legato pass).
 function playBrooth(freq, durSec, isAccent, time, tr) {
-  playYamask(freq / 2, durSec, isAccent, time, tr, _yamaskPhraseTick('b' + tr), 3.5, 1.41);
+  // Unison an octave apart, staggered in time, per direct request: the low voice on the beat, the upper octave entering a 32nd
+  // later (half a step). Each voice ~3dB down (gain 1.41 -> 1.0) so the pair sits at about the old level. One phrase tick per note.
+  const tick = _yamaskPhraseTick('b' + tr);
+  const stagger = stepDuration() * 0.5;
+  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 1.0);
+  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 1.0);
 }
 // stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
 function markStepAsSplit32(tr, stepNow) {
@@ -11194,6 +11306,7 @@ function openBeatMenu() {
   const menu = document.getElementById('beatTypeMenu');
   const btn = document.getElementById('beatBtn');
   if (!menu || !btn) return;
+  window._beatAutoAtMenuOpen = !!_beatAutoRandActive; // remembered so closing the menu can announce a DRUMS AUTO change
   _beatMenuOpen = true;
   refreshBeatMenuHighlight();
   updateBeatLockVisual();
@@ -11211,6 +11324,9 @@ function openBeatMenu() {
 function closeBeatMenu() {
   const menu = document.getElementById('beatTypeMenu');
   const btn = document.getElementById('beatBtn');
+  // DRUMS AUTO switched on/off from inside the menu -> the little notice box once the menu closes, per direct request
+  if (_beatMenuOpen && window._beatAutoAtMenuOpen !== undefined && window._beatAutoAtMenuOpen !== !!_beatAutoRandActive && typeof _showNotice === 'function') _showNotice(_beatAutoRandActive ? 'DRUMS AUTO ON' : 'DRUMS AUTO OFF');
+  window._beatAutoAtMenuOpen = undefined;
   _beatMenuOpen = false;
   if (menu) { menu.classList.remove('visible'); menu.querySelectorAll('.beat-type-item, .beat-ctrl-row button').forEach(it => it.classList.remove('drag-hover')); }
   if (btn) btn.classList.remove('menu-open');
@@ -11423,7 +11539,7 @@ function setJustTrack(on) {
 }
 function _thinVolFillPct() {
   const bar = document.querySelector('.track-vol-bar');
-  const px = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vol-scale-thickness')) || 4;
+  const px = parseFloat(_rootCS().getPropertyValue('--vol-scale-thickness')) || 4;
   const h = bar ? bar.getBoundingClientRect().height : 29;
   return Math.max(5, Math.min(100, Math.round(px / (h || 29) * 100)));
 }
@@ -11745,7 +11861,7 @@ function setTrackNameColor(tr, key) {
   const btn = document.getElementById(`tbtn-${tr}`); if (!btn) return;
   btn.classList.remove('inst-kit','inst-perc','inst-tonal','inst-bass','inst-pad','names-uniform');
   const g = INSTRUMENTS[key]?.group || 'perc';
-  const _cs = getComputedStyle(document.documentElement);
+  const _cs = _rootCS();
   const _laneColors = {
     'kit':   _cs.getPropertyValue('--lane-color-kit').trim()   || '#0b5394',
     'perc':  _cs.getPropertyValue('--lane-color-perc').trim()  || '#85A838',
@@ -13396,7 +13512,7 @@ function flashBtnOrange(id) {
   // get the new unified "slightly darker when pressed" treatment;
   // beatCtrlShift isn't in scope for that.
   const isTopRowBtn = ['randBtn','clearBtn','playBtn','beatBtn','scratchBtn','saveBtn'].includes(id);
-  btn.style.background = isTopRowBtn ? (getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-bg').trim() || '#333') : '#111';
+  btn.style.background = isTopRowBtn ? (_rootCS().getPropertyValue('--top-row-pressed-bg').trim() || '#333') : '#111';
   btn.style.color = isTopRowBtn ? '#fff' : _highlight3Color();
   setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
 }
@@ -13413,7 +13529,7 @@ function setBtnBlueHeld(id) {
   const b = document.getElementById(id); if (!b) return;
   b.classList.add('btn-flash-blue');
   if (id === 'randBtn') {
-    b.style.setProperty('background', getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-bg').trim() || '#333', 'important');
+    b.style.setProperty('background', _rootCS().getPropertyValue('--top-row-pressed-bg').trim() || '#333', 'important');
     b.style.setProperty('color', '#fff', 'important');
   }
 }
@@ -13615,7 +13731,7 @@ setTrackRowBgOpacity(10); // startup default 10% (was 15%), per direct request
 // version of the same hue was the right amount of "less washed-out"
 // without losing the hue's actual identity.
 function _autoPickVolSliderColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const songColor = cs.getPropertyValue('--bar-color').trim() || _currentBarColor || '#aa64a6';
   const contrasted = _ensureContrast(songColor, bg);
@@ -13659,7 +13775,7 @@ function setEqMeterColor(n) {
   document.documentElement.style.setProperty('--eq-meter-color', map[n] || map[3]);
 }
 function _autoPickEqMeterColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--bg').trim() || '#f5f0e8';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13683,7 +13799,7 @@ function _autoPickEqMeterColor() {
 // randomizeAppColors() below). Negligible cost either way — a handful of
 // luminance calculations, done once per randomize, not per frame.
 function _autoPickTopRowHighlight() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13722,7 +13838,7 @@ function setTopRowTextColor(n) {
     hex = document.getElementById('topRowTextColorPicker')?.value || '#ffffff';
   } else {
     const map = { 1: '--playhead-color', 2: '--highlight2-color', 3: '--highlight3-color' };
-    hex = getComputedStyle(document.documentElement).getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
+    hex = _rootCS().getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
   }
   document.documentElement.style.setProperty('--top-row-text-color', hex);
   recolorTopRowIcons(hex);
@@ -13730,7 +13846,7 @@ function setTopRowTextColor(n) {
   // --top-row-pressed-bg BEAT/etc. show text on — nudged toward
   // white/black from the same chosen hue rather than silently swapped
   // for something else entirely.
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555';
+  const bg = _rootCS().getPropertyValue('--neutral-top').trim() || '#555555';
   document.documentElement.style.setProperty('--top-row-pressed-text-color', _ensureContrast(hex, _mixTowardBlack(bg, 0.67)));
   _updatePlayHl();
 }
@@ -13753,7 +13869,7 @@ function setTopRowTextColor(n) {
 // in play-colour mode.
 function _repaintFaderTips() {
   const on = document.body && document.body.classList.contains('fader-tip-hl');
-  const hex = getComputedStyle(document.documentElement).getPropertyValue('--fader-hl').trim();
+  const hex = _rootCS().getPropertyValue('--fader-hl').trim();
   document.querySelectorAll('.track-vol-tip').forEach(t => {
     if (on && hex) t.style.setProperty('background', hex, 'important');
     else t.style.removeProperty('background');
@@ -13766,7 +13882,7 @@ function _repaintFaderTips() {
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
 function _updatePlayHl() {
-  let hex = getComputedStyle(document.documentElement).getPropertyValue('--top-row-pressed-text-color').trim();
+  let hex = _rootCS().getPropertyValue('--top-row-pressed-text-color').trim();
   if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
   const [h, sat, l] = _hexToHsl(hex);
   document.documentElement.style.setProperty('--play-hl', _hslToHex(h, Math.min(1, sat + 0.2), l));
@@ -13778,7 +13894,7 @@ function _updatePlayHl() {
   _repaintFaderTips();
 }
 function _autoPickTopRowTextColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--neutral-top').trim() || '#555555';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13817,14 +13933,14 @@ function setTrackBtnTextColor(n) {
     hex = document.getElementById('trackBtnTextColorPicker')?.value || '#ffffff';
   } else {
     const map = { 1: '--playhead-color', 2: '--highlight2-color', 3: '--highlight3-color' };
-    hex = getComputedStyle(document.documentElement).getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
+    hex = _rootCS().getPropertyValue(map[n] || map[3]).trim() || '#ffffff';
   }
   document.documentElement.style.setProperty('--track-btn-text-color', hex);
 }
 // AUTO (BEST CONTRAST) — same approach, checked against the track
 // buttons' own resting background (--track-ctrl-btn-color).
 function _autoPickTrackBtnTextColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--track-ctrl-btn-color').trim() || cs.getPropertyValue('--neutral-track').trim() || '#b0b0b0';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -13847,7 +13963,7 @@ function setTrackCtrlBtnColor(n) {
   // be stale or missing depending on setup order) or a flat hardcoded
   // '#111' for HIGHLIGHT 3 — that flat fallback is what let a dark navy
   // HIGHLIGHT/HIGHLIGHT 3 slip through with unreadable black text.
-  const resolvedHex = getComputedStyle(document.documentElement).getPropertyValue('--track-ctrl-btn-color').trim();
+  const resolvedHex = _rootCS().getPropertyValue('--track-ctrl-btn-color').trim();
   document.documentElement.style.setProperty('--track-ctrl-btn-text', _contrastText(resolvedHex));
 }
 // TRACK BUTTON ON (FX/REVERB/SOLO) — previously 3 independent hardcoded
@@ -13873,7 +13989,7 @@ function setTrackBtnOnColor(n) {
   if (n === 'auto') { _autoPickTrackBtnOnColor(); return; }
   const map = { 1: 'var(--playhead-color, #f8ff00)', 2: 'var(--highlight2-color, #0078ff)', 3: 'var(--highlight3-color, #adff00)', top: 'var(--neutral-top, #555)' };
   document.documentElement.style.setProperty('--track-btn-on-color', map[n] || map.top);
-  const resolvedHex = getComputedStyle(document.documentElement).getPropertyValue('--track-btn-on-color').trim();
+  const resolvedHex = _rootCS().getPropertyValue('--track-btn-on-color').trim();
   const darkHex = _darkenHex(resolvedHex, 0.85); // a little darker than the raw highlight/base color
   document.documentElement.style.setProperty('--track-btn-on-color', darkHex);
   document.documentElement.style.setProperty('--track-btn-on-text', _contrastText(darkHex));
@@ -13905,7 +14021,7 @@ function _applyBlastColorFrom(onColorHex) {
   document.documentElement.style.setProperty('--track-btn-blast-text', _contrastText(blastHex));
 }
 function _autoPickTrackBtnOnColor() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const bg = cs.getPropertyValue('--track-ctrl-btn-color').trim() || cs.getPropertyValue('--neutral-track').trim() || '#b0b0b0';
   const candidates = [
     cs.getPropertyValue('--playhead-color').trim() || '#f8ff00',
@@ -14568,7 +14684,7 @@ function setBgFollowsBarColor(on) {
 // saturation/lightness, so it always reads as "part of the same family"
 // as whatever HIGHLIGHT 3 currently is instead of an unrelated color.
 function _analogousToHighlightColor() {
-  const hlHex = getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim() || '#adff00';
+  const hlHex = _rootCS().getPropertyValue('--highlight3-color').trim() || '#adff00';
   const [h, s, l] = _hexToHsl(hlHex);
   const offset = (20 + Math.random() * 25) * (Math.random() < 0.5 ? -1 : 1);
   return _hslToHex(h + offset, s, l);
@@ -14580,7 +14696,7 @@ function _analogousToHighlightColor() {
 // landing close enough to be mistaken for them, and doesn't collide with
 // whatever _analogousToHighlightColor above might independently produce.
 function _analogousToNeutralTopColor() {
-  const topHex = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555';
+  const topHex = _rootCS().getPropertyValue('--neutral-top').trim() || '#555555';
   const [h, s, l] = _hexToHsl(topHex);
   const offset = (60 + Math.random() * 30) * (Math.random() < 0.5 ? -1 : 1);
   const lighter = Math.min(0.85, l + 0.18);
@@ -14624,9 +14740,10 @@ function _setSongNameDisplay(text) {
   if (!nd) return;
   nd.textContent = text || '';
   _SONG_NAME_SCROLL_STYLES.forEach(c => nd.classList.remove(c));
-  void nd.offsetWidth; // force reflow so the class below is treated as a fresh addition, restarting the animation
+  // restart the scroll-in on the next frame instead of forcing a synchronous reflow (void offsetWidth) — that forced a full-page
+  // style + layout pass right in the middle of a new pattern's colour changes (crash hunt)
   const style = _SONG_NAME_SCROLL_STYLES[Math.floor(Math.random() * _SONG_NAME_SCROLL_STYLES.length)];
-  nd.classList.add(style);
+  requestAnimationFrame(() => nd.classList.add(style));
 }
 function getKeyName() {
   if (!globalScaleRoot) return null;
@@ -15417,11 +15534,19 @@ function _randomizeReverbSettings() {
 function _newPatternPulse() {
   const b = document.getElementById('randBtn'); if (!b) return;
   document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's'); // two beats + a white lead-in a quarter of that long (half a beat), per direct request
-  b.classList.remove('new-pattern', 'rand-building'); void b.offsetWidth; b.classList.add('new-pattern');
+  b.classList.remove('new-pattern', 'rand-building'); requestAnimationFrame(() => b.classList.add('new-pattern')); // next-frame restart, no forced reflow (crash hunt)
   clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
 }
 function randAll(mode, opts) {
-  try { _newPatternPulse(); } catch (e) {}
+  // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
+  // one of them used to start its own CSS transition in the same frame (~80 at once measured — note markers fade their opacity,
+  // buttons fade colours). On iPhone each opacity transition gets its own GPU layer while it runs, so a + briefly doubled the
+  // layer count right as the new bar started. Transitions are switched off for the swap (two frames) — everything still changes,
+  // just in one clean step instead of 80 tiny 50-350ms fades. Animations (pops, pulses, flashes) are untouched.
+  document.body.classList.add('pattern-swap');
+  clearTimeout(window._patternSwapT); window._patternSwapT = setTimeout(() => document.body.classList.remove('pattern-swap'), 400);
+  const _raT0 = performance.now(); setTimeout(() => { try { window._crashCrumb && window._crashCrumb('new pattern (' + Math.round(performance.now() - _raT0) + 'ms to next task)'); } catch (e) {} }, 0); // crash log: when each new pattern lands and how long it blocked
+  if (!window._quietPlus) { try { _newPatternPulse(); } catch (e) {} } // QUIET + (DIAGNOSTICS crash test): skip the visual side of a new pattern
   opts = opts || {};
   _clearAllSolo(); // a new pattern replaces every track — solo state from the old one isn't meaningful anymore
   // RANDOMIZE REVERB (Settings toggle) — same "goes along with every new
@@ -15456,7 +15581,7 @@ function randAll(mode, opts) {
   // off the thread during the time-critical part of the swap — reverted:
   // the delay read as sluggish rather than purposeful, so simultaneous
   // wins even though it's contending for the same paint work.)
-  if (window._wildColorsEnabled) {
+  if (window._wildColorsEnabled && !window._quietPlus) {
     if (window._wildColorsSkipNext) {
       window._wildColorsSkipNext = false;
     } else {
@@ -16610,7 +16735,7 @@ function randAll(mode, opts) {
   // randomizes colors, same as every other role, rather than on every
   // single RAND press regardless of WILD.
   // Update key/scale display
-  _setSongNameDisplay(_currentSpecies || '');
+  if (window._quietPlus) { const _nd = document.getElementById('nameDisplay'); if (_nd) _nd.textContent = _currentSpecies || ''; } else _setSongNameDisplay(_currentSpecies || '');
   const kd = document.getElementById('keyDisplayValue');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks. Every instrument now keeps at least a
@@ -17013,12 +17138,12 @@ function snapshotState() {
     // WILD). Saved and restored right alongside everything else — a slot,
     // a saved tape, or a tape link now brings its colors back with it too.
     colors: {
-      top: getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim() || '#555555',
-      track: getComputedStyle(document.documentElement).getPropertyValue('--neutral-track').trim() || '#b0b0b0',
-      highlight: getComputedStyle(document.documentElement).getPropertyValue('--playhead-color').trim() || '#f8ff00',
-      highlight2: getComputedStyle(document.documentElement).getPropertyValue('--highlight2-color').trim() || '#0078ff',
-      highlight3: getComputedStyle(document.documentElement).getPropertyValue('--highlight3-color').trim() || '#adff00',
-      bg: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f0e8',
+      top: _rootCS().getPropertyValue('--neutral-top').trim() || '#555555',
+      track: _rootCS().getPropertyValue('--neutral-track').trim() || '#b0b0b0',
+      highlight: _rootCS().getPropertyValue('--playhead-color').trim() || '#f8ff00',
+      highlight2: _rootCS().getPropertyValue('--highlight2-color').trim() || '#0078ff',
+      highlight3: _rootCS().getPropertyValue('--highlight3-color').trim() || '#adff00',
+      bg: _rootCS().getPropertyValue('--bg').trim() || '#f5f0e8',
     }
   };
 }
@@ -18132,7 +18257,7 @@ function wireShiftButton(btn, tr, dir) {
     if (!b) return;
     release(); pressed = b; b.classList.add('glyph-pressed');
     b.classList.remove('glyph-pop'); void b.offsetWidth; b.classList.add('glyph-pop'); // restart the white flash + fade on every press
-    clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), 320);
+    clearTimeout(b._glyphPopT); b._glyphPopT = setTimeout(() => b.classList.remove('glyph-pop'), b.classList.contains('lock-btn') ? 620 : 320); // asterisk button's pop runs twice as long (576ms), per direct request
   }, true);
   document.addEventListener('pointerup', release, true);
   document.addEventListener('pointercancel', release, true);
@@ -18359,6 +18484,8 @@ function showSettings() {
   const snd = document.getElementById('settingsNameDisplay');
   if (snd) snd.value = _currentSpecies || '';
   syncSettingsPanel();
+  if (window._syncKeySelects) window._syncKeySelects();
+  { const bc = document.getElementById('beatCount'), ct = document.getElementById('countToggle'); if (bc && ct) ct.checked = !bc.classList.contains('beat-count-hidden'); }
   _settingsOpenedAt = Date.now();
 }
 function hideSettings() {
@@ -19596,7 +19723,7 @@ function setPerformanceMode(on) {
     if (_perfModeVisualsBefore === null) {
       _perfModeVisualsBefore = {
         satCeiling: (window._colorSaturationCeiling != null ? window._colorSaturationCeiling : 0.4) * 100,
-        faderWidth: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--simple-fader-width')) || 10 // FADER WIDTH — stashed so it can be put back exactly on exit, same pattern as satCeiling just above
+        faderWidth: parseFloat(_rootCS().getPropertyValue('--simple-fader-width')) || 10 // FADER WIDTH — stashed so it can be put back exactly on exit, same pattern as satCeiling just above
       };
     }
     setColorSaturationCeiling(20); // was 10, up 10% per direct request
@@ -19727,27 +19854,27 @@ function _cycleRainbowMode() {
   { const _nm = _RAINBOW_CYCLE[(idx + 1) % _RAINBOW_CYCLE.length]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
 }
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
-  { perf: true,  ruler: true,  bg0: false },
-  { perf: true,  ruler: false, bg0: false },
-  { perf: true,  ruler: false, bg0: true, jt: false }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "0", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'DASHBOARD' } /* was KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
-  { perf: false, ruler: true,  bg0: true  },
+  { perf: true,  ruler: true,  bg0: false, name: 'SCIENCE' },
+  { perf: true,  ruler: false, bg0: false, name: 'ALICE' },
+  { perf: true,  ruler: false, bg0: true, jt: false, name: 'XWING' }, // mode 3 — vol slider now styled as in mode 7 (JUST TRACK off, plain black tip, normal fill glow), per direct request; (FADER TIP = PLAY COLOUR no longer forced on — starts off, per direct request) — start-up default (+ GLOW ON FADER TIP ONLY, per direct request)
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true }, sliders: {"bgLightSlider": "22", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'PENELOPE' } /* was DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
   { perf: false, ruler: false, bg0: true, jt: true }, // NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'AUBERGINE' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "18", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "22", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 4, sliders: {"squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "150", "emptyMarkerSizeSquareSlider": "100", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
 // colour changes can re-roll them afterwards like any other colours.
 const _DISPLAY_PALETTES = {
-  knight: {"--track-text-invert": "0", "--neutral-top": "#207a9b", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3a96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bc", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ffb3c4", "--neutral-track": "#61bdde", "--neutral-track-text": "#ffffff", "--playhead-color": "#3b00d0", "--highlight-text": "#ffffff", "--highlight2-color": "#d00095", "--highlight2-text": "#ffffff", "--highlight3-color": "#ff4401", "--bg": "#000000", "--bar-color": "#d539cb", "--empty-cell-color": "#291e1e", "--vol-slider-color": "#f096ec", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ddd0ff", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bcb1d9", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#682fff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#ff4401", "--top-row-text-color": "#ddd0ff", "--top-row-pressed-text-color": "#ff6a34", "--play-hl": "#ff6a34", "--fader-hl": "#ff9e7b", "--fader-glow": "#006184", "--track-btn-text-color": "#ddd0ff", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
+  knight: {"--track-text-invert": "0", "--neutral-top": "#207a9b", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3a96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bc", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ffb3c4", "--neutral-track": "#61bdde", "--neutral-track-text": "#ffffff", "--playhead-color": "#3b00d0", "--highlight-text": "#ffffff", "--highlight2-color": "#d00095", "--highlight2-text": "#ffffff", "--highlight3-color": "#ff4401", "--bg": "#383838", "--bar-color": "#d539cb", "--empty-cell-color": "#291e1e", "--vol-slider-color": "#f096ec", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ddd0ff", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bcb1d9", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#682fff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#ff4401", "--top-row-text-color": "#ddd0ff", "--top-row-pressed-text-color": "#ff6a34", "--play-hl": "#ff6a34", "--fader-hl": "#ff9e7b", "--fader-glow": "#006184", "--track-btn-text-color": "#ddd0ff", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   night: {"--track-text-invert": "0", "--neutral-top": "#4b6670", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c3996", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f9f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d76a42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#699933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9bd", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff3362", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99b0", "--neutral-track": "#8da8b3", "--neutral-track-text": "#ffffff", "--playhead-color": "#563e92", "--highlight-text": "#ffffff", "--highlight2-color": "#923e7a", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3684d", "--bg": "#0c264b", "--bar-color": "#a3c2ac", "--empty-cell-color": "#483434", "--vol-slider-color": "#7bcc92", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#d9b4a6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#b8998d", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#e94100", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#563e92", "--top-row-text-color": "#d9b4a6", "--top-row-pressed-text-color": "#c28671", "--play-hl": "#d67c5d", "--fader-hl": "#f5a285", "--fader-glow": "#0a5d7a", "--track-btn-text-color": "#d9b4a6", "--play-flash-color": "#ffffff"},
   darker: {"--track-text-invert": "0", "--neutral-top": "#6f4a67", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c3f", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a5a63f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d762", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#336f99", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b563e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff5d", "--play-flash-dark": "#19330f", "--lit-glyph": "#5bff1a", "--lit-glyph-hot": "#47ff5d", "--neutral-track": "#b28caa", "--neutral-track-text": "#ffffff", "--playhead-color": "#cd9789", "--highlight-text": "#ffffff", "--highlight2-color": "#bdcd89", "--highlight2-text": "#111111", "--highlight3-color": "#4db362", "--bg": "#bbcacd", "--bar-color": "#8379a6", "--empty-cell-color": "#91aaaf", "--vol-slider-color": "#907ecd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#bdcd89", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a1ae74", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#9ac600", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#2e6c3b", "--top-row-text-color": "#bdcd89", "--top-row-pressed-text-color": "#bdcd89", "--play-hl": "#c6de78", "--fader-hl": "#e0f797", "--fader-glow": "#1f0868", "--track-btn-text-color": "#bdcd89", "--play-flash-color": "#5bff1a", "--tbtn-shade-col": "#000"},
-  aubergine: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b2604e", "--bg": "#241e48", "--bar-color": "#9f6f9c", "--empty-cell-color": "#4d4965", "--vol-slider-color": "#dda9dd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#c578b5", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63", "--tbtn-shade-col": "#fff"},
+  aubergine: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b2604e", "--bg": "#28214f", "--bar-color": "#9f6f9c", "--empty-cell-color": "#4d4965", "--vol-slider-color": "#dda9dd", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#c578b5", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63", "--tbtn-shade-col": "#fff"},
   bigschool: {"--track-text-invert": "0", "--neutral-top": "#476a46", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c9669", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#3f57a6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d342d7", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#994533", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#b7e963", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#9333ff", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#c999ff", "--neutral-track": "#87ae86", "--neutral-track-text": "#ffffff", "--playhead-color": "#409492", "--highlight-text": "#ffffff", "--highlight2-color": "#404094", "--highlight2-text": "#ffffff", "--highlight3-color": "#b04db3", "--bg": "#d0b9b9", "--bar-color": "#a5a478", "--empty-cell-color": "#b09292", "--vol-slider-color": "#c7c771", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#76c4c2", "--top-row-highlight-text": "#ffffff", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#64a7a5", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#00afaa", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#404094", "--top-row-text-color": "#76c4c2", "--top-row-pressed-text-color": "#48a6a4", "--play-hl": "#30bebb", "--fader-hl": "#46efec", "--fader-glow": "#b91013", "--track-btn-text-color": "#76c4c2", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
-  twilight: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#102c4c", "--bar-color": "#8fb59e", "--empty-cell-color": "#45515f", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
+  twilight: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#14365d", "--bar-color": "#8fb59e", "--empty-cell-color": "#45515f", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
   groovy: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
 };
@@ -19828,7 +19955,7 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 // Resting sizes come from the marker-size insets: size = cell * (1 - 2 * inset).
 let _sqPopKey = null;
 function _syncSquarePop() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const ci = parseFloat(cs.getPropertyValue('--note-marker-circle-inset')), si = parseFloat(cs.getPropertyValue('--note-marker-square-inset'));
   if (!isFinite(ci) || !isFinite(si)) return;
   const key = ci + '|' + si; if (key === _sqPopKey) return; _sqPopKey = key;
@@ -19842,11 +19969,21 @@ function _cssColToHex(c) { // '#abc' / '#aabbcc' / 'rgb(r, g, b)' -> '#rrggbb' (
   m = c.match(/rgba?\(\s*([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)/i); if (m) return '#' + [m[1], m[2], m[3]].map(v => Math.round(+v).toString(16).padStart(2, '0')).join('');
   return '';
 }
+// MORTAR (see the CSS) — on/off, height and colour source. The song-name bar's colour lives in its own inline style, so it's mirrored
+// into --name-bar-bg whenever that changes.
+function setMortar(on) { document.body.classList.toggle('mortar', !!on); const c = document.getElementById('mortarToggle'); if (c) c.checked = !!on; }
+function setMortarHeight(v) { v = Math.max(4, Math.min(20, +v || 8)); document.documentElement.style.setProperty('--mortar-h', v + 'px'); const r = document.getElementById('mortarHeightVal'); if (r) r.textContent = v + 'px'; }
+function setMortarColour(which) { document.body.classList.toggle('mortar-line', which === 'line'); }
+(function () {
+  const sync = () => { const nb = document.getElementById('nameBar'); if (!nb) return; const c = nb.style.backgroundColor || ''; if (c) document.documentElement.style.setProperty('--name-bar-bg', c); };
+  const go = () => { sync(); const nb = document.getElementById('nameBar'); if (nb) new MutationObserver(() => { if (!nb.style.transition) sync(); else setTimeout(sync, 1150); }).observe(nb, { attributes: true, attributeFilter: ['style'] }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go, { once: true }); else go();
+})();
 let _tapeTintKey = null;
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
   const on = document.body.classList.contains('night-invert'), two = on && document.body.classList.contains('tape-two-tone');
-  const _rs = getComputedStyle(document.documentElement);
+  const _rs = _rootCS();
   let hex = (_rs.getPropertyValue('--top-row-pressed-text-color') || '').trim(); // default: the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
   // Per-mode tape colour source, per direct request: KNIGHT FLYER = the song-name bar's background, GROOVY + TWILIGHT = the vol fill colour
   // (the WIDE METER fill is the PLAY FLASH colour). The name bar's own inline colour is read, not its computed one, so its 0.5s highlight flash is ignored.
@@ -19874,7 +20011,7 @@ function _syncTapeTint() {
     if (nb) new MutationObserver(() => { if (!document.body.classList.contains('tape-from-name')) return; clearTimeout(t2); t2 = setTimeout(_syncTapeTint, 700); }).observe(nb, { attributes: true, attributeFilter: ['style'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
-  if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = getComputedStyle(document.documentElement).getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
+  if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = _rootCS().getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
   // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
   if (m.flashTop !== undefined) {
     if (window._flashTopBeforeMode === undefined) window._flashTopBeforeMode = document.body.classList.contains('flash-from-top');
@@ -20212,8 +20349,8 @@ function _recomputeMarkerTierInsets() {
   // initial value `auto`, collapsing several markers (empty, soft, legato-tail,
   // in both square and circle mode) to zero width. Guarding each read here with
   // `?? default` makes this resilient regardless of call order.
-  const baseInsetPct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-circle-inset')) || 12;
-  const baseInsetSquare = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--note-marker-square-inset')) || 12;
+  const baseInsetPct = parseFloat(_rootCS().getPropertyValue('--note-marker-circle-inset')) || 12;
+  const baseInsetSquare = parseFloat(_rootCS().getPropertyValue('--note-marker-square-inset')) || 12;
   // EMPTY — BUGFIX: this used to blend toward the accent's own base inset
   // (inset=(100-S)/2 + baseInset*(S/100)), which meant S=100 only ever
   // reached the ACCENT marker's size, not the full cell — so the slider's
@@ -20414,7 +20551,7 @@ function setPlayFlashColor(hex) {
 // lightened as far as needed to reach a clear 4.5:1 contrast against that
 // background — bright hues like the old orange are left untouched.
 function _updateLitGlyph() {
-  const cs = getComputedStyle(document.documentElement);
+  const cs = _rootCS();
   const top = cs.getPropertyValue('--neutral-top').trim();
   const flash = cs.getPropertyValue('--play-flash-color').trim();
   const hot = cs.getPropertyValue('--play-flash-hot').trim();
@@ -20447,7 +20584,7 @@ function _updatePlayFlashHot(hex) {
   // hot colour comes from the TOP ROW hue turned 150deg at full saturation —
   // the colour PLAY FLASH FROM TOP ROW would pick — so BLAST / + AUTO still pop.
   if (s0 < 0.08) {
-    const top = getComputedStyle(document.documentElement).getPropertyValue('--neutral-top').trim();
+    const top = _rootCS().getPropertyValue('--neutral-top').trim();
     if (/^#[0-9a-f]{6}$/i.test(top) && typeof _hexToHsl === 'function') { h = (_hexToHsl(top)[0] + 150) % 360; sat = 1; l = 0.6; }
   }
   document.documentElement.style.setProperty('--play-flash-hot', _hslToHex(h, sat, l));
@@ -21852,7 +21989,27 @@ function stopRecallLoop() {
     noteIdx = (noteIdx + 1) % NOTE_NAMES.length;
     applyKey();
   });
+  // KEY drop-downs in SETTINGS, per direct request — same applyKey() as the old tap-to-cycle readout.
+  const ns = document.getElementById('keyNoteSelect'), ss = document.getElementById('keyScaleSelect');
+  if (ns) NOTE_NAMES.forEach((n2, i) => { const o2 = document.createElement('option'); o2.value = i; o2.textContent = n2; ns.appendChild(o2); });
+  if (ss) scaleNames.forEach(n2 => { const o2 = document.createElement('option'); o2.value = n2; o2.textContent = n2.replace(/-/g, ' '); ss.appendChild(o2); });
+  window._applyKeyChoice = (note, scale) => {
+    if (note !== null && note !== undefined) noteIdx = note;
+    if (scale) scaleIdx = Math.max(0, scaleNames.indexOf(scale));
+    applyKey(); markModified();
+  };
+  window._syncKeySelects = () => { // reflect the song's CURRENT key (RAND changes it) whenever SETTINGS opens
+    if (globalScaleRoot) { const midi = Math.round(12 * Math.log2(globalScaleRoot / 440)) + 69; noteIdx = ((midi % 12) + 12) % 12; }
+    const si = scaleNames.indexOf(currentScaleName); if (si >= 0) scaleIdx = si;
+    if (ns) ns.value = String(noteIdx); if (ss) ss.value = scaleNames[scaleIdx];
+  };
 })();
+// COUNT toggle in SETTINGS — shows / hides the beat count (same states as tapping the count itself)
+function _setBeatCountShown(on) {
+  const el = document.getElementById('beatCount'); if (!el) return;
+  if (on) { el.classList.remove('beat-count-hidden'); if (typeof _placeBeatCount === 'function') _placeBeatCount(); }
+  else { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
+}
 
 
 // Tape hiss/crackle/rumble system removed — dead code (startHiss() was
