@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 01:17:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 01:29:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1112,6 +1112,11 @@ body.mortar .step-lane::after { bottom: calc(-1 * var(--mortar-h, 8px)); }
 body.mortar.mortar-line .step-lane::before, body.mortar.mortar-line .step-lane::after {
   background: color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black); opacity: max(var(--track-row-bg-opacity, 1), 0.2); }
 body.mortar .track-ctrl-row { position: relative; z-index: 1; }
+/* EXTRA (in the MORTAR section): the note-marker lanes' own background becomes the MORTAR colour and runs to both screen edges
+   (a horizontal-only spill — box-shadow spread clipped to the lane's own height). Works with or without the mortar lines. */
+body.mortar-extra .step-lane { --lane-x-col: var(--name-bar-bg, var(--bar-color, #a5a478)); background: var(--lane-x-col) !important;
+  box-shadow: 0 0 0 100vmax var(--lane-x-col); clip-path: inset(0 -100vmax); }
+body.mortar-extra.mortar-line .step-lane { --lane-x-col: color-mix(in srgb, color-mix(in srgb, var(--neutral-top, #555) calc(100% - var(--track-row-bg-darken, 9%)), black) calc(max(var(--track-row-bg-opacity, 1), 0.2) * 100%), transparent); }
 /* FAILSAFE HIGHLIGHTS (LOOK AND FEEL toggle), per direct request — every track button uses just two fixed highlights, whatever the
    colour scheme: ORANGE #ff8b00 = on (FX 1, reverb, sweep, lit glyphs) and RED #ff1100 = super-on (FX 2 / BLAST, + AUTO). Set on
    <body> so they override the scheme's own values, which live on the root element. */
@@ -2648,7 +2653,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 01:17:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 01:29:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2939,6 +2944,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="name" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
           <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="line" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">BOTTOM LINE</label>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">EXTRA <span style="font-weight:400;color:#666;">(note lanes in the mortar colour, edge to edge)</span></div>
+        <label class="wild-toggle">
+          <input type="checkbox" id="mortarExtraToggle" onchange="document.body.classList.toggle('mortar-extra', this.checked)">
+          <span class="wild-toggle-slider"></span>
+        </label>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.2);">
@@ -20106,6 +20118,10 @@ function _applyRainbowState(m) {
     if (typeof setNoteMarkersCircle === 'function' && b.contains('note-markers-circle') !== was) setNoteMarkersCircle(was);
   }
   if (m.rulerThick !== undefined) _setSl('timeRulerThicknessSlider', String(m.rulerThick));
+  // keep the MORTAR controls showing what a mode switched on through m.classes ('mortar' / 'mortar-line' / 'mortar-extra')
+  { const mt = document.getElementById('mortarToggle'); if (mt) mt.checked = b.contains('mortar');
+    const mx = document.getElementById('mortarExtraToggle'); if (mx) mx.checked = b.contains('mortar-extra');
+    document.querySelectorAll('input[name="mortarColour"]').forEach(r => { r.checked = (r.value === 'line') === b.contains('mortar-line'); }); }
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
 // DEV slider was set to is remembered on the way in and put back on the
