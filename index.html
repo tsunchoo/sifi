@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 07:41:55 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-01 07:48:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2708,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:41:55 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 07:48:20 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6758,9 +6758,11 @@ function fireStepAudio(step, t) {
 // BEAT COUNT (header, left) — 1..4 following the playhead, "-" when stopped.
 let _beatCountLast = null;
 function _setBeatCount(v) {
+  const el = document.getElementById('beatCount');
+  if (el && el._xHold && v !== 'X') { if (v !== '-' && v !== _beatCountLast) { _beatCountLast = v; _pulseAsterisks(); } return; } // the off-'X' holds the readout: no beat may overwrite it before it hides, per direct request
   if (v === _beatCountLast) return; _beatCountLast = v;
   if (v !== '-' && v !== 'X') _pulseAsterisks();
-  const el = document.getElementById('beatCount'); if (!el) return;
+  if (!el) return;
   el.textContent = v;
   if (v !== '-' && el.classList.contains('beat-count-pulse')) { el.classList.remove('beat-pop'); void el.offsetWidth; el.classList.add('beat-pop'); } // restart the pop on every new beat
 }
@@ -6768,10 +6770,11 @@ function _setBeatCount(v) {
 // each beat), 2nd = HIDDEN (still tappable), 3rd = back to the plain count.
 function _cycleBeatCountMode() {
   const el = document.getElementById('beatCount'); if (!el) return;
+  if (el._xHold) { clearTimeout(el._offT); el._xHold = false; el.classList.add('beat-count-hidden'); } // tapped again during the X — finish hiding first
   if (el.classList.contains('beat-count-hidden')) { el.classList.remove('beat-count-hidden'); }
-  else if (el.classList.contains('beat-count-pulse')) { // tapping it OFF: flash an 'X' for a quarter second, then hide, per direct request
-    el.classList.remove('beat-count-pulse', 'beat-pop'); el.textContent = 'X'; _beatCountLast = 'X';
-    clearTimeout(el._offT); el._offT = setTimeout(() => { el.classList.add('beat-count-hidden'); el.textContent = '-'; _beatCountLast = null; }, 250); // back to the normal readout underneath (the next beat rewrites it)
+  else if (el.classList.contains('beat-count-pulse')) { // tapping it OFF: flash an 'X' for a quarter second, then hide, per direct request — the X is the LAST glyph shown
+    el.classList.remove('beat-count-pulse', 'beat-pop'); el.textContent = 'X'; _beatCountLast = 'X'; el._xHold = true;
+    clearTimeout(el._offT); el._offT = setTimeout(() => { el.classList.add('beat-count-hidden'); el._xHold = false; _beatCountLast = null; }, 250); // stays 'X' underneath while hidden; the next beat after it's shown again rewrites it // back to the normal readout underneath (the next beat rewrites it)
   }
   else { el.classList.add('beat-count-pulse'); }
 }
@@ -22174,6 +22177,7 @@ function stopRecallLoop() {
 // COUNT toggle in SETTINGS — shows / hides the beat count (same states as tapping the count itself)
 function _setBeatCountShown(on) {
   const el = document.getElementById('beatCount'); if (!el) return;
+  if (el._xHold) { clearTimeout(el._offT); el._xHold = false; _beatCountLast = null; }
   if (on) { el.classList.remove('beat-count-hidden'); if (typeof _placeBeatCount === 'function') _placeBeatCount(); }
   else { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
 }
