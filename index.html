@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 18:10:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 18:19:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -528,6 +528,12 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
    baseline, not this shape, which was throwing off centering in the
    button. Sized up 5% more and shifted to -1px (was -2px, i.e. 1px
    right), all per direct request. */
+/* + BUTTON = >> (LOOK AND FEEL, top), per direct request: the glyph's own "+" text is collapsed and a ">>" drawn in its place as
+   ::after, same font size. Because it's a child of the same .glyph element, every state (new-pattern pulse, build-up, SPIRIT PULSE
+   colour cycle, flashes, press) animates it exactly as it did the "+". --ff-ls is the letter-spacing that leaves ~3px of ink gap
+   between the two chevrons (measured on the real font, see _syncFfGlyph). */
+body.rand-btn-ff #randBtn .glyph { font-size: 0; line-height: 0; }
+body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: var(--ff-ls, -4px); margin-right: calc(-1 * var(--ff-ls, -4px)); display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
 body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
 /* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
    in asterisk mode that text is invisible, but a CSS animation still
@@ -2710,7 +2716,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:10:25 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:19:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2980,6 +2986,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">LOOK AND FEEL</div>
     <div id="lookModeLabel" style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;text-align:center;margin-top:-10px;"></div><!-- current display mode, per direct request -->
+    <!-- + BUTTON = >>, per direct request: alternate glyph for the top-row + button -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">+ BUTTON = &gt;&gt;</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="randBtnFfToggle" onchange="setRandBtnFf(this.checked)">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
@@ -20525,6 +20539,18 @@ function setNoteMarkersAsterisk(on) { document.body.classList.toggle('note-marke
 // rules) — these just flip the body classes those rules key off of.
 function setMarkerLeftJustifySquares(on) { document.body.classList.toggle('marker-left-justify-squares', !!on); }
 function setMarkerLeftJustifyCircles(on) { document.body.classList.toggle('marker-left-justify-circles', !!on); }
+function setRandBtnFf(on) { document.body.classList.toggle('rand-btn-ff', !!on); const c = document.getElementById('randBtnFfToggle'); if (c) c.checked = !!on; _syncFfGlyph(); }
+// letter-spacing for the >> glyph so the gap between the two chevrons' INK is 3px at the + glyph's font size, per direct request
+function _syncFfGlyph() {
+  const b = document.getElementById('randBtn'); if (!b) return;
+  const cs = getComputedStyle(b);
+  const ctx2 = (window._ffMeasure = window._ffMeasure || document.createElement('canvas').getContext('2d'));
+  ctx2.font = '900 ' + cs.fontSize + ' ' + cs.fontFamily;
+  const m = ctx2.measureText('>');
+  const gap = (m.width - m.actualBoundingBoxRight) + (-m.actualBoundingBoxLeft); // right bearing of the 1st + left bearing of the 2nd
+  document.documentElement.style.setProperty('--ff-ls', (3 - gap).toFixed(2) + 'px');
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { _syncFfGlyph(); } catch (e) {} });
 function setRandBtnAsterisk(on) { document.body.classList.toggle('rand-btn-asterisk', !!on); }
 function setNoteMarkerCircleSize(v) {
   // v: 0-100 slider position — higher v = bigger circle, so the inset
