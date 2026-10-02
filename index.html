@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 20:34:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 20:44:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -383,6 +383,11 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
 .reel-wrap.compress-on .reel { filter: brightness(0) sepia(1) saturate(6) hue-rotate(20deg) brightness(1.4); }
 .reel-wrap.reel-beat-pulse { animation: reel-pulse 0.12s ease-out; }
 body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-out; }
+/* LIVE mode bits: tape graphics hidden (kept as invisible tap targets, so holding a reel still opens SETTINGS) and nothing in them
+   animating; and no quarter-note pulse on the LOCK asterisks */
+body.hide-tape #tapeReels { opacity: 0 !important; }
+body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
+html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
 /* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
 body.battery-saver-mode.bg-beat-pulse { animation: none !important; }
 html body.battery-saver-mode .lock-ast-shape.ast-beat-a, html body.battery-saver-mode .lock-ast-shape.ast-beat-b { animation: none !important; }
@@ -537,8 +542,11 @@ body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph { font-size: 0; line-he
    right-hand tip was being cut off — the old single '>>' with negative letter-spacing left the last chevron's ink sticking out past
    its own text box, which Safari clips. Each chevron now sits fully inside its own box. Same ~-0.2em overlap as before. */
 body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before,
-body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { content: '>'; font-size: 2.8875rem; line-height: 1; display: inline-block; vertical-align: middle; }
-body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.2em; }
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { content: '>'; font-size: 2.8875rem; line-height: 1; display: inline-block; vertical-align: middle; padding: 0.1em 0.12em; }
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.44em; } /* -0.2em overlap, minus both chevrons' 0.12em side padding */
+/* The padding gives each chevron spare room on every side: on the iPhone the 900 weight is faux-bolded (only 400-700 are loaded),
+   which thickens the strokes OUTSIDE the glyph's own box, and the button's animated (composited) glyph layer clips anything outside
+   its bounds — that was the cut-off right tip. Same spacing as before. */
 body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
 /* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
    in asterisk mode that text is invisible, but a CSS animation still
@@ -2734,7 +2742,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:34:46 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:44:36 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -20131,6 +20139,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': false, 'track-text-pulse-solid': true, 'track-pulse-a': false, 'track-pulse-solid': true, 'no-fx-reverb-pulse': true, 'no-ast-pulse': true, 'no-glow': true, 'hide-tape': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, reverbOff: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, all glow off, no pulsing on track buttons / names / asterisks, WILD off, reverb off
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -20316,6 +20325,14 @@ function _applyRainbowState(m) {
   window._slidersBeforeMode = window._slidersBeforeMode || {};
   const _setSl = (id, v) => { const el = document.getElementById(id); if (!el) return; el.value = v; try { if (el.oninput) el.oninput(); if (el.onchange) el.onchange(); } catch (e) {} };
   Object.keys(window._slidersBeforeMode).forEach(id => { if (!m.sliders || !(id in m.sliders)) { _setSl(id, window._slidersBeforeMode[id]); delete window._slidersBeforeMode[id]; } });
+  // WILD per mode (m.wild), remembered/restored — just the switch (no colour reset; the mode's own palette still applies)
+  { const wc = document.getElementById('wildColorsToggle');
+    if (m.wild !== undefined) { if (window._wildBeforeMode === undefined) window._wildBeforeMode = window._wildColorsEnabled !== false; window._wildColorsEnabled = !!m.wild; if (wc) wc.checked = !!m.wild; }
+    else if (window._wildBeforeMode !== undefined) { window._wildColorsEnabled = window._wildBeforeMode; if (wc) wc.checked = window._wildBeforeMode; window._wildBeforeMode = undefined; } }
+  // REVERB OFF per mode (m.reverbOff): overall REVERB MIX to 0 on the way in, the previous mix put back on the way out
+  { const setMix = v => { setGlobalDelayMix(v); const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = Math.round(v * 100); const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = Math.round(v * 100); };
+    if (m.reverbOff) { if (window._revMixBeforeMode === undefined) window._revMixBeforeMode = (window._globalDelayMix === undefined ? 0.3 : window._globalDelayMix); setMix(0); }
+    else if (window._revMixBeforeMode !== undefined) { const v = window._revMixBeforeMode; window._revMixBeforeMode = undefined; setMix(v); } }
   if (m.sliders) Object.keys(m.sliders).forEach(id => { const el = document.getElementById(id); if (!el) return; if (!(id in window._slidersBeforeMode)) window._slidersBeforeMode[id] = el.value; _setSl(id, m.sliders[id]); });
   // Body classes a mode switches (m.classes = {cls: on}), remembered/restored
   window._classesBeforeMode = window._classesBeforeMode || {};
@@ -20406,6 +20423,10 @@ function _applyRainbowState(m) {
     const tl = document.getElementById('trackBtnLightsToggle'); if (tl) tl.checked = b.contains('track-btn-lights');
     const tlp = document.getElementById('trackBtnLightsPulseToggle'); if (tlp) tlp.checked = b.contains('track-btn-lights-pulse');
     const ljs = document.getElementById('markerLeftJustifySquaresToggle'); if (ljs) ljs.checked = b.contains('marker-left-justify-squares');
+    const gl = document.getElementById('glowsOnToggle'); if (gl && !b.contains('menu-open')) gl.checked = !b.contains('no-glow'); // a menu closing re-applies GLOWS from this box, so it must follow the mode
+    const fxp = document.getElementById('fxReverbPulseToggle'); if (fxp) fxp.checked = !b.contains('no-fx-reverb-pulse');
+    { const tp = document.querySelector(`input[name="trackPulseMode"][value="${b.contains('track-pulse-a') ? 'a' : 'solid'}"]`); if (tp) tp.checked = true; }
+    { const ttp = document.querySelector(`input[name="trackTextPulseMode"][value="${b.contains('track-text-pulse-a') ? 'a' : 'solid'}"]`); if (ttp) ttp.checked = true; }
     document.querySelectorAll('input[name="mortarColour"]').forEach(r => { r.checked = r.value === (b.contains('mortar-clear') ? 'clear' : b.contains('mortar-line') ? 'line' : 'name'); }); }
 }
 // TRACK ROW BG OPACITY forced to 0 for the two new modes — whatever the
