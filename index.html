@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 19:12:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 19:28:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -716,7 +716,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 #saveBtn.rec-active { background: var(--top-row-pressed-bg); }
 .transport .btn.press-pulse { animation: press-pulse 0.5s ease-out; }
 #randomizeColorsBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
-#randomizeReverbIconBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
+#randomizeReverbIconBtn.press-pulse, #devMenuBtn.press-pulse { animation: press-pulse 0.5s ease-out; } /* both header icons pulse when tapped, per direct request */
 #markerStyleIconBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
 @keyframes press-pulse { 0% { transform: scale(1); } 40% { transform: scale(0.85); } 100% { transform: scale(1); } }
 /* MARKER STYLE header icon — sits to the right of the reverb room icon
@@ -1698,7 +1698,12 @@ html body.name-tag .track-ctrl-row .track-ctrl-icon-btn.lock-btn svg { width: 16
    layout so text-overflow works; line-height re-centres it vertically) */
 html body.name-tag .track-ctrl-row .track-name-btn.track-name-btn { display: block !important; padding-right: 24px !important; overflow: hidden !important; white-space: nowrap !important; text-overflow: ellipsis !important; line-height: calc(clamp(28px, 8vw, 32px) * var(--track-btn-scale, 1) - 4px) !important; text-align: left !important; }
 /* LOCKED track (swipe left-to-right on the name, or the L button): the name button goes a medium grey, per direct request */
-html body .track-ctrl-row:has(> .lock-btn.sweep-on) > .track-name-btn.track-name-btn { background: #606060 !important; } /* was #808080 — taken halfway to dark grey, per direct request */
+/* LOCKED: hazard-tape diagonal stripes, per direct request — the button's own current colour (its background, left as is)
+   alternating with the < button's default glyph colour (--track-btn-text-color), slanting top-left to bottom-right.
+   (Was a flat medium/dark grey.) */
+html body .track-ctrl-row:has(> .lock-btn.sweep-on) > .track-name-btn.track-name-btn {
+  background-image: repeating-linear-gradient(45deg, var(--track-btn-text-color, #fff) 0 9px, transparent 9px 18px) !important;
+}
 .track-name-btn.names-uniform { background: var(--neutral-top, #555); color: #fff; }
 
 /* ── Vol overlay ── */
@@ -2715,7 +2720,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:12:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:28:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5933,7 +5938,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   const instrumentGain = ctx.createGain();
   const _isCongaBongoKey = (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo');
   const _congaBongoFxOnlyBoost = (_isCongaBongoKey && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) && !trackPump[tr]) ? 1.2589 : 1; // +2dB, specifically when FX is on but NOT BLAST, per direct request
-  instrumentGain.gain.value = ((key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : _isCongaBongoKey ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.2234 : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5) * _congaBongoFxOnlyBoost; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959), plus another +2dB specifically when FX (not BLAST) is engaged on that track, per direct request; TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  instrumentGain.gain.value = ((key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.178 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : _isCongaBongoKey ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.188 /* -1.5dB (was 0.2234), per direct request */ : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5) * _congaBongoFxOnlyBoost; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959), plus another +2dB specifically when FX (not BLAST) is engaged on that track, per direct request; TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -11152,7 +11157,7 @@ function _addSnareClick(t, dest, vol) {
 function fireBeatSidestick(t) {
   if (!ctx || !_renderTapBeat) return;
   const dest = window._beatGain || masterGain;
-  const vol = 0.2; // dialed back — earlier boosts (chasing an "inaudible" complaint) overshot and became too strong
+  const vol = 0.1683; // -1.5dB (was 0.2), per direct request — dialed back before that too (earlier boosts overshot)
 
   // A genuinely dry click — very short and pitched higher than the crack
   // layer below, so it reads as an actual "tick" transient rather than
@@ -11320,7 +11325,7 @@ function playBeatSidestickSample(t) {
   // starting it at full gain instantly is a real discontinuity/click.
   // Short 3ms linear fade removes that without being audible as a fade.
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.2812, t + 0.003); // -1dB more (was 0.3155)
+  g.gain.linearRampToValueAtTime(0.2366, t + 0.003); // -1.5dB more (was 0.2812), per direct request
   src.connect(g);
   g.connect(window._beatGain || masterGain);
   src.start(t);
@@ -20475,7 +20480,7 @@ else _applyStartupMode();
   }, { passive: false });
   btn.addEventListener('touchend', e => {
     e.preventDefault(); // also kills the trailing synthetic compatibility 'click' some browsers fire a few ms after touchend — see the long-form explanation this comment used to carry: without this, that synthetic click can land on the COLOR MENU overlay (already open by then) instead of this button, and the overlay's own "click outside closes it" handler slams it shut again instantly
-    if (!dragFired) showDevMenu();
+    if (!dragFired) { _pressPulse('devMenuBtn'); showDevMenu(); } // pulse on tap, per direct request
     reset();
   }, { passive: false });
   btn.addEventListener('touchcancel', reset);
@@ -20497,7 +20502,7 @@ else _applyStartupMode();
       }
     };
     const onUp = () => {
-      if (!dragFired) showDevMenu();
+      if (!dragFired) { _pressPulse('devMenuBtn'); showDevMenu(); }
       reset();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
@@ -21289,8 +21294,9 @@ function fullReset() {
       _previewReverb();
     },
     noClick: true,
+    onTap: () => { _pressPulse('randomizeReverbIconBtn'); openMenu(); }, // a TAP now opens the REVERB menu (was hold), with a pulse, per direct request
     holdMs: HOLD_MS,
-    onHold: openMenu,
+    onHold: openMenu, // holding still opens it too
   });
 
   // #reverbMenu is now the full-screen dimmed overlay itself (like the
