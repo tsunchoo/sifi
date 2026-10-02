@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 19:53:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 20:03:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -257,7 +257,8 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-de
 @keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes song-name-scroll-down  { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 #nameDisplay { display: inline-block; }
-.track-name-btn > .tname-slide { display: inline-block; animation: song-name-scroll-left 576ms ease-out both; } /* NEW INST swap — matches the asterisk's 576ms */
+.track-name-btn > .tname-slide { display: inline-block; animation: song-name-scroll-left 576ms ease-out both; }
+body.tname-slide-long .track-name-btn > .tname-slide { animation-duration: 1008ms; } /* double-tap: 1.75x */ /* NEW INST swap — matches the asterisk's 576ms */
 #nameDisplay.song-name-scroll-left  { animation: song-name-scroll-left  0.5s ease-out; }
 #nameDisplay.song-name-scroll-right { animation: song-name-scroll-right 0.5s ease-out; }
 #nameDisplay.song-name-scroll-up    { animation: song-name-scroll-up    0.5s ease-out; }
@@ -1195,6 +1196,10 @@ html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn:not(#beatCtrlL
 }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast { animation: lock-ast-pop 576ms ease-out; }
 html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop:not(#beatCtrlL) .lock-ast-shape { animation: lock-ast-white 576ms ease-out; }
+/* DOUBLE-TAP (any-group swap): the whole asterisk pop runs 1.75x as long (576 -> 1008ms), per direct request */
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop.glyph-pop-long:not(#beatCtrlL),
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop.glyph-pop-long:not(#beatCtrlL) .lock-ast,
+html body.lock-swap .track-ctrl-row .track-ctrl-icon-btn.lock-btn.glyph-pop.glyph-pop-long:not(#beatCtrlL) .lock-ast-shape { animation-duration: 1008ms !important; }
 @keyframes lock-ast-pop { /* pop + the turn (a 60deg turn lands back on the same six-point shape) */
   0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
   25%  { transform: translate(-50%, -50%) scale(1.45) rotate(30deg); filter: drop-shadow(0 0 calc(10px * var(--tglow, 1)) #fff) drop-shadow(0 0 calc(4px * var(--tglow, 1)) #fff); }
@@ -1407,6 +1412,10 @@ body.battery-saver-mode .shift-btn.right { opacity: 0.3 !important; pointer-even
    active, so there's genuinely nothing left for it to randomize or open a
    menu for. */
 body.battery-saver-mode #randomizeReverbIconBtn { opacity: 0.3 !important; pointer-events: none !important; }
+/* REVERB ICON GLOW, per direct request: a soft glow in the icon's own colour whenever the overall REVERB MIX isn't zero
+   (class set by setGlobalDelayMix). Off with GLOWS OFF / SAFE GFX / BATTERY SAVER like every other glow. */
+#randomizeReverbIconBtn.rev-on svg { filter: drop-shadow(0 0 1.5px #555) drop-shadow(0 0 3px color-mix(in srgb, #555 45%, transparent)); }
+body.no-glow #randomizeReverbIconBtn.rev-on svg, body.safe-gfx #randomizeReverbIconBtn.rev-on svg, body.battery-saver-mode #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
 body.battery-saver-mode #randomizeReverbIconBtn svg rect,
 body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) !important; }
 /* The "<" offset button specifically (not the "R" reverb toggle, which
@@ -2720,7 +2729,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:53:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:03:40 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5219,7 +5228,9 @@ function setGlobalDelayMix(v) {
   if (window._reverbOutGain) window._reverbOutGain.gain.value = v * REVERB_MIX_MAX;
   if (window._masterReverbSend) window._masterReverbSend.gain.value = v * REVERB_MIX_MAX; // the whole-mix send (see live init) rides the same slider
   window._globalDelayMix = v;
+  const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb.classList.toggle('rev-on', v > 0.001); // icon glows while the reverb isn't at zero
 }
+document.addEventListener('DOMContentLoaded', () => { const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb.classList.toggle('rev-on', (window._globalDelayMix === undefined ? 0.3 : window._globalDelayMix) > 0.001); });
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
 // crunchy, low-resolution retro/chiptune sound: amplitude quantized to a
@@ -10870,8 +10881,8 @@ function playBrooth(freq, durSec, isAccent, time, tr) {
   // later (half a step). Each voice ~3dB down (gain 1.41 -> 1.0) so the pair sits at about the old level. One phrase tick per note.
   const tick = _yamaskPhraseTick('b' + tr);
   const stagger = stepDuration() * 0.5;
-  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 0.841); // -1.5dB (was 1.0), per direct request
-  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 0.841); // -1.5dB
+  playYamask(freq / 2, durSec, isAccent, time, tr, tick, 3.5, 0.708); // -3dB (was 1.0; -1.5dB twice), per direct request
+  playYamask(freq, Math.max(0.05, durSec - stagger), isAccent, time + stagger, tr, tick, 3.5, 0.708) ; // -3dB
 }
 // stepNow must be captured by the caller at trigger time, not read later — currentStep keeps advancing
 function markStepAsSplit32(tr, stepNow) {
@@ -12269,6 +12280,12 @@ function buildUI() {
         const now = Date.now(), dbl = now - (sweepBtnL._lastSwapTap || 0) < 350;
         sweepBtnL._lastSwapTap = dbl ? 0 : now;
         if (!dbl) sweepBtnL._preSwapInst = trackInstruments[tr]; // what the track was before this tap — a double-tap must not land back on it
+        if (dbl) { // DOUBLE-TAP: the asterisk animation (and the name slide) run 1.75x as long, per direct request
+          sweepBtnL.classList.add('glyph-pop-long');
+          clearTimeout(sweepBtnL._glyphPopT); sweepBtnL._glyphPopT = setTimeout(() => sweepBtnL.classList.remove('glyph-pop'), 1060);
+          clearTimeout(sweepBtnL._longT); sweepBtnL._longT = setTimeout(() => sweepBtnL.classList.remove('glyph-pop-long'), 1100);
+          document.body.classList.add('tname-slide-long'); clearTimeout(window._tnLongT); window._tnLongT = setTimeout(() => document.body.classList.remove('tname-slide-long'), 1100);
+        }
         swapTrackInstrumentInGroup(tr, dbl, dbl ? sweepBtnL._preSwapInst : undefined);
         return;
       }
@@ -21303,12 +21320,24 @@ function fullReset() {
   // COLOR MENU/SETTINGS), so "outside the menu" means outside the actual
   // centered panel (.reverb-menu-inner) — checking #reverbMenu here would
   // never fire, since every tap on screen is technically inside it.
+  // A tap OUTSIDE the panel only closes the menu — it must never reach the buttons behind it, per direct request. Closing on
+  // touchstart used to drop the overlay mid-tap, so the touchend / synthetic mouse events / click then landed on whatever was
+  // underneath. Now the outside touch is cancelled (preventDefault stops iOS synthesising mouse events + the click), and for 600ms
+  // after closing every follow-up pointer/mouse/click/touch event is swallowed in the capture phase.
+  let _swallowUntil = 0;
+  const swallow = e => { if (Date.now() < _swallowUntil) { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); } };
+  ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'touchend'].forEach(t => document.addEventListener(t, swallow, { capture: true, passive: false }));
+  const outside = e => menu.classList.contains('visible') && !e.target.closest('.reverb-menu-inner');
   document.addEventListener('touchstart', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('.reverb-menu-inner') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
-  }, { passive: true });
+    if (!outside(e)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    _swallowUntil = Date.now() + 600; closeMenu();
+  }, { capture: true, passive: false });
   document.addEventListener('mousedown', e => {
-    if (menu.classList.contains('visible') && !e.target.closest('.reverb-menu-inner') && !e.target.closest('#randomizeReverbIconBtn')) closeMenu();
-  });
+    if (!outside(e)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    _swallowUntil = Date.now() + 600; closeMenu();
+  }, true);
 })();
 // Drag across multiple track names to mute/unmute them all to match
 // whatever the first one toggled to — rather than tapping each one
