@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 20:27:18 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 20:34:46 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -582,7 +582,7 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    (0.55 -> 1 -> 0.55). The glow is a drop-shadow of this square, so the
    opacity dip was dimming the glow on every beat — why it pulsed while
    DRUMS' (text-shadow in the text's own colour, never dimmed) looked steady. */
-@keyframes play-hl-flash { from { background-color: var(--top-row-pressed-text-color, #fff); } to { background-color: var(--play-hl, var(--top-row-pressed-text-color, #fff)); } }
+@keyframes play-hl-flash { from { background-color: #f2f2f2; } to { background-color: var(--play-hl, var(--top-row-pressed-text-color, #fff)); } } /* flashes up to just below white, per direct request */
 #playBtn.playing.btn-beat-pulse #playBtnMask { animation: play-hl-flash 0.18s ease-out forwards; }
 /* PLAY and RECORD icon graphics are plain white PNGs with no built-in
    color variant, unlike text buttons which just switch CSS color — so
@@ -612,7 +612,7 @@ body.rand-btn-asterisk #randBtn.pulsing .glyph::before { animation: logo-color-c
    triggered directly off actual BEAT-engine kick/snare/hihat hits (see
    _flashDrumsText(), called from fireBeatKick/playSnare/playSynthHihat)
    rather than a generic clock, per direct request. */
-@keyframes drums-text-flash-pulse { from { color: var(--top-row-pressed-text-color, #fff); } to { color: var(--drums-flash-color, var(--play-flash-color, #f8ff00)); } }
+@keyframes drums-text-flash-pulse { from { color: #f2f2f2; } to { color: var(--drums-flash-color, var(--play-flash-color, #f8ff00)); } } /* each hit flashes up to just below white, then back to the highlight, per direct request */
 /* DRUMS FLASH = PLAY COLOUR (DEV toggle, on by default): flash to the
    PLAY/STOP button's boosted highlight instead of PLAY FLASH. */
 body.drums-flash-hl { --drums-flash-color: var(--play-hl, var(--top-row-pressed-text-color, #fff)); }
@@ -2734,7 +2734,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:27:18 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:34:46 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3869,7 +3869,7 @@ const INSTRUMENTS = {
   satk:   { name: 'TALK BOX',    soft: null, accent: null, group: 'tonal' },
   amlgm:  { name: 'TEXTURE',     soft: null, accent: null, group: 'tonal' },
   drone:  { name: 'STRINGS',     soft: null, accent: null, group: 'tonal' },
-  dronePlus: { name: 'STRINGS+', soft: null, accent: null, group: 'tonal' }, // same voice as STRINGS, but every note is legato+contiguous (sustains exactly until the next note begins, however far that is) with true portamento gliding into each new pitch — see playAtmosPortamento and the contiguous-legato pass in randAll
+  dronePlus: { name: 'ZINGS', soft: null, accent: null, group: 'tonal' }, // same voice as STRINGS, but every note is legato+contiguous (sustains exactly until the next note begins, however far that is) with true portamento gliding into each new pitch — see playAtmosPortamento and the contiguous-legato pass in randAll
   sbass:  { name: 'SYNTH BASS',  soft: null, accent: null, group: 'tonal' },
   sludge: { name: 'SLUDGE BASS', soft: null, accent: null, group: 'tonal' },
   sbass3: { name: 'JAMES BASS',  soft: null, accent: null, group: 'tonal' },
@@ -8002,15 +8002,25 @@ function randomizeBassTrack(tr, level) {
   // reworked to sustain across a held/legato duration instead of always
   // ringing out on a short fixed decay, so it needs this pass to actually
   // ever get a held duration to sustain across.
-  if (false && key === 'dronePlus') { // OFF: STRINGS+ is staccato now, per direct request — no more contiguous held notes. (SPARP no longer shares this either)
+  // ZINGS (was STRINGS+): staccato stabs by default, but HALF the time a pattern also gets a LEGATO PHRASE or two — a run of
+  // 2-4 consecutive notes that each hold right up to the next one (gliding between them), per direct request.
+  if (key === 'dronePlus' && Math.random() < 0.5) {
     const onsets = [];
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
-    onsets.forEach((s, i) => {
-      const nextOnset = onsets[i + 1];
-      const gapToNext = nextOnset !== undefined ? nextOnset - s : NUM_STEPS - s;
-      if (gapToNext > 1) trackLegatoLen[tr][s] = gapToNext;
-    });
+    if (onsets.length >= 2) {
+      const phrases = onsets.length >= 6 && Math.random() < 0.5 ? 2 : 1;
+      const used = new Set();
+      for (let ph = 0; ph < phrases; ph++) {
+        const len = Math.min(onsets.length, 2 + Math.floor(Math.random() * 3)); // 2-4 notes
+        const start = Math.floor(Math.random() * (onsets.length - len + 1));
+        for (let i = start; i < start + len - 1; i++) { // every note in the phrase but the last holds to the next onset
+          if (used.has(i)) continue; used.add(i);
+          const gap = onsets[i + 1] - onsets[i];
+          if (gap > 1) trackLegatoLen[tr][onsets[i]] = gap;
+        }
+      }
+    }
   }
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
@@ -19194,7 +19204,7 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   const vel = (_amalgamVolOverride !== null ? _amalgamVolOverride : 0.18) * (isAccent ? 1.3 : 1) * droneAtten * dronePlusBoost;
   // STRINGS+ STACCATO + PUNCH, per direct request: short notes (at most ~60% of a step, short tail) with a hard attack that
   // spikes above the held level and drops back — a stabbed string section instead of a held pad. Plain STRINGS is unchanged.
-  const _stac = trackInstruments[tr] === 'dronePlus';
+  const _stac = trackInstruments[tr] === 'dronePlus' && !((durSec || 0) > stepDuration() * 1.5); // ZINGS: staccato, except notes in a legato phrase (held longer than a step) which sustain + glide as before
   const sustain = _stac ? Math.min(Math.max(durSec || 0.1, 0.05), stepDuration() * 0.6) : Math.max(durSec || 0.35, 0.35);
   const bodyTail = _stac ? 0.11 : 0.45; // a little more sustain — compensates for the airier/thinner EQ below
   const glideDur = (glideFromFreq && glideFromFreq !== freq) ? (_stac ? Math.min(sustain * 0.3, 0.035) : Math.min(sustain * 0.4, 0.35)) : 0; // STRINGS+ portamento — a portion of the note, capped so short notes don't glide forever; 0 (no glide) for plain STRINGS, which never passes glideFromFreq at all
@@ -20117,7 +20127,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
   { perf: false, ruler: false, bg0: true, jt: true, classes: { 'lock-swap': false, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "100", "masterBrightSlider": "130"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'CARTOON' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
