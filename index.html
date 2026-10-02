@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 20:56:08 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:05:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -387,11 +387,12 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
    animating; and no quarter-note pulse on the LOCK asterisks */
 body.hide-tape #tapeReels { opacity: 0 !important; }
 /* LIVE layout: tempo twice the size, the key shown big on the left of the tempo row (placed by _placeLiveKey), count 2.5x (see _placeBeatCount) */
-#liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 6px; }
+#liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 0; }
 body.live-layout #liveKey { display: flex; }
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
 body.live-layout #topTempoBpmNum { font-size: 4.032rem !important; }
 body.live-layout #topTempoBpmLabel { font-size: 1.536rem !important; }
+#liveKey .lk-sharp { font-size: 0.5em; }
 #liveKey .lk-scale { font-size: 1.15rem; letter-spacing: 0.5px; } /* a little smaller than "bpm" so it clears the big count */
 body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
 html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
@@ -2749,7 +2750,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:56:08 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:05:26 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6915,7 +6916,9 @@ function _updateLiveKey() {
   const el = document.getElementById('liveKey'); if (!el) return;
   const [n, s] = _liveKeyText(); const key = n + '|' + s;
   if (el._k === key) return; el._k = key;
-  el.firstChild.textContent = n; el.lastChild.textContent = s;
+  // a sharp's '#' is drawn at half size, per direct request
+  el.firstChild.textContent = n.replace('#', ''); if (n.includes('#')) { const sh = document.createElement('span'); sh.className = 'lk-sharp'; sh.textContent = '#'; el.firstChild.appendChild(sh); }
+  el.lastChild.textContent = s;
   _placeLiveKey();
 }
 // left edge on the logo's left edge, number sitting on the same line (same font size + line box) as the tempo number
@@ -6927,6 +6930,19 @@ function _placeLiveKey() {
   el.style.top = (nr.top - pr.top) + 'px';
   const lr = logo ? logo.getBoundingClientRect() : { left: pr.left + 12 };
   el.style.left = (lr.left - pr.left + (parseFloat(getComputedStyle(logo || el).paddingLeft) || 0)) + 'px';
+  // the scale label's FIRST LETTER lines up with the SWEEP button's left edge, per direct request (measured on the letter's ink);
+  // if a wide note already reaches past that edge, it sits 2px after the note instead
+  const sc = el.lastChild, sw = document.getElementById('clearBtn');
+  if (sc && sw && sc.firstChild) {
+    sc.style.marginLeft = '0px';
+    const scs = getComputedStyle(sc);
+    _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
+    _beatMeasureCtx.font = scs.fontWeight + ' ' + scs.fontSize + ' ' + scs.fontFamily;
+    const bearing = -_beatMeasureCtx.measureText((sc.textContent || 'p')[0]).actualBoundingBoxLeft; // ink starts this far right of the text start
+    const textStart = sc.getBoundingClientRect().left, noteRight = note.getBoundingClientRect().right;
+    const want = sw.getBoundingClientRect().left - bearing;
+    sc.style.marginLeft = (Math.max(want, noteRight + 2) - textStart) + "px";
+  }
 }
 function _placeBeatCount() {
   try { _placeHeaderIcons(); } catch (e) {}
