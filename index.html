@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 21:05:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:15:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -390,10 +390,9 @@ body.hide-tape #tapeReels { opacity: 0 !important; }
 #liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 0; }
 body.live-layout #liveKey { display: flex; }
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
-body.live-layout #topTempoBpmNum { font-size: 4.032rem !important; }
-body.live-layout #topTempoBpmLabel { font-size: 1.536rem !important; }
+/* (LIVE no longer doubles the tempo, per direct request — the key just matches the tempo's normal size) */
 #liveKey .lk-sharp { font-size: 0.5em; }
-#liveKey .lk-scale { font-size: 1.15rem; letter-spacing: 0.5px; } /* a little smaller than "bpm" so it clears the big count */
+#liveKey .lk-scale { display: inline-block; white-space: normal; line-height: 1.05; font-size: 0.768rem; letter-spacing: 0.5px; } /* a little smaller than "bpm" so it clears the big count */
 body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
 html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
 /* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
@@ -2750,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:05:26 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:15:17 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2881,8 +2880,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <!-- Sliders — own gap:24px group, matching SETTINGS' own Sliders block, rather than the panel's outer gap:16px -->
     <div style="display:flex;flex-direction:column;gap:24px;">
       <label class="reverb-menu-row">
-        <span class="reverb-menu-row-head"><span>REVERB MIX (OVERALL)</span><span id="reverbMixVal" style="color:#adff00;">30</span></span>
-        <input type="range" id="delayMixBar" min="0" max="100" value="30" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
+        <span class="reverb-menu-row-head"><span>REVERB MIX (OVERALL)</span><span id="reverbMixVal" style="color:#adff00;">0</span></span>
+        <input type="range" id="delayMixBar" min="0" max="100" value="0" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
       </label>
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>REVERB SIZE</span><span id="reverbIntensityVal" style="color:#adff00;">51</span></span>
@@ -3949,7 +3948,7 @@ function syncSettingsPanel() {
   if (kd) kd.textContent = (getKeyName() || '').replace(/-/g, ' ');
   const dmb = document.getElementById('delayMixBar');
   if (dmb) {
-    dmb.value = Math.round((window._globalDelayMix !== undefined ? window._globalDelayMix : 0.3) * 100);
+    dmb.value = Math.round((window._globalDelayMix !== undefined ? window._globalDelayMix : 0) * 100);
     const dmv = document.getElementById('reverbMixVal'); if (dmv) dmv.textContent = dmb.value;
   }
   const rib = document.getElementById('reverbIntensityBar');
@@ -5246,13 +5245,14 @@ function setReverbIntensity(v) {
   if (ctx && window._reverbConv) window._reverbConv.buffer = _buildReverbIRBuffer(ctx, _reverbSizeFromSlider(v));
 }
 
+window._globalDelayMix = 0; // REVERB MIX default: zero, per direct request
 function setGlobalDelayMix(v) {
   if (window._reverbOutGain) window._reverbOutGain.gain.value = v * REVERB_MIX_MAX;
   if (window._masterReverbSend) window._masterReverbSend.gain.value = v * REVERB_MIX_MAX; // the whole-mix send (see live init) rides the same slider
   window._globalDelayMix = v;
   const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb.classList.toggle('rev-on', v > 0.001); // icon glows while the reverb isn't at zero
 }
-document.addEventListener('DOMContentLoaded', () => { const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb.classList.toggle('rev-on', (window._globalDelayMix === undefined ? 0.3 : window._globalDelayMix) > 0.001); });
+document.addEventListener('DOMContentLoaded', () => { const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb.classList.toggle('rev-on', (window._globalDelayMix === undefined ? 0 : window._globalDelayMix) > 0.001); });
 
 // 8-BIT MODE — a master-bus insert that crushes the whole output down to a
 // crunchy, low-resolution retro/chiptune sound: amplitude quantized to a
@@ -6904,7 +6904,7 @@ function _placeHeaderIcons() {
   const d = bInkLeft - iconInkLeft; if (Math.abs(d) < 0.25) return;
   [rv, dm].forEach(el => { el.style.right = ((parseFloat(el.style.right) || 0) - d) + 'px'; });
 }
-const _LIVE_SCALE_LABELS = { 'penta-min': 'pent min', 'penta-maj': 'pent maj', 'major': 'major', 'minor': 'minor', 'dorian': 'dorian', 'mixolydian': 'mixo', 'blues': 'blues' };
+const _LIVE_SCALE_LABELS = { 'penta-min': 'pentatonic minor', 'penta-maj': 'pentatonic major', 'major': 'major', 'minor': 'minor', 'dorian': 'dorian', 'mixolydian': 'mixolydian', 'blues': 'blues' }; // full names, per direct request (was abbreviated)
 function _liveKeyText() {
   if (!globalScaleRoot) return ['', ''];
   const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -6942,6 +6942,15 @@ function _placeLiveKey() {
     const textStart = sc.getBoundingClientRect().left, noteRight = note.getBoundingClientRect().right;
     const want = sw.getBoundingClientRect().left - bearing;
     sc.style.marginLeft = (Math.max(want, noteRight + 2) - textStart) + "px";
+    // a long name ("pentatonic minor") wraps onto two lines rather than running into the big count — its last line sits on the
+    // note's baseline, the first stacks above it
+    const bc = document.getElementById('beatCount');
+    sc.style.maxWidth = '';
+    if (bc && !bc.classList.contains('beat-count-hidden')) { const room = bc.getBoundingClientRect().left + bc.clientWidth * 0.15 - 8 - sc.getBoundingClientRect().left; sc.style.maxWidth = Math.max(60, room) + 'px'; }
+    // the row lines up on the label's FIRST line — lift a wrapped label so its LAST line is the one on the note's baseline
+    sc.style.transform = '';
+    const lh = parseFloat(getComputedStyle(sc).lineHeight) || 13, lines = Math.round(sc.getBoundingClientRect().height / lh);
+    if (lines > 1) sc.style.transform = 'translateY(' + (-(lines - 1) * lh) + 'px)';
   }
 }
 function _placeBeatCount() {
@@ -6955,7 +6964,7 @@ function _placeBeatCount() {
   if (!el || !num || !el.offsetParent) return;
   try { _placeLoadMeter(); } catch (e) {}
   const _live = document.body.classList.contains('live-layout');
-  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) / (_live ? 2 : 1) * 1.518 * (_live ? 2.5 : 1)) + 'px'; el.style.lineHeight = (parseFloat(ncs.lineHeight) || parseFloat(ncs.fontSize)) / (_live ? 2 : 1) * (_live ? 2.5 : 1) + 'px'; // LIVE: 2.5x bigger, per direct request (measured off the tempo's normal size, which LIVE doubles)
+  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.518 * (_live ? 2.5 : 1)) + 'px'; el.style.lineHeight = (parseFloat(ncs.lineHeight) || parseFloat(ncs.fontSize)) * (_live ? 2.5 : 1) + 'px'; // LIVE: 2.5x bigger, per direct request (measured off the tempo's normal size, which LIVE doubles)
   if (!logo) return;
   _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
   const pageXY = n => { let x = 0, y = 0; for (let e = n; e; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return [x, y]; }; // untransformed layout position
@@ -15273,7 +15282,7 @@ function _buildBounceGraph(targetCtx) {
   window._reverbConv.normalize = false; // browser auto-normalize crushes a dense noise-decay IR like this to near-silence
   window._reverbConv.buffer = _buildReverbIRBuffer(targetCtx, _reverbSizeFromSlider((window._reverbIntensity !== undefined) ? window._reverbIntensity : 0.51));
   window._reverbOutGain = targetCtx.createGain();
-  window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
+  window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0) * REVERB_MIX_MAX;
   window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
   masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain);
   window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain);
@@ -20192,7 +20201,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -20385,9 +20394,13 @@ function _applyRainbowState(m) {
   { const wc = document.getElementById('wildColorsToggle');
     if (m.wild !== undefined) { if (window._wildBeforeMode === undefined) window._wildBeforeMode = window._wildColorsEnabled !== false; window._wildColorsEnabled = !!m.wild; if (wc) wc.checked = !!m.wild; }
     else if (window._wildBeforeMode !== undefined) { window._wildColorsEnabled = window._wildBeforeMode; if (wc) wc.checked = window._wildBeforeMode; window._wildBeforeMode = undefined; } }
+  // COUNT per mode (m.count — LIVE turns it on), remembered/restored: shown or hidden as it was before the mode
+  { const bc = document.getElementById('beatCount');
+    if (m.count !== undefined && bc) { if (window._countBeforeMode === undefined) window._countBeforeMode = !bc.classList.contains('beat-count-hidden'); if (typeof _setBeatCountShown === 'function') _setBeatCountShown(!!m.count); const ct = document.getElementById('countToggle'); if (ct) ct.checked = !!m.count; }
+    else if (window._countBeforeMode !== undefined && bc) { const was = window._countBeforeMode; window._countBeforeMode = undefined; if (typeof _setBeatCountShown === 'function') _setBeatCountShown(was); const ct = document.getElementById('countToggle'); if (ct) ct.checked = was; } }
   // REVERB OFF per mode (m.reverbOff): overall REVERB MIX to 0 on the way in, the previous mix put back on the way out
   { const setMix = v => { setGlobalDelayMix(v); const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = Math.round(v * 100); const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = Math.round(v * 100); };
-    if (m.reverbOff) { if (window._revMixBeforeMode === undefined) window._revMixBeforeMode = (window._globalDelayMix === undefined ? 0.3 : window._globalDelayMix); setMix(0); }
+    if (m.reverbOff) { if (window._revMixBeforeMode === undefined) window._revMixBeforeMode = (window._globalDelayMix === undefined ? 0 : window._globalDelayMix); setMix(0); }
     else if (window._revMixBeforeMode !== undefined) { const v = window._revMixBeforeMode; window._revMixBeforeMode = undefined; setMix(v); } }
   if (m.sliders) Object.keys(m.sliders).forEach(id => { const el = document.getElementById(id); if (!el) return; if (!(id in window._slidersBeforeMode)) window._slidersBeforeMode[id] = el.value; _setSl(id, m.sliders[id]); });
   // Body classes a mode switches (m.classes = {cls: on}), remembered/restored
@@ -21265,8 +21278,9 @@ function fullReset() {
   currentScaleName = 'penta-min'; PENTA_MINOR = SCALES['penta-min']; globalScaleRoot = null;
   activeSlot = -1;
   slots.fill(null); _pendingSlot = -1; _autoSlotQueue = [];
-  window._globalDelayMix = 0.3;
-  if (window._reverbOutGain) window._reverbOutGain.gain.value = 0.3 * REVERB_MIX_MAX; // REVERB MIX — +20% from the previous 0.25 default
+  setGlobalDelayMix(0); // REVERB MIX starts at ZERO (the reverb icon's "off" state), per direct request — was 0.3; also clears the icon glow + the whole-mix send
+  { const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = 0; const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = '0'; }
+  { const rb = document.getElementById('randomizeReverbIconBtn'); if (rb) rb._revSwipeN = 0; } // so the next swipe turns it ON
   window._reverbIntensity = 0.51; // REVERB SIZE — +20% from the previous 0.425 default
   if (window._reverbConv && ctx) window._reverbConv.buffer = _buildReverbIRBuffer(ctx, _reverbSizeFromSlider(0.51));
 
@@ -21894,7 +21908,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbConv = ctx.createConvolver();
     window._reverbConv.normalize = false; // browser auto-normalize crushes a dense noise-decay IR like this to near-silence
     window._reverbConv.buffer = _buildReverbIRBuffer(ctx, _reverbSizeFromSlider((window._reverbIntensity !== undefined) ? window._reverbIntensity : 0.51));
-    window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
+    window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0) * REVERB_MIX_MAX;
     window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
     masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
     // REVERB MIX OVERALL send — a second, parallel reverb send tapping
@@ -21908,7 +21922,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     // did nothing at all. This makes it a genuine "apply reverb to the
     // whole mix" control, on top of (not instead of) per-track sends.
     window._masterReverbSend = ctx.createGain();
-    window._masterReverbSend.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0.3) * REVERB_MIX_MAX;
+    window._masterReverbSend.gain.value = ((window._globalDelayMix !== undefined) ? window._globalDelayMix : 0) * REVERB_MIX_MAX;
     window._masterReverbSend.connect(window._reverbSendBus);
     for (let i=0; i<NUM_TRACKS; i++) {
       const g = ctx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
