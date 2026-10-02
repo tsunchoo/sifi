@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 17:57:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 18:10:25 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2710,7 +2710,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 17:57:14 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:10:25 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6828,7 +6828,25 @@ function _inkRightGap(ch, cs) { // advance width minus the glyph's inked right e
   const m = _beatMeasureCtx.measureText(ch);
   return m.width - m.actualBoundingBoxRight;
 }
+// HEADER ICONS, per direct request: the reverb (room) icon and the rainbow icon slide left together so the reverb icon's left edge
+// lines up with the 'b' of the tempo's "bpm". Measured on the drawn edges (the icon's outer rectangle stroke, the b's ink).
+function _placeHeaderIcons() {
+  const rv = document.getElementById('randomizeReverbIconBtn'), dm = document.getElementById('devMenuBtn'), lbl = document.getElementById('topTempoBpmLabel');
+  if (!rv || !dm || !lbl || !lbl.firstChild) return;
+  const svg = rv.querySelector('svg'); if (!svg) return;
+  const sr = svg.getBoundingClientRect(); if (!sr.width) return;
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : { width: 22 };
+  const iconInkLeft = sr.left + (1 - 0.65) * (sr.width / (vb.width || 22)); // outer rect at x=1, stroke 1.3
+  const cs = getComputedStyle(lbl);
+  _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
+  _beatMeasureCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+  const rg = document.createRange(); rg.selectNodeContents(lbl);
+  const bInkLeft = rg.getBoundingClientRect().left - _beatMeasureCtx.measureText('b').actualBoundingBoxLeft;
+  const d = bInkLeft - iconInkLeft; if (Math.abs(d) < 0.25) return;
+  [rv, dm].forEach(el => { el.style.right = ((parseFloat(el.style.right) || 0) - d) + 'px'; });
+}
 function _placeBeatCount() {
+  try { _placeHeaderIcons(); } catch (e) {}
   // COUNT, per direct request: centred across the screen, the numeral's ink TOP lined up with the top of the Si•Fi logo's ink,
   // 1.518x the tempo number. Everything is worked out from LAYOUT geometry (offsetTop / padding / font metrics), never from
   // on-screen rects — those include running transforms (the logo's wobble while playing, the count's own beat pop), which made it
@@ -8869,7 +8887,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
     } catch(e) {}
   }
   const dest = getSynthConnectNode(tr);
-  const _blastAtten = trackPump[tr] ? 0.5623 : 1; // -5dB when BLAST is on this track (was -3dB, another -2dB) — still too hot combined with the crunch chain
+  const _blastAtten = trackPump[tr] ? 0.3162 : 1; // -10dB when BLAST is on this track (was -5dB; another -5dB per direct request — still too loud)
   const _fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const _fxOrBlastAtten = (_fxOn || trackPump[tr]) ? 0.8 : 1; // -20% per direct request, whenever FX or FX BLAST is engaged on this track — stacks with _blastAtten above when BLAST specifically is on
   const vel = (isAccent ? 1.601 : 1.155) * _blastAtten * _fxOrBlastAtten; // +3dB on top (was too quiet without FX)
