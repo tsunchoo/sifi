@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 21:30:52 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:41:22 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -388,11 +388,11 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
 body.hide-tape #tapeReels { opacity: 0 !important; }
 /* LIVE layout: tempo twice the size, the key shown big on the left of the tempo row (placed by _placeLiveKey), count 2.5x (see _placeBeatCount) */
 #liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 0; }
-body.live-layout #liveKey { display: flex; }
+body.live-layout #liveKey { display: flex; pointer-events: auto; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; } /* tap opens SETTINGS in LIVE, per direct request */
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
 /* (LIVE no longer doubles the tempo, per direct request — the key just matches the tempo's normal size) */
 #liveKey .lk-sharp { font-size: 0.5em; }
-#liveKey .lk-scale { display: inline-block; white-space: normal; line-height: 1.05; font-size: 0.768rem; letter-spacing: 0.5px; } /* a little smaller than "bpm" so it clears the big count */
+#liveKey .lk-scale { display: inline-block; white-space: normal; line-height: 1.05; font-size: 0.768rem; letter-spacing: 1px; } /* exactly the "bpm" label's size AND letter-spacing, per direct request */
 body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
 html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
 /* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
@@ -737,7 +737,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 #saveBtn.rec-active { background: var(--top-row-pressed-bg); }
 .transport .btn.press-pulse { animation: press-pulse 0.5s ease-out; }
 #randomizeColorsBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
-#randomizeReverbIconBtn.press-pulse, #devMenuBtn.press-pulse { animation: press-pulse 0.5s ease-out; } /* both header icons pulse when tapped, per direct request */
+#randomizeReverbIconBtn.press-pulse, #devMenuBtn.press-pulse, #liveKey.press-pulse { animation: press-pulse 0.5s ease-out; } /* both header icons pulse when tapped, per direct request */
 #markerStyleIconBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
 @keyframes press-pulse { 0% { transform: scale(1); } 40% { transform: scale(0.85); } 100% { transform: scale(1); } }
 /* MARKER STYLE header icon — sits to the right of the reverb room icon
@@ -2749,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:30:52 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:41:22 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6924,6 +6924,11 @@ function _updateLiveKey() {
   _placeLiveKey();
 }
 // left edge on the logo's left edge, number sitting on the same line (same font size + line box) as the tempo number
+// LIVE: tapping the key opens SETTINGS, per direct request (the element only takes taps while it's showing, i.e. in LIVE)
+document.addEventListener('DOMContentLoaded', () => {
+  const lk = document.getElementById('liveKey'); if (!lk) return;
+  lk.addEventListener('click', e => { if (!document.body.classList.contains('live-layout')) return; e.stopPropagation(); _pressPulse('liveKey'); showSettings(); });
+});
 function _placeLiveKey() {
   const el = document.getElementById('liveKey'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent || !document.body.classList.contains('live-layout')) return;
@@ -15899,6 +15904,12 @@ function randAll(mode, opts) {
     if (window._wildColorsSkipNext) {
       window._wildColorsSkipNext = false;
     } else {
+      // WILD also jumps to a random DISPLAY MODE (never LIVE, never the one it's already in), per direct request — then the colours
+      // are re-rolled on top as before
+      try {
+        const cur = window._rainbowIdx, pool = _RAINBOW_CYCLE.map((m, i) => i).filter(i => i !== cur && !_RAINBOW_CYCLE[i].liveOnly);
+        if (pool.length && !(_RAINBOW_CYCLE[cur] && _RAINBOW_CYCLE[cur].liveOnly)) { const nm = _RAINBOW_CYCLE[pool[Math.floor(Math.random() * pool.length)]]; _applyRainbowState(nm); _showModeLabel(nm); }
+      } catch (e) {}
       randomizeAppColors();
     }
   }
@@ -21042,7 +21053,7 @@ function setTonalPercBalance(v) {
   // icon, but 75% further (52.5px); fires once the drag reaches the end. Uses the separate CSS 'translate' property so it can't
   // fight the logo's own transform animations. A drag swallows the click that would otherwise follow (the tap actions stay).
   (function () {
-    const START = 6; let MAXD = 52.5;
+    const START = 6; let MAXD = 30; // 30px, in and out of LIVE, per direct request (was 52.5px, and the key gap in LIVE)
     let y0 = null, dragging = false, fired = false, suppressUntil = 0;
     // In LIVE the drag is cut down to the gap between the bottom of the logo and the TOP of the key text, per direct request (so
     // the logo never slides into the key); measured on the drawn ink at the start of each drag. Outside LIVE it stays 52.5px.
@@ -21074,10 +21085,10 @@ function setTonalPercBalance(v) {
       if (!fired && dy >= MAXD) { fired = true; toggleLive(); }
     };
     const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
-    title.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dragging = false; fired = false; try { MAXD = liveMax(); } catch (er) { MAXD = 52.5; } }, { passive: true });
+    title.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dragging = false; fired = false; }, { passive: true });
     title.addEventListener('touchmove', e => move(e.touches[0].clientY, e), { passive: false });
     title.addEventListener('touchend', end); title.addEventListener('touchcancel', end);
-    title.addEventListener('mousedown', e => { y0 = e.clientY; dragging = false; fired = false; try { MAXD = liveMax(); } catch (er) { MAXD = 52.5; }
+    title.addEventListener('mousedown', e => { y0 = e.clientY; dragging = false; fired = false;
       const mm = me => move(me.clientY, me), mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
       document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu); });
     title.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
