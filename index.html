@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-01 18:23:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 17:57:14 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -316,7 +316,7 @@ html body.night-invert.battery-saver-mode #siFiTitle, html body.night-invert.bat
 }
 header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; }
 #cmapOverlay {
-  display: block;
+  display: none; /* OUT OF THE RENDER TREE until shown (crash hunt): this full-screen overlay used to sit at opacity 0 all the time, so ~730 SVG shapes and labels were laid out and kept as a full-screen layer for the whole session */
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -326,6 +326,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   transition: opacity 0.5s ease;
   overflow: hidden;
 }
+#cmapOverlay.shown { display: block; }
 #cmapOverlay.active { opacity: 1; pointer-events: auto; }
 #cmapSvg {
   width: 100%;
@@ -334,7 +335,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   overflow: hidden;
 }
 #galaxyMapOverlay {
-  display: block;
+  display: none; /* OUT OF THE RENDER TREE until shown (crash hunt): this full-screen overlay used to sit at opacity 0 all the time, so ~225 SVG shapes and labels were laid out and kept as a full-screen layer for the whole session */
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -344,6 +345,7 @@ header .sub { font-size: 0.44rem; color: var(--dim); letter-spacing: 2px; text-t
   transition: opacity 0.5s ease;
   overflow: hidden;
 }
+#galaxyMapOverlay.shown { display: block; }
 #galaxyMapOverlay.active { opacity: 1; pointer-events: auto; }
 #galaxyMapSvg {
   width: 100%;
@@ -2708,7 +2710,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-01 18:23:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 17:57:14 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -10853,7 +10855,9 @@ function _runMapZoom(overlayId, svgId, view, coord) {
   const svg = document.getElementById(svgId);
   if (!overlay || !svg) return;
   if (_cmapAnimFrame) cancelAnimationFrame(_cmapAnimFrame);
-  overlay.classList.add('active');
+  // put it back in the render tree, then fade in on the next frame (it's display:none while hidden — see CSS)
+  clearTimeout(overlay._hideT); overlay.classList.add('shown');
+  requestAnimationFrame(() => { if (overlay.classList.contains('shown')) overlay.classList.add('active'); });
 
   // Start fully zoomed out
   const startVB = { x: 0, y: 0, w: view.w, h: view.h };
@@ -10936,7 +10940,9 @@ function showCelestialMap() {
 function hideCelestialMap() {
   ['cmapOverlay', 'galaxyMapOverlay'].forEach(id => {
     const overlay = document.getElementById(id);
-    if (overlay) overlay.classList.remove('active');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    clearTimeout(overlay._hideT); overlay._hideT = setTimeout(() => { if (!overlay.classList.contains('active')) overlay.classList.remove('shown'); }, 550); // after the 0.5s fade-out, out of the render tree again
   });
   _activeMapOverlayId = null;
   if (_cmapAnimFrame) { cancelAnimationFrame(_cmapAnimFrame); _cmapAnimFrame = null; }
