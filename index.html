@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 20:44:36 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 20:56:08 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -386,6 +386,13 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
 /* LIVE mode bits: tape graphics hidden (kept as invisible tap targets, so holding a reel still opens SETTINGS) and nothing in them
    animating; and no quarter-note pulse on the LOCK asterisks */
 body.hide-tape #tapeReels { opacity: 0 !important; }
+/* LIVE layout: tempo twice the size, the key shown big on the left of the tempo row (placed by _placeLiveKey), count 2.5x (see _placeBeatCount) */
+#liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 6px; }
+body.live-layout #liveKey { display: flex; }
+html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
+body.live-layout #topTempoBpmNum { font-size: 4.032rem !important; }
+body.live-layout #topTempoBpmLabel { font-size: 1.536rem !important; }
+#liveKey .lk-scale { font-size: 1.15rem; letter-spacing: 0.5px; } /* a little smaller than "bpm" so it clears the big count */
 body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
 html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
 /* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
@@ -2485,7 +2492,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
+<body class="drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2742,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:44:36 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:56:08 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2773,6 +2780,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 </div>
 
 <header>
+ <div id="liveKey" aria-hidden="true"><span class="lk-note"></span><span class="lk-scale"></span></div><!-- LIVE mode: the song's key, same size as the tempo, left side of the tempo row, per direct request -->
   <h1 id="siFiTitle" style="touch-action:none;-webkit-user-select:none;user-select:none;">Si•Fi</h1>
   <div id="loadMeter" style="position:absolute;left:8px;top:36px;display:none;align-items:center;gap:4px;pointer-events:none;z-index:2;">
     <div class="load-meter-lcd">
@@ -3306,7 +3314,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <input type="checkbox" id="drumsFlashHlToggle" checked onchange="document.body.classList.toggle('drums-flash-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">DRUMS FLASH = PLAY COLOUR
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="drumsPulseToggle" onchange="document.body.classList.toggle('drums-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST DRUMS PULSE
+            <input type="checkbox" id="drumsPulseToggle" checked onchange="document.body.classList.toggle('drums-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST DRUMS PULSE
           </label>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
@@ -6838,6 +6846,7 @@ function fireStepAudio(step, t) {
 // BEAT COUNT (header, left) — 1..4 following the playhead, "-" when stopped.
 let _beatCountLast = null;
 function _setBeatCount(v) {
+  try { _updateLiveKey(); } catch (e) {}
   const el = document.getElementById('beatCount');
   if (el && el._xHold && v !== 'X') { if (v !== '-' && v !== _beatCountLast) { _beatCountLast = v; _pulseAsterisks(); } return; } // the off-'X' holds the readout: no beat may overwrite it before it hides, per direct request
   if (v === _beatCountLast) return; _beatCountLast = v;
@@ -6894,8 +6903,34 @@ function _placeHeaderIcons() {
   const d = bInkLeft - iconInkLeft; if (Math.abs(d) < 0.25) return;
   [rv, dm].forEach(el => { el.style.right = ((parseFloat(el.style.right) || 0) - d) + 'px'; });
 }
+const _LIVE_SCALE_LABELS = { 'penta-min': 'pent min', 'penta-maj': 'pent maj', 'major': 'major', 'minor': 'minor', 'dorian': 'dorian', 'mixolydian': 'mixo', 'blues': 'blues' };
+function _liveKeyText() {
+  if (!globalScaleRoot) return ['', ''];
+  const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const midi = Math.round(12 * Math.log2(globalScaleRoot / 440)) + 69;
+  return [NOTE_NAMES[((midi % 12) + 12) % 12], _LIVE_SCALE_LABELS[currentScaleName] || currentScaleName];
+}
+function _updateLiveKey() {
+  if (!document.body.classList.contains('live-layout')) return;
+  const el = document.getElementById('liveKey'); if (!el) return;
+  const [n, s] = _liveKeyText(); const key = n + '|' + s;
+  if (el._k === key) return; el._k = key;
+  el.firstChild.textContent = n; el.lastChild.textContent = s;
+  _placeLiveKey();
+}
+// left edge on the logo's left edge, number sitting on the same line (same font size + line box) as the tempo number
+function _placeLiveKey() {
+  const el = document.getElementById('liveKey'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
+  if (!el || !num || !el.offsetParent || !document.body.classList.contains('live-layout')) return;
+  const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect(), ncs = getComputedStyle(num);
+  const note = el.firstChild; note.style.fontSize = ncs.fontSize; note.style.lineHeight = ncs.lineHeight;
+  el.style.top = (nr.top - pr.top) + 'px';
+  const lr = logo ? logo.getBoundingClientRect() : { left: pr.left + 12 };
+  el.style.left = (lr.left - pr.left + (parseFloat(getComputedStyle(logo || el).paddingLeft) || 0)) + 'px';
+}
 function _placeBeatCount() {
   try { _placeHeaderIcons(); } catch (e) {}
+  try { if (document.body.classList.contains('live-layout')) { const lk = document.getElementById('liveKey'); if (lk) lk._k = null; _updateLiveKey(); _placeLiveKey(); } } catch (e) {}
   // COUNT, per direct request: centred across the screen, the numeral's ink TOP lined up with the top of the Si•Fi logo's ink,
   // 1.518x the tempo number. Everything is worked out from LAYOUT geometry (offsetTop / padding / font metrics), never from
   // on-screen rects — those include running transforms (the logo's wobble while playing, the count's own beat pop), which made it
@@ -6903,7 +6938,8 @@ function _placeBeatCount() {
   const el = document.getElementById('beatCount'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent) return;
   try { _placeLoadMeter(); } catch (e) {}
-  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) * 1.518) + 'px'; el.style.lineHeight = ncs.lineHeight;
+  const _live = document.body.classList.contains('live-layout');
+  const ncs = getComputedStyle(num); el.style.fontSize = (parseFloat(ncs.fontSize) / (_live ? 2 : 1) * 1.518 * (_live ? 2.5 : 1)) + 'px'; el.style.lineHeight = (parseFloat(ncs.lineHeight) || parseFloat(ncs.fontSize)) / (_live ? 2 : 1) * (_live ? 2.5 : 1) + 'px'; // LIVE: 2.5x bigger, per direct request (measured off the tempo's normal size, which LIVE doubles)
   if (!logo) return;
   _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
   const pageXY = n => { let x = 0, y = 0; for (let e = n; e; e = e.offsetParent) { x += e.offsetLeft; y += e.offsetTop; } return [x, y]; }; // untransformed layout position
@@ -19208,7 +19244,7 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   // with no attenuation at all. -14dB (its original level) plus another
   // -4dB now, applied on top of whatever vel comes out of either path.
   const droneAtten = 0.1334; // -17.5dB total now (+0.5dB from -18dB)
-  const dronePlusBoost = (trackInstruments[tr] === 'dronePlus') ? 1.2589 : 1; // STRINGS+ +2dB — STRINGS itself (plain 'drone') unaffected, both still share this same function
+  const dronePlusBoost = (trackInstruments[tr] === 'dronePlus') ? 1.5488 : 1; // ZINGS (was STRINGS+) +3.75dB (+2dB, then +1.75dB per direct request) — STRINGS itself (plain 'drone') unaffected, both still share this same function
   const vel = (_amalgamVolOverride !== null ? _amalgamVolOverride : 0.18) * (isAccent ? 1.3 : 1) * droneAtten * dronePlusBoost;
   // STRINGS+ STACCATO + PUNCH, per direct request: short notes (at most ~60% of a step, short tail) with a hard attack that
   // spikes above the held level and drops back — a stabbed string section instead of a held pad. Plain STRINGS is unchanged.
@@ -20128,7 +20164,8 @@ function _cycleRainbowMode() {
   if (_k !== undefined && _RAINBOW_CYCLE[_k] && _RAINBOW_CYCLE[_k].perf === perf && _RAINBOW_CYCLE[_k].ruler === ruler) idx = _k;
   if (idx < 0) idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler && !!m.bg0 === bg0);
   if (idx < 0) idx = _RAINBOW_CYCLE.findIndex(m => m.perf === perf && m.ruler === ruler); // e.g. ruler toggled from the menu while BG was zeroed
-  { const _nm = _RAINBOW_CYCLE[(idx + 1) % _RAINBOW_CYCLE.length]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
+  { let _ni = (idx + 1) % _RAINBOW_CYCLE.length; while (_RAINBOW_CYCLE[_ni].liveOnly) _ni = (_ni + 1) % _RAINBOW_CYCLE.length; // LIVE is only reached by dragging the logo down, per direct request
+    const _nm = _RAINBOW_CYCLE[_ni]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
 }
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
@@ -20139,7 +20176,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': false, 'track-text-pulse-solid': true, 'track-pulse-a': false, 'track-pulse-solid': true, 'no-fx-reverb-pulse': true, 'no-ast-pulse': true, 'no-glow': true, 'hide-tape': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, reverbOff: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, all glow off, no pulsing on track buttons / names / asterisks, WILD off, reverb off
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
 // that name one (m.palette). Applied once on entering the mode; WILD / +
@@ -20301,6 +20338,9 @@ function _syncTapeTint() {
     if (nb) new MutationObserver(() => { if (!document.body.classList.contains('tape-from-name')) return; clearTimeout(t2); t2 = setTimeout(_syncTapeTint, 700); }).observe(nb, { attributes: true, attributeFilter: ['style'] }); };
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
+  // BATTERY SAVER per mode (m.batterySaver — LIVE): switched OFF first when leaving such a mode (so its own restore runs before this
+  // mode's settings go on), switched ON last when entering one (so it records and overrides the mode's settings) — see the end
+  if (!m.batterySaver && window._modeBatteryOn) { window._modeBatteryOn = false; if (window._batterySaverOn && typeof toggleBatterySaver === 'function') toggleBatterySaver(); }
   if (m.palette && window._flashBeforePalette === undefined) window._flashBeforePalette = _rootCS().getPropertyValue('--play-flash-color').trim(); // PLAY FLASH before any snapshot colour scheme — restored on leaving them
   // PLAY FLASH FROM TOP ROW per mode (m.flashTop), remembered/restored like tipHl
   if (m.flashTop !== undefined) {
@@ -20422,6 +20462,7 @@ function _applyRainbowState(m) {
     const fs = document.getElementById('failsafeHlToggle'); if (fs) fs.checked = b.contains('failsafe-hl');
     const tl = document.getElementById('trackBtnLightsToggle'); if (tl) tl.checked = b.contains('track-btn-lights');
     const tlp = document.getElementById('trackBtnLightsPulseToggle'); if (tlp) tlp.checked = b.contains('track-btn-lights-pulse');
+    if (m.batterySaver && !window._batterySaverOn && typeof toggleBatterySaver === 'function') { toggleBatterySaver(); window._modeBatteryOn = true; }
     const ljs = document.getElementById('markerLeftJustifySquaresToggle'); if (ljs) ljs.checked = b.contains('marker-left-justify-squares');
     const gl = document.getElementById('glowsOnToggle'); if (gl && !b.contains('menu-open')) gl.checked = !b.contains('no-glow'); // a menu closing re-applies GLOWS from this box, so it must follow the mode
     const fxp = document.getElementById('fxReverbPulseToggle'); if (fxp) fxp.checked = !b.contains('no-fx-reverb-pulse');
@@ -20975,6 +21016,38 @@ function setTonalPercBalance(v) {
       setEightBitMix(window._eightBitPrevMix || 10);
     }
   }
+  // DRAG DOWN on the logo = LIVE mode on/off, per direct request (the only way into LIVE). Follows the finger like the rainbow
+  // icon, but 75% further (52.5px); fires once the drag reaches the end. Uses the separate CSS 'translate' property so it can't
+  // fight the logo's own transform animations. A drag swallows the click that would otherwise follow (the tap actions stay).
+  (function () {
+    const MAXD = 52.5, START = 6;
+    let y0 = null, dragging = false, fired = false, suppressUntil = 0;
+    const vis = dy => { title.style.transition = 'none'; title.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
+    const snap = () => { title.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; title.style.translate = '0 0'; };
+    const toggleLive = () => {
+      const liveIdx = _RAINBOW_CYCLE.findIndex(m => m.liveOnly); if (liveIdx < 0) return;
+      playUiSound('tinyclick');
+      if (window._rainbowIdx === liveIdx) { const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showModeLabel(back); }
+      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); _showModeLabel(lm); }
+    };
+    const move = (y, e) => {
+      if (y0 === null) return;
+      const dy = y - y0;
+      if (!dragging && dy > START) dragging = true;
+      if (!dragging) return;
+      if (e && e.cancelable) e.preventDefault();
+      vis(dy);
+      if (!fired && dy >= MAXD) { fired = true; toggleLive(); }
+    };
+    const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
+    title.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dragging = false; fired = false; }, { passive: true });
+    title.addEventListener('touchmove', e => move(e.touches[0].clientY, e), { passive: false });
+    title.addEventListener('touchend', end); title.addEventListener('touchcancel', end);
+    title.addEventListener('mousedown', e => { y0 = e.clientY; dragging = false; fired = false;
+      const mm = me => move(me.clientY, me), mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+      document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu); });
+    title.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  })();
   title.addEventListener('click', () => {
     _toggleEightBitFromLogo();
     const next = _LOGO_COLOR_MODE_CYCLE[(_LOGO_COLOR_MODE_CYCLE.indexOf(window._logoColorMode) + 1) % _LOGO_COLOR_MODE_CYCLE.length];
