@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 18:19:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 18:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2716,7 +2716,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:19:10 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3660,6 +3660,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="loadMeterToggle" onchange="setLoadMeterEnabled(this.checked)" style="width:14px;height:14px;cursor:pointer;">LOAD METER
       </label>
+      <!-- ADD TO HOME SCREEN, per direct request — iOS has no install API, so on iPhone this shows the Share > Add to Home Screen steps;
+           on Android/Chrome it opens the browser's own install prompt -->
+      <button id="addToHomeBtn" class="rec-mode-btn" onclick="_showInstallHelp()">ADD TO HOME SCREEN</button>
 
       <!-- RANDOMIZE 8-BIT MIX / RANDOMIZE DRUM FX toggles moved to the RANDOMIZE MENU (drag down from +), per direct request -->
 
@@ -5607,7 +5610,7 @@ function connectToDelay(tr, sourceNode) {
   if (!trackDelay[tr] || !ctx || !window._reverbSendBus) return;
   if (!_reverbSendGains[tr]) {
     _reverbSendGains[tr] = ctx.createGain();
-    _reverbSendGains[tr].gain.value = 0.35; // per-track send level into the shared reverb bus — no longer special-cased for track 0
+    _reverbSendGains[tr].gain.value = 0.35 * _drumReverbFactor(tr); // per-track send level into the shared reverb bus — drum / percussion tracks scaled by REVERB ON BEAT
     _reverbSendGains[tr].connect(window._reverbSendBus);
   }
   sourceNode.connect(_reverbSendGains[tr]);
@@ -6618,6 +6621,7 @@ function fireStepAudio(step, t) {
       }
     }
     // Metronome: fire on every beat when all tracks silent and beat not engaged
+    if (step === 0) { try { _syncDrumReverbTaps(); } catch (e) {} } // instruments can change from many places (RAND, swaps) — re-check drum reverb taps once a bar
     // COUNT CLICK, per direct request: the same woodblock click on every beat while the COUNT is in its 2nd-tap (pulse) state, at CLICK LEVEL
     if (step % 4 === 0 && window._countClickOn) playMetronome(t, step === 0, window._clickLevel === undefined ? 1 : window._clickLevel);
     else if (step % 4 === 0 && !beatPlaying) {
@@ -12088,6 +12092,7 @@ function setTrackNameColor(tr, key) {
 }
 
 function selectSound(tr, k) {
+  setTimeout(() => { try { _syncDrumReverbTaps(); } catch (e) {} }, 0); // drum / perc tracks follow REVERB ON BEAT
   const prevKey = trackInstruments[tr];
   _trackInstrumentTouched[tr] = true; // deliberately picked, even before any notes exist — see _updateEmptyTrackVisuals
   if (trackInstruments[tr] === 'ngate' && k !== 'ngate' && _noiseGateNodes[tr]) {
@@ -20540,7 +20545,7 @@ function setNoteMarkersAsterisk(on) { document.body.classList.toggle('note-marke
 function setMarkerLeftJustifySquares(on) { document.body.classList.toggle('marker-left-justify-squares', !!on); }
 function setMarkerLeftJustifyCircles(on) { document.body.classList.toggle('marker-left-justify-circles', !!on); }
 function setRandBtnFf(on) { document.body.classList.toggle('rand-btn-ff', !!on); const c = document.getElementById('randBtnFfToggle'); if (c) c.checked = !!on; _syncFfGlyph(); }
-// letter-spacing for the >> glyph so the gap between the two chevrons' INK is 3px at the + glyph's font size, per direct request
+// letter-spacing for the >> glyph so the gap between the two chevrons' INK is 0.45px (15% of the original 3px) at the + glyph's font size, per direct request
 function _syncFfGlyph() {
   const b = document.getElementById('randBtn'); if (!b) return;
   const cs = getComputedStyle(b);
@@ -20548,7 +20553,7 @@ function _syncFfGlyph() {
   ctx2.font = '900 ' + cs.fontSize + ' ' + cs.fontFamily;
   const m = ctx2.measureText('>');
   const gap = (m.width - m.actualBoundingBoxRight) + (-m.actualBoundingBoxLeft); // right bearing of the 1st + left bearing of the 2nd
-  document.documentElement.style.setProperty('--ff-ls', (3 - gap).toFixed(2) + 'px');
+  document.documentElement.style.setProperty('--ff-ls', (0.45 - gap).toFixed(2) + 'px'); // 0.45px ink gap — 15% of the original 3px, per direct request
 }
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { try { _syncFfGlyph(); } catch (e) {} });
 function setRandBtnAsterisk(on) { document.body.classList.toggle('rand-btn-asterisk', !!on); }
@@ -21273,7 +21278,17 @@ function fullReset() {
   // direct request. Hold still opens the REVERB menu; a plain tap does
   // nothing.
   _makeSwipeIcon(btn, {
-    onSwipe: () => { dragFired = true; _randomizeReverbSettings(); _previewReverb(); }, // the button click itself, run through the newly-rolled reverb, per direct request
+    onSwipe: () => { // the button click itself, run through the newly-rolled reverb, per direct request
+      dragFired = true;
+      // EVERY OTHER swipe, per direct request: alternates between a new random reverb and the overall REVERB MIX at zero (dry)
+      btn._revSwipeN = (btn._revSwipeN || 0) + 1;
+      if (btn._revSwipeN % 2 === 0) {
+        setGlobalDelayMix(0);
+        const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = 0;
+        const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = '0';
+      } else _randomizeReverbSettings();
+      _previewReverb();
+    },
     noClick: true,
     holdMs: HOLD_MS,
     onHold: openMenu,
@@ -21518,6 +21533,26 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// The browser's own install prompt (Android/Chrome), kept whatever the banner's state so SETTINGS > ADD TO HOME SCREEN can use it
+window._deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); window._deferredInstallPrompt = e; });
+// SETTINGS > ADD TO HOME SCREEN, per direct request: shows the install banner again on demand (even if it was dismissed before)
+function _showInstallHelp() {
+  const banner = document.getElementById('installBanner'), text = document.getElementById('installBannerText'), act = document.getElementById('installBannerAction');
+  if (!banner || !text) return;
+  if (typeof hideSettings === 'function') hideSettings();
+  const standalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  if (!standalone && window._deferredInstallPrompt) { // Android / Chrome: the real install dialog
+    const dp = window._deferredInstallPrompt; window._deferredInstallPrompt = null;
+    dp.prompt(); return;
+  }
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  text.textContent = standalone ? 'Si•Fi is already on your home screen — you\'re running the home screen version now.'
+    : isIOS ? 'Tap the Share button (the square with the arrow) in Safari, scroll down and choose "Add to Home Screen", then tap Add.'
+    : 'Open your browser\'s menu and choose "Install app" or "Add to Home Screen".';
+  if (act) act.style.display = 'none';
+  banner.style.display = 'flex';
+}
 // Android/Chrome: capture the native install prompt and trigger it from our
 // own button (Chrome hides its default mini-infobar once we do this).
 // iOS Safari has no install API at all, so it gets a one-time instructional
@@ -21720,7 +21755,9 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
       // A little alternating stereo separation between tracks — nothing
       // drastic, just enough that six tracks don't all sit dead-center.
       const pan = ctx.createStereoPanner(); pan.pan.value = (i % 2 === 0) ? -0.15 : 0.15;
-      g.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(window._masterReverbSend); trackEnvFilters[i] = ef;
+      // per-track tap into the whole-mix reverb send, so DRUM / PERCUSSION tracks can follow REVERB ON BEAT (see _syncDrumReverbTaps)
+      const revTap = ctx.createGain(); revTap.gain.value = 1; window._trackMasterRevTap = window._trackMasterRevTap || []; window._trackMasterRevTap[i] = revTap;
+      g.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); trackEnvFilters[i] = ef;
       trackFxNodes[i] = buildFxChain(g);
       if (trackInstruments[i] === 'ngate') initNoiseGate(i);
       // Reflect any FX state already set in the data model (e.g. Track 1's
@@ -22400,8 +22437,27 @@ function beatCtrlShift() {
 // bus's own reverb send, independent of the overall REVERB MIX. No
 // separate on/off any more (see _randomizeReverbSettings comment above) —
 // this mix alone covers that, all the way down to 0 for silent.
+// REVERB ON BEAT now reaches DRUM and PERCUSSION sounds on the main tracks too, per direct request ("set ON BEAT to zero and the
+// hi-hat still had reverb") — both their share of the whole-mix send and their own R send are scaled by it. At the default
+// (24%) that's x1, exactly as before; 0 = no reverb on them at all; squared taper like BEAT's own send, capped at x3.
+function _drumReverbFactor(tr) {
+  const k = trackInstruments[tr], g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group;
+  if (g !== 'kit' && g !== 'perc') return 1;
+  return Math.min(3, Math.pow((_beatReverbMix || 0) / 0.24, 2));
+}
+function _syncDrumReverbTaps() {
+  if (!ctx) return;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const f = _drumReverbFactor(tr);
+    const tap = window._trackMasterRevTap && window._trackMasterRevTap[tr];
+    if (tap && Math.abs(tap.gain.value - f) > 1e-4) tap.gain.setTargetAtTime(f, ctx.currentTime, 0.02);
+    const sg = _reverbSendGains[tr];
+    if (sg && Math.abs(sg.gain.value - 0.35 * f) > 1e-4) sg.gain.setTargetAtTime(0.35 * f, ctx.currentTime, 0.02);
+  }
+}
 function setBeatReverbMix(v) {
   _beatReverbMix = v;
+  try { _syncDrumReverbTaps(); } catch (e) {}
   _ensureBeatFxChain();
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setTargetAtTime(_beatReverbGainForMix(v), ctx.currentTime, 0.02);
 }
