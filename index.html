@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 21:19:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:23:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2749,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:19:01 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:23:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6930,18 +6930,9 @@ function _placeLiveKey() {
   el.style.top = (nr.top - pr.top) + 'px';
   const lr = logo ? logo.getBoundingClientRect() : { left: pr.left + 12 };
   el.style.left = (lr.left - pr.left + (parseFloat(getComputedStyle(logo || el).paddingLeft) || 0)) + 'px';
-  // the scale label's FIRST LETTER lines up with the SWEEP button's left edge, per direct request (measured on the letter's ink);
-  // if a wide note already reaches past that edge, it sits 2px after the note instead
   const sc = el.lastChild, sw = document.getElementById('clearBtn');
   if (sc && sw && sc.firstChild) {
-    sc.style.marginLeft = '0px';
-    const scs = getComputedStyle(sc);
-    _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
-    _beatMeasureCtx.font = scs.fontWeight + ' ' + scs.fontSize + ' ' + scs.fontFamily;
-    const bearing = -_beatMeasureCtx.measureText((sc.textContent || 'p')[0]).actualBoundingBoxLeft; // ink starts this far right of the text start
-    const textStart = sc.getBoundingClientRect().left, noteRight = note.getBoundingClientRect().right;
-    const want = sw.getBoundingClientRect().left - bearing;
-    sc.style.marginLeft = (Math.max(want, noteRight + 2) - textStart) + "px";
+    sc.style.marginLeft = '6px'; // just follows the note with a small gap — no longer lined up with SWEEP, per direct request
     // a long name ("pentatonic minor") wraps onto two lines rather than running into the big count — its last line sits on the
     // note's baseline, the first stacks above it
     const bc = document.getElementById('beatCount');
