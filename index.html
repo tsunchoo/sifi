@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 21:15:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:19:01 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2749,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:15:17 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:19:01 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -4974,7 +4974,7 @@ function setNoButtonSounds(on) {
   const cb = document.getElementById('noButtonSoundsToggle'); if (cb) cb.checked = !!on;
 }
 document.addEventListener('DOMContentLoaded', () => { setButtonSoundsToMix(window._buttonSoundsToMix); setNoButtonSounds(window._noButtonSounds); });
-function playUiSound(name) {
+function playUiSound(name, forceMix) { // forceMix: always through the mix (so REALTIME recording captures it), whatever BUTTON SOUNDS TO MIX says
   if (window._noButtonSounds) return;
   if (!ctx || !window._uiSoundBufs || !window._uiSoundBufs[name]) return;
   const src = ctx.createBufferSource(); src.buffer = window._uiSoundBufs[name];
@@ -4987,7 +4987,7 @@ function playUiSound(name) {
   // StopReversed, Cymbal, Rand, and the plain 0.7 default (click, play,
   // clickoff).
   g.gain.value = (name === 'rewind' ? 0.625 : name === 'Stop' ? 0.7 * 0.376 : name === 'StopReversed' ? 0.7 * 0.376 : name === 'Cymbal' ? 0.7 * 0.299 : name === 'Rand' ? 0.7 * 0.3548 : name === 'tinyclick' ? 0.7 * 0.7079 : 0.7) * 0.7943; // tinyclick (header icon drags) -3dB, per direct request
-  if (window._buttonSoundsToMix === false) {
+  if (window._buttonSoundsToMix === false && !forceMix) {
     // Straight to the speakers, level-matched to the mix path (see above).
     g.gain.value *= (masterGain ? masterGain.gain.value : 1) * (window._makeupGain ? window._makeupGain.gain.value : 1);
     src.connect(g); g.connect(ctx.destination);
@@ -15816,7 +15816,7 @@ function tempoNoteFactor() {
 const REVERB_PREVIEW_SEND = 0.9; // -5dB from 1.6, per direct request; // pulled right back from 8 (+18dB), per direct report ("sounds horrible, really loud") — about +4dB now, and low-passed below so the click's sharp edge doesn't splash harshly into the reverb
 function _previewReverb() {
   if (window._noButtonSounds || !ctx) return;
-  playUiSound('tinyclick');
+  playUiSound('tinyclick', true); // the preview's dry click ALWAYS goes through the mix, so the realtime recording bus gets it, per direct request — its wet part below already goes through the reverb return, which is in the recorded chain
   const buf = window._uiSoundBufs && window._uiSoundBufs['tinyclick'];
   if (!buf || !window._reverbSendBus) return;
   const src = ctx.createBufferSource(); src.buffer = buf;
