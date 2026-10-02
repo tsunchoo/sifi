@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 18:57:06 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 19:03:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -532,7 +532,7 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
    ::after, same font size. Because it's a child of the same .glyph element, every state (new-pattern pulse, build-up, SPIRIT PULSE
    colour cycle, flashes, press) animates it exactly as it did the "+". The letter-spacing below leaves ~4px of ink gap between the two chevrons. */
 body.rand-btn-ff #randBtn .glyph { font-size: 0; line-height: 0; }
-body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: -0.1136em; margin-right: 0.1136em; /* fixed: ~4px ink gap between the chevrons at this size, measured on the real DM Sans (natural gap 9.25px) — per direct request. The old runtime measurement read the wrong (not-yet-loaded / 900-weight) font metrics on the phone and left them ~10px apart */ display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
+body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: -0.1569em; margin-right: 0.1569em; /* fixed: ~2px ink gap (halved from 4px, per direct request) between the chevrons at this size, measured on the real DM Sans (natural gap 9.25px) — per direct request. The old runtime measurement read the wrong (not-yet-loaded / 900-weight) font metrics on the phone and left them ~10px apart */ display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
 body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
 /* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
    in asterisk mode that text is invisible, but a CSS animation still
@@ -2458,7 +2458,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
+<body class="rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2715,7 +2715,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 18:57:06 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:03:42 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2989,7 +2989,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">+ BUTTON = &gt;&gt;</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randBtnFfToggle" onchange="setRandBtnFf(this.checked)">
+        <input type="checkbox" id="randBtnFfToggle" checked onchange="setRandBtnFf(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -8969,7 +8969,8 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
     } catch(e) {}
   }
   const dest = getSynthConnectNode(tr);
-  const vel = (isAccent ? 0.8758 : 0.5933) * 1.585; // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
+  const _dbFxAtten = (tr !== undefined && ((trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0)) || trackPump[tr])) ? 0.5957 : 1; // -4.5dB whenever FX or BLAST is on this track, per direct request
+  const vel = (isAccent ? 0.8758 : 0.5933) * 1.585 * _dbFxAtten; // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
   const startFreq = _dbassGlide[tr] || freq;
   _dbassGlide[tr] = freq;
 
