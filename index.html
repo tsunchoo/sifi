@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 19:28:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 19:30:56 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2720,7 +2720,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:28:11 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:30:56 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7559,7 +7559,7 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
 // (separate from the global ducking system) ──
 function playSludgeBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq || freq < 10) return;
-  const vel = isAccent ? 1.3438 : 0.9487;
+  const vel = (isAccent ? 1.3438 : 0.9487) * ((tr !== undefined && trackPump[tr]) ? 0.8913 : 1); // -1dB under BLAST, per direct request
   const startFreq = _bassGlideState[tr] || freq;
   _bassGlideState[tr] = freq;
   // Was hand-resolving dest (FX routing + duck) itself, which meant this
@@ -8768,7 +8768,7 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   const saw2 = ctx.createOscillator(); saw2.type = 'sawtooth'; saw2.frequency.value = f; saw2.detune.value = 3;
   const sub  = ctx.createOscillator(); sub.type  = 'sine';   sub.frequency.value  = f * 0.5;
 
-  const _blastAtten = trackPump[tr] ? 0.7943 : 1; // -2dB when BLAST is on this track — had no BLAST-specific attenuation at all before, same idea as PUNK BASS's own fix
+  const _blastAtten = trackPump[tr] ? 0.7079 : 1; // -3dB when BLAST is on this track (another -1dB per direct request; was -2dB)
   const mix = ctx.createGain(); mix.gain.value = 0.55 * _blastAtten; // vel lives only in ampEnv below — it used to also get applied here, compounding to roughly vel^2 and clipping at the output on accented hits
 
   // Tight lowpass — closed, punchy, no bloom
@@ -8909,7 +8909,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
     } catch(e) {}
   }
   const dest = getSynthConnectNode(tr);
-  const _blastAtten = trackPump[tr] ? 0.3162 : 1; // -10dB when BLAST is on this track (was -5dB; another -5dB per direct request — still too loud)
+  const _blastAtten = trackPump[tr] ? 0.2661 : 1; // -11.5dB when BLAST is on this track (another -1.5dB, per direct request; was -10dB)
   const _fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const _fxOrBlastAtten = (_fxOn || trackPump[tr]) ? 0.8 : 1; // -20% per direct request, whenever FX or FX BLAST is engaged on this track — stacks with _blastAtten above when BLAST specifically is on
   const vel = (isAccent ? 1.601 : 1.155) * _blastAtten * _fxOrBlastAtten; // +3dB on top (was too quiet without FX)
@@ -8975,7 +8975,7 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   }
   const dest = getSynthConnectNode(tr);
   const _dbFxAtten = (tr !== undefined && ((trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0)) || trackPump[tr])) ? 0.5957 : 1; // -4.5dB whenever FX or BLAST is on this track, per direct request
-  const vel = (isAccent ? 0.8758 : 0.5933) * 1.585 * _dbFxAtten; // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
+  const vel = (isAccent ? 0.8758 : 0.5933) * 1.585 * _dbFxAtten * ((tr !== undefined && trackPump[tr]) ? 0.8414 : 1); // + another -1.5dB under BLAST specifically, per direct request // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
   const startFreq = _dbassGlide[tr] || freq;
   _dbassGlide[tr] = freq;
 
@@ -9061,7 +9061,7 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   }
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
-  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.6309 : 1; // -2dB more still (was 0.7943, -2dB before that) — BLAST specifically (not just FX) on this track
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.5309 : 1; // -5.5dB under BLAST (another -1.5dB per direct request; was 0.6309) — BLAST specifically (not just FX) on this track
   const vel = (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten; // +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
