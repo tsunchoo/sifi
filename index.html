@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 20:03:40 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 20:27:18 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -532,8 +532,13 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
 /* + BUTTON = >> (LOOK AND FEEL, top), per direct request: the glyph's own "+" text is collapsed and a ">>" drawn in its place as
    ::after, same font size. Because it's a child of the same .glyph element, every state (new-pattern pulse, build-up, SPIRIT PULSE
    colour cycle, flashes, press) animates it exactly as it did the "+". The letter-spacing below leaves ~4px of ink gap between the two chevrons. */
-body.rand-btn-ff #randBtn .glyph { font-size: 0; line-height: 0; }
-body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: -0.2em; margin-right: 0.2em; /* tightened again, per direct request (the phone shows a wider gap than the desktop measurement predicts) — was -0.1569em, before that -0.1136em between the chevrons at this size, measured on the real DM Sans (natural gap 9.25px) — per direct request. The old runtime measurement read the wrong (not-yet-loaded / 900-weight) font metrics on the phone and left them ~10px apart */ display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph { font-size: 0; line-height: 0; }
+/* the two chevrons are now SEPARATE boxes (::before + ::after) pulled together with a negative margin, per direct report that the
+   right-hand tip was being cut off — the old single '>>' with negative letter-spacing left the last chevron's ink sticking out past
+   its own text box, which Safari clips. Each chevron now sits fully inside its own box. Same ~-0.2em overlap as before. */
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before,
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { content: '>'; font-size: 2.8875rem; line-height: 1; display: inline-block; vertical-align: middle; }
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.2em; }
 body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
 /* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
    in asterisk mode that text is invisible, but a CSS animation still
@@ -2729,7 +2734,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:03:40 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 20:27:18 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5556,7 +5561,10 @@ function swapTrackInstrumentInGroup(tr, anyGroup, avoidKey) { // anyGroup (doubl
   const otherBass = trackInstruments.some((o, t) => t !== tr && o && isBass(o));
   // any group = everything the sound picker offers, but never the instrument the track had before the double-tap (avoidKey) and
   // never a second bass when another track already has one, per direct request
-  const inGrp = k => anyGroup ? (['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) && k !== avoidKey && !(otherBass && isBass(k))) : groupOf(k) === grp;
+  // double-tap: ALWAYS a different musical group (kit / perc / lead / pad / bass) from the one the track was in before the
+  // double-tap, per direct request — and still never a second bass
+  const fromGrp = groupOf(avoidKey && INSTRUMENTS[avoidKey] ? avoidKey : cur);
+  const inGrp = k => anyGroup ? (['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) && k !== avoidKey && groupOf(k) !== fromGrp && !(otherBass && isBass(k))) : groupOf(k) === grp;
   let options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !clashes(k));
   if (!options.length) options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !trackInstruments.includes(k)); // one-of rules would leave nothing — still never duplicate a track
   if (!options.length) return false;
@@ -15751,7 +15759,7 @@ function _randomizeReverbSettings() {
   // than depending on some track happening to have its own send on, but
   // it should still be able to land anywhere in the full range, silent
   // included, same as SIZE and ON BEAT below.
-  const _newReverbMix = Math.random();
+  const _newReverbMix = 0.35 + Math.random() * 0.65; // never below 35% when the reverb is on, per direct request (the off state is the every-other swipe's 0)
   setGlobalDelayMix(_newReverbMix);
   const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = Math.round(_newReverbMix * 100);
   const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = Math.round(_newReverbMix * 100);
