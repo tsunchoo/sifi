@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 21:23:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 21:30:52 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2749,7 +2749,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:23:10 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 21:30:52 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5580,8 +5580,10 @@ function swapTrackInstrumentInGroup(tr, anyGroup, avoidKey) { // anyGroup (doubl
   // never a second bass when another track already has one, per direct request
   // double-tap: ALWAYS a different musical group (kit / perc / lead / pad / bass) from the one the track was in before the
   // double-tap, per direct request — and still never a second bass
-  const fromGrp = groupOf(avoidKey && INSTRUMENTS[avoidKey] ? avoidKey : cur);
-  const inGrp = k => anyGroup ? (['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) && k !== avoidKey && groupOf(k) !== fromGrp && !(otherBass && isBass(k))) : groupOf(k) === grp;
+  // ...and for this, drums + percussion count as ONE side: a tonal track always flips to drums/percussion and vice versa, per direct request
+  const side = k => (INSTRUMENTS[k] && (INSTRUMENTS[k].group === 'kit' || INSTRUMENTS[k].group === 'perc')) ? 'drum' : 'tonal';
+  const fromSide = side(avoidKey && INSTRUMENTS[avoidKey] ? avoidKey : cur);
+  const inGrp = k => anyGroup ? (['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k] && INSTRUMENTS[k].group) && k !== avoidKey && side(k) !== fromSide && !(otherBass && isBass(k))) : groupOf(k) === grp;
   let options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !clashes(k));
   if (!options.length) options = INSTRUMENT_KEYS.filter(k => k !== cur && inGrp(k) && !trackInstruments.includes(k)); // one-of rules would leave nothing — still never duplicate a track
   if (!options.length) return false;
@@ -21040,8 +21042,20 @@ function setTonalPercBalance(v) {
   // icon, but 75% further (52.5px); fires once the drag reaches the end. Uses the separate CSS 'translate' property so it can't
   // fight the logo's own transform animations. A drag swallows the click that would otherwise follow (the tap actions stay).
   (function () {
-    const MAXD = 52.5, START = 6;
+    const START = 6; let MAXD = 52.5;
     let y0 = null, dragging = false, fired = false, suppressUntil = 0;
+    // In LIVE the drag is cut down to the gap between the bottom of the logo and the TOP of the key text, per direct request (so
+    // the logo never slides into the key); measured on the drawn ink at the start of each drag. Outside LIVE it stays 52.5px.
+    const liveMax = () => {
+      const key = document.getElementById('liveKey'); if (!document.body.classList.contains('live-layout') || !key || !key.firstChild) return 52.5;
+      const c2 = (_beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d'));
+      const ink = (el, txt, top) => { const cs = getComputedStyle(el); c2.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; const m = c2.measureText(txt);
+        const rg = document.createRange(); rg.selectNodeContents(el); const rr = rg.getBoundingClientRect();
+        const base = rr.top + m.fontBoundingBoxAscent; return top ? base - m.actualBoundingBoxAscent : base + m.actualBoundingBoxDescent; };
+      const logoBottom = ink(title, title.textContent.trim(), false) - (parseFloat(title.style.translate && title.style.translate.split(' ')[1]) || 0);
+      const keyTop = ink(key.firstChild, key.firstChild.textContent.trim() || 'A', true);
+      return Math.max(12, keyTop - logoBottom);
+    };
     const vis = dy => { title.style.transition = 'none'; title.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
     const snap = () => { title.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; title.style.translate = '0 0'; };
     const toggleLive = () => {
@@ -21060,10 +21074,10 @@ function setTonalPercBalance(v) {
       if (!fired && dy >= MAXD) { fired = true; toggleLive(); }
     };
     const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
-    title.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dragging = false; fired = false; }, { passive: true });
+    title.addEventListener('touchstart', e => { y0 = e.touches[0].clientY; dragging = false; fired = false; try { MAXD = liveMax(); } catch (er) { MAXD = 52.5; } }, { passive: true });
     title.addEventListener('touchmove', e => move(e.touches[0].clientY, e), { passive: false });
     title.addEventListener('touchend', end); title.addEventListener('touchcancel', end);
-    title.addEventListener('mousedown', e => { y0 = e.clientY; dragging = false; fired = false;
+    title.addEventListener('mousedown', e => { y0 = e.clientY; dragging = false; fired = false; try { MAXD = liveMax(); } catch (er) { MAXD = 52.5; }
       const mm = me => move(me.clientY, me), mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
       document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu); });
     title.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
