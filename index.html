@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-02 19:03:42 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-02 19:12:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -532,7 +532,7 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
    ::after, same font size. Because it's a child of the same .glyph element, every state (new-pattern pulse, build-up, SPIRIT PULSE
    colour cycle, flashes, press) animates it exactly as it did the "+". The letter-spacing below leaves ~4px of ink gap between the two chevrons. */
 body.rand-btn-ff #randBtn .glyph { font-size: 0; line-height: 0; }
-body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: -0.1569em; margin-right: 0.1569em; /* fixed: ~2px ink gap (halved from 4px, per direct request) between the chevrons at this size, measured on the real DM Sans (natural gap 9.25px) — per direct request. The old runtime measurement read the wrong (not-yet-loaded / 900-weight) font metrics on the phone and left them ~10px apart */ display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
+body.rand-btn-ff #randBtn .glyph::after { content: '>>'; font-size: 2.8875rem; line-height: 1; letter-spacing: -0.2em; margin-right: 0.2em; /* tightened again, per direct request (the phone shows a wider gap than the desktop measurement predicts) — was -0.1569em, before that -0.1136em between the chevrons at this size, measured on the real DM Sans (natural gap 9.25px) — per direct request. The old runtime measurement read the wrong (not-yet-loaded / 900-weight) font metrics on the phone and left them ~10px apart */ display: inline-block; transform: translateY(var(--ff-dy, 0px)); }
 body.rand-btn-asterisk #randBtn .glyph { color: transparent; position: relative; transform: translateX(-1px); }
 /* The pulse (SPIRIT PULSE, below) animates this glyph's own text color —
    in asterisk mode that text is invisible, but a CSS animation still
@@ -2715,7 +2715,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:03:42 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-02 19:12:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7978,7 +7978,7 @@ function randomizeBassTrack(tr, level) {
   // reworked to sustain across a held/legato duration instead of always
   // ringing out on a short fixed decay, so it needs this pass to actually
   // ever get a held duration to sustain across.
-  if (key === 'dronePlus') { // SPARP (sflute) no longer shares this — it's short triplet-arpeggio hits now, not held legato notes
+  if (false && key === 'dronePlus') { // OFF: STRINGS+ is staccato now, per direct request — no more contiguous held notes. (SPARP no longer shares this either)
     const onsets = [];
     for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
@@ -19162,9 +19162,12 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
   const droneAtten = 0.1334; // -17.5dB total now (+0.5dB from -18dB)
   const dronePlusBoost = (trackInstruments[tr] === 'dronePlus') ? 1.2589 : 1; // STRINGS+ +2dB — STRINGS itself (plain 'drone') unaffected, both still share this same function
   const vel = (_amalgamVolOverride !== null ? _amalgamVolOverride : 0.18) * (isAccent ? 1.3 : 1) * droneAtten * dronePlusBoost;
-  const sustain = Math.max(durSec || 0.35, 0.35);
-  const bodyTail = 0.45; // a little more sustain — compensates for the airier/thinner EQ below
-  const glideDur = (glideFromFreq && glideFromFreq !== freq) ? Math.min(sustain * 0.4, 0.35) : 0; // STRINGS+ portamento — a portion of the note, capped so short notes don't glide forever; 0 (no glide) for plain STRINGS, which never passes glideFromFreq at all
+  // STRINGS+ STACCATO + PUNCH, per direct request: short notes (at most ~60% of a step, short tail) with a hard attack that
+  // spikes above the held level and drops back — a stabbed string section instead of a held pad. Plain STRINGS is unchanged.
+  const _stac = trackInstruments[tr] === 'dronePlus';
+  const sustain = _stac ? Math.min(Math.max(durSec || 0.1, 0.05), stepDuration() * 0.6) : Math.max(durSec || 0.35, 0.35);
+  const bodyTail = _stac ? 0.11 : 0.45; // a little more sustain — compensates for the airier/thinner EQ below
+  const glideDur = (glideFromFreq && glideFromFreq !== freq) ? (_stac ? Math.min(sustain * 0.3, 0.035) : Math.min(sustain * 0.4, 0.35)) : 0; // STRINGS+ portamento — a portion of the note, capped so short notes don't glide forever; 0 (no glide) for plain STRINGS, which never passes glideFromFreq at all
 
   // Three detuned oscillators for a thicker, less stable core than TEXTURE's
   // plain sine+triangle pair.
@@ -19236,8 +19239,15 @@ function _playDronePhantomNote(tr, freq, isAccent, t, dest, durSec, glideFromFre
 
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, t);
-  env.gain.linearRampToValueAtTime(vel, t + 0.08);
-  env.gain.setValueAtTime(vel, t + sustain);
+  if (_stac) { // punch: 5ms attack to a peak ~+5dB over the body, settling back within ~70ms (+2dB body lift so short notes don't read quieter)
+    const body = vel * 1.2589;
+    env.gain.linearRampToValueAtTime(body * 1.78, t + 0.005);
+    env.gain.exponentialRampToValueAtTime(body, t + Math.min(0.07, sustain));
+    env.gain.setValueAtTime(body, t + sustain);
+  } else {
+    env.gain.linearRampToValueAtTime(vel, t + 0.08);
+    env.gain.setValueAtTime(vel, t + sustain);
+  }
   env.gain.exponentialRampToValueAtTime(0.0005, t + sustain + bodyTail);
 
   const hp1 = ctx.createBiquadFilter(); hp1.type = 'highpass'; hp1.frequency.value = 180; hp1.Q.value = 0.7;
@@ -21395,10 +21405,9 @@ function fullReset() {
       markModified();
     }
     // Hold-and-drag across track names is now MOMENTARY, per direct request:
-    // the mutes apply while the finger is down, and letting go restores
-    // each track to the mute state it had before the gesture began (tracks
-    // that were already muted stay muted).
-    _restoreDragMutes();
+    // LATCHING again, per direct request: whatever the drag muted / unmuted STAYS that way on release, until a single tap or
+    // another drag changes it (the momentary restore-on-release behaviour is gone).
+    window._mutesBeforeDrag = null;
     _dragActive = false; _isDragging = false; _dragVisited = new Set();
   };
   function _restoreDragMutes() {
@@ -21418,7 +21427,7 @@ function fullReset() {
   document.addEventListener('touchend', endDrag);
   document.addEventListener('touchcancel', () => {
     if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-    _restoreDragMutes();
+    window._mutesBeforeDrag = null;
     _dragActive = false; _isDragging = false; _dragVisited = new Set();
   });
 
@@ -22321,7 +22330,7 @@ let _beatVolRaw = 0.5711; // +3dB (was 0.4043), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
 function _applyBeatVolWithDuck() {
   if (!window._beatGain) return;
-  const duck = (_beatFx || _beatPump) ? Math.pow(10, -1.5 / 20) : 1;
+  const duck = (_beatFx || _beatPump) ? Math.pow(10, -3 / 20) : 1; // -3dB with DRUMS FX or BLAST on (was -1.5dB; another -1.5dB per direct request)
   const target = _beatSoloMuted ? 0 : _beatVolRaw * duck;
   if (ctx) {
     // A short, clean linear fade rather than an asymptotic setTargetAtTime
