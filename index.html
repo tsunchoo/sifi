@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-04 19:12:15 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-04 19:26:32 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 19:12:15 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 19:26:32 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3008,7 +3008,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
+    <!-- PERFORMANCE MODE switch hidden, per direct request: the save-slot layout is retired (code kept); every display mode now has it on -->
+    <div style="display:none;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PERFORMANCE MODE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="performanceModeToggle" onchange="setPerformanceMode(this.checked)">
@@ -19867,7 +19868,25 @@ function _addToTapeDrawer() {
     const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
     window._tapeDrawerItems.unshift({ snap: snapshotState(), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
     if (window._tapeDrawerItems.length > 40) window._tapeDrawerItems.length = 40;
+    _showTapeSavedDialog(name);
   } catch (e) { console.error('tape drawer save failed', e); }
+}
+// "SAVED TO TAPE DRAWER" box on every song-name double-tap, per direct request — same look as the SETTINGS panel, closes
+// itself after 1.5s (or on a tap). Doesn't block anything underneath — playback carries on.
+function _showTapeSavedDialog(name) {
+  let d = document.getElementById('tapeSavedDialog');
+  if (d) { clearTimeout(d._t); d.remove(); }
+  d = document.createElement('div'); d.id = 'tapeSavedDialog';
+  d.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:260;background:#f5f0e8;padding:20px 24px;width:min(300px,80vw);box-sizing:border-box;display:flex;flex-direction:column;gap:8px;align-items:center;font-family:\'DM Sans\',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.35);transition:opacity 0.25s ease-out;';
+  const t = document.createElement('div'); t.textContent = 'SAVED TO TAPE DRAWER';
+  t.style.cssText = 'font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111;text-align:center;';
+  const n = document.createElement('div'); n.textContent = name || '';
+  n.style.cssText = 'font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#777;text-align:center;';
+  d.appendChild(t); if (name) d.appendChild(n);
+  const close = () => { d.style.opacity = '0'; setTimeout(() => d.remove(), 260); };
+  d.addEventListener('click', close);
+  document.body.appendChild(d);
+  d._t = setTimeout(close, 1500);
 }
 let _tapeDrawerPre = null;
 function _tapeDrawerStopOneShot() {
@@ -20204,7 +20223,6 @@ function _cycleRainbowMode() {
 }
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
-  { perf: false, ruler: true,  bg0: true, name: 'LUNCHBREAK' },
   { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'lock-swap': true, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "120"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
