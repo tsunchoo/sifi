@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-04 18:04:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-04 18:20:04 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -14,6 +14,8 @@
 <meta name="theme-color" content="#f5f0e8">
 <title>Si•Fi</title>
 <style>
+.tape-drawer-btn.tape-drawer-playing { animation: tape-drawer-pulse 0.6s ease-in-out infinite alternate; }
+@keyframes tape-drawer-pulse { from { filter: brightness(1); } to { filter: brightness(1.25); } }
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
 :root {
   --bg: #f5f0e8; --panel: #ede8df; --border: #b0a898;
@@ -2712,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 18:04:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 18:20:04 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3587,6 +3589,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 </div>
 
 <!-- Settings window — appears on reel hold -->
+<!-- TAPE DRAWER, per direct request — drag down from the tape window. Every pattern saved this session (double-tap the song name)
+     as a song-name-style button; tapping one plays it through once. -->
+<div id="tapeDrawerOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);">
+  <div id="tapeDrawerPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;width:min(380px,90vw);box-sizing:border-box;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">TAPE DRAWER</div>
+    <div id="tapeDrawerList" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
 <div id="settingsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);" id="settingsBg">
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
 
@@ -6127,7 +6137,13 @@ function scheduler() {
   let _stepsThisPass = 0;
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     if (++_stepsThisPass > 4) { nextStepTime = ctx.currentTime + LOOKAHEAD; break; }
+    // TAPE DRAWER one-shot playback: stop at the end of bar 1 instead of looping round to step 0 again.
+    if (window._oneShot && currentStep === NUM_STEPS - 1 && window._oneShot.started) {
+      if (!window._oneShot.ending) { window._oneShot.ending = true; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot) _tapeDrawerStopOneShot(); }, ms); }
+      break;
+    }
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
+    if (window._oneShot && step === 0) window._oneShot.started = true;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider.
     // SAMBA is exempt — its own snare/sidestick hits land on a MIX of odd
     // steps (3,9,11) and even steps (6,14) within the exact same voice, so
@@ -7136,13 +7152,27 @@ function setLoadMeterEnabled(v) {
 // LOAD METER position, per direct request: 6px from the screen's left edge, vertically centred on the tempo block's LOCKED label line
 // (worked out from the tempo readout, so it's right whether LOCKED is showing or not)
 function _placeLoadMeter() {
-  const lm = document.getElementById('loadMeter'), ro = document.getElementById('topTempoReadout'), lk = document.getElementById('topTempoLockedLabel');
-  if (!lm || !ro || !lm.offsetParent || lm.style.display === 'none') return;
-  const pr = lm.offsetParent.getBoundingClientRect(), rr = ro.getBoundingClientRect();
-  const lkH = parseFloat(getComputedStyle(lk || ro).fontSize) || 9.6; // LOCKED has line-height 1, so its box is its font size tall
-  const centreY = rr.bottom + 5 + lkH / 2;
+  const lm = document.getElementById('loadMeter'), lk = document.getElementById('topTempoLockedLabel');
+  if (!lm || !lk || !lm.offsetParent || lm.style.display === 'none') return;
+  // Measures the LOCKED label itself (briefly laid out invisibly when it's hidden), per direct request — the old version guessed
+  // its position from the tempo readout. Aligns to LOCKED's text baseline, not its line box.
+  const hidden = getComputedStyle(lk).display === 'none';
+  if (hidden) { lk.style.visibility = 'hidden'; lk.style.display = 'block'; }
+  const kr = lk.getBoundingClientRect(), cs = getComputedStyle(lk);
+  if (hidden) { lk.style.display = 'none'; lk.style.visibility = ''; }
+  const fs = parseFloat(cs.fontSize) || 9.6;
+  // BOTTOM of the meter sits on LOCKED's baseline, per direct request (was centred on it).
+  let baseline = kr.top + kr.height * 0.8;
+  try {
+    const c = _placeLoadMeter._c || (_placeLoadMeter._c = document.createElement('canvas').getContext('2d'));
+    c.font = cs.fontWeight + ' ' + fs + 'px ' + cs.fontFamily;
+    const m = c.measureText('LOCKED');
+    const asc = m.fontBoundingBoxAscent, desc = m.fontBoundingBoxDescent;
+    if (asc) baseline = kr.top + (kr.height - (asc + desc)) / 2 + asc;
+  } catch (e) {}
+  const pr = lm.offsetParent.getBoundingClientRect();
   lm.style.left = (6 - pr.left) + 'px';
-  lm.style.top = (centreY - lm.offsetHeight / 2 - pr.top) + 'px';
+  lm.style.top = (baseline - lm.offsetHeight - pr.top) + 'px';
 }
 function _updateLoadMeter() {
   if (!window._loadMeterEnabled) return;
@@ -18707,6 +18737,7 @@ function _syncTempoLockUI() {
   if (num) num.style.color = 'var(--header-text-color, #111)'; // stays black regardless of lock state now — the LOCKED label below is enough of a lock indicator on its own
   if (lbl) lbl.style.color = 'var(--header-text-color, #111)'; // "bpm" label — also stays black regardless of lock state, same reasoning as num above; used to turn red (var(--playhead)) when locked
   if (locked) locked.style.display = _tempoLocked ? 'block' : 'none';
+  try { _placeLoadMeter(); } catch (e) {}
 }
 function toggleTempoLock() {
   _tempoLocked = !_tempoLocked;
@@ -19820,6 +19851,96 @@ function setSwapSpools(on) {
     container.insertBefore(rightWrap, null);
   }
 }
+// ── TAPE DRAWER, per direct request ──────────────────────────────────────
+// Drag DOWN from the tape window (between the spools) to open. Opening stops playback and lists every pattern saved this
+// session by double-tapping the song name — newest first, each drawn like the song-name bar (its own colour and name).
+// Tapping one loads it and plays it ONCE (one bar, no loop). Closing (tap outside the panel) puts back the pattern that was
+// loaded before the drawer opened, so browsing never loses the current one. Session only — not stored between visits.
+window._tapeDrawerItems = [];
+function _addToTapeDrawer() {
+  try {
+    const nd = document.getElementById('nameDisplay');
+    const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
+    window._tapeDrawerItems.unshift({ snap: snapshotState(), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
+    if (window._tapeDrawerItems.length > 40) window._tapeDrawerItems.length = 40;
+  } catch (e) { console.error('tape drawer save failed', e); }
+}
+let _tapeDrawerPre = null;
+function _tapeDrawerStopOneShot() {
+  window._oneShot = null;
+  if (playing) togglePlay();
+  document.querySelectorAll('#tapeDrawerList .tape-drawer-btn').forEach(b => b.classList.remove('tape-drawer-playing'));
+}
+function _renderTapeDrawer() {
+  const list = document.getElementById('tapeDrawerList'); if (!list) return;
+  list.innerHTML = '';
+  if (!window._tapeDrawerItems.length) {
+    const e = document.createElement('div');
+    e.style.cssText = 'font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#777;text-align:center;line-height:1.5;padding:12px 0;';
+    e.textContent = 'NO TAPES YET — DOUBLE-TAP THE SONG NAME TO SAVE ONE';
+    list.appendChild(e); return;
+  }
+  window._tapeDrawerItems.forEach((it, i) => {
+    const b = document.createElement('button');
+    b.className = 'tape-drawer-btn';
+    b.textContent = it.name;
+    b.style.cssText = 'display:flex;justify-content:center;align-items:center;width:100%;min-height:46.08px;padding:6px 8px;border:none;font-family:\'DM Sans\',sans-serif;font-size:1.1875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;-webkit-user-select:none;user-select:none;background:' + it.color + ';color:' + barTextColor(it.color) + ';';
+    b.onclick = () => _tapeDrawerPlay(i, b);
+    list.appendChild(b);
+  });
+}
+function _tapeDrawerPlay(i, btn) {
+  const it = window._tapeDrawerItems[i]; if (!it) return;
+  if (!ctx) { try { initAudio(); } catch (e) {} }
+  if (window._oneShot || playing) _tapeDrawerStopOneShot();
+  try { restoreState(it.snap); } catch (e) { console.error('tape drawer load failed', e); return; }
+  Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch (e) {} }); // a one-off play — no per-bar re-rolls
+  _autoRandLoopActive = false; _autoRandPending = false;
+  document.querySelectorAll('#tapeDrawerList .tape-drawer-btn').forEach(b => b.classList.remove('tape-drawer-playing'));
+  if (btn) btn.classList.add('tape-drawer-playing');
+  window._oneShot = { started: false, ending: false };
+  if (ctx && !playing) togglePlay();
+}
+function openTapeDrawer() {
+  const ov = document.getElementById('tapeDrawerOverlay'); if (!ov || ov.style.display === 'block') return;
+  if (playing) togglePlay();
+  _tapeDrawerPre = { snap: snapshotState(), autoLoop: _autoRandLoopActive };
+  if (_autoRandLoopActive) { _autoRandLoopActive = false; }
+  _renderTapeDrawer();
+  ov.style.display = 'block';
+  try { window._crashCrumb && window._crashCrumb('TAPE DRAWER open'); } catch (e) {}
+}
+function closeTapeDrawer() {
+  const ov = document.getElementById('tapeDrawerOverlay'); if (!ov) return;
+  _tapeDrawerStopOneShot();
+  ov.style.display = 'none';
+  if (_tapeDrawerPre) {
+    try { restoreState(_tapeDrawerPre.snap); } catch (e) { console.error('tape drawer restore failed', e); }
+    _autoRandLoopActive = _tapeDrawerPre.autoLoop;
+    _tapeDrawerPre = null;
+  }
+}
+(function () {
+  const ov = document.getElementById('tapeDrawerOverlay');
+  if (ov) ov.addEventListener('click', e => { if (e.target === ov) closeTapeDrawer(); });
+  const tw = document.getElementById('tapeWindow'); if (!tw) return;
+  // Tap (released without moving more than 10px) = SETTINGS, as before; drag down 30px = TAPE DRAWER.
+  let y0 = null, x0 = 0, fired = false, moved = false;
+  const start = (x, y) => { y0 = y; x0 = x; fired = false; moved = false; };
+  const move = (x, y) => { if (y0 === null || fired) return; const dy = y - y0, dx = Math.abs(x - x0); if (Math.abs(dy) > 10 || dx > 10) moved = true; if (dy > 30 && dy > dx) { fired = true; openTapeDrawer(); } };
+  const end = () => { const tap = y0 !== null && !fired && !moved; y0 = null; if (tap) showSettings(); };
+  tw.addEventListener('touchstart', e => { if (_altTapeSpoolsEnabled) return; e.preventDefault(); e.stopPropagation(); start(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  tw.addEventListener('touchmove', e => { if (y0 === null) return; e.preventDefault(); e.stopPropagation(); move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+  tw.addEventListener('touchend', e => { if (y0 === null) return; e.preventDefault(); e.stopPropagation(); end(); }, { passive: false });
+  tw.addEventListener('touchcancel', () => { y0 = null; });
+  tw.addEventListener('mousedown', e => {
+    if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+    start(e.clientX, e.clientY);
+    const mv = ev => move(ev.clientX, ev.clientY);
+    const up = () => { end(); document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+  });
+})();
 // ALT TAPE SPOOLS — settings toggle. When on, dragging the tape reels
 // behaves exactly like the tempo screen's own resting-tempo drag track
 // (tempoRestTrack below) — same step size, dead zone, and hold-to-repeat —
@@ -21004,7 +21125,7 @@ function setTonalPercBalance(v) {
     e.preventDefault();
     // Double-tap-to-save (touchstart's preventDefault stops the browser synthesising a dblclick, so it's raw touchend timing)
     const now = Date.now();
-    if (now - _lastTapTime < 350) { _lastTapTime = 0; _flashNameBarHighlight(); _saveCurrentPatternToNextSlot(); }
+    if (now - _lastTapTime < 350) { _lastTapTime = 0; _flashNameBarHighlight(); _addToTapeDrawer(); _saveCurrentPatternToNextSlot(); }
     else _lastTapTime = now;
   }, { passive: false });
   // Desktop mouse fallback — real mouse input isn't affected by this
@@ -21012,6 +21133,7 @@ function setTonalPercBalance(v) {
   nb.addEventListener('dblclick', e => {
     e.preventDefault();
     _flashNameBarHighlight();
+    _addToTapeDrawer();
     _saveCurrentPatternToNextSlot();
   });
 })();
@@ -23276,12 +23398,8 @@ function toggleTurbo() {
 // Wire tape window hold — opens settings panel. The spools no longer do
 // this: left spool is the RESET-style brake, right spool is dormant.
 let _reelHoldTimer = null;
-document.querySelectorAll('.tape-window').forEach(r => {
-  const open = e => { e.preventDefault(); showSettings(); };
-  r.addEventListener('touchstart', e => { e.preventDefault(); showSettings(); }, { passive: false });
-  r.addEventListener('touchend', e => { e.preventDefault(); }, { passive: false });
-  r.addEventListener('mousedown', showSettings);
-});
+// (Tap-to-open-SETTINGS on the tape window now lives in the TAPE DRAWER gesture handler — a tap opens SETTINGS on release,
+// a drag down opens the TAPE DRAWER instead.)
 
 // (alignTapeWindowWithBeat() removed — it was a second, independent system
 // competing with centerTapeOnTransport() over the same tapeReels transform,
