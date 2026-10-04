@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-04 16:20:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-04 17:57:39 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2712,7 +2712,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 16:20:50 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 17:57:39 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3116,6 +3116,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         </label>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">QUIET + = a new pattern changes the music only: no new colour scheme (WILD), no name scroll-in, no + flash. If crashes after + stop with this on, the visuals are the cause.</div>
         <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
+        <button onclick="audioSnapshot()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">AUDIO SNAPSHOT</button>
+        <div style="font-size:0.58rem;color:#666;line-height:1.35;">AUDIO SNAPSHOT = listens for 3 seconds while it's playing, then shows what DRUMS actually fired and what reached the output. Use it while something sounds wrong.</div>
         <button onclick="showCrashLog()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">CRASH LOG</button>
       </div>
     <!-- MORTAR, per direct request: horizontal lines right above and below every note-marker lane (same style as the PERFORMANCE MODE bottom line) -->
@@ -19544,8 +19546,7 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
       // Double-click/double-tap — resets the offset back to the 1 instead
       // of shifting it further along, undoing the visual shift on every
       // track the same way beatCtrlShift() applies it.
-      _beatOffset = 0;
-      for (let tr = 0; tr < NUM_TRACKS; tr++) { trackOffset[tr] = 0; redrawTrackCells(tr); }
+      _beatOffset = 0; // DRUMS only — tracks keep their own shifts (the DRUMS < no longer moves them)
       flashBtnOrange('beatCtrlShift');
       markModified();
     } else {
@@ -22349,6 +22350,52 @@ function _setBeatCountShown(on) {
 // reflects what the user set rather than the post-duck level.
 let _beatVolRaw = 0.5711; // +3dB (was 0.4043), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
+// AUDIO SNAPSHOT (DEV > DIAGNOSTICS), per direct request — for the "DRUMS is just a filtered snare" state: counts what the
+// DRUMS engine actually fires for 3s, measures low / mid / high energy on the DRUMS bus and on the final output, and dumps
+// every setting that touches the DRUMS path, so the state can be pasted back even when it can't be reproduced.
+async function audioSnapshot() {
+  const L = [];
+  const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
+  L.push('SI-FI AUDIO SNAPSHOT ' + new Date().toISOString() + ' | ' + g(() => document.getElementById('buildTimestamp').textContent));
+  L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
+  L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext));
+  L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
+  L.push('fxChain=' + !!window._beatDryGain + ' dry=' + g(() => window._beatDryGain ? window._beatDryGain.gain.value.toFixed(2) : '-') + ' crunch=' + g(() => window._beatCrunchSend ? window._beatCrunchSend.gain.value.toFixed(2) : '-') + ' revSend=' + g(() => window._beatReverbSend ? window._beatReverbSend.gain.value.toFixed(3) : '-') + ' sameCtx=' + g(() => !window._beatDryGain || window._beatDryGain.context === ctx) + ' busCtxOk=' + g(() => window._beatGain.context === ctx));
+  L.push('renderTapBeat=' + _renderTapBeat + ' renderTapTracks=' + g(() => _renderTapTracks ? [..._renderTapTracks].join(',') : 'null'));
+  L.push('master=' + g(() => masterGain.gain.value.toFixed(3)) + ' duck=' + g(() => window._duckGain.gain.value.toFixed(3)) + ' fade=' + g(() => window._normalTrackFadeGain.gain.value.toFixed(3)) + ' makeup=' + g(() => window._makeupGain.gain.value.toFixed(2)) + ' post=' + g(() => window._postLimiterGain.gain.value.toFixed(2)) + ' limRed=' + g(() => window.masterLimiter.reduction.toFixed(1)) + ' 8bit=' + window._eightBitMix + ' revMix=' + window._globalDelayMix + ' battery=' + !!window._batterySaverOn + ' sweep=' + !!window._sweepGestureActive);
+  L.push('solo=' + g(() => trackSolo.map(x => x ? 1 : 0).join('')) + ' muted=' + trackMuted.map(x => x ? 1 : 0).join('') + ' tracks=' + trackInstruments.join(','));
+  L.push('trackFx=' + trackFx.map(f => f && (f.x || f.y) ? 1 : 0).join('') + ' blast=' + trackPump.map(x => x ? 1 : 0).join('') + ' rev=' + trackDelay.map(x => x ? 1 : 0).join(''));
+  L.push('body: ' + document.body.className);
+  if (ctx && playing && !(ctx instanceof OfflineAudioContext)) {
+    const counts = {}; const wraps = {};
+    ['fireBeatKick', 'playKick', 'playSnare', 'playSynthHihat', 'playBeatSnareSample', 'fireBeatSidestick'].forEach(n => {
+      const orig = window[n]; if (typeof orig !== 'function') return; wraps[n] = orig;
+      window[n] = function () { const k = n + (n === 'playSynthHihat' && arguments[2] !== -1 ? '(track)' : ''); counts[k] = (counts[k] || 0) + 1; return orig.apply(this, arguments); };
+    });
+    const mk = src => { const a = ctx.createAnalyser(); a.fftSize = 4096; src.connect(a); return a; };
+    const aBus = window._beatGain ? mk(window._beatGain) : null, aOut = window._postLimiterGain ? mk(window._postLimiterGain) : null;
+    const pk = { bus: [-200, -200, -200], out: [-200, -200, -200] };
+    const meas = (A, into) => { const d = new Float32Array(A.frequencyBinCount); A.getFloatFrequencyData(d); const hz = ctx.sampleRate / A.fftSize;
+      [[40, 150], [700, 1500], [7000, 12000]].forEach(([lo, hi], i) => { for (let j = Math.floor(lo / hz); j < Math.ceil(hi / hz); j++) into[i] = Math.max(into[i], d[j]); }); };
+    const iv = setInterval(() => { if (aBus) meas(aBus, pk.bus); if (aOut) meas(aOut, pk.out); }, 20);
+    await new Promise(r => setTimeout(r, 3000));
+    clearInterval(iv);
+    Object.keys(wraps).forEach(n => { window[n] = wraps[n]; });
+    try { if (aBus) window._beatGain.disconnect(aBus); if (aOut) window._postLimiterGain.disconnect(aOut); } catch (e) {}
+    L.push('FIRED in 3s: ' + (Object.keys(counts).map(k => k + '=' + counts[k]).join(' ') || 'nothing'));
+    L.push('PEAK dB  low(40-150) / mid(700-1.5k) / high(7-12k):  DRUMS bus ' + pk.bus.map(Math.round).join(' / ') + '   OUTPUT ' + pk.out.map(Math.round).join(' / '));
+  } else L.push('(not playing — press play first for the 3-second listen)');
+  const txt = L.join('\n');
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:16px;gap:10px;font-family:monospace;';
+  const ta = document.createElement('textarea'); ta.readOnly = true; ta.value = txt;
+  ta.style.cssText = 'flex:1;width:100%;box-sizing:border-box;font-size:10px;line-height:1.35;background:#111;color:#f17d21;border:none;padding:10px;';
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;';
+  const btn = (label, fn) => { const b = document.createElement('button'); b.textContent = label; b.style.cssText = 'flex:1;padding:12px;font:700 12px monospace;letter-spacing:1px;background:#f17d21;color:#000;border:none;'; b.onclick = fn; row.appendChild(b); return b; };
+  const cb = btn('COPY', () => { const done = () => { cb.textContent = 'COPIED'; }; if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => { ta.select(); document.execCommand('copy'); done(); }); else { ta.select(); document.execCommand('copy'); done(); } });
+  btn('CLOSE', () => ov.remove());
+  ov.appendChild(ta); ov.appendChild(row); document.body.appendChild(ov);
+}
 function _applyBeatVolWithDuck() {
   if (!window._beatGain) return;
   const duck = (_beatFx || _beatPump) ? Math.pow(10, -3 / 20) : 1; // -3dB with DRUMS FX or BLAST on (was -1.5dB; another -1.5dB per direct request)
@@ -22437,16 +22484,13 @@ function beatCtrlToggleL() { toggleBeatTypeLock(); updateBeatCtrlRow(); }
 // < — shift the whole BEAT pattern by the dev-menu-configured step size
 // (16th/8th/quarter/half-measure, default 16th), same idea as a track's
 // shift-left. Doesn't stay engaged, so just a momentary rollover flash.
-// Also visually shifts every track's own notes by the same amount — same
-// as pressing every single track's own < button at once — so the whole
-// grid moves to show the new alignment directly, instead of a separate
-// marker indicating where the beat's 1 now falls.
+// Moves DRUMS only — the tracks stay put (see the note inside).
 function beatCtrlShift() {
   _beatOffset = (_beatOffset + _devOffsetStepSize) % NUM_STEPS;
-  for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    trackOffset[tr] = (trackOffset[tr] + _devOffsetStepSize + NUM_STEPS) % NUM_STEPS;
-    redrawTrackCells(tr);
-  }
+  // DRUMS only now, per direct request ("feels like it gets reset almost
+  // immediately") — it used to shift every track by the same amount too,
+  // which rotated the whole song together, so the drums never actually
+  // moved against the music and the shift was inaudible.
   flashBtnOrange('beatCtrlShift');
   markModified();
 }
