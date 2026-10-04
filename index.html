@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-04 19:34:55 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-04 21:16:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 19:34:55 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 21:16:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19862,23 +19862,39 @@ function setSwapSpools(on) {
 // Tapping one loads it and plays it ONCE (one bar, no loop). Closing (tap outside the panel) puts back the pattern that was
 // loaded before the drawer opened, so browsing never loses the current one. Session only — not stored between visits.
 window._tapeDrawerItems = [];
+// What makes a pattern "the same" for the already-saved check — the music only (notes, instruments, mix, key, tempo, beat,
+// name), not colours or which slot is active.
+function _tapeSig(snap) {
+  const k = ['grid','trackOffset','trackInstruments','trackMuted','trackVolume','trackFx','trackPump','trackDelay','trackChop','trackPitchOverride','trackLegatoLen','globalScaleRoot','currentScaleName','bpm','beatType','beatPlaying','speciesName'];
+  const o = {}; k.forEach(x => { o[x] = snap[x]; }); return JSON.stringify(o);
+}
+// Song-name double-tap: saves to the TAPE DRAWER (and the next free slot) — REJECTED if this exact pattern is already in the
+// drawer, per direct request: no flash, no save, just a short "SAVED ALREADY" notice.
+function _songNameSave() {
+  let sig = null; try { sig = _tapeSig(snapshotState()); } catch (e) {}
+  if (sig && window._tapeDrawerItems.some(it => it.sig === sig)) { _showTapeSavedDialog(null, true); return; }
+  _flashNameBarHighlight();
+  _addToTapeDrawer();
+  _saveCurrentPatternToNextSlot();
+}
 function _addToTapeDrawer() {
   try {
     const nd = document.getElementById('nameDisplay');
     const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
-    window._tapeDrawerItems.unshift({ snap: snapshotState(), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
+    const snap = snapshotState();
+    window._tapeDrawerItems.unshift({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
     if (window._tapeDrawerItems.length > 40) window._tapeDrawerItems.length = 40;
     _showTapeSavedDialog(name);
   } catch (e) { console.error('tape drawer save failed', e); }
 }
 // "SAVED TO TAPE DRAWER" box on every song-name double-tap, per direct request — same look as the SETTINGS panel, closes
 // itself after 1.5s (or on a tap). Doesn't block anything underneath — playback carries on.
-function _showTapeSavedDialog(name) {
+function _showTapeSavedDialog(name, already) {
   let d = document.getElementById('tapeSavedDialog');
   if (d) { clearTimeout(d._t); d.remove(); }
   d = document.createElement('div'); d.id = 'tapeSavedDialog';
   d.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:260;background:#f5f0e8;padding:20px 24px;width:min(300px,80vw);box-sizing:border-box;display:flex;flex-direction:column;gap:8px;align-items:center;font-family:\'DM Sans\',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.35);transition:opacity 0.25s ease-out;';
-  const t = document.createElement('div'); t.textContent = 'SAVED TO TAPE DRAWER';
+  const t = document.createElement('div'); t.textContent = already ? 'SAVED ALREADY' : 'SAVED TO TAPE DRAWER';
   t.style.cssText = 'font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#111;text-align:center;';
   const n = document.createElement('div'); n.textContent = name || '';
   n.style.cssText = 'font-size:0.7rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#777;text-align:center;';
@@ -21156,16 +21172,14 @@ function setTonalPercBalance(v) {
     e.preventDefault();
     // Double-tap-to-save (touchstart's preventDefault stops the browser synthesising a dblclick, so it's raw touchend timing)
     const now = Date.now();
-    if (now - _lastTapTime < 350) { _lastTapTime = 0; _flashNameBarHighlight(); _addToTapeDrawer(); _saveCurrentPatternToNextSlot(); }
+    if (now - _lastTapTime < 350) { _lastTapTime = 0; _songNameSave(); }
     else _lastTapTime = now;
   }, { passive: false });
   // Desktop mouse fallback — real mouse input isn't affected by this
   // element's touchstart preventDefault, so the native dblclick fires fine.
   nb.addEventListener('dblclick', e => {
     e.preventDefault();
-    _flashNameBarHighlight();
-    _addToTapeDrawer();
-    _saveCurrentPatternToNextSlot();
+    _songNameSave();
   });
 })();
 
