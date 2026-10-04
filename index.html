@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-03 18:57:37 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-04 16:20:50 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2712,7 +2712,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-03 18:57:37 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 16:20:50 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6325,7 +6325,7 @@ function scheduler() {
         beatPlaying = snap.beatPlaying;
         _beatPending = false;
       }
-      if (snap.beatType) setBeatType(snap.beatType);
+      if (snap.beatType) { setBeatType(snap.beatType); _retagBeatOwned(snap.beatType); }
     if (snap.trackDelay) { snap.trackDelay.forEach((d,i) => { _setTrackReverb(i, d); }); }
       activeSlot = pi;
       // Defer all DOM updates to next frame
@@ -11505,7 +11505,7 @@ function commitBeatMenuSelection(item) {
   } else if (item.id === 'beatCtrlRand') {
     onBeatCtrlRandTap();
   } else if (item.dataset.beat) {
-    setBeatType(item.dataset.beat);
+    setBeatType(item.dataset.beat, true);
     refreshBeatMenuHighlight();
   }
 }
@@ -16527,6 +16527,7 @@ function randAll(mode, opts) {
       (_beatType === 'samba' && k === 'sidestick')
     );
     const _maxForThisTrack = Math.min(NUM_STEPS, Math.max(1, Math.ceil(_noteBudget.remaining / Math.max(1, _tracksLeft))));
+    if (_hasFixedBeatPattern) _tagBeatOwned(tr, _beatType, k); else _untagBeatOwned(tr);
     if (!_hasFixedBeatPattern) _noteBudget.remaining = Math.max(0, _noteBudget.remaining - Math.round(_maxForThisTrack * 0.6));
     window._randNoteMax = _maxForThisTrack;
     const _tid = setTimeout(() => {
@@ -17477,7 +17478,7 @@ function restoreState(snap, opts) {
   // used to be bundled inside the same skipBeatState-gated block below,
   // which meant RECALL never restored the type at all — it kept whatever
   // was already playing instead of the previous pattern's own type.
-  if (snap.beatType) setBeatType(snap.beatType);
+  if (snap.beatType) { setBeatType(snap.beatType); _retagBeatOwned(snap.beatType); }
   if (!opts.skipBeatState && snap.beatPlaying !== undefined) {
     beatPlaying = snap.beatPlaying;
     _beatPending = false;
@@ -18528,6 +18529,7 @@ function wireRandomizeButton(btn, tr) {
   const doSingleTap = () => {
     if (autoInterval) { stopAuto(); return; }
     unmuteIfNeeded();
+    _untagBeatOwned(tr); // re-rolled by hand — no longer the beat's
     // Tracks the manual N-button click count per track, specifically for
     // the HIHAT/RIDE/SHAKER/TAMB cycling rule inside randomizeTrack below
     // — every 3rd click forces a regular quarter/8th pattern, and the
@@ -18555,6 +18557,7 @@ function wireRandomizeButton(btn, tr) {
     if (_lane) _lane.style.setProperty('--track-color', _highlight2Color());
     window._isAutoBarRand = true;
     unmuteIfNeeded();
+    _untagBeatOwned(tr);
     doRand();
     window._isAutoBarRand = false;
     autoInterval = true; // flag only — the scheduler's bar-start hook does the work
@@ -22533,7 +22536,7 @@ function randomizeBeatType() {
   // never into halftime, and never out of it if already there.
   if (_tempoLocked) pool = (_beatType === 'halftime') ? ['halftime'] : pool.filter(t => t !== 'halftime');
   const pick = pool[Math.floor(Math.random() * pool.length)];
-  setBeatType(pick);
+  setBeatType(pick, true);
   refreshBeatMenuHighlight();
 }
 function onBeatCtrlRandTap() {
@@ -22562,7 +22565,85 @@ function onBeatCtrlRandTap() {
   updateBeatCtrlRow();
 }
 
-function setBeatType(type) {
+// BEAT-OWNED TRACKS, per direct request — DISCO / JAZZ / MOZAMBIQUE / BOSSA / SAMBA
+// each force their own fixed tracks onto the pattern. Those tracks are tagged
+// with the beat that owns them; when a DIFFERENT beat is then picked (BEAT
+// menu, beat button, beat auto-rand — not RAND or a pattern load, which
+// rebuild everything anyway), every track the old beat owned is handed back
+// to the pattern: a fresh instrument (never a beat-owned one, never a second
+// bass) and a fresh per-track re-roll, FX/reverb/offset reset. Locked tracks
+// are never touched; a track whose instrument was changed by hand, or that
+// was re-rolled with its own +, is no longer the beat's. Tracks the NEW beat
+// also wants (e.g. JAZZ → MOZAMBIQUE both use RIDE) are kept for it.
+var _BEAT_OWNED_KEYS = { disco: ['shihat'], jazz: ['ride', 'sidestick', 'ssnare'], mozambique: ['ride', 'sidestick', 'toms'], bossa: ['sidestick'], samba: ['sidestick'] };
+window._beatOwned = window._beatOwned || {}; // tr -> { beat, key }
+function _tagBeatOwned(tr, beat, key) { (window._beatOwned = window._beatOwned || {})[tr] = { beat, key }; }
+function _untagBeatOwned(tr) { if (window._beatOwned) delete window._beatOwned[tr]; }
+// Re-tags from scratch for the given beat type — every unlocked track holding
+// one of its owned instruments (DISCO: only the one hihat it uses).
+function _retagBeatOwned(type) {
+  window._beatOwned = {};
+  const keys = (_BEAT_OWNED_KEYS || {})[type]; if (!keys) return;
+  if (type === 'samba' && typeof _sambaSnareVariant !== 'undefined' && _sambaSnareVariant !== 'sidestick') return;
+  const seen = new Set();
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const k = trackInstruments[tr];
+    if (trackSweep[tr] || !keys.includes(k)) continue;
+    if (type === 'disco' && seen.has(k)) continue;
+    seen.add(k); _tagBeatOwned(tr, type, k);
+  }
+}
+function _pickReleaseInstrument(tr) {
+  const banned = new Set(['skick', 'ride', 'sidestick', 'ssnare', 'toms']);
+  const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
+  const oneOf = [
+    new Set(['tamb','shak','ngate','clap','guiro']), new Set(['fflute','damask','yamask','dulc']), new Set(['jcmgtr','clar','boog']),
+    new Set(['shihat','tamb','shak']), new Set(['rhodes','sprkls','boog']), new Set(['jcmgtr','damask','yamask']),
+  ];
+  const others = trackInstruments.filter((o, t) => t !== tr && o);
+  const clashes = k => others.some(o => o === k || oneOf.some(set => set.has(k) && set.has(o)));
+  const otherBass = others.some(isBass);
+  const side = k => (INSTRUMENTS[k].group === 'kit' || INSTRUMENTS[k].group === 'perc') ? 'drum' : 'tonal';
+  const ok = k => INSTRUMENTS[k] && ['kit', 'perc', 'tonal'].includes(INSTRUMENTS[k].group) && !banned.has(k) && !(otherBass && isBass(k));
+  let pool = INSTRUMENT_KEYS.filter(k => ok(k) && !clashes(k));
+  if (!pool.length) pool = INSTRUMENT_KEYS.filter(k => ok(k) && !others.includes(k));
+  if (!pool.length) return null;
+  const want = Math.random() < 0.5 ? 'drum' : 'tonal'; // 50/50 drum or tonal, the way the pattern would fill any slot
+  const sided = pool.filter(k => side(k) === want);
+  const from = sided.length ? sided : pool;
+  return from[Math.floor(Math.random() * from.length)];
+}
+function _releaseBeatOwnedTracks(newType) {
+  let keep = (_BEAT_OWNED_KEYS || {})[newType] || [];
+  if (newType === 'samba' && _sambaSnareVariant !== 'sidestick') keep = []; // SAMBA only takes a real SIDESTICK track on its SIDESTICK roll
+  const owned = window._beatOwned || {};
+  for (const trStr of Object.keys(owned)) {
+    const tr = +trStr, tag = owned[tr];
+    if (trackSweep[tr] || trackInstruments[tr] !== tag.key) { _untagBeatOwned(tr); continue; } // locked, or taken over by hand
+    if (keep.includes(tag.key)) continue; // the new beat wants this one too
+    _untagBeatOwned(tr);
+    const k = _pickReleaseInstrument(tr); if (!k) continue;
+    if (autoShiftStops[tr]) autoShiftStops[tr](); // JAZZ comping's own auto-rand stops with it
+    const wasMuted = trackMuted[tr];
+    trackOffset[tr] = 0;
+    trackFx[tr] = { x: 0, y: 0 }; trackPump[tr] = false;
+    selectSound(tr, k);
+    if (ctx) setFxActive(tr, trackFx[tr]);
+    const fb = document.getElementById(`fxbtn-${tr}`); if (fb && k !== 'chug') { fb.classList.remove('on'); fb.classList.remove('blast-on'); }
+    _setTrackReverb(tr, false);
+    if (wasMuted) { trackMuted[tr] = true; updateTrackMute(tr); }
+    grid[tr].fill(0); if (trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    if (window._nButtonClickCount) delete window._nButtonClickCount[tr];
+    window._randNoteMax = null;
+    randomizeTrack(tr);
+    redrawTrackCells(tr, true);
+    const nb = document.getElementById(`tbtn-${tr}`);
+    if (nb) { const sp = document.createElement('span'); sp.className = 'tname-slide'; sp.textContent = nb.textContent; nb.textContent = ''; nb.appendChild(sp); }
+  }
+  markModified();
+}
+function setBeatType(type, fromUser) {
+  const _beatChanged = type !== _beatType;
   const _wasJazz = _beatType === 'jazz';
   const _wasDisco = _beatType === 'disco';
   const _wasMozambique = _beatType === 'mozambique';
@@ -22577,6 +22658,7 @@ function setBeatType(type) {
   // SAMBA's own snare voice — SNARE 2 or SIDESTICK, 50/50, re-rolled
   // fresh each time SAMBA gets selected.
   _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick';
+  if (fromUser && _beatChanged) _releaseBeatOwnedTracks(type);
   const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn', breaks: 'beatTypeBreaksBtn', bounce: 'beatTypeBounceBtn', reggae2: 'beatTypeReggae2Btn' };
   Object.entries(btns).forEach(([t, id]) => {
     const b = document.getElementById(id);
@@ -22608,6 +22690,7 @@ function setBeatType(type) {
   // SIDESTICK; the SNARE 2 variant stays BEAT-menu-only synthesis, same as
   // it always has.
   if (type === 'samba' && !_wasSamba) _applySambaTracksToCurrentPattern();
+  if (fromUser) _retagBeatOwned(type);
 }
 // Forces RIDE and SIDESTICK onto 2 of the current pattern's tracks,
 // overwriting whichever percussion tracks it can use — skips locked (L)
@@ -22969,7 +23052,7 @@ function onBeatTypeButtonTap(type) {
     _beatTypeLocked = !_beatTypeLocked;
     updateBeatLockVisual();
   }
-  setBeatType(type);
+  setBeatType(type, true);
   const icon = document.getElementById('beatTypeLockIcon');
   if (icon) icon.style.opacity = _beatTypeLocked ? '1' : '0';
 }
