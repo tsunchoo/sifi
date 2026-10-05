@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 05:34:56 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 05:43:34 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 05:34:56 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 05:43:34 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6149,7 +6149,7 @@ function scheduler() {
       window._oneShot.started = false; // next tape loaded — carry straight on into its bar 1
     }
     if (window._oneShot && currentStep === NUM_STEPS - 1 && window._oneShot.started) {
-      if (!window._oneShot.ending) { window._oneShot.ending = true; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot) _tapeDrawerStopOneShot(); }, ms); }
+      if (!window._oneShot.ending) { window._oneShot.ending = true; const _os = window._oneShot; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot === _os) _tapeDrawerStopOneShot(); }, ms); }
       break;
     }
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
@@ -19948,26 +19948,34 @@ function _tapeDrawerNext() {
   const os = window._oneShot; if (!os || !os.queue || !os.queue.length) return false;
   return _tapeDrawerLoad(os.queue.shift());
 }
+// Switching tapes while one is already sounding keeps the transport running — the new tape just starts from its bar 1 —
+// so there's no stop click + play click in between, per direct request.
+function _tapeDrawerRestartBar() { currentStep = -1; nextStepTime = ctx.currentTime + 0.05; }
 function _tapeDrawerPlay(i) {
   if (!window._tapeDrawerItems[i]) return;
   if (!ctx) { try { initAudio(); } catch (e) {} }
-  if (window._oneShot || playing) _tapeDrawerStopOneShot();
+  const hot = playing && !!window._oneShot;
+  if (!hot && (window._oneShot || playing)) _tapeDrawerStopOneShot();
   const it = window._tapeDrawerItems[i];
   window._oneShot = { started: false, ending: false, queue: [] };
-  if (!_tapeDrawerLoad(it)) { window._oneShot = null; return; }
-  if (ctx && !playing) togglePlay();
+  const pb0 = document.getElementById('tapeDrawerPlayAll'); if (pb0) pb0.textContent = '▶ PLAY ALL';
+  if (!_tapeDrawerLoad(it)) { window._oneShot = null; if (hot) _tapeDrawerStopOneShot(); return; }
+  if (hot) _tapeDrawerRestartBar();
+  else if (ctx && !playing) togglePlay();
 }
 // PLAY ALL — every tape once, in drawer order (left to right, top to bottom), straight into each other.
 function _tapeDrawerPlayAll() {
   if (window._oneShot && window._oneShot.queue && (window._oneShot.queue.length || window._oneShot.all)) { _tapeDrawerStopOneShot(); return; }
   const n = window._tapeDrawerItems.length; if (!n) return;
   if (!ctx) { try { initAudio(); } catch (e) {} }
-  if (window._oneShot || playing) _tapeDrawerStopOneShot();
+  const hot = playing && !!window._oneShot;
+  if (!hot && (window._oneShot || playing)) _tapeDrawerStopOneShot();
   const items = window._tapeDrawerItems.slice();
   window._oneShot = { started: false, ending: false, all: true, queue: items.slice(1) };
-  if (!_tapeDrawerLoad(items[0])) { window._oneShot = null; return; }
+  if (!_tapeDrawerLoad(items[0])) { window._oneShot = null; if (hot) _tapeDrawerStopOneShot(); return; }
   const pb = document.getElementById('tapeDrawerPlayAll'); if (pb) pb.textContent = '■ STOP';
-  if (ctx && !playing) togglePlay();
+  if (hot) _tapeDrawerRestartBar();
+  else if (ctx && !playing) togglePlay();
 }
 function _renderTapeDrawer() {
   const list = document.getElementById('tapeDrawerList'); if (!list) return;
