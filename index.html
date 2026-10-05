@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 06:15:33 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 16:06:22 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 06:15:33 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 16:06:22 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -19906,8 +19906,27 @@ function _addToTapeDrawer() {
     const snap = snapshotState();
     window._tapeDrawerItems.push({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
     while (window._tapeDrawerItems.length > 12) window._tapeDrawerItems.shift(); // 12 tapes max, per direct request — the oldest drops off
-    _showTapeSavedDialog(name);
+    _floatSavedHeart();
   } catch (e) { console.error('tape drawer save failed', e); }
+}
+// A small heart floats up out of the song name and fades, per direct request — replaces the "SAVED TO TAPE DRAWER" box.
+// Drawn in the song name's own text colour so it reads on any bar colour.
+function _floatSavedHeart() {
+  const nb = document.getElementById('nameBar'), nd = document.getElementById('nameDisplay'); if (!nb) return;
+  const r = (nd && nd.getBoundingClientRect().width ? nd : nb).getBoundingClientRect();
+  const col = getComputedStyle(nd || nb).color || '#fff';
+  const h = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  h.setAttribute('viewBox', '0 0 24 24'); h.setAttribute('width', '26'); h.setAttribute('height', '26');
+  h.innerHTML = '<path fill="' + col + '" d="M12 21.4l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.4z"/>';
+  h.style.cssText = 'position:fixed;left:' + (r.left + r.width / 2 - 13) + 'px;top:' + (r.top + r.height / 2 - 13) + 'px;z-index:260;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));';
+  document.body.appendChild(h);
+  const drift = (Math.random() * 2 - 1) * 10;
+  const a = h.animate([
+    { transform: 'translate(0,0) scale(0.6)', opacity: 0 },
+    { transform: 'translate(' + (drift * 0.3) + 'px,-14px) scale(1.1)', opacity: 1, offset: 0.2 },
+    { transform: 'translate(' + drift + 'px,-70px) scale(1)', opacity: 0 }
+  ], { duration: 1100, easing: 'cubic-bezier(0.22,0.61,0.36,1)', fill: 'forwards' });
+  a.onfinish = () => h.remove(); setTimeout(() => h.remove(), 1500);
 }
 // "SAVED TO TAPE DRAWER" box on every song-name double-tap, per direct request — same look as the SETTINGS panel, closes
 // itself after 1.5s (or on a tap). Doesn't block anything underneath — playback carries on.
