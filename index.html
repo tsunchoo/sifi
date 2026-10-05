@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 16:06:22 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 21:04:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 16:06:22 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 21:04:38 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5646,7 +5646,7 @@ const trackFxNodes = [];
 function makeDistCurve(drive) {
   const n = 512, c = new Float32Array(n), k = drive * 400;
   for (let i = 0; i < n; i++) {
-    const x = (i * 2) / n - 1;
+    const x = (i * 2) / (n - 1) - 1; // symmetric -1..1 — the old (i*2)/n-1 never reached +1, so silence (curve centre) came out as a constant DC offset of about -0.1 on every track
     c[i] = k > 0 ? ((Math.PI + k) * x) / (Math.PI + k * Math.abs(x)) : x;
   }
   return c;
@@ -8793,7 +8793,7 @@ function initNoiseGate(tr) {
   // Waveshaper for crunch
   const ws = ctx.createWaveShaper();
   const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = Math.tanh(x * 3); }
+  for (let i = 0; i < 256; i++) { const x = (i * 2) / 255 - 1; curve[i] = Math.tanh(x * 3); }
   ws.curve = curve; ws.oversample = 'none';
   const gate = ctx.createGain(); gate.gain.value = 0;
   src.connect(filt); filt.connect(ws); ws.connect(gate);
@@ -9028,7 +9028,7 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
   // Hard clip waveshaper for pick grit
   const ws = ctx.createWaveShaper();
   const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = Math.tanh(x * 4); }
+  for (let i = 0; i < 256; i++) { const x = (i * 2) / 255 - 1; curve[i] = Math.tanh(x * 4); }
   ws.curve = curve; ws.oversample = '2x';
 
   const ampEnv = ctx.createGain();
@@ -10586,7 +10586,7 @@ function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
   punch.frequency.exponentialRampToValueAtTime(freq * 0.3, time + 0.08);
   const punchWS = ctx.createWaveShaper();
   const curve = new Float32Array(256);
-  for (let i = 0; i < 256; i++) { const x = (i * 2) / 256 - 1; curve[i] = Math.tanh(x * 6); }
+  for (let i = 0; i < 256; i++) { const x = (i * 2) / 255 - 1; curve[i] = Math.tanh(x * 6); }
   punchWS.curve = curve; punchWS.oversample = '2x';
   const punchEnv = ctx.createGain();
   punchEnv.gain.setValueAtTime(vel * 0.55, time);
@@ -13389,7 +13389,7 @@ async function renderSlotToWav(snap) {
           bp.frequency.setValueAtTime(freq*4,t); bp.frequency.exponentialRampToValueAtTime(freq*1.5,t+0.02);
           const ws = o.createWaveShaper();
           const curve = new Float32Array(256);
-          for (let i=0;i<256;i++){const x=(i*2)/256-1; curve[i]=Math.tanh(x*4);} ws.curve=curve;
+          for (let i=0;i<256;i++){const x=(i*2)/255-1; curve[i]=Math.tanh(x*4);} ws.curve=curve;
           const ampEnv = o.createGain(); const decay=Math.min(dur*0.7,0.22);
           ampEnv.gain.setValueAtTime(0,t); ampEnv.gain.linearRampToValueAtTime(vel,t+0.003);
           ampEnv.gain.exponentialRampToValueAtTime(vel*0.25,t+decay);
