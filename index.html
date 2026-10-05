@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 22:04:56 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 22:10:03 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2724,7 +2724,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 22:04:56 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 22:10:03 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5352,12 +5352,12 @@ function _ensureEightBitSplit(audioCtx) {
   window._eightBitNode = true; // placeholder truthy value so a second call in flight doesn't also kick off addModule() again — replaced with the real node once ready
   _ensureEightBitWorkletModule(audioCtx).then(() => {
     window._eightBitNode = new AudioWorkletNode(audioCtx, 'eight-bit-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
-    window._postLimiterGain.connect(window._eightBitNode);
     window._eightBitNode.connect(window._eightBitWetGain);
+    window._eightBitFed = false; _applyEightBitMixGains();
   }).catch(() => {
     window._eightBitNode = _buildEightBitNodeScriptProcessorFallback(audioCtx);
-    window._postLimiterGain.connect(window._eightBitNode);
     window._eightBitNode.connect(window._eightBitWetGain);
+    window._eightBitFed = false; _applyEightBitMixGains();
   });
 }
 // Equal-power crossfade — sounds more even across the sweep than a plain
@@ -5367,6 +5367,15 @@ function _applyEightBitMixGains() {
   const mix = window._eightBitMix;
   window._eightBitDryGain.gain.value = Math.cos(mix * Math.PI / 2);
   window._eightBitWetGain.gain.value = Math.sin(mix * Math.PI / 2);
+  // NOISE HUNT: the 8-bit crusher is only fed audio while 8-BIT MIX is above zero. At 0 it's fully unplugged from the
+  // output stage — the noise probe showed a bitcrushed-sounding hiss appearing ONLY at that final stage, the one the
+  // crusher hangs off, with nothing before it making a sound.
+  const node = window._eightBitNode, post = window._postLimiterGain;
+  if (node && node !== true && post) {
+    const want = mix > 0;
+    if (want && !window._eightBitFed) { try { post.connect(node); window._eightBitFed = true; } catch (e) {} }
+    else if (!want && window._eightBitFed) { try { post.disconnect(node); } catch (e) {} window._eightBitFed = false; }
+  }
 }
 // BOUNCE LOOP / BOUNCE LOOP STEMS offline-render equivalent of the live
 // 8-BIT MIX crossfade above. Per direct request — exported bounces should
@@ -22209,7 +22218,7 @@ async function _refreshAudioEngine() {
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null; window._safetyLimiter = null;
     window._beatDryGain = null; window._beatCrunchSend = null; window._beatReverbSend = null;
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
-    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null;
+    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; window._eightBitFed = false;
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
     _initStarted = false;
@@ -22266,7 +22275,7 @@ async function hardResetAudioEngine() {
     window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null; window._safetyLimiter = null;
     window._beatDryGain = null; window._beatCrunchSend = null; window._beatReverbSend = null; // stale references tied to the closed context, same reasoning as the eight-bit ones below — without this, _ensureBeatFxChain()'s guard (!window._beatDryGain) incorrectly thinks the chain is already built for the new context, so BEAT's reverb/crunch sends silently update an orphaned node from the old (closed) context while the new _beatGain stays directly wired to masterGain, bypassing them entirely
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
-    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
+    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; window._eightBitFed = false; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     currentStep = -1; nextStepTime = 0;
 
