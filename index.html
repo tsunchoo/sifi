@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-04 21:16:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 04:23:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-04 21:16:45 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 04:23:13 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3595,7 +3595,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="tapeDrawerOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);">
   <div id="tapeDrawerPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;width:min(380px,90vw);box-sizing:border-box;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">TAPE DRAWER</div>
-    <div id="tapeDrawerList" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div id="tapeDrawerList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    <button id="tapeDrawerPlayAll" onclick="_tapeDrawerPlayAll()" style="padding:12px;border:none;background:#111;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">▶ PLAY ALL</button>
+    <div style="font-size:0.58rem;color:#777;line-height:1.35;text-align:center;letter-spacing:0.5px;text-transform:uppercase;">TAP A TAPE TO PLAY IT · HOLD AND DRAG TO MOVE IT</div>
   </div>
 </div>
 <div id="settingsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);" id="settingsBg">
@@ -6143,6 +6145,9 @@ function scheduler() {
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     if (++_stepsThisPass > 4) { nextStepTime = ctx.currentTime + LOOKAHEAD; break; }
     // TAPE DRAWER one-shot playback: stop at the end of bar 1 instead of looping round to step 0 again.
+    if (window._oneShot && currentStep === NUM_STEPS - 1 && window._oneShot.started && !window._oneShot.ending && _tapeDrawerNext()) {
+      window._oneShot.started = false; // next tape loaded — carry straight on into its bar 1
+    }
     if (window._oneShot && currentStep === NUM_STEPS - 1 && window._oneShot.started) {
       if (!window._oneShot.ending) { window._oneShot.ending = true; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot) _tapeDrawerStopOneShot(); }, ms); }
       break;
@@ -12640,11 +12645,23 @@ function attachVolBarEvents(bar, tr) {
     updateVolFillDisplay(tr);
     markModified();
   }
-  bar.addEventListener('mousedown', e => { dragging = true; setVol(e.clientX); e.preventDefault(); });
-  window.addEventListener('mousemove', e => { if (dragging) setVol(e.clientX); });
+  // Only the FADER itself grabs, per direct request — a touch anywhere else on the scale does nothing (it used to jump the
+  // volume straight to wherever you touched). The grab zone is the tip plus a finger's width either side, and the drag is
+  // relative, so the fader never jumps on grab: it moves by exactly as far as the finger does.
+  const GRAB_PX = 22;
+  let grabOff = 0;
+  function tipX() {
+    const tip = bar.querySelector('.track-vol-tip');
+    if (tip && getComputedStyle(tip).display !== 'none') { const t = tip.getBoundingClientRect(); if (t.width) return t.left + t.width / 2; }
+    const r = bar.getBoundingClientRect();
+    return r.left + volGainToPos(trackVolume[tr]) * r.width; // no visible tip — the fill's edge is the fader
+  }
+  function tryGrab(clientX) { const tx = tipX(); if (Math.abs(clientX - tx) > GRAB_PX) return false; grabOff = clientX - tx; dragging = true; return true; }
+  bar.addEventListener('mousedown', e => { e.preventDefault(); tryGrab(e.clientX); });
+  window.addEventListener('mousemove', e => { if (dragging) setVol(e.clientX - grabOff); });
   window.addEventListener('mouseup', () => { dragging = false; });
-  bar.addEventListener('touchstart', e => { dragging = true; setVol(e.touches[0].clientX); e.preventDefault(); }, { passive: false });
-  bar.addEventListener('touchmove', e => { if (dragging) { setVol(e.touches[0].clientX); e.preventDefault(); } }, { passive: false });
+  bar.addEventListener('touchstart', e => { e.preventDefault(); tryGrab(e.touches[0].clientX); }, { passive: false });
+  bar.addEventListener('touchmove', e => { if (dragging) { setVol(e.touches[0].clientX - grabOff); e.preventDefault(); } }, { passive: false });
   bar.addEventListener('touchend', () => { dragging = false; });
 }
 
@@ -19882,8 +19899,8 @@ function _addToTapeDrawer() {
     const nd = document.getElementById('nameDisplay');
     const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
     const snap = snapshotState();
-    window._tapeDrawerItems.unshift({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
-    if (window._tapeDrawerItems.length > 40) window._tapeDrawerItems.length = 40;
+    window._tapeDrawerItems.push({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
+    while (window._tapeDrawerItems.length > 8) window._tapeDrawerItems.shift(); // 8 tapes max, per direct request — the oldest drops off
     _showTapeSavedDialog(name);
   } catch (e) { console.error('tape drawer save failed', e); }
 }
@@ -19905,41 +19922,109 @@ function _showTapeSavedDialog(name, already) {
   d._t = setTimeout(close, 1500);
 }
 let _tapeDrawerPre = null;
+// Highlights the tape now sounding (by its index in the drawer).
+function _tapeDrawerMark(i) {
+  document.querySelectorAll('#tapeDrawerList .tape-drawer-btn').forEach(b => b.classList.toggle('tape-drawer-playing', +b.dataset.i === i));
+}
 function _tapeDrawerStopOneShot() {
   window._oneShot = null;
   if (playing) togglePlay();
-  document.querySelectorAll('#tapeDrawerList .tape-drawer-btn').forEach(b => b.classList.remove('tape-drawer-playing'));
+  _tapeDrawerMark(-1);
+  const pb = document.getElementById('tapeDrawerPlayAll'); if (pb) pb.textContent = '▶ PLAY ALL';
+}
+// Loads one tape for drawer playback — no per-bar re-rolls, no auto +, so it plays exactly as saved.
+function _tapeDrawerLoad(it) {
+  if (!it) return false;
+  try { restoreState(it.snap); } catch (e) { console.error('tape drawer load failed', e); return false; }
+  Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch (e) {} });
+  _autoRandLoopActive = false; _autoRandPending = false;
+  if (window._oneShot) window._oneShot.cur = it;
+  _tapeDrawerMark(window._tapeDrawerItems.indexOf(it));
+  return true;
+}
+// Called by the scheduler at the end of each drawer bar: true = the next tape in the queue has been loaded and playback
+// carries straight on into it (seamless, no gap); false = nothing left, stop.
+function _tapeDrawerNext() {
+  const os = window._oneShot; if (!os || !os.queue || !os.queue.length) return false;
+  return _tapeDrawerLoad(os.queue.shift());
+}
+function _tapeDrawerPlay(i) {
+  if (!window._tapeDrawerItems[i]) return;
+  if (!ctx) { try { initAudio(); } catch (e) {} }
+  if (window._oneShot || playing) _tapeDrawerStopOneShot();
+  const it = window._tapeDrawerItems[i];
+  window._oneShot = { started: false, ending: false, queue: [] };
+  if (!_tapeDrawerLoad(it)) { window._oneShot = null; return; }
+  if (ctx && !playing) togglePlay();
+}
+// PLAY ALL — every tape once, in drawer order (left to right, top to bottom), straight into each other.
+function _tapeDrawerPlayAll() {
+  if (window._oneShot && window._oneShot.queue && (window._oneShot.queue.length || window._oneShot.all)) { _tapeDrawerStopOneShot(); return; }
+  const n = window._tapeDrawerItems.length; if (!n) return;
+  if (!ctx) { try { initAudio(); } catch (e) {} }
+  if (window._oneShot || playing) _tapeDrawerStopOneShot();
+  const items = window._tapeDrawerItems.slice();
+  window._oneShot = { started: false, ending: false, all: true, queue: items.slice(1) };
+  if (!_tapeDrawerLoad(items[0])) { window._oneShot = null; return; }
+  const pb = document.getElementById('tapeDrawerPlayAll'); if (pb) pb.textContent = '■ STOP';
+  if (ctx && !playing) togglePlay();
 }
 function _renderTapeDrawer() {
   const list = document.getElementById('tapeDrawerList'); if (!list) return;
   list.innerHTML = '';
+  const pb = document.getElementById('tapeDrawerPlayAll'); if (pb) pb.style.display = window._tapeDrawerItems.length > 1 ? '' : 'none';
   if (!window._tapeDrawerItems.length) {
     const e = document.createElement('div');
-    e.style.cssText = 'font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#777;text-align:center;line-height:1.5;padding:12px 0;';
+    e.style.cssText = 'grid-column:1 / -1;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#777;text-align:center;line-height:1.5;padding:12px 0;';
     e.textContent = 'NO TAPES YET — DOUBLE-TAP THE SONG NAME TO SAVE ONE';
     list.appendChild(e); return;
   }
   window._tapeDrawerItems.forEach((it, i) => {
     const b = document.createElement('button');
-    b.className = 'tape-drawer-btn';
+    b.className = 'tape-drawer-btn'; b.dataset.i = i;
     b.textContent = it.name;
-    b.style.cssText = 'display:flex;justify-content:center;align-items:center;width:100%;min-height:46.08px;padding:6px 8px;border:none;font-family:\'DM Sans\',sans-serif;font-size:1.1875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;-webkit-user-select:none;user-select:none;background:' + it.color + ';color:' + barTextColor(it.color) + ';';
-    b.onclick = () => _tapeDrawerPlay(i, b);
+    b.style.cssText = 'display:flex;justify-content:center;align-items:center;text-align:center;width:100%;min-height:58px;padding:6px 6px;border:none;font-family:\'DM Sans\',sans-serif;font-size:0.82rem;line-height:1.15;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:none;background:' + it.color + ';color:' + barTextColor(it.color) + ';';
     list.appendChild(b);
   });
+  const os = window._oneShot; if (os && os.cur) _tapeDrawerMark(window._tapeDrawerItems.indexOf(os.cur));
 }
-function _tapeDrawerPlay(i, btn) {
-  const it = window._tapeDrawerItems[i]; if (!it) return;
-  if (!ctx) { try { initAudio(); } catch (e) {} }
-  if (window._oneShot || playing) _tapeDrawerStopOneShot();
-  try { restoreState(it.snap); } catch (e) { console.error('tape drawer load failed', e); return; }
-  Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch (e) {} }); // a one-off play — no per-bar re-rolls
-  _autoRandLoopActive = false; _autoRandPending = false;
-  document.querySelectorAll('#tapeDrawerList .tape-drawer-btn').forEach(b => b.classList.remove('tape-drawer-playing'));
-  if (btn) btn.classList.add('tape-drawer-playing');
-  window._oneShot = { started: false, ending: false };
-  if (ctx && !playing) togglePlay();
-}
+// Tap a tape = play it once. Press and HOLD (0.35s) then drag = move it; the others shuffle round live as you go, and the
+// new order is the PLAY ALL order.
+(function () {
+  const list = document.getElementById('tapeDrawerList'); if (!list) return;
+  let st = null; // { i, x, y, held, timer, pid, el }
+  const btnAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest && e.closest('#tapeDrawerList .tape-drawer-btn'); };
+  list.addEventListener('pointerdown', e => {
+    const b = e.target.closest('.tape-drawer-btn'); if (!b) return;
+    e.preventDefault();
+    st = { i: +b.dataset.i, x: e.clientX, y: e.clientY, held: false, pid: e.pointerId, el: b };
+    try { list.setPointerCapture(e.pointerId); } catch (err) {}
+    st.timer = setTimeout(() => { if (!st) return; st.held = true; st.el.style.transform = 'scale(1.06)'; st.el.style.boxShadow = '0 4px 14px rgba(0,0,0,0.35)'; st.el.style.position = 'relative'; st.el.style.zIndex = '2'; }, 350);
+  });
+  list.addEventListener('pointermove', e => {
+    if (!st || e.pointerId !== st.pid) return;
+    if (!st.held) { if (Math.hypot(e.clientX - st.x, e.clientY - st.y) > 10) { clearTimeout(st.timer); st.cancel = true; } return; }
+    e.preventDefault();
+    const over = btnAt(e.clientX, e.clientY); if (!over) return;
+    const j = +over.dataset.i; if (j === st.i) return;
+    const items = window._tapeDrawerItems; const [m] = items.splice(st.i, 1); items.splice(j, 0, m);
+    // PLAY ALL running: the tapes after the one sounding now follow the new order
+    const os = window._oneShot; if (os && os.all && os.cur) { const k = items.indexOf(os.cur); os.queue = k >= 0 ? items.slice(k + 1) : os.queue; }
+    st.i = j; _renderTapeDrawer();
+    st.el = list.querySelector('.tape-drawer-btn[data-i="' + j + '"]');
+    if (st.el) { st.el.style.transform = 'scale(1.06)'; st.el.style.boxShadow = '0 4px 14px rgba(0,0,0,0.35)'; st.el.style.position = 'relative'; st.el.style.zIndex = '2'; }
+  });
+  const up = e => {
+    if (!st || (e && e.pointerId !== st.pid)) return;
+    clearTimeout(st.timer);
+    const wasHeld = st.held, cancel = st.cancel, i = st.i; st = null;
+    if (wasHeld) { _renderTapeDrawer(); return; }
+    if (!cancel && e && e.type === 'pointerup') _tapeDrawerPlay(i);
+  };
+  list.addEventListener('pointerup', up);
+  list.addEventListener('pointercancel', up);
+  list.addEventListener('contextmenu', e => e.preventDefault());
+})();
 function openTapeDrawer() {
   const ov = document.getElementById('tapeDrawerOverlay'); if (!ov || ov.style.display === 'block') return;
   if (playing) togglePlay();
