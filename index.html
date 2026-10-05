@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 21:57:05 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 22:04:56 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2724,7 +2724,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 21:57:05 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 22:04:56 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22842,10 +22842,35 @@ function _showAudioLog(extra) {
   btn('CLOSE', () => ov.remove());
   ov.appendChild(ta); ov.appendChild(row); document.body.appendChild(ov);
 }
+async function _noiseProbe() {
+  const taps = { OUT: window._postLimiterGain, safety: window._safetyLimiter, limiter: window.masterLimiter, duck: window._duckGain, makeup: window._makeupGain, fade: window._normalTrackFadeGain, master: masterGain, drums: window._beatGain, reverbOut: window._reverbOutGain, reverbIn: window._reverbSendBus };
+  trackGainNodes.forEach((g, i) => { taps['trk' + (i + 1) + ' ' + (trackInstruments[i] || '')] = g; });
+  Object.keys(trackPumpNodes).forEach(k => { taps['blast' + (+k + 1) + ' out'] = trackPumpNodes[k].crunchMakeup; });
+  if (window._eightBitNode) taps['8bit wet'] = window._eightBitWetGain;
+  const an = {};
+  for (const k in taps) { const n = taps[k]; if (!n) continue; try { const a = ctx.createAnalyser(); a.fftSize = 4096; n.connect(a); an[k] = { a, n, peak: -999, dc: 0, hi: -999 }; } catch (e) {} }
+  const d = new Float32Array(4096), f = new Float32Array(2048);
+  for (let it = 0; it < 15; it++) {
+    await new Promise(r => setTimeout(r, 100));
+    for (const k in an) {
+      const o = an[k]; o.a.getFloatTimeDomainData(d);
+      let m = 0; for (const v of d) m += v; m /= d.length;
+      let r = 0; for (const v of d) r += (v - m) * (v - m); r = Math.sqrt(r / d.length);
+      o.peak = Math.max(o.peak, r ? 20 * Math.log10(r) : -999); o.dc = m;
+      o.a.getFloatFrequencyData(f); const hz = ctx.sampleRate / 4096; let h = -999; for (let j = Math.floor(6000 / hz); j < Math.floor(16000 / hz); j++) h = Math.max(h, f[j]); o.hi = Math.max(o.hi, h);
+    }
+  }
+  const L = ['NOISE PROBE (1.5s, playing=' + playing + ') — stage: noise RMS dB / DC offset / loudest 6-16kHz bin dB:'];
+  for (const k in an) { const o = an[k]; L.push('  ' + k + ': ' + (o.peak <= -998 ? 'silent' : o.peak.toFixed(1)) + ' / ' + o.dc.toFixed(4) + ' / ' + (o.hi <= -998 ? '-' : Math.round(o.hi))); try { o.n.disconnect(o.a); } catch (e) {} }
+  return L;
+}
 async function audioSnapshot() {
   const L = ['SI-FI AUDIO SNAPSHOT (manual) ' + new Date().toISOString() + ' | ' + ((document.getElementById('buildTimestamp') || {}).textContent || '')].concat(_audioStateLines());
   if (ctx && playing) { const r = await _listenDrums(3000); if (r) L.push(..._listenLines(r)); }
-  else L.push('(not playing — press play first for the 3-second listen)');
+  else L.push('(not playing — no drums listen)');
+  // NOISE PROBE (noise hunt): noise level (DC removed) and DC offset at every stage of the mix, playing or not, so a hiss /
+  // crunch that's there while stopped can be traced to where it enters.
+  try { if (ctx) L.push(...await _noiseProbe()); } catch (e) { L.push('noise probe failed: ' + e.message); }
   _showAudioLog(L.join('\n'));
 }
 // DRUMS WATCHDOG — see the note at the top of this block.
