@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 05:10:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 05:34:56 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2714,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 05:10:20 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 05:34:56 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3597,7 +3597,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">TAPE DRAWER</div>
     <div id="tapeDrawerList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
     <button id="tapeDrawerPlayAll" onclick="_tapeDrawerPlayAll()" style="padding:12px;border:none;background:#111;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">▶ PLAY ALL</button>
-    <div style="font-size:0.58rem;color:#777;line-height:1.35;text-align:center;letter-spacing:0.5px;text-transform:uppercase;">TAP A TAPE TO PLAY IT · HOLD AND DRAG TO MOVE IT</div>
+    <div style="font-size:0.58rem;color:#777;line-height:1.35;text-align:center;letter-spacing:0.5px;text-transform:uppercase;">TAP TO PLAY · DOUBLE-TAP TO LOAD · HOLD AND DRAG TO MOVE</div>
   </div>
 </div>
 <div id="settingsOverlay" style="display:none;position:fixed;inset:0;z-index:250;background:rgba(0,0,0,0.5);" id="settingsBg">
@@ -19900,7 +19900,7 @@ function _addToTapeDrawer() {
     const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
     const snap = snapshotState();
     window._tapeDrawerItems.push({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
-    while (window._tapeDrawerItems.length > 8) window._tapeDrawerItems.shift(); // 8 tapes max, per direct request — the oldest drops off
+    while (window._tapeDrawerItems.length > 12) window._tapeDrawerItems.shift(); // 12 tapes max, per direct request — the oldest drops off
     _showTapeSavedDialog(name);
   } catch (e) { console.error('tape drawer save failed', e); }
 }
@@ -19993,6 +19993,7 @@ function _renderTapeDrawer() {
 (function () {
   const list = document.getElementById('tapeDrawerList'); if (!list) return;
   let st = null; // { i, x, y, held, timer, pid, el }
+  let _lastTapeTap = { i: -1, t: 0 };
   const btnAt = (x, y) => { const e = document.elementFromPoint(x, y); return e && e.closest && e.closest('#tapeDrawerList .tape-drawer-btn'); };
   list.addEventListener('pointerdown', e => {
     const b = e.target.closest('.tape-drawer-btn'); if (!b) return;
@@ -20019,16 +20020,35 @@ function _renderTapeDrawer() {
     clearTimeout(st.timer);
     const wasHeld = st.held, cancel = st.cancel, i = st.i; st = null;
     if (wasHeld) { _renderTapeDrawer(); return; }
-    if (!cancel && e && e.type === 'pointerup') _tapeDrawerPlay(i);
+    if (!cancel && e && e.type === 'pointerup') {
+      const now = Date.now();
+      if (_lastTapeTap.i === i && now - _lastTapeTap.t < 350) { _lastTapeTap = { i: -1, t: 0 }; _tapeDrawerLoadMain(i); }
+      else { _lastTapeTap = { i, t: now }; _tapeDrawerPlay(i); }
+    }
   };
   list.addEventListener('pointerup', up);
   list.addEventListener('pointercancel', up);
   list.addEventListener('contextmenu', e => e.preventDefault());
 })();
+// DOUBLE-TAP a tape, per direct request: it becomes the main pattern — the pattern you had before opening the drawer goes
+// into RECALL's B slot (so A/B flips back to it), the drawer closes, and playback resumes if it was playing before.
+function _tapeDrawerLoadMain(i) {
+  const it = window._tapeDrawerItems[i]; if (!it) return;
+  _tapeDrawerStopOneShot();
+  const pre = _tapeDrawerPre; _tapeDrawerPre = null;
+  if (pre) _recallSnapB = pre.snap;
+  try { restoreState(it.snap); } catch (e) { console.error('tape drawer load-to-main failed', e); }
+  _autoRandLoopActive = pre ? pre.autoLoop : false;
+  const ov = document.getElementById('tapeDrawerOverlay'); if (ov) ov.style.display = 'none';
+  try { markModified(); } catch (e) {}
+  if (pre && pre.wasPlaying && ctx && !playing) togglePlay();
+  try { window._crashCrumb && window._crashCrumb('TAPE DRAWER load to main'); } catch (e) {}
+}
 function openTapeDrawer() {
   const ov = document.getElementById('tapeDrawerOverlay'); if (!ov || ov.style.display === 'block') return;
+  const _wasPlaying = playing;
   if (playing) togglePlay();
-  _tapeDrawerPre = { snap: snapshotState(), autoLoop: _autoRandLoopActive };
+  _tapeDrawerPre = { snap: snapshotState(), autoLoop: _autoRandLoopActive, wasPlaying: _wasPlaying };
   if (_autoRandLoopActive) { _autoRandLoopActive = false; }
   _renderTapeDrawer();
   ov.style.display = 'block';
