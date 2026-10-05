@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-05 21:38:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-05 05:43:34 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -250,14 +250,6 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
 .track-vol-fill-solid.flash-pulse-hit { background-color: var(--play-flash-color, #f8ff00) !important; }
 @keyframes flash-vol-pulse-decay { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--neutral-top, #555555); } } /* now the TOP ROW COLOR per direct request (supersedes the old literal-grey rule described above) */
 .track-vol-fill-solid.flash-pulse-decay { animation: flash-vol-pulse-decay 0.38s ease-out forwards; }
-/* FILL TO BACKGROUND (display-mode class 'fill-decay-bg' — BIG SCHOOL and CLUB for now), per direct request: the vol fill's
-   pulse fades from PLAY FLASH down into the BACKGROUND colour instead of the TOP ROW colour, and rests there. Also beats
-   TEST mode's solid fill (CLUB) so the same fade shows there. */
-@keyframes flash-vol-pulse-decay-bg { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--bg, #111); } }
-html body.fill-decay-bg .track-vol-bar .track-vol-fill-solid.track-vol-fill-solid:not(.flash-pulse-hit):not(.flash-pulse-decay) { background: var(--bg, #111) !important; }
-html body.fill-decay-bg .track-vol-bar .track-vol-fill-solid.track-vol-fill-solid.flash-pulse-hit { background: var(--play-flash-color, #f8ff00) !important; }
-html body.fill-decay-bg .track-vol-bar .track-vol-fill-solid.track-vol-fill-solid.flash-pulse-decay { background-color: var(--bg, #111); animation: flash-vol-pulse-decay-bg 0.76s ease-out forwards !important; /* twice the normal fade, per direct request */ } /* no !important on the colour — an animation can't move a value that's !important */
-html body.fill-decay-bg:not(.just-track):not(.vol-test) .track-vol-bar .track-vol-fill-solid.track-vol-fill-solid.flash-pulse-decay { animation-duration: 432ms !important; }
 /* With JUST TRACK and WIDE METER both off, the fill's fade from its peak back to its resting colour takes the same 216ms as a note marker's ease back from its peak, per direct request */
 html body:not(.just-track):not(.vol-test) .track-vol-fill-solid.flash-pulse-decay { animation-duration: 216ms; }
 body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-hit,
@@ -988,12 +980,10 @@ html body.vol-test .track-vol-bar .track-vol-fill-solid,
 html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
   width: 100% !important; z-index: 1;
+  background: var(--play-flash-color, #f17d21) !important;
   box-shadow: 0 0 calc(11.2px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) calc(min(100%, 100% * var(--fillglow, 1))), transparent) !important;
-  filter: none !important;
+  animation: none !important; filter: none !important;
 }
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--play-flash-color, #f17d21) !important; animation: none !important; }
 html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
 /* VOL FILL GLOW (settings slider, 100% default, applies on release), per
    direct request — the vol fill glows in the PLAY FLASH colour in every
@@ -2724,7 +2714,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 21:38:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-05 05:43:34 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3607,10 +3597,6 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">TAPE DRAWER</div>
     <div id="tapeDrawerList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
     <button id="tapeDrawerPlayAll" onclick="_tapeDrawerPlayAll()" style="padding:12px;border:none;background:#111;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">▶ PLAY ALL</button>
-    <div id="tapeDrawerExportRow" style="display:flex;gap:8px;">
-      <button onclick="saveAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">SAVE ALL TAPES</button>
-      <button onclick="exportAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">EXPORT ALL TAPES</button>
-    </div>
     <div style="font-size:0.58rem;color:#777;line-height:1.35;text-align:center;letter-spacing:0.5px;text-transform:uppercase;">TAP TO PLAY · DOUBLE-TAP TO LOAD · HOLD AND DRAG TO MOVE</div>
   </div>
 </div>
@@ -4962,7 +4948,6 @@ function setNoButtonSounds(on) {
 document.addEventListener('DOMContentLoaded', () => { setButtonSoundsToMix(window._buttonSoundsToMix); setNoButtonSounds(window._noButtonSounds); });
 function playUiSound(name, forceMix) { // forceMix: always through the mix (so REALTIME recording captures it), whatever BUTTON SOUNDS TO MIX says
   if (window._noButtonSounds) return;
-  if (window._tapeDrawerQuiet) return; // TAPE DRAWER is silent — no tape button / play / stop noises while it's open, per direct request
   if (!ctx || !window._uiSoundBufs || !window._uiSoundBufs[name]) return;
   const src = ctx.createBufferSource(); src.buffer = window._uiSoundBufs[name];
   src.playbackRate.value = name === 'rewind' ? 1.5 : 1.0; // rewind plays faster
@@ -6167,7 +6152,6 @@ function scheduler() {
       if (!window._oneShot.ending) { window._oneShot.ending = true; const _os = window._oneShot; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot === _os) _tapeDrawerStopOneShot(); }, ms); }
       break;
     }
-    if (currentStep === NUM_STEPS - 1 && _audioRefreshDue()) { const wait = Math.max(0, (nextStepTime - ctx.currentTime) * 1000 - 10); _audioRefreshing = true; setTimeout(() => { _audioRefreshing = false; if (playing) _refreshAudioEngine(); }, wait); if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; } break; } // AUDIO REFRESH at the bar line
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     if (window._oneShot && step === 0) window._oneShot.started = true;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider.
@@ -11245,17 +11229,17 @@ function playSnare(t) {
   // body tone
   const body = ctx.createOscillator(), bodyGain = ctx.createGain();
   body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
-  bodyGain.gain.setValueAtTime(0.3304, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1); // -0.5dB (was 0.350), per direct request
+  bodyGain.gain.setValueAtTime(0.350, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
   const snDest = window._beatGain || masterGain;
   body.connect(bodyGain); bodyGain.connect(snDest); body.start(t); body.stop(t + 0.1);
   body.onended = () => { try { bodyGain.disconnect(); } catch(e) {} };
   src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(snDest);
-  g.gain.setValueAtTime(0.5193, t); // -0.5dB (was 0.550), per direct request
+  g.gain.setValueAtTime(0.550, t);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
   src.start(t);
   src.onended = () => { try { hp.disconnect(); bp.disconnect(); g.disconnect(); } catch(e) {} };
   const _isReggaeFamily = (_beatType === 'reggae' || _beatType === 'reggae2');
-  _addSnareClick(t, snDest, (_isReggaeFamily ? 0.045 : 0.13) * 0.9441); // -0.5dB with the rest of the snare // halved for reggae-family (already has a real sidestick), boosted elsewhere
+  _addSnareClick(t, snDest, _isReggaeFamily ? 0.045 : 0.13); // halved for reggae-family (already has a real sidestick), boosted elsewhere
 }
 // Oberheim DMX-style snare — the DMX (1981) was one of the earliest drum
 // machines to use sampled, rather than purely synthesized, sounds, at 8-bit
@@ -11361,7 +11345,7 @@ function playBeatSnareSample(t) {
   src.buffer = buf;
   const g = ctx.createGain();
   g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(0.2655, t + 0.003); // -0.5dB (was 0.2812), per direct request — was the same level as playBeatSidestickSample, so SAMBA's own alternation between the two doesn't jump in volume — short fade-in, same reasoning as that function
+  g.gain.linearRampToValueAtTime(0.2812, t + 0.003); // same level as playBeatSidestickSample, so SAMBA's own alternation between the two doesn't jump in volume — short fade-in, same reasoning as that function
   src.connect(g);
   g.connect(window._beatGain || masterGain);
   src.start(t);
@@ -13915,7 +13899,7 @@ function _checkRowContrast() {
   // Tip under 2:1 brightness contrast against its background (even when its
   // colour differs, e.g. lime on pale green) → dark edge round the tip.
   body.classList.toggle('tip-needs-edge', edge);
-  if (!low && !body.classList.contains('fill-decay-bg')) document.querySelectorAll('.track-wrap:not(.track-empty) .track-vol-fill-solid').forEach(f => { // FILL TO BACKGROUND rests the fill on the background on purpose — not a contrast problem
+  if (!low) document.querySelectorAll('.track-wrap:not(.track-empty) .track-vol-fill-solid').forEach(f => {
     if (_midFlash(f)) { _rowContrastSkipped = true; return; }
     const cs = getComputedStyle(f); let c = _rgbOf(cs.backgroundColor);
     if (!c || c[3] === 0) c = _rgbOf(cs.backgroundImage);
@@ -14489,7 +14473,6 @@ async function importTapeFile(file) {
   try {
     const text = await file.text();
     const payload = JSON.parse(text);
-    if (payload && payload.format === 'sifi-tapeset') { _loadTapeSet(payload); if (inp) inp.value = ''; return; }
     if (!payload || payload.format !== 'sifi-tape' || !payload.state) {
       alert("That doesn't look like a valid tape file.");
       if (inp) inp.value = '';
@@ -19918,28 +19901,8 @@ function _addToTapeDrawer() {
     const snap = snapshotState();
     window._tapeDrawerItems.push({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
     while (window._tapeDrawerItems.length > 12) window._tapeDrawerItems.shift(); // 12 tapes max, per direct request — the oldest drops off
-    _floatSavedHeart();
+    _showTapeSavedDialog(name);
   } catch (e) { console.error('tape drawer save failed', e); }
-}
-// A small heart floats up out of the song name and fades, per direct request — replaces the "SAVED TO TAPE DRAWER" box.
-// Drawn in the song name's own text colour so it reads on any bar colour.
-function _floatSavedHeart() {
-  const nb = document.getElementById('nameBar'), nd = document.getElementById('nameDisplay'); if (!nb) return;
-  const r = (nd && nd.getBoundingClientRect().width ? nd : nb).getBoundingClientRect();
-  const rcs = getComputedStyle(document.documentElement); // PLAY/STOP's playing colour (#playBtnMask), per direct request
-  const col = rcs.getPropertyValue('--play-hl').trim() || rcs.getPropertyValue('--top-row-pressed-text-color').trim() || '#fff';
-  const h = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  h.setAttribute('viewBox', '0 0 24 24'); h.setAttribute('width', '39'); h.setAttribute('height', '39'); // 50% bigger (was 26)
-  h.innerHTML = '<path fill="' + col + '" d="M12 21.4l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.4z"/>';
-  h.style.cssText = 'position:fixed;left:' + (r.left + r.width / 2 - 19.5) + 'px;top:' + (r.top + r.height / 2 - 19.5) + 'px;z-index:260;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,0.25));';
-  document.body.appendChild(h);
-  const drift = (Math.random() * 2 - 1) * 10;
-  const a = h.animate([
-    { transform: 'translate(0,0) scale(0.6)', opacity: 0 },
-    { transform: 'translate(' + (drift * 0.3) + 'px,-14px) scale(1.1)', opacity: 1, offset: 0.2 },
-    { transform: 'translate(' + drift + 'px,-70px) scale(1)', opacity: 0 }
-  ], { duration: 1650, easing: 'cubic-bezier(0.22,0.61,0.36,1)', fill: 'forwards' }); // 50% longer (was 1100ms)
-  a.onfinish = () => h.remove(); setTimeout(() => h.remove(), 2100);
 }
 // "SAVED TO TAPE DRAWER" box on every song-name double-tap, per direct request — same look as the SETTINGS panel, closes
 // itself after 1.5s (or on a tap). Doesn't block anything underneath — playback carries on.
@@ -20087,65 +20050,10 @@ function _tapeDrawerLoadMain(i) {
   const ov = document.getElementById('tapeDrawerOverlay'); if (ov) ov.style.display = 'none';
   try { markModified(); } catch (e) {}
   if (pre && pre.wasPlaying && ctx && !playing) togglePlay();
-  window._tapeDrawerQuiet = false;
   try { window._crashCrumb && window._crashCrumb('TAPE DRAWER load to main'); } catch (e) {}
-}
-// SAVE ALL TAPES / EXPORT ALL TAPES (TAPE DRAWER), per direct request.
-// SAVE: every tape in the drawer, in drawer order, as ONE tape-set file (.SiFiTapes.json). LOAD TAPE (RECORD menu) reads it
-//   back and refills the drawer with them.
-// EXPORT: every tape bounced to its own WAV (the full mix, same as BOUNCE LOOP — not stems), one loop each, numbered in
-//   drawer order, all in one zip.
-function _tapeSetStamp() { const d = new Date(), z = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + z(d.getMinutes()); }
-function saveAllTapes() {
-  const items = window._tapeDrawerItems; if (!items.length) { _showNotice('NO TAPES TO SAVE'); return; }
-  const payload = { format: 'sifi-tapeset', version: 1, createdAt: new Date().toISOString(), tapes: items.map(it => ({ name: it.name, color: it.color, state: it.snap })) };
-  const file = new File([JSON.stringify(payload)], 'Si-Fi Tapes ' + _tapeSetStamp() + '.SiFiTapes.json', { type: 'application/json' });
-  shareOrDownload([file]).then(ok => { if (ok !== false) _showNotice(items.length + ' TAPES SAVED'); });
-}
-function _loadTapeSet(payload) {
-  const tapes = (payload.tapes || []).filter(t => t && t.state).slice(-12);
-  if (!tapes.length) { alert("That tape set is empty."); return; }
-  window._tapeDrawerItems = tapes.map(t => ({ snap: t.state, sig: _tapeSig(t.state), name: t.name || t.state.speciesName || 'UNTITLED', color: t.color || t.state.barColor || '#aa64a6', at: Date.now() }));
-  try { hideSettings(); } catch (e) {}
-  openTapeDrawer();
-}
-async function exportAllTapes() {
-  const items = window._tapeDrawerItems.slice(); if (!items.length) { _showNotice('NO TAPES TO EXPORT'); return; }
-  if (!ctx) { alert('Start playback first'); return; }
-  _tapeDrawerStopOneShot();
-  const live = snapshotState(), liveAuto = _autoRandLoopActive;
-  _showBounceToast();
-  try {
-    const zip = createZipBuilder(), used = new Set();
-    for (let n = 0; n < items.length; n++) {
-      const it = items[n];
-      _setBounceProgress(n / items.length, 'Rendering ' + (n + 1) + ' of ' + items.length + '…');
-      restoreState(it.snap);
-      Object.keys(autoShiftStops).forEach(tr => { try { autoShiftStops[tr](); } catch (e) {} });
-      _autoRandLoopActive = false;
-      if (!grid.some(row => row.some(v => v > 0))) continue;
-      const seq = _precomputeLoopSequence(1);
-      const mix = await _renderOfflineLoop(_connectFullMix, seq);
-      let base = String(n + 1).padStart(2, '0') + ' ' + _bounceBaseName(), name = base, k = 2;
-      while (used.has(name)) name = base + ' (' + (k++) + ')';
-      used.add(name);
-      zip.addFile(name.replace(/[\\/:*?"<>|]+/g, ' ') + '.wav', audioBufferToWav(mix, bpm));
-    }
-    _setBounceProgress(1, 'Zipping…');
-    await _downloadBlob(zip.finish(), 'Si-Fi Tapes ' + _tapeSetStamp() + '.zip');
-  } catch (e) {
-    console.error('Export all tapes failed', e);
-    alert('Export error: ' + e.message);
-  } finally {
-    try { restoreState(live); } catch (e) {}
-    _autoRandLoopActive = liveAuto;
-    for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr);
-    _hideBounceToast();
-  }
 }
 function openTapeDrawer() {
   const ov = document.getElementById('tapeDrawerOverlay'); if (!ov || ov.style.display === 'block') return;
-  window._tapeDrawerQuiet = true;
   const _wasPlaying = playing;
   if (playing) togglePlay();
   _tapeDrawerPre = { snap: snapshotState(), autoLoop: _autoRandLoopActive, wasPlaying: _wasPlaying };
@@ -20158,7 +20066,6 @@ function closeTapeDrawer() {
   const ov = document.getElementById('tapeDrawerOverlay'); if (!ov) return;
   _tapeDrawerStopOneShot();
   ov.style.display = 'none';
-  setTimeout(() => { window._tapeDrawerQuiet = false; }, 0);
   if (_tapeDrawerPre) {
     try { restoreState(_tapeDrawerPre.snap); } catch (e) { console.error('tape drawer restore failed', e); }
     _autoRandLoopActive = _tapeDrawerPre.autoLoop;
@@ -20444,12 +20351,12 @@ function _cycleRainbowMode() {
     const _nm = _RAINBOW_CYCLE[_ni]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
 }
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true, 'fill-decay-bg': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
-  { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'lock-swap': true, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, classes: { 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'lock-swap': true, 'failsafe-hl': false }, sliders: {"bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "120"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
-  { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: true,  bg0: true, jt: false, tipHl: false, glowTip: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'lock-swap': true, 'failsafe-hl': true, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
@@ -22048,8 +21955,7 @@ function _initEqMeter() {
   }
   draw();
 }
-async function initAudio(opts) {
-  const _refresh = !!(opts && opts.refresh); // AUDIO REFRESH: rebuild the graph only — keep decoded samples, UI sounds and the pattern
+async function initAudio() {
   if (_initStarted) return; _initStarted = true;
   requestWakeLock();
   const msg = document.getElementById('loadingMsg');
@@ -22058,7 +21964,6 @@ async function initAudio(opts) {
   try {
     msg.textContent = 'STARTING...';
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
-    window._ctxBornAt = performance.now();
     _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
     await ctx.resume();
@@ -22087,9 +21992,9 @@ async function initAudio(opts) {
     window._makeupGain = makeupGain;
     window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711; /* +3dB default DRUMS level, matching _beatVolRaw */ window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
-    const _uiSoundBufs = (_refresh && window._uiSoundBufs) ? window._uiSoundBufs : {};
+    const _uiSoundBufs = {};
     window._uiSoundBufs = _uiSoundBufs;
-    if (!_refresh) ['click','play','rewind','rewind2','clickoff','Stop','Cymbal','Rand','tinyclick','ShutVerb'].forEach(name => {
+    ['click','play','rewind','rewind2','clickoff','Stop','Cymbal','Rand','tinyclick','ShutVerb'].forEach(name => {
       fetch(resolveSampleUrl(`Sounds/${name}.wav`)).then(r => r.arrayBuffer()).then(buf => ctx.decodeAudioData(buf, decoded => {
         _uiSoundBufs[name] = decoded;
       })).catch(()=>{});
@@ -22164,7 +22069,6 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     const unlock = ctx.createBuffer(1,1,ctx.sampleRate);
     unlock.getChannelData(0)[0]=0.001;
     const src=ctx.createBufferSource(); src.buffer=unlock; src.connect(ctx.destination); src.start(0);
-    if (_refresh) return; // samples (decoded off-context) and the pattern carry straight over
     msg.textContent = 'LOADING SAMPLES...';
     loadScratchSample();
     await loadSamples();
@@ -22186,58 +22090,6 @@ if ('serviceWorker' in navigator) {
 // choked (e.g. after the geiger-counter overload bug) — the underlying
 // audio graph can stay clogged even once the scheduler is off. This tears
 // the whole thing down and rebuilds it fresh, without needing a page reload.
-// AUDIO REFRESH, per direct request (crash hunt): iPhone Safari keeps dying 6-12 minutes into play, apparently from the tens
-// of thousands of short-lived sound nodes piling up inside one AudioContext. Every 4 minutes of playback, at the end of a bar,
-// the whole audio engine is swapped for a fresh one (same pattern, same mix, samples kept) and playback carries straight on
-// from the next bar — a gap of a few milliseconds instead of a slow death. If iOS refuses to start the new engine without a
-// tap, it starts on the very next tap anywhere.
-const AUDIO_REFRESH_MS = 4 * 60 * 1000;
-window._ctxBornAt = 0; let _audioRefreshing = false;
-function _audioRefreshDue() { return !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
-async function _refreshAudioEngine() {
-  if (_audioRefreshing || !ctx) return;
-  _audioRefreshing = true;
-  const old = ctx;
-  try {
-    try { window._crashCrumb && window._crashCrumb('AUDIO REFRESH'); } catch (e) {}
-    if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
-    Object.keys(_noiseGateNodes).forEach(tr => { try { _noiseGateNodes[tr].src.stop(); } catch (e) {} delete _noiseGateNodes[tr]; });
-    // the same "stale node" clean-out the long-press PLAY rebuild does
-    _amalgamBaseBuffer = null; _droneAirNoiseBuffer = null; _amalgamTriggerTimes = [];
-    ctx = null; masterGain = null;
-    window._makeupGain = null; window._duckGain = null; window._normalTrackFadeGain = null;
-    window._beatGain = null; window.masterLimiter = null; window._postLimiterGain = null; window._safetyLimiter = null;
-    window._beatDryGain = null; window._beatCrunchSend = null; window._beatReverbSend = null;
-    window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
-    window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null;
-    trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
-    [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
-    _initStarted = false;
-    setTimeout(() => { try { old.close(); } catch (e) {} }, 4000); // the old engine rings out its last notes / reverb tails for a few seconds before it's shut, so nothing gets chopped
-    await initAudio({ refresh: true });
-    if (!ctx) throw new Error('no context');
-    // put the mix back exactly as it was
-    try { _applyBeatVolWithDuck(); } catch (e) {}
-    try { if (_beatFx || _beatPump || (_beatReverbMix || 0) > 0) { _ensureBeatFxChain(); if (window._beatCrunchSend) window._beatCrunchSend.gain.value = _beatFx ? 0.5 : 0; if (window._beatReverbSend) window._beatReverbSend.gain.value = _beatReverbGainForMix(_beatReverbMix); } } catch (e) {}
-    try { setGlobalDelayMix(window._globalDelayMix || 0); } catch (e) {}
-    try { setEightBitMix(Math.round((window._eightBitMix || 0) * 100)); } catch (e) {}
-    for (let tr = 0; tr < NUM_TRACKS; tr++) { try { _setTrackReverb(tr, !!trackDelay[tr]); } catch (e) {} try { updateTrackMute(tr); } catch (e) {} }
-    try { _syncDrumReverbTaps(); } catch (e) {}
-    if (ctx.state !== 'running') {
-      // iOS wants a tap — start it on the next one, anywhere
-      const kick = () => { try { ctx && ctx.resume(); } catch (e) {} };
-      document.addEventListener('pointerdown', kick, { capture: true, once: true });
-      document.addEventListener('touchend', kick, { capture: true, once: true });
-    }
-    currentStep = -1; nextStepTime = ctx.currentTime + 0.02;
-    if (playing) { scheduleInterval = setInterval(scheduler, SCHEDULE_MS); scheduler(); }
-  } catch (e) {
-    console.error('audio refresh failed', e);
-    try { window._crashCrumb && window._crashCrumb('AUDIO REFRESH failed: ' + e.message); } catch (err) {}
-  }
-  window._ctxBornAt = performance.now();
-  _audioRefreshing = false;
-}
 async function hardResetAudioEngine() {
   const msg = document.getElementById('loadingMsg');
   const overlay = document.getElementById('loadingOverlay');
