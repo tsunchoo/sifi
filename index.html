@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 22:41:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 22:49:24 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2733,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 22:41:07 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 22:49:24 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3016,6 +3016,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="wildColorsToggle" checked>
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
+    <!-- PLAYDOE, per direct request: the >> button re-rolls the INSTRUMENTS (same as RANDOMIZE > CURRENT INSTRUMENTS) instead of making a new pattern. Off by default. -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYDOE</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="playdoeToggle" onchange="window._playdoeOn = this.checked">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3826,6 +3834,13 @@ function _rootCS() {
 window._rootCS = _rootCS;
 
 let _bgPulseEnabled = false, _bgStaticEnabled = false, _bgPulseSteps = 4, _bgPulseCounter = 0;
+window._playdoeOn = false; // PLAYDOE toggle (under WILD) — >> swaps instruments instead of making a new pattern; off by default
+// >> in PLAYDOE mode: new instruments on the same pattern (RANDOMIZE > CURRENT INSTRUMENTS) — returns true if it handled the press
+function _playdoePlus() {
+  if (!window._playdoeOn) return false;
+  try { randomizeCurrentInstruments(); } catch (e) { console.error('PLAYDOE swap failed', e); }
+  return true;
+}
 window._wildColorsEnabled = true; // WILD toggle in settings — randomizes app colors alongside every new whole-pattern RAND, on by default
 window._soloFlashMode = true; // SOLO FLASH toggle in settings — track SOLO buttons work as press-and-hold (solo only while held) rather than click-to-toggle, on by default
 window._soloIncludesBeat = false; // SOLO INCLUDES DRUMS toggle in settings — off by default, per direct request (was on by default); off means BEAT/DRUMS is silenced by any SOLO like every other track, unless this is explicitly checked to keep it in the mix regardless
@@ -15723,7 +15738,7 @@ let randAllLevel = 0;
 
 let _randHeld = false;
 function handleRandTap() {
-  if (!_randHeld) { playUiSound('click'); setBtnBlueHeld('randBtn'); queueRand(); }
+  if (!_randHeld) { playUiSound('click'); if (!_playdoePlus()) { setBtnBlueHeld('randBtn'); queueRand(); } }
   _randHeld = false;
 }
 
@@ -17280,6 +17295,7 @@ function stopAllAutoRand() {
     btn.style.background = ''; btn.style.color = ''; btn.style.transform = ''; btn.style.transition = '';
     btn.classList.remove('btn-flash-blue', 'rand-pending-fast');
     _pressPulse('randBtn');
+    if (_playdoePlus()) return; // PLAYDOE: same pattern, new instruments
     setBtnBlueHeld('randBtn'); queueRand();
   };
 
@@ -21616,6 +21632,7 @@ function fullReset() {
   window._wildColorsEnabled = true;
   window._wildColorsSkipNext = false; // NOT the same as a fresh page load, on reflection — that skip-once exists purely so the app doesn't immediately jump to random colors before you've even seen the default palette on first load. Reset already shows you the default palette directly (_resetAppColorsToDefault below), so there's nothing left to protect here; skipping it just meant the first + after reset looked like it had silently failed, requiring a second press before colors actually came back.
   const wildCb = document.getElementById('wildColorsToggle'); if (wildCb) wildCb.checked = true;
+  window._playdoeOn = false; const pdCb = document.getElementById('playdoeToggle'); if (pdCb) pdCb.checked = false;
   window._soloFlashMode = true;
   const soloFlashCb = document.getElementById('soloFlashToggle'); if (soloFlashCb) soloFlashCb.checked = true;
   setSoloIncludesBeat(false); // matches the new off-by-default (was true)
@@ -22426,7 +22443,7 @@ let _sweepScCurveCache = null;
 function _sweepScCurves() {
   if (_sweepScCurveCache) return _sweepScCurveCache;
   const n = 1025, rect = new Float32Array(n), map = new Float32Array(n);
-  for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; rect[i] = Math.abs(x); map[i] = Math.max(0, Math.min(1, (x - 0.03) * 11)); } // map: a quiet floor (0.03) ignored, a typical mix (~0.09) ducks ~65%, hits (0.12+) all the way — so it pumps with the beat rather than just sitting quieter
+  for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; rect[i] = Math.abs(x); map[i] = x <= 0 ? 0 : Math.pow(Math.min(1, x * 100), 0.6); } // map: (fast − slow envelope) → duck amount. Between hits ≈ 0 (no duck), a typical hit 0.01–0.02 → most to all of the way down
   return (_sweepScCurveCache = { rect, map });
 }
 (function() {
@@ -22488,21 +22505,29 @@ function _sweepScCurves() {
     // without hearing SWEEP itself — Web Audio would silence that loop.
     const scGain = ctx.createGain(); scGain.gain.value = 1;
     const sweepMaster = ctx.createGain(); sweepMaster.gain.value = masterGain.gain.value;
+    // Keyed off the HITS, not the overall level (a busy mix is too steady — the first version just sat SWEEP ~12dB lower and
+    // didn't pump): low end only (kick/bass) → rectify → a fast envelope minus a slow one = how far above its own running
+    // average the beat is right now. Spikes on every hit, ~0 in between, whatever the overall level — that's the pump.
+    const scLow = ctx.createBiquadFilter(); scLow.type = 'lowpass'; scLow.frequency.value = 200; scLow.Q.value = 0.707;
     const scRect = ctx.createWaveShaper(); scRect.curve = _sweepScCurves().rect; scRect.oversample = 'none';
-    const scSmooth = ctx.createBiquadFilter(); scSmooth.type = 'lowpass'; scSmooth.frequency.value = 12; scSmooth.Q.value = 0.5;
+    const scSmooth = ctx.createBiquadFilter(); scSmooth.type = 'lowpass'; scSmooth.frequency.value = 6; scSmooth.Q.value = 0.707;
+    const scSlow = ctx.createBiquadFilter(); scSlow.type = 'lowpass'; scSlow.frequency.value = 3; scSlow.Q.value = 0.707;
+    const scInv = ctx.createGain(); scInv.gain.value = -1;
     const scMap = ctx.createWaveShaper(); scMap.curve = _sweepScCurves().map; scMap.oversample = 'none';
     const scDepth = ctx.createGain(); scDepth.gain.value = 0; // 0 = no sideways drag yet = no pumping
-    masterGain.connect(scRect); scRect.connect(scSmooth); scSmooth.connect(scMap); scMap.connect(scDepth); scDepth.connect(scGain.gain);
+    masterGain.connect(scLow); scLow.connect(scRect); scRect.connect(scSmooth); scRect.connect(scSlow); scSlow.connect(scInv);
+    scSmooth.connect(scMap); scInv.connect(scMap); scMap.connect(scDepth); scDepth.connect(scGain.gain);
     noise.connect(bp); bp.connect(baseGain); baseGain.connect(scGain); scGain.connect(sweepMaster); sweepMaster.connect(window._makeupGain || masterGain);
     noise.start(t);
-    sweepNodes = { noise, bp, gain: baseGain, scGain, sweepMaster, scRect, scSmooth, scMap, scDepth };
+    sweepNodes = { noise, bp, gain: baseGain, scGain, sweepMaster, scLow, scRect, scSmooth, scSlow, scInv, scMap, scDepth };
+    window._sweepNodesDbg = sweepNodes; // diagnostics only
     btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise, scGain, sweepMaster, scRect, scSmooth, scMap, scDepth } = sweepNodes;
+    const { bp, gain, noise, scGain, sweepMaster, scLow, scRect, scSmooth, scSlow, scInv, scMap, scDepth } = sweepNodes;
     sweepNodes = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
@@ -22519,8 +22544,8 @@ function _sweepScCurves() {
     // scheduled on the audio clock and the chain is only taken apart after it.
     try { noise.stop(t + halfNote + 0.05); } catch(e) {}
     _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {}
-      [scGain, sweepMaster, scSmooth, scMap, scDepth].forEach(n => { try { n && n.disconnect(); } catch (e) {} });
-      try { if (scRect) { masterGain && masterGain.disconnect(scRect); scRect.disconnect(); } } catch (e) {} });
+      [scGain, sweepMaster, scRect, scSmooth, scSlow, scInv, scMap, scDepth].forEach(n => { try { n && n.disconnect(); } catch (e) {} });
+      try { if (scLow) { masterGain && masterGain.disconnect(scLow); scLow.disconnect(); } } catch (e) {} });
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
@@ -22678,7 +22703,7 @@ function _sweepScCurves() {
     if (e.cancelable) e.preventDefault();
     if (target && !target.dataset.sweepTriggered) {
       target.dataset.sweepTriggered = '1';
-      if (target.id === 'randBtn') { setBtnBlueHeld('randBtn'); queueRand(); }
+      if (target.id === 'randBtn') { if (!_playdoePlus()) { setBtnBlueHeld('randBtn'); queueRand(); } }
       if (target.id === 'scratchBtn') { window._doRecall?.(); }
     }
   };
