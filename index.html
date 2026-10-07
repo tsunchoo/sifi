@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 05:19:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 05:38:12 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2733,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 05:19:38 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 05:38:12 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5018,6 +5018,7 @@ document.addEventListener('mousedown',  resumeCtx, false);
 function attachCtxStateWatch() {
   if (!ctx) return;
   ctx.addEventListener('statechange', () => {
+    if (ctx.state === 'running') window._clockRef = { ct: ctx.currentTime, pn: performance.now(), ctx }; // snapshot clock check restarts after any pause, so it only measures real running time
     // Only fight to resume when audio is actually supposed to be running —
     // letting an idle context stay suspended is correct and saves power.
     if (ctx.state === 'suspended' && playing) ctx.resume().catch(()=>{});
@@ -5513,6 +5514,15 @@ function hideRandMenu() {
 // that are genuinely empty and have never had an instrument chosen are
 // skipped. Goes through selectSound() so tonal scales etc. are rebuilt
 // properly, then restores each track's mute state (selectSound unmutes).
+// Roman numerals on the song name for each RANDOMIZE CURRENT INSTRUMENTS — the original is (implicitly) I, so the first swap gives II
+function _toRoman(n) { const v = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let r = ''; for (const [x, c] of v) while (n >= x) { r += c; n -= x; } return r; }
+function _fromRoman(s) { const m = { I:1, V:5, X:10, L:50, C:100, D:500, M:1000 }; let t = 0; for (let i = 0; i < s.length; i++) { const a = m[s[i]], b = m[s[i + 1]] || 0; t += a < b ? -a : a; } return t; }
+function _songNameNextNumeral(name) {
+  name = (name || '').trim();
+  const mm = name.match(/^(.*\S)\s+([IVX]+)$/); // I–XXXIX only, so a real word like MIX or DIM is never mistaken for a numeral
+  if (mm && _toRoman(_fromRoman(mm[2])) === mm[2]) return mm[1] + ' ' + _toRoman(_fromRoman(mm[2]) + 1);
+  return name + ' II';
+}
 function randomizeCurrentInstruments() {
   // A/B + colors, per direct request: this now counts as a NEW PATTERN as
   // far as A/B (RECALL) is concerned — the pattern as it was, instruments
@@ -5558,6 +5568,7 @@ function randomizeCurrentInstruments() {
     if (mutedBefore[tr]) { trackMuted[tr] = true; updateTrackMute(tr); }
     changed++;
   }
+  if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
   if (typeof randomizeAppColors === 'function') randomizeAppColors();
   for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr, true); // repaint markers in each track's new instrument colour, without re-sorting the layout
   markModified();
@@ -22134,8 +22145,8 @@ async function initAudio(opts) {
   overlay.style.pointerEvents = 'none';
   try {
     msg.textContent = 'STARTING...';
-    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: (opts && opts.sampleRate) || 44100 }); // a refresh reuses the old engine's rate so iOS never re-clocks the hardware mid-song
-    window._ctxBornAt = performance.now();
+    ctx = new (window.AudioContext || window.webkitAudioContext)(); // the device's own native rate — forcing 44.1k on 48k iPhone hardware made playback run fast and unsteady. Samples (decoded at 44.1k) are resampled correctly on playback.
+    window._ctxBornAt = performance.now(); window._clockRef = { ct: ctx.currentTime, pn: performance.now(), ctx };
     _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
     if (_refresh) { await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 800))]); } else await ctx.resume(); // a refresh never hangs waiting on iOS
@@ -22291,10 +22302,10 @@ async function _refreshAudioEngine() {
     [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
     _initStarted = false;
     // Runs inside a tap: shut the old engine and start the new one in the same gesture so iOS lets it run straight away
-    // (outside a gesture iOS left it suspended and the timing came back wrong). Same sample rate as before, never two at once.
+    // (outside a gesture iOS left it suspended and the timing came back wrong). Never two at once.
     try { const t = old.currentTime; if (_oldMaster) { _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(0, t); } } catch (e) {}
     try { old.close(); } catch (e) {}
-    await initAudio({ refresh: true, sampleRate: old.sampleRate || 44100 });
+    await initAudio({ refresh: true });
     if (!ctx) throw new Error('no context');
     // put the mix back exactly as it was
     try { _applyBeatVolWithDuck(); } catch (e) {}
@@ -22875,7 +22886,7 @@ function _audioStateLines() {
   const L = [];
   const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
   L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
-  L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
+  L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' clock=' + g(() => { const r = window._clockRef; if (!r || r.ctx !== ctx) return '-'; const wall = (performance.now() - r.pn) / 1000; return wall > 2 ? ((ctx.currentTime - r.ct) / wall).toFixed(4) + 'x' : '-'; }) + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
   L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
   L.push('fxChain=' + !!window._beatDryGain + ' dry=' + g(() => window._beatDryGain ? window._beatDryGain.gain.value.toFixed(2) : '-') + ' crunch=' + g(() => window._beatCrunchSend ? window._beatCrunchSend.gain.value.toFixed(2) : '-') + ' revSend=' + g(() => window._beatReverbSend ? window._beatReverbSend.gain.value.toFixed(3) : '-') + ' sameCtx=' + g(() => !window._beatDryGain || window._beatDryGain.context === ctx) + ' busCtxOk=' + g(() => window._beatGain.context === ctx));
   L.push('renderTapBeat=' + _renderTapBeat + ' renderTapTracks=' + g(() => _renderTapTracks ? [..._renderTapTracks].join(',') : 'null'));
