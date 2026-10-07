@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 04:49:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 05:19:38 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -258,7 +258,7 @@ body.eight-bit-mode .reel-wrap .reel { filter: var(--reel-filter, brightness(0))
 .track-vol-fill-solid.flash-pulse-hit { background-color: var(--play-flash-color, #f8ff00) !important; }
 @keyframes flash-vol-pulse-decay { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--neutral-top, #555555); } } /* now the TOP ROW COLOR per direct request (supersedes the old literal-grey rule described above) */
 .track-vol-fill-solid.flash-pulse-decay { animation: flash-vol-pulse-decay 0.38s ease-out forwards; }
-/* FILL TO BACKGROUND (display-mode class 'fill-decay-bg' — BIG SCHOOL and CLUB for now), per direct request: the vol fill's
+/* FILL TO BACKGROUND (display-mode class 'fill-decay-bg' — MONDRIAN and CLUB for now), per direct request: the vol fill's
    pulse fades from PLAY FLASH down into the BACKGROUND colour instead of the TOP ROW colour, and rests there. Also beats
    TEST mode's solid fill (CLUB) so the same fade shows there. */
 @keyframes flash-vol-pulse-decay-bg { from { background-color: var(--play-flash-color, #f8ff00); } to { background-color: var(--bg, #111); } }
@@ -2733,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 04:49:45 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 05:19:38 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5801,7 +5801,8 @@ function getPumpChain(tr, dest) {
   // function's own ad-hoc BLAST attenuation (which stays as-is, this is
   // an additional universal cut on top of those, not a replacement).
   const _blastMinusOneDb = 0.8913;
-  nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb; // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
+  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, per direct request
+  nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim; // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
     try { nodes.pbassDryBlend.disconnect(); } catch(e) {}
@@ -17415,6 +17416,7 @@ function snapshotState() {
     trackPump: [...trackPump],
     trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr]),
     activeSlot: activeSlot,
+    displayMode: window._rainbowIdx, // A/B brings the display mode back with the pattern
     // Full color palette — TOP ROW, TRACK BUTTONS, HIGHLIGHT, HIGHLIGHT 2,
     // HIGHLIGHT 3, BACKGROUND — read straight off the live CSS custom
     // properties, so this always reflects whatever's actually on screen
@@ -17461,6 +17463,13 @@ function restoreState(snap, opts) {
   // problem here can't take down the rest of the restore (grid, notes,
   // instruments) along with it — colors are cosmetic, the pattern itself
   // is not.
+  // A/B: put the previous pattern's DISPLAY MODE back first, so its colours (below) land on top of it exactly as they were
+  try {
+    if (opts.withMode && snap.displayMode !== undefined && snap.displayMode !== window._rainbowIdx) {
+      const _m = _RAINBOW_CYCLE[snap.displayMode], _cur = _RAINBOW_CYCLE[window._rainbowIdx];
+      if (_m && !_m.liveOnly && !(_cur && _cur.liveOnly)) _applyRainbowState(_m);
+    }
+  } catch (e) { console.error('A/B display mode restore failed', e); }
   try {
     if (snap.colors) {
       if (snap.colors.top) _applyTopColor(snap.colors.top);
@@ -20468,7 +20477,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'night-invert': true, 'tape-from-fill': true }, sliders: {"tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'notes-grayscale': true }, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'BIG SCHOOL' }, // mode 10 "BIG SCHOOL", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "31", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60"}, palette: 'bigschool', name: 'MONDRIAN' }, // mode 10 "MONDRIAN", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
@@ -20754,7 +20763,7 @@ function _applyRainbowState(m) {
   setJustTrack(jtOn);
   const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = jtOn;
   const b = document.body.classList;
-  if (m.tipHl !== undefined) { // true = force on, false = force off (BIG SCHOOL), undefined = leave / restore
+  if (m.tipHl !== undefined) { // true = force on, false = force off (MONDRIAN), undefined = leave / restore
     if (window._tipHlBeforeMode === undefined) window._tipHlBeforeMode = b.contains('fader-tip-hl');
     b.toggle('fader-tip-hl', !!m.tipHl);
   } else if (window._tipHlBeforeMode !== undefined) {
@@ -20775,7 +20784,7 @@ function _applyRainbowState(m) {
   if (m.safeGfx !== undefined) {
     if (window._safeGfxBeforeMode === undefined) window._safeGfxBeforeMode = b.contains('safe-gfx');
     if (typeof setSafeGfx === 'function' && b.contains('safe-gfx') !== !!m.safeGfx) setSafeGfx(!!m.safeGfx);
-    if (m.safeGfx && m.wide && typeof setVolTest === 'function') setVolTest(true); // a mode that asks for WIDE METER keeps it even under SAFE GFX (BIG SCHOOL, per direct request)
+    if (m.safeGfx && m.wide && typeof setVolTest === 'function') setVolTest(true); // a mode that asks for WIDE METER keeps it even under SAFE GFX (MONDRIAN, per direct request)
   } else if (window._safeGfxBeforeMode !== undefined) {
     const was = window._safeGfxBeforeMode; window._safeGfxBeforeMode = undefined;
     if (typeof setSafeGfx === 'function' && b.contains('safe-gfx') !== was) setSafeGfx(was);
@@ -22702,7 +22711,7 @@ function stopRecallLoop() {
       playUiSound('click');
       try {
         const current = snapshotState();
-        restoreState(_recallSnapB, { skipBeatState: true });
+        restoreState(_recallSnapB, { skipBeatState: true, withMode: true });
         flashBtnOrange('scratchBtn');
         _flashScratchBtnText();
         _recallSnapB = current;
@@ -22737,7 +22746,7 @@ function stopRecallLoop() {
           r.classList.add('spinning-reverse');
         });
       }
-      restoreState(_recallSnapB, { skipBeatState: true });
+      restoreState(_recallSnapB, { skipBeatState: true, withMode: true });
       flashBtnOrange('scratchBtn');
       _flashScratchBtnText();
       window._reelReversePending = true;
