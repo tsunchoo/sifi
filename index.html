@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 02:00:58 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 02:13:20 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -108,7 +108,11 @@ html body.night-invert #topTempoLockedLabel { color: var(--top-row-text-color, #
    repaint of it) and a plain box-shadow round the tape window — both painted once and cached. They're drawn BLACK because they sit
    inside #tapeReels' invert+tint filter chain, which turns black into exactly the tape tint colour, so the glow always matches. */
 html body.night-invert:not(.no-glow):not(.safe-gfx) .reel-wrap::before { content: ''; position: absolute; left: -12px; top: -12px; right: -12px; bottom: -12px; pointer-events: none; z-index: -1;
-  background: var(--reel-glow-img, none) center / 100% 100% no-repeat; }
+  background: var(--reel-glow-img, none) center / 100% 100% no-repeat; opacity: 0.6; } /* calmed down, per direct request (same shape, pits still open) */
+/* TAPE WINDOW glow in the dark modes, per direct request — the same calm glow as the spools, in the tape tint colour: soft light
+   round the outside of the window (box-shadow on the window itself, so the wobble clip doesn't cut it off) and along the curved
+   inner edges into the clear middle (a drop-shadow added to the window graphic's tint filter by _syncTapeTint). */
+html body.night-invert:not(.no-glow):not(.safe-gfx) .tape-window { overflow: hidden; box-shadow: 0 0 7px 0 color-mix(in srgb, var(--tape-tint-col, #c28671) 40%, transparent); }
 /* TWO-TONE tape window (NIGHT CITY, per direct request): #tapeReels' filter is moved onto the reels by _syncTapeTint, so the window's
    frame and glow are coloured directly with the tint colour here instead of being drawn black and filtered. */
 html body.night-invert.tape-two-tone .tape-window { } /* (old TWO-TONE fill retired with the new tape window graphic) */
@@ -2724,7 +2728,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 02:00:58 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 02:13:20 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -20623,13 +20627,15 @@ function _syncTapeTint() {
   // (the WIDE METER fill is the PLAY FLASH colour). The name bar's own inline colour is read, not its computed one, so its 0.5s highlight flash is ignored.
   if (document.body.classList.contains('tape-from-name')) { const nb = document.getElementById('nameBar'); const h = nb && _cssColToHex(nb.style.backgroundColor || nb.style.background); if (h) hex = h; }
   else if (document.body.classList.contains('tape-from-fill')) { const h = _cssColToHex((_rs.getPropertyValue('--play-flash-color') || '').trim()); if (h) hex = h; }
-  const key = on + '|' + two + '|' + hex; if (key === _tapeTintKey) return; _tapeTintKey = key;
+  const glowOn = on && !document.body.classList.contains('no-glow') && !document.body.classList.contains('safe-gfx');
+  const key = on + '|' + two + '|' + hex + '|' + glowOn; if (key === _tapeTintKey) return; _tapeTintKey = key;
   const f = on && hex ? _cssTintFor(hex) : '';
   const wraps = document.querySelectorAll('#tapeReels .reel-wrap');
   if (f) { // per direct request the TAPE WINDOW is no longer tinted/modified at all: the tint always goes on the two reels only (TWO-TONE window paused): the tint filter moves off the whole group onto the two reels only, so the window photo can carry its own two colours
     el.style.setProperty('filter', 'none', 'important');
     wraps.forEach(w => w.style.setProperty('filter', 'invert(1) ' + f, 'important'));
-    const twi = document.getElementById('tapeWindowImg'); if (twi) twi.style.setProperty('filter', 'invert(1) ' + f, 'important'); // tinted the same way as the spools, per direct request
+    el.style.setProperty('--tape-tint-col', hex); // the tape window's outer glow colour (CSS)
+    const twi = document.getElementById('tapeWindowImg'); if (twi) twi.style.setProperty('filter', 'invert(1) ' + f + (glowOn ? ' drop-shadow(0 0 2.5px ' + hex + '99)' : ''), 'important'); // tinted the same way as the spools, per direct request — plus the inner-edge glow when glows are on
     const m = hex.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i), W = m ? [1, 2, 3].map(i => parseInt(m[i], 16)) : [200, 150, 130];
     _tapeTwoTone = null; void W; // TWO-TONE window paused (was [dark shade, highlight] — see recolorTapeWindowImg)
   } else {
