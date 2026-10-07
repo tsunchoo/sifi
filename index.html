@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 16:43:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 22:41:07 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2733,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 16:43:10 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 22:41:07 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22420,6 +22420,15 @@ async function hardResetAudioEngine() {
 // point exactly the way it does on a manual release. If the sequencer
 // isn't playing at all, there's no downbeat to sync to, so it falls back
 // to the old fixed one-bar-plus-a-quarter-note duration instead.
+// SWEEP SIDECHAIN curves: rect = full-wave rectifier (|x|); map = smoothed music level → duck amount, 0..1 (the mix at a
+// normal level already pulls SWEEP down most of the way at full depth, loud hits all the way)
+let _sweepScCurveCache = null;
+function _sweepScCurves() {
+  if (_sweepScCurveCache) return _sweepScCurveCache;
+  const n = 1025, rect = new Float32Array(n), map = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; rect[i] = Math.abs(x); map[i] = Math.max(0, Math.min(1, (x - 0.03) * 11)); } // map: a quiet floor (0.03) ignored, a typical mix (~0.09) ducks ~65%, hits (0.12+) all the way — so it pumps with the beat rather than just sitting quieter
+  return (_sweepScCurveCache = { rect, map });
+}
 (function() {
   const btn = document.getElementById('clearBtn');
   if (!btn) return;
@@ -22472,16 +22481,28 @@ async function hardResetAudioEngine() {
     // Back through masterGain (and its kick-triggered sidechain duck stage),
     // not straight to the limiter — SWEEP still rides that duck along with
     // everything else.
-    noise.connect(bp); bp.connect(baseGain); baseGain.connect(masterGain);
+    // SWEEP SIDECHAIN (drag right), per direct request: the music bus pumps SWEEP — the louder the mix, the more SWEEP
+    // ducks, more and more the further right the finger goes. Done entirely in the audio graph (rectify → smooth → scale →
+    // SWEEP's own gain), so it's smooth and never jumps like the old RMS-polling version did. SWEEP now joins the mix just
+    // AFTER masterGain (sweepMaster stands in for the master volume) so the detector can listen to the music on masterGain
+    // without hearing SWEEP itself — Web Audio would silence that loop.
+    const scGain = ctx.createGain(); scGain.gain.value = 1;
+    const sweepMaster = ctx.createGain(); sweepMaster.gain.value = masterGain.gain.value;
+    const scRect = ctx.createWaveShaper(); scRect.curve = _sweepScCurves().rect; scRect.oversample = 'none';
+    const scSmooth = ctx.createBiquadFilter(); scSmooth.type = 'lowpass'; scSmooth.frequency.value = 12; scSmooth.Q.value = 0.5;
+    const scMap = ctx.createWaveShaper(); scMap.curve = _sweepScCurves().map; scMap.oversample = 'none';
+    const scDepth = ctx.createGain(); scDepth.gain.value = 0; // 0 = no sideways drag yet = no pumping
+    masterGain.connect(scRect); scRect.connect(scSmooth); scSmooth.connect(scMap); scMap.connect(scDepth); scDepth.connect(scGain.gain);
+    noise.connect(bp); bp.connect(baseGain); baseGain.connect(scGain); scGain.connect(sweepMaster); sweepMaster.connect(window._makeupGain || masterGain);
     noise.start(t);
-    sweepNodes = { noise, bp, gain: baseGain };
+    sweepNodes = { noise, bp, gain: baseGain, scGain, sweepMaster, scRect, scSmooth, scMap, scDepth };
     btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise } = sweepNodes;
+    const { bp, gain, noise, scGain, sweepMaster, scRect, scSmooth, scMap, scDepth } = sweepNodes;
     sweepNodes = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
@@ -22497,7 +22518,9 @@ async function hardResetAudioEngine() {
     // release left a 12s looping noise voice running for good. Now the stop is
     // scheduled on the audio clock and the chain is only taken apart after it.
     try { noise.stop(t + halfNote + 0.05); } catch(e) {}
-    _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} });
+    _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {}
+      [scGain, sweepMaster, scSmooth, scMap, scDepth].forEach(n => { try { n && n.disconnect(); } catch (e) {} });
+      try { if (scRect) { masterGain && masterGain.disconnect(scRect); scRect.disconnect(); } } catch (e) {} });
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
@@ -22544,6 +22567,9 @@ async function hardResetAudioEngine() {
     const startY = e ? (e.touches ? e.touches[0]?.clientY : e.clientY) : null;
     const btnRect = btn.getBoundingClientRect();
     window._sweepDragStartY = startY ?? btnRect.bottom;
+    const startX = e ? (e.touches ? e.touches[0]?.clientX : e.clientX) : null;
+    window._sweepDragStartX = startX ?? (btnRect.left + btnRect.width / 2);
+    window._sweepDragRangeX = Math.max(60, (window.innerWidth - window._sweepDragStartX) * 0.75); // full pumping a bit before the right edge
     window._sweepDragRange = Math.max(60, (window.innerHeight - btnRect.bottom) * (1 - SWEEP_DRAG_BUFFER));
     startSweep();
     btn.classList.add('active');
@@ -22592,7 +22618,15 @@ async function hardResetAudioEngine() {
     const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
   }
-  document.addEventListener('mousemove', e => { if (window._sweepGestureActive) _sweepUpdateFreqFromY(e.clientY); });
+  // Drag RIGHT = more SIDECHAIN (see startSweep). 0 at the start point, full at about 3/4 of the way to the right edge.
+  function _sweepUpdateSidechainFromX(x) {
+    if (!sweepNodes || !ctx || x == null) return;
+    const dx = Math.max(0, x - window._sweepDragStartX);
+    const depth = Math.min(1, dx / (window._sweepDragRangeX || 1)) * 0.95;
+    sweepNodes.scDepth.gain.setTargetAtTime(-depth, ctx.currentTime, 0.03);
+    btn.style.setProperty('--sweep-sc', depth.toFixed(3));
+  }
+  document.addEventListener('mousemove', e => { if (window._sweepGestureActive) { _sweepUpdateFreqFromY(e.clientY); _sweepUpdateSidechainFromX(e.clientX); } });
 
   // Drag from SWEEP onto BEAT or RAND to trigger them simultaneously.
   // Dragging onto the left spool instead engages its soft decay-stop for
@@ -22609,7 +22643,7 @@ async function hardResetAudioEngine() {
     // fired. Only let this run for a touch that actually began on SWEEP.
     if (!window._sweepGestureActive) return;
     const touch = e.touches[0];
-    if (touch) _sweepUpdateFreqFromY(touch.clientY);
+    if (touch) { _sweepUpdateFreqFromY(touch.clientY); _sweepUpdateSidechainFromX(touch.clientX); }
     const el = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : null;
     if (!el) return;
     const onLeftSpool = !!el.closest('#leftReelWrap');
