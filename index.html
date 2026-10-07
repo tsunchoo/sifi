@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 23:31:29 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 23:37:30 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2733,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 23:31:29 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 23:37:30 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -15115,6 +15115,7 @@ function toggleRecord() {
     _ensureEightBitSplit(ctx);
     window._eightBitDryGain.connect(dest);
     window._eightBitWetGain.connect(dest);
+    window._recStreamDest = dest; // SWEEP goes out on its own path (around 8-BIT) — it connects here too so recordings still catch it
     _recChunks = [];
     // Force an explicit audio mimeType — never trust the browser's silent
     // default, which can quietly shift to a video container even for an
@@ -22489,16 +22490,25 @@ async function hardResetAudioEngine() {
     // Back through masterGain (and its kick-triggered sidechain duck stage),
     // not straight to the limiter — SWEEP still rides that duck along with
     // everything else.
-    noise.connect(bp); bp.connect(baseGain); baseGain.connect(masterGain);
+    // SWEEP stays CLEAN under 8-BIT, per direct request (dragging right turns up 8-BIT on the music, not on SWEEP itself).
+    // 8-BIT sits on the very last stage of the mix, so SWEEP now skips the mix bus and goes out on its own short path with
+    // the same overall gain the mix bus would have given it (master × makeup × boost) and its own copy of the output
+    // limiter. The one thing it no longer rides is the kick-triggered duck.
+    const sweepOut = ctx.createGain();
+    sweepOut.gain.value = (masterGain ? masterGain.gain.value : 1) * (window._makeupGain ? window._makeupGain.gain.value : 1) * (window._postLimiterGain ? window._postLimiterGain.gain.value : 1);
+    const sweepLim = ctx.createDynamicsCompressor();
+    sweepLim.threshold.value = -3; sweepLim.knee.value = 3; sweepLim.ratio.value = 12; sweepLim.attack.value = 0.0003; sweepLim.release.value = 0.1; // same settings as the main output limiter
+    noise.connect(bp); bp.connect(baseGain); baseGain.connect(sweepOut); sweepOut.connect(sweepLim); sweepLim.connect(ctx.destination);
+    try { if (window._recStreamDest && typeof _mediaRecorder !== 'undefined' && _mediaRecorder && _mediaRecorder.state === 'recording') sweepLim.connect(window._recStreamDest); } catch (e) {} // REALTIME recording in progress
     noise.start(t);
-    sweepNodes = { noise, bp, gain: baseGain };
+    sweepNodes = { noise, bp, gain: baseGain, sweepOut, sweepLim };
     btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
   }
 
   function stopSweep() {
     if (!sweepNodes || !ctx) return;
-    const { bp, gain, noise } = sweepNodes;
+    const { bp, gain, noise, sweepOut, sweepLim } = sweepNodes;
     sweepNodes = null;
     btn.classList.remove('active');
     const t = ctx.currentTime;
@@ -22514,7 +22524,7 @@ async function hardResetAudioEngine() {
     // release left a 12s looping noise voice running for good. Now the stop is
     // scheduled on the audio clock and the chain is only taken apart after it.
     try { noise.stop(t + halfNote + 0.05); } catch(e) {}
-    _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} });
+    _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} try { sweepOut && sweepOut.disconnect(); sweepLim && sweepLim.disconnect(); } catch (e) {} });
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
