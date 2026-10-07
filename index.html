@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-07 04:19:08 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-07 04:49:45 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -418,6 +418,7 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
 #rightReelWrap.spinning-reverse .reel { animation: reel-wobble-fast-inverted 0.6s ease-in-out infinite; }
 .reel-wrap.spinning-reverse { animation: spin-reverse 1s linear infinite; transform-origin: center; }
 .reel-wrap.spinning { animation: spin 2s linear infinite; transform-origin: center; }
+#tapeReels .reel-wrap { scale: 0.95; } /* spools 5% smaller, per direct request — the separate scale property, so it stacks with the spin/wobble transforms; their glow shrinks with them and nothing around them moves */
 
 
 .transport {
@@ -2732,7 +2733,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 04:19:08 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-07 04:49:45 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6174,6 +6175,7 @@ function scheduler() {
   }
   // Hard backstop regardless of the timing check above — never fire more
   // than a handful of steps in one pass, no matter what caused the gap.
+  if (!window._audioRefreshArmed && _audioRefreshDue()) window._audioRefreshArmed = true; // AUDIO REFRESH (crash hunt) — happens on the next tap, where iOS lets a new engine start
   let _stepsThisPass = 0;
   while (nextStepTime < ctx.currentTime + LOOKAHEAD) {
     if (++_stepsThisPass > 4) { nextStepTime = ctx.currentTime + LOOKAHEAD; break; }
@@ -6185,7 +6187,6 @@ function scheduler() {
       if (!window._oneShot.ending) { window._oneShot.ending = true; const _os = window._oneShot; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot === _os) _tapeDrawerStopOneShot(); }, ms); }
       break;
     }
-    if (currentStep === NUM_STEPS - 1 && _audioRefreshDue()) { const wait = Math.max(0, (nextStepTime - ctx.currentTime) * 1000 - 10); _audioRefreshing = true; setTimeout(() => { _audioRefreshing = false; if (playing) _refreshAudioEngine(); }, wait); if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; } break; } // AUDIO REFRESH at the bar line (back on — crash hunt)
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     if (window._oneShot && step === 0) window._oneShot.started = true;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider.
@@ -22124,11 +22125,11 @@ async function initAudio(opts) {
   overlay.style.pointerEvents = 'none';
   try {
     msg.textContent = 'STARTING...';
-    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: (opts && opts.sampleRate) || 44100 }); // a refresh reuses the old engine's rate so iOS never re-clocks the hardware mid-song
     window._ctxBornAt = performance.now();
     _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
-    await ctx.resume();
+    if (_refresh) { await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 800))]); } else await ctx.resume(); // a refresh never hangs waiting on iOS
     // Start the silent keep-alive loop in this same user gesture so iOS
     // recognizes an active background-eligible audio session.
     try {
@@ -22264,7 +22265,7 @@ function _audioRefreshDue() { return !_audioRefreshing && playing && ctx && !(ct
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
-  const old = ctx;
+  const old = ctx; const _oldMaster = masterGain;
   try {
     try { window._crashCrumb && window._crashCrumb('AUDIO REFRESH'); } catch (e) {}
     if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
@@ -22280,8 +22281,11 @@ async function _refreshAudioEngine() {
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
     [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
     _initStarted = false;
-    setTimeout(() => { try { old.close(); } catch (e) {} }, 4000); // the old engine rings out its last notes / reverb tails for a few seconds before it's shut, so nothing gets chopped
-    await initAudio({ refresh: true });
+    // Runs inside a tap: shut the old engine and start the new one in the same gesture so iOS lets it run straight away
+    // (outside a gesture iOS left it suspended and the timing came back wrong). Same sample rate as before, never two at once.
+    try { const t = old.currentTime; if (_oldMaster) { _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(0, t); } } catch (e) {}
+    try { old.close(); } catch (e) {}
+    await initAudio({ refresh: true, sampleRate: old.sampleRate || 44100 });
     if (!ctx) throw new Error('no context');
     // put the mix back exactly as it was
     try { _applyBeatVolWithDuck(); } catch (e) {}
@@ -22296,7 +22300,8 @@ async function _refreshAudioEngine() {
       document.addEventListener('pointerdown', kick, { capture: true, once: true });
       document.addEventListener('touchend', kick, { capture: true, once: true });
     }
-    currentStep = -1; nextStepTime = ctx.currentTime + 0.02;
+    nextStepTime = ctx.currentTime + 0.03; // carry on from the same step — no jump back to bar 1
+    if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
     if (playing) { scheduleInterval = setInterval(scheduler, SCHEDULE_MS); scheduler(); }
   } catch (e) {
     console.error('audio refresh failed', e);
@@ -22305,6 +22310,13 @@ async function _refreshAudioEngine() {
   window._ctxBornAt = performance.now();
   _audioRefreshing = false;
 }
+window._audioRefreshArmed = false;
+document.addEventListener('pointerdown', (e) => {
+  if (!window._audioRefreshArmed) return;
+  try { if (e.target && e.target.closest && e.target.closest('button, img, [id$="Btn"], [id$="BtnImg"], .tape-window')) return; } catch (err) {} // never mid-way through PLAY/STOP/+ etc. — wait for a tap somewhere plainer
+  window._audioRefreshArmed = false;
+  if (_audioRefreshDue()) _refreshAudioEngine();
+}, { capture: true });
 async function hardResetAudioEngine() {
   const msg = document.getElementById('loadingMsg');
   const overlay = document.getElementById('loadingOverlay');
@@ -22854,7 +22866,7 @@ function _audioStateLines() {
   const L = [];
   const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
   L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
-  L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext));
+  L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
   L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
   L.push('fxChain=' + !!window._beatDryGain + ' dry=' + g(() => window._beatDryGain ? window._beatDryGain.gain.value.toFixed(2) : '-') + ' crunch=' + g(() => window._beatCrunchSend ? window._beatCrunchSend.gain.value.toFixed(2) : '-') + ' revSend=' + g(() => window._beatReverbSend ? window._beatReverbSend.gain.value.toFixed(3) : '-') + ' sameCtx=' + g(() => !window._beatDryGain || window._beatDryGain.context === ctx) + ' busCtxOk=' + g(() => window._beatGain.context === ctx));
   L.push('renderTapBeat=' + _renderTapBeat + ' renderTapTracks=' + g(() => _renderTapTracks ? [..._renderTapTracks].join(',') : 'null'));
