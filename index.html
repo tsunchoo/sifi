@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 04:49:13 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 05:04:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1285,6 +1285,18 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
    colour and only the build-up / new-pattern animations move it, so it
    transitions from where it was, per direct request. */
 #randBtn.btn-flash-blue .glyph { color: var(--top-row-text-color, #fff); }
+/* PLAYDOE double-tap, per direct request: while the new pattern is pending, >> (or +) shows the asterisk instead, then goes
+   back when the pattern lands. Drawn in currentColor so it takes exactly the same colour changes the glyph does now, and it
+   sits inside .glyph so the same scale pulses apply. */
+#randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; }
+#randBtn.playdoe-ast .glyph::after { content: none !important; }
+#randBtn.playdoe-ast .glyph::before {
+  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: static !important; animation: none !important;
+  background-color: currentColor !important;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
+}
+body.rand-btn-asterisk #randBtn.playdoe-ast .glyph { color: var(--top-row-text-color, #fff); }
 #clearBtn.active { background: var(--top-row-pressed-bg) !important; color: var(--top-row-pressed-text-color, #fff) !important; }
 /* SWEEP, per direct request: while held it stays full size (no press
    shrink), and its highlight + glow follow the sweep itself — --sweep-p
@@ -2733,7 +2745,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 04:49:13 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:04:51 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5553,7 +5565,9 @@ function _songNameNextNumeral(name) {
   if (mm && _toRoman(_fromRoman(mm[2])) === mm[2]) return mm[1] + ' ' + _toRoman(_fromRoman(mm[2]) + 1);
   return name + ' II';
 }
+const RANDINST_STAGGER_MS = 90; let _randInstTimers = [];
 function randomizeCurrentInstruments() {
+  _randInstTimers.forEach(clearTimeout); _randInstTimers = []; // a fresh press cancels any swaps still waiting from the last one
   // A/B + colors, per direct request: this now counts as a NEW PATTERN as
   // far as A/B (RECALL) is concerned — the pattern as it was, instruments
   // and colors included, is saved as the "previous" one right before the
@@ -5594,14 +5608,18 @@ function randomizeCurrentInstruments() {
     if (!options.length) continue;
     const k = options[Math.floor(Math.random() * options.length)];
     deck[tr] = k;
-    selectSound(tr, k);
-    if (mutedBefore[tr]) { trackMuted[tr] = true; updateTrackMute(tr); }
+    // STAGGERED, per direct request: each track's swap lands RANDINST_STAGGER_MS after the previous one instead of all six
+    // at once, so building the new voices is spread out rather than hitting the phone's audio in one spike.
+    const _tr = tr, _muted = mutedBefore[tr];
+    _randInstTimers.push(setTimeout(() => {
+      try { selectSound(_tr, k); if (_muted) { trackMuted[_tr] = true; updateTrackMute(_tr); } redrawTrackCells(_tr, true); } catch (e) { console.error('instrument swap failed', e); }
+    }, changed * RANDINST_STAGGER_MS));
     changed++;
   }
   if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
   if (typeof randomizeAppColors === 'function') randomizeAppColors();
-  for (let tr = 0; tr < NUM_TRACKS; tr++) redrawTrackCells(tr, true); // repaint markers in each track's new instrument colour, without re-sorting the layout
-  markModified();
+  // each track repaints as its own swap lands (see above); markModified once the last one is in
+  _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
   return changed;
 }
 // LOCK BUTTONS = NEW SOUND (LOOK AND FEEL toggle under PERFORMANCE MODE), per direct request — the track's lock button shows the
@@ -13845,6 +13863,7 @@ function setBtnBlueHeld(id) {
 function clearBtnBlueHeld(id) {
   const b = document.getElementById(id); if (!b) return;
   b.classList.remove('btn-flash-blue');
+  if (id === 'randBtn') b.classList.remove('playdoe-ast'); // PLAYDOE double-tap asterisk → back to >> as the new pattern lands
   if (id === 'randBtn') { b.style.removeProperty('background'); b.style.removeProperty('color'); }
 }
 function flashBtnBlue(id) {
@@ -17313,7 +17332,7 @@ function stopAllAutoRand() {
     // PLAYDOE: single tap = new instruments on the same pattern; DOUBLE tap = a normal new pattern (what a single tap does
     // with PLAYDOE off). The single tap waits out the double-tap window first, so a double tap never swaps instruments too.
     if (window._playdoeOn) {
-      if (_playdoeTapTimer) { clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null; setBtnBlueHeld('randBtn'); queueRand(); return; }
+      if (_playdoeTapTimer) { clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null; btn.classList.add('playdoe-ast'); setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */ setBtnBlueHeld('randBtn'); queueRand(); return; }
       _playdoeTapTimer = setTimeout(() => { _playdoeTapTimer = null; _playdoePlus(); }, PLAYDOE_DOUBLE_MS);
       return;
     }
@@ -17491,6 +17510,7 @@ function snapshotState() {
 }
 function restoreState(snap, opts) {
   opts = opts || {};
+  try { _randInstTimers.forEach(clearTimeout); _randInstTimers = []; } catch (e) {} // staggered instrument swaps still waiting must not land on top of a restored pattern
   _clearAllSolo(); // a restored pattern (RECALL, save slots, LOAD TAPE) replaces every track — same reasoning as randAll()
   globalScaleRoot = snap.globalScaleRoot ?? null;
   if (snap.currentScaleName) { currentScaleName = snap.currentScaleName; PENTA_MINOR = SCALES[currentScaleName] || PENTA_MINOR; }
