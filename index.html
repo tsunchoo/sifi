@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 17:37:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 22:45:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2618,7 +2618,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   function showLog(){
     var ov = document.getElementById('crashLogOverlay'); if (ov) ov.remove();
     ov = document.createElement('div'); ov.id = 'crashLogOverlay';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:16px;gap:10px;font-family:monospace;';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:116px 16px 16px;gap:10px;font-family:monospace;';
     var txt = reports.length ? reports.map(format).join('\n\n----------\n\n') : 'No crash reports recorded yet.\n\nCURRENT SESSION (live):\n\n' + format(JSON.parse(localStorage.getItem(KEY_LIVE) || '{}'));
     var ta = document.createElement('textarea'); ta.readOnly = true; ta.value = txt;
     ta.style.cssText = 'flex:1;width:100%;box-sizing:border-box;font-size:10px;line-height:1.35;background:#111;color:#f17d21;border:none;padding:10px;';
@@ -2637,7 +2637,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 
   function banner(){
     var b = document.createElement('div');
-    b.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#111;color:#f17d21;font:700 11px monospace;letter-spacing:0.5px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.5);';
+    b.style.cssText = 'position:fixed;left:8px;right:8px;top:108px;z-index:99999;background:#111;color:#f17d21;font:700 11px monospace;letter-spacing:0.5px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,0.5);';
     b.innerHTML = '<span style="flex:1">PAGE RELOADED UNEXPECTEDLY — CRASH REPORT SAVED</span>';
     var v = document.createElement('button'); v.textContent = 'VIEW'; v.style.cssText = 'background:#f17d21;color:#000;border:none;padding:6px 10px;font:700 11px monospace;';
     v.onclick = function(){ b.remove(); showLog(); };
@@ -2686,7 +2686,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 17:37:26 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 22:45:28 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5799,7 +5799,7 @@ function getPumpChain(tr, dest) {
   // function's own ad-hoc BLAST attenuation (which stays as-is, this is
   // an additional universal cut on top of those, not a replacement).
   const _blastMinusOneDb = 0.8913;
-  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, per direct request
+  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, per direct request
   nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim; // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
@@ -5989,6 +5989,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
+  if (key === 'guiro' && on) instrumentGain.gain.value *= 0.7943; // GUIRO with FX on −2dB, per direct request
   let pDest;
   if (tr !== undefined && trackFxNodes[tr] && on) {
     pDest = trackFxNodes[tr].fxSend;
@@ -6311,6 +6312,9 @@ function scheduler() {
           _autoRandBarCount++;
           if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
+            if (window._playdoeOn) { // PLAYDOE: AUTO shuffles the instruments on the same pattern instead of making new patterns, per direct request
+              _pressPulse('randBtn'); try { randomizeCurrentInstruments(); } catch (e) { console.error('PLAYDOE auto swap failed', e); }
+            } else {
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
@@ -6319,6 +6323,7 @@ function scheduler() {
             updateSlotButtons();
             clearBtnBlueHeld('randBtn');
             playRandReleaseSweep(t);
+            }
           }
         }
       }
@@ -14439,6 +14444,13 @@ async function buildTapeLink() {
   url.hash = 'tapez=' + b64; // "tapez" (not "tape") — a different key so an old, uncompressed link still parses correctly against the legacy path below instead of failing to decompress
   return url.toString();
 }
+// SAVING / SHARING, per direct request: playback stops while the iOS share sheet does its thing (it's heavy, and the audio
+// was struggling through it), then picks up again once the sheet closes — saved, sent or cancelled.
+function _pauseForShareSheet() {
+  const was = !!playing;
+  if (was) { try { togglePlay(); } catch (e) {} }
+  return () => { if (was && !playing) { try { togglePlay(); } catch (e) {} } };
+}
 async function shareTapeLink() {
   const link = await buildTapeLink();
   // Deliberately no separate `text` field — many share targets (Messages,
@@ -14448,8 +14460,9 @@ async function shareTapeLink() {
   // visible message, so the species name goes there instead.
   const shareData = { title: _currentSpecies || 'Si•Fi tape', url: link };
   if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-    try { await navigator.share(shareData); return; }
-    catch (e) { if (e.name === 'AbortError') return; console.error('Share failed, falling back to clipboard', e); }
+    const _resume = _pauseForShareSheet();
+    try { await navigator.share(shareData); _resume(); return; }
+    catch (e) { _resume(); if (e.name === 'AbortError') return; console.error('Share failed, falling back to clipboard', e); }
   }
   try {
     await navigator.clipboard.writeText(link);
@@ -14541,10 +14554,10 @@ async function importTapeFile(file) {
 }
 
 async function shareOrDownload(files) {
-  const shareData = { files }; // no title/text here — some share targets (Save to Files, in particular) were spinning that into a separate, pointless companion text file alongside the real one
+  const shareData = { files }; const _resume = (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) ? _pauseForShareSheet() : () => {}; // no title/text here — some share targets (Save to Files, in particular) were spinning that into a separate, pointless companion text file alongside the real one
   if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-    try { await navigator.share(shareData); return true; }
-    catch(e) { if (e.name === 'AbortError') return false; console.error('Share failed, falling back to download', e); } // false = user cancelled the share sheet (SAVE TAPE uses this to skip its "Tape Saved" confirmation)
+    try { await navigator.share(shareData); _resume(); return true; }
+    catch(e) { _resume(); if (e.name === 'AbortError') return false; console.error('Share failed, falling back to download', e); } // false = user cancelled the share sheet (SAVE TAPE uses this to skip its "Tape Saved" confirmation)
   }
   if (files.length === 1) {
     const file = files[0];
@@ -17254,7 +17267,8 @@ function stopAllAutoRand() {
     // genuinely empty pattern (e.g. right after a reset) that meant total
     // silence, count-in included, until the first periodic threshold
     // finally landed. Now it always picks a fresh pattern immediately too.
-    queueRand();
+    if (window._playdoeOn) { try { randomizeCurrentInstruments(); } catch (e) {} } // PLAYDOE: first shuffle straight away, then every AUTO period
+    else queueRand();
   };
 
   const singleFire = () => {
@@ -23046,7 +23060,7 @@ function _showAudioLog(extra) {
   let log = []; try { log = JSON.parse(localStorage.getItem(_AUDIO_LOG_KEY) || '[]'); } catch (e) {}
   const txt = (extra ? extra + '\n\n==========\nAUTO-CAPTURED (DRUMS WATCHDOG / WEIRD THING):\n\n' : '') + (log.length ? log.join('\n\n----------\n\n') : '(nothing auto-captured yet)');
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:16px;gap:10px;font-family:monospace;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:116px 16px 16px;gap:10px;font-family:monospace;';
   const ta = document.createElement('textarea'); ta.readOnly = true; ta.value = txt;
   ta.style.cssText = 'flex:1;width:100%;box-sizing:border-box;font-size:10px;line-height:1.35;background:#111;color:#f17d21;border:none;padding:10px;';
   const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;';
@@ -24195,7 +24209,7 @@ function snapshotDisplay() {
   } catch (e) {}
   // Also on screen with COPY (a reliable fallback on iPhone).
   const ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:16px;gap:10px;font-family:monospace;';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;padding:116px 16px 16px;gap:10px;font-family:monospace;';
   const ta = document.createElement('textarea'); ta.readOnly = true; ta.value = text;
   ta.style.cssText = 'flex:1;width:100%;box-sizing:border-box;font-size:10px;line-height:1.35;background:#111;color:#f17d21;border:none;padding:10px;';
   const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;';

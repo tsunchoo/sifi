@@ -1,41 +1,39 @@
-// Minimal service worker — the whole app is one self-contained HTML file
-// (samples embedded as base64), so all this needs to do is cache that one
-// file and serve it back instantly, so double-click reset (which does a
-// real page reload) is fast and local every time — offline or not — rather
-// than re-fetching from GitHub Pages on every single reload.
-const CACHE_NAME = 'sifi-cache-24jul26-0510'; // bump this string on every deploy — that's what actually busts the old cache
+// Si•Fi service worker — NETWORK FIRST for the page itself.
+// The old version served the cached copy first and only updated it in the background, so every
+// deploy showed up one launch late (the phone kept running the previous build). Now: when online,
+// the page always comes fresh from GitHub Pages (and the cache is refreshed); the cached copy is
+// only used when the network fails (offline). Everything else stays cache-first.
+const CACHE_NAME = 'sifi-cache-v2';
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.add(self.registration.scope))
-  );
+  e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.add(self.registration.scope)).catch(() => {}));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', e => {
   e.waitUntil(
-    caches.keys().then(names =>
-      Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n)))
-    ).then(() => self.clients.claim())
+    caches.keys().then(names => Promise.all(names.filter(n => n !== CACHE_NAME).map(n => caches.delete(n))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Cache-first, updating the cache in the background — reload/reset is
-// instant and local every time. If a network fetch happens to complete
-// (e.g. you deploy a new build), the cache quietly picks it up for the
-// *next* reload, rather than making the current one wait on it.
 self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  const isPage = req.mode === 'navigate' || req.destination === 'document';
+  if (isPage) {
+    e.respondWith(
+      fetch(req, { cache: 'no-store' }).then(res => {
+        if (res && res.status === 200) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(self.registration.scope, copy)); }
+        return res;
+      }).catch(() => caches.match(self.registration.scope).then(c => c || caches.match(req)))
+    );
+    return;
+  }
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      const networkUpdate = fetch(e.request).then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return networkResponse;
-      }).catch(() => null);
-      return cached || networkUpdate || caches.match(self.registration.scope);
-    })
+    caches.match(req).then(cached => cached || fetch(req).then(res => {
+      if (res && res.status === 200) { const copy = res.clone(); caches.open(CACHE_NAME).then(c => c.put(req, copy)); }
+      return res;
+    }))
   );
 });
