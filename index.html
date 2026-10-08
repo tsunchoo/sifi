@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 05:04:51 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 05:11:09 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1291,7 +1291,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; }
 #randBtn.playdoe-ast .glyph::after { content: none !important; }
 #randBtn.playdoe-ast .glyph::before {
-  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: static !important; animation: none !important;
+  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -3px; top: 3px; animation: none !important;
   background-color: currentColor !important;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
@@ -2745,7 +2745,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:04:51 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:11:09 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22658,9 +22658,9 @@ async function hardResetAudioEngine() {
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
     const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
-    // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −20dB over the same
+    // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −10dB (was −20dB) over the same
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
-    try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -20 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
+    try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -10 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
   }
   document.addEventListener('mousemove', e => { if (window._sweepGestureActive) _sweepUpdateFreqFromY(e.clientY); });
 
