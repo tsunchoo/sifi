@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 06:06:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 06:24:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2683,7 +2683,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 06:06:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 06:24:54 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6167,11 +6167,15 @@ function _schedLookahead() {
   const st = window._schedStats, now = performance.now();
   if (st.last) { const gap = now - st.last; st.gapMax = Math.max(gap > 1000 ? st.gapMax : gap, st.gapMax * 0.995); } // a >1s gap is a pause/background, not throttling
   st.last = now; st.calls++;
+  // TAPE DRAWER PLAY ALL: the next tape is loaded inside this loop right at the bar line, and loading one is a heavy job — plan
+  // further ahead (~0.55s) while there are tapes still queued, so the load finishes before the new tape's first beat is due.
+  if (window._oneShot && window._oneShot.queue && window._oneShot.queue.length) st.gapMax = Math.max(st.gapMax, 350);
   st.la = Math.max(LOOKAHEAD, Math.min(0.6, st.gapMax / 1000 * 1.5 + 0.03));
   return st.la;
 }
 function scheduler() {
   const LA = _schedLookahead();
+  if (window._oneShot && window._oneShot.ending) return; // TAPE DRAWER: last tape has finished its bar and is about to stop — nothing more to plan (and its frozen clock isn't 'late steps')
   // If we've fallen WAY behind real time (tab was backgrounded, screen locked, etc.), don't fire every missed step in a
   // rapid burst — snap forward and resume cleanly from here instead.
   const behindBy = ctx.currentTime + LA - nextStepTime;
@@ -22025,17 +22029,19 @@ let _initStarted = false;
 function _patchCtxForAutoCleanup(ctx) {
   const _origCreateOsc = ctx.createOscillator.bind(ctx);
   const _origCreateBuf = ctx.createBufferSource.bind(ctx);
+  // LEAK FIX: this used to set node.onended — but dozens of voices assign their OWN onended afterwards (to tidy up their
+  // gains/filters), which silently replaced this one, so the oscillator / sample source itself never got disconnected.
+  // Measured: ~130 finished sources left connected per minute of normal use; iOS Safari doesn't free nodes that still have
+  // connections, so they piled up for the whole session. An event LISTENER can't be overwritten by a later onended =.
+  const _autoDisconnect = node => { node.addEventListener('ended', () => { try { node.disconnect(); } catch (e) {} }); return node; };
   ctx.createOscillator = function() {
     window._oscMadeCount = (window._oscMadeCount || 0) + 1;
-    const node = _origCreateOsc();
-    node.onended = () => { try { node.disconnect(); } catch(e) {} };
-    return node;
+    return _autoDisconnect(_origCreateOsc());
   };
   ctx.createBufferSource = function() {
-    const node = _origCreateBuf();
-    node.onended = () => { try { node.disconnect(); } catch(e) {} };
-    return node;
+    return _autoDisconnect(_origCreateBuf());
   };
+  if (ctx.createConstantSource) { const _origCreateConst = ctx.createConstantSource.bind(ctx); ctx.createConstantSource = function () { return _autoDisconnect(_origCreateConst()); }; } // the pitch-drift sources too
 }
 
 // Schedule disconnection of multiple nodes after a voice ends
