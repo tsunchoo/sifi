@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 05:11:09 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 05:15:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2745,7 +2745,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:11:09 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:15:17 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17333,7 +17333,18 @@ function stopAllAutoRand() {
     // with PLAYDOE off). The single tap waits out the double-tap window first, so a double tap never swaps instruments too.
     if (window._playdoeOn) {
       if (_playdoeTapTimer) { clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null; btn.classList.add('playdoe-ast'); setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */ setBtnBlueHeld('randBtn'); queueRand(); return; }
-      _playdoeTapTimer = setTimeout(() => { _playdoeTapTimer = null; _playdoePlus(); }, PLAYDOE_DOUBLE_MS);
+      // Same look as a normal single tap, per direct request: pressed colours + the glyph build-up/glow while it waits out
+      // the double-tap window, then the new-pattern pulse, with the button's background easing into the new colours.
+      btn.classList.remove('new-pattern'); setBtnBlueHeld('randBtn');
+      btn.style.setProperty('--rand-build-dur', (PLAYDOE_DOUBLE_MS / 1000).toFixed(3) + 's'); btn.classList.add('rand-building');
+      _playdoeTapTimer = setTimeout(() => {
+        _playdoeTapTimer = null;
+        document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
+        btn.classList.remove('rand-building'); btn.classList.add('new-pattern'); // transition is live BEFORE the colours change...
+        _playdoePlus();                                                        // ...new instruments + new colour scheme...
+        clearBtnBlueHeld('randBtn');                                           // ...so the background eases from pressed into the new colour
+        clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
+      }, PLAYDOE_DOUBLE_MS);
       return;
     }
     setBtnBlueHeld('randBtn'); queueRand();
