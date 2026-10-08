@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 22:45:28 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 23:51:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2686,7 +2686,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 22:45:28 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 23:51:44 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22355,7 +22355,7 @@ if ('serviceWorker' in navigator) {
 const AUDIO_REFRESH_MS = 4 * 60 * 1000;
 window._ctxBornAt = 0; let _audioRefreshing = false;
 const AUDIO_REFRESH_ON = false; // OFF — both WEIRD THING snapshots came straight after a refresh (crash-hunt experiment, not a core feature)
-function _audioRefreshDue() { return AUDIO_REFRESH_ON && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
+function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
@@ -22403,6 +22403,7 @@ async function _refreshAudioEngine() {
   }
   window._ctxBornAt = performance.now();
   _audioRefreshing = false;
+  if (window._audioHealPending) { window._audioHealPending = false; try { window._crashCrumb && window._crashCrumb('AUDIO HEALED (engine rebuilt)'); } catch (e) {} try { document.getElementById('_audioHealToast')?.remove(); } catch (e) {} }
 }
 window._audioRefreshArmed = false;
 document.addEventListener('pointerdown', (e) => {
@@ -22545,6 +22546,7 @@ async function hardResetAudioEngine() {
     noise.connect(bp); bp.connect(baseGain); baseGain.connect(sweepMaster); sweepMaster.connect(window._makeupGain || masterGain);
     noise.start(t);
     sweepNodes = { noise, bp, gain: baseGain, sweepMaster };
+    window._sweepNodesDbg = sweepNodes; // diagnostics only
     _sweepCrushBuild();
     btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
@@ -22575,7 +22577,7 @@ async function hardResetAudioEngine() {
   }
 
   // SWEEP X-AXIS = 8-BIT ON THE MUSIC, per direct request: dragging right crossfades the music (tracks, DRUMS, reverb — NOT
-  // SWEEP) into its own 8-bit crusher and brings it down by up to 5dB. It lives on the music bus, before SWEEP joins the mix,
+  // SWEEP) into its own 8-bit crusher, and fades SWEEP's own sound down by up to 5dB (the music level itself is left alone). It lives on the music bus, before SWEEP joins the mix,
   // so SWEEP stays clean and everything still goes through the one shared limiter (the last attempt sent SWEEP round the
   // limiter instead — that's what clipped). Built on press, taken apart after release, so it costs nothing otherwise.
   let swCrush = null;
@@ -22593,9 +22595,11 @@ async function hardResetAudioEngine() {
   }
   function _sweepCrushSet(depth) {
     if (!swCrush || !ctx) return;
-    const atten = Math.pow(10, -5 * depth / 20), t = ctx.currentTime; // −5dB at full right
-    swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2) * atten, t, 0.02);
-    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2) * atten, t, 0.02);
+    const t = ctx.currentTime;
+    swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
+    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2), t, 0.02);
+    // SWEEP itself fades down by up to 5dB as the finger goes right, per direct request
+    if (sweepNodes && sweepNodes.sweepMaster) sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, -5 * depth / 20), t, 0.02);
   }
   function _sweepCrushRelease(t, dur) {
     const sc = swCrush; if (!sc) return; swCrush = null;
@@ -23087,7 +23091,7 @@ async function _sourceProbe() {
   await new Promise(r => setTimeout(r, 250));
   const d = new Float32Array(2048);
   const rms = a => { a.getFloatTimeDomainData(d); let m = 0; for (const v of d) m += v * v; m = Math.sqrt(m / d.length); return m > 0 ? (20 * Math.log10(m)).toFixed(1) + 'dB' : 'SILENT'; };
-  res.osc = rms(aO); res.buf = rms(aB);
+  res.osc = rms(aO); res.buf = rms(aB); window._lastSourceProbe = res;
   await new Promise(r => setTimeout(r, 250));
   try { mute.disconnect(); aO.disconnect(); aB.disconnect(); } catch (e) {}
   return ['SOURCE PROBE (healthy ≈ osc -3dB / noise -5dB): oscillator ' + res.osc + ' | noise buffer ' + res.buf + ' | oscillators made so far ' + (window._oscMadeCount || 0)];
@@ -23166,6 +23170,32 @@ async function audioSnapshot() {
     prev = cur;
   }, 5000);
 })();
+// AUDIO SELF-HEAL, per direct request (DRUMS glitch / kick vanishing): the snapshot caught the engine still playing sounds
+// that had already started, but every NEW sound coming out silent (test tone AND test noise both SILENT, ~9 min in). A fresh
+// audio engine is the cure, and iOS only lets one start inside a tap — so: check for it every 30s while playing, and when it
+// happens, rebuild the engine on the very next tap anywhere (not on a button), with a notice saying so.
+function _healIfSourcesDead() {
+  const r = window._lastSourceProbe;
+  if (!r || r.osc !== 'SILENT' || r.buf !== 'SILENT' || !ctx || ctx.state !== 'running' || window._audioHealPending) return;
+  window._audioHealPending = true; window._audioRefreshArmed = true;
+  try { window._crashCrumb && window._crashCrumb('AUDIO STALLED — new sounds silent, healing on next tap'); } catch (e) {}
+  if (!document.getElementById('_audioHealToast')) {
+    const t = document.createElement('div'); t.id = '_audioHealToast';
+    t.textContent = 'AUDIO STALLED — TAP HERE TO RESTORE';
+    t.style.cssText = 'position:fixed;left:8px;right:8px;bottom:12px;z-index:99999;background:#111;color:#f17d21;font:700 11px monospace;letter-spacing:0.5px;padding:10px 12px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,0.5);cursor:pointer;';
+    t.onclick = () => t.remove(); // the tap itself (pointerdown) rebuilds the engine — see the AUDIO REFRESH listener
+    document.body.appendChild(t); setTimeout(() => t.remove(), 30000);
+  }
+}
+(function () {
+  let busy = false;
+  setInterval(async () => {
+    if (busy || !ctx || !playing || ctx.state !== 'running' || document.visibilityState !== 'visible' || window._audioHealPending || _audioRefreshing) return;
+    busy = true;
+    try { await _sourceProbe(); _healIfSourcesDead(); } catch (e) {}
+    busy = false;
+  }, 30000);
+})();
 // DRUMS WATCHDOG — see the note at the top of this block.
 (function () {
   let busy = false, lastFlag = 0;
@@ -23196,6 +23226,7 @@ async function audioSnapshot() {
       if (r && odd.length) {
         lastFlag = Date.now();
         let _probe = []; try { _probe = await _sourceProbe(); } catch (e) { _probe = ['source probe failed: ' + e.message]; }
+        _healIfSourcesDead();
         _saveAudioLog(['SI-FI AUDIO SNAPSHOT (auto) ' + new Date().toISOString() + ' | ' + ((document.getElementById('buildTimestamp') || {}).textContent || '')].concat(['FLAGGED: ' + odd.join('; ')], _audioStateLines(), _listenLines(r), _probe).join('\n'));
         try { window._crashCrumb && window._crashCrumb('DRUMS WATCHDOG flagged'); } catch (e) {}
         const t = document.createElement('div');
