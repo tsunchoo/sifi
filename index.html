@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 17:05:54 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 17:37:26 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2686,7 +2686,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 17:05:54 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 17:37:26 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22480,8 +22480,8 @@ async function hardResetAudioEngine() {
   // target at press, and where drag position 0 maps to) and the ceiling
   // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
   // maps drag position onto both this and the pitch range together.
-  const SWEEP_ATTACK_LEVEL = 0.01206; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.11350; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.00854; // −3dB (was 0.01206), per direct request; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.08035; // −3dB (was 0.11350), per direct request; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
   // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
   // ramps toward the next downbeat) removed along with startSweepTakeover
   // and the RMS sidechain duck — nothing here is time-based any more, only
@@ -22531,6 +22531,7 @@ async function hardResetAudioEngine() {
     noise.connect(bp); bp.connect(baseGain); baseGain.connect(sweepMaster); sweepMaster.connect(window._makeupGain || masterGain);
     noise.start(t);
     sweepNodes = { noise, bp, gain: baseGain, sweepMaster };
+    _sweepCrushBuild();
     btn.style.setProperty('--sweep-p', '0');
     btn.classList.add('active');
   }
@@ -22556,6 +22557,46 @@ async function hardResetAudioEngine() {
     _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} try { sweepMaster && sweepMaster.disconnect(); } catch (e) {} });
     // the music comes back up over the same release as SWEEP fades out
     try { const fg = window._normalTrackFadeGain.gain; fg.cancelScheduledValues(t); fg.setValueAtTime(fg.value, t); fg.linearRampToValueAtTime(1, t + Math.max(0.05, halfNote)); } catch (e) {}
+    _sweepCrushRelease(t, Math.max(0.05, halfNote));
+  }
+
+  // SWEEP X-AXIS = 8-BIT ON THE MUSIC, per direct request: dragging right crossfades the music (tracks, DRUMS, reverb — NOT
+  // SWEEP) into its own 8-bit crusher and brings it down by up to 5dB. It lives on the music bus, before SWEEP joins the mix,
+  // so SWEEP stays clean and everything still goes through the one shared limiter (the last attempt sent SWEEP round the
+  // limiter instead — that's what clipped). Built on press, taken apart after release, so it costs nothing otherwise.
+  let swCrush = null;
+  function _sweepCrushBuild() {
+    if (swCrush || !ctx || !window._normalTrackFadeGain || !window._makeupGain) return;
+    const fade = window._normalTrackFadeGain, out = window._makeupGain;
+    const dry = ctx.createGain(), wet = ctx.createGain(); dry.gain.value = 1; wet.gain.value = 0;
+    swCrush = { fade, out, dry, wet, node: null };
+    fade.connect(dry); dry.connect(out); fade.disconnect(out); // same signal, now via the crossfade (dry = 1 → no change yet)
+    wet.connect(out);
+    const sc = swCrush;
+    const attach = n => { if (swCrush !== sc) { try { n.disconnect(); } catch (e) {} return; } sc.node = n; fade.connect(n); n.connect(wet); };
+    _ensureEightBitWorkletModule(ctx).then(() => attach(new AudioWorkletNode(ctx, 'eight-bit-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] })))
+      .catch(() => { try { attach(_buildEightBitNodeScriptProcessorFallback(ctx)); } catch (e) {} });
+  }
+  function _sweepCrushSet(depth) {
+    if (!swCrush || !ctx) return;
+    const atten = Math.pow(10, -5 * depth / 20), t = ctx.currentTime; // −5dB at full right
+    swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2) * atten, t, 0.02);
+    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2) * atten, t, 0.02);
+  }
+  function _sweepCrushRelease(t, dur) {
+    const sc = swCrush; if (!sc) return; swCrush = null;
+    // back to clean, full level over the same release as SWEEP, then the direct connection comes back and the crusher goes
+    sc.dry.gain.cancelScheduledValues(t); sc.dry.gain.setValueAtTime(sc.dry.gain.value, t); sc.dry.gain.linearRampToValueAtTime(1, t + dur);
+    sc.wet.gain.cancelScheduledValues(t); sc.wet.gain.setValueAtTime(sc.wet.gain.value, t); sc.wet.gain.linearRampToValueAtTime(0, t + dur);
+    _afterAudio(t + dur + 0.05, () => {
+      try { sc.fade.connect(sc.out); sc.fade.disconnect(sc.dry); if (sc.node) sc.fade.disconnect(sc.node); } catch (e) {} // swap back in one go
+      [sc.dry, sc.wet, sc.node].forEach(n => { try { n && n.disconnect(); } catch (e) {} });
+    });
+  }
+  function _sweepUpdateX(x) {
+    if (!sweepNodes || x == null || window._sweepDragStartX === undefined) return;
+    const dx = Math.max(0, x - window._sweepDragStartX);
+    _sweepCrushSet(Math.min(1, dx / (window._sweepDragRangeX || 1)));
   }
 
   // startSweepTakeover() — the automatic, time-based gain ramp toward
@@ -22602,6 +22643,9 @@ async function hardResetAudioEngine() {
     const startY = e ? (e.touches ? e.touches[0]?.clientY : e.clientY) : null;
     const btnRect = btn.getBoundingClientRect();
     window._sweepDragStartY = startY ?? btnRect.bottom;
+    const startX = e ? (e.touches ? e.touches[0]?.clientX : e.clientX) : null;
+    window._sweepDragStartX = startX ?? (btnRect.left + btnRect.width / 2);
+    window._sweepDragRangeX = Math.max(60, (window.innerWidth - window._sweepDragStartX) * 0.75); // full 8-bit a bit before the right edge
 
     window._sweepDragRange = Math.max(60, (window.innerHeight - btnRect.bottom) * (1 - SWEEP_DRAG_BUFFER));
     startSweep();
@@ -22654,7 +22698,7 @@ async function hardResetAudioEngine() {
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
     try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -6 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
   }
-  document.addEventListener('mousemove', e => { if (window._sweepGestureActive) _sweepUpdateFreqFromY(e.clientY); });
+  document.addEventListener('mousemove', e => { if (window._sweepGestureActive) { _sweepUpdateFreqFromY(e.clientY); _sweepUpdateX(e.clientX); } });
 
   // Drag from SWEEP onto BEAT or RAND to trigger them simultaneously.
   // Dragging onto the left spool instead engages its soft decay-stop for
@@ -22671,7 +22715,7 @@ async function hardResetAudioEngine() {
     // fired. Only let this run for a touch that actually began on SWEEP.
     if (!window._sweepGestureActive) return;
     const touch = e.touches[0];
-    if (touch) _sweepUpdateFreqFromY(touch.clientY);
+    if (touch) { _sweepUpdateFreqFromY(touch.clientY); _sweepUpdateX(touch.clientX); }
     const el = touch ? document.elementFromPoint(touch.clientX, touch.clientY) : null;
     if (!el) return;
     const onLeftSpool = !!el.closest('#leftReelWrap');
