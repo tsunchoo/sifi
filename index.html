@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 05:15:17 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-08 05:38:11 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1291,7 +1291,7 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; }
 #randBtn.playdoe-ast .glyph::after { content: none !important; }
 #randBtn.playdoe-ast .glyph::before {
-  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -3px; top: 3px; animation: none !important;
+  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: none !important;
   background-color: currentColor !important;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
@@ -2745,7 +2745,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:15:17 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 05:38:11 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5617,7 +5617,7 @@ function randomizeCurrentInstruments() {
     changed++;
   }
   if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
-  if (typeof randomizeAppColors === 'function') randomizeAppColors();
+  // colour theme is LEFT ALONE now, per direct request — only the instruments change
   // each track repaints as its own swap lands (see above); markModified once the last one is in
   _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
   return changed;
@@ -20739,6 +20739,20 @@ function _pulseAsterisks() {
   document.querySelectorAll('.track-ctrl-row .lock-ast-shape').forEach(el => { el.classList.toggle('ast-beat-a', _astBeatFlip); el.classList.toggle('ast-beat-b', !_astBeatFlip); });
 }
 let _tapeTintKey = null;
+const _tintCache = new Map(); let _tintWorker = null, _tintPending = new Set();
+function _requestTint(hex) {
+  if (_tintPending.has(hex)) return;
+  try {
+    if (!_tintWorker && typeof Worker !== 'undefined') {
+      const src = _cssTintFor.toString() + '\nonmessage = e => { let f = ""; try { f = _cssTintFor(e.data); } catch (err) {} postMessage([e.data, f]); };';
+      _tintWorker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+      _tintWorker.onmessage = e => { const [h, f] = e.data; _tintPending.delete(h); _tintCache.set(h, f); if (_tintCache.size > 200) _tintCache.delete(_tintCache.keys().next().value); _syncTapeTint(); };
+      _tintWorker.onerror = () => { _tintWorker = false; };
+    }
+    if (_tintWorker) { _tintPending.add(hex); _tintWorker.postMessage(hex); return; }
+  } catch (e) { _tintWorker = false; }
+  _tintCache.set(hex, _cssTintFor(hex)); setTimeout(_syncTapeTint, 0); // no worker available: old way, but on its own turn
+}
 function _syncTapeTint() {
   const el = document.getElementById('tapeReels'); if (!el || !document.body) return;
   const on = document.body.classList.contains('night-invert'), two = on && document.body.classList.contains('tape-two-tone');
@@ -20750,7 +20764,10 @@ function _syncTapeTint() {
   else if (document.body.classList.contains('tape-from-fill')) { const h = _cssColToHex((_rs.getPropertyValue('--play-flash-color') || '').trim()); if (h) hex = h; }
   const glowOn = on && !document.body.classList.contains('no-glow') && !document.body.classList.contains('safe-gfx');
   const key = on + '|' + two + '|' + hex + '|' + glowOn; if (key === _tapeTintKey) return; _tapeTintKey = key;
-  const f = on && hex ? _cssTintFor(hex) : '';
+  // The tint solver is a ~20ms (desktop) search — far more on a throttled iPhone, and it ran right as each new pattern's colours
+  // landed (freeze hunt). It now runs in a background worker; the result is cached per colour and applied when it arrives.
+  let f = '';
+  if (on && hex) { f = _tintCache.get(hex); if (f === undefined) { _tapeTintKey = null; _requestTint(hex); return; } }
   const wraps = document.querySelectorAll('#tapeReels .reel-wrap');
   if (f) { // per direct request the TAPE WINDOW is no longer tinted/modified at all: the tint always goes on the two reels only (TWO-TONE window paused): the tint filter moves off the whole group onto the two reels only, so the window photo can carry its own two colours
     el.style.setProperty('filter', 'none', 'important');
@@ -22669,9 +22686,9 @@ async function hardResetAudioEngine() {
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
     const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
-    // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −10dB (was −20dB) over the same
+    // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −6dB (was −10dB, −20dB before that) over the same
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
-    try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -10 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
+    try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -6 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
   }
   document.addEventListener('mousemove', e => { if (window._sweepGestureActive) _sweepUpdateFreqFromY(e.clientY); });
 
@@ -23085,6 +23102,18 @@ async function audioSnapshot() {
   try { if (ctx) L.push(...await _noiseProbe()); } catch (e) { L.push('noise probe failed: ' + e.message); }
   _showAudioLog(L.join('\n'));
 }
+// FREEZE LOG (WEIRD THING hunt): the last report showed the whole page freezing for most of a second right after a burst of
+// instrument taps — long enough that the scheduler had to skip ahead. This times the slow jobs and notes any freeze in the
+// "recent actions" list, so the next report says what was running when it froze.
+(function () {
+  let last = performance.now();
+  setInterval(() => {
+    const now = performance.now(), gap = now - last; last = now;
+    if (gap > 350 && gap < 5000 && document.visibilityState === 'visible') { try { window._crashCrumb && window._crashCrumb('FREEZE ' + Math.round(gap) + 'ms' + (window._slowJob ? ' (after ' + window._slowJob + ')' : '')); } catch (e) {} }
+  }, 100);
+  const wrap = (name, label) => { const o = window[name]; if (typeof o !== 'function') return; window[name] = function () { const t0 = performance.now(); try { return o.apply(this, arguments); } finally { const ms = performance.now() - t0; if (ms > 60) { window._slowJob = label + ' ' + Math.round(ms) + 'ms'; try { window._crashCrumb && window._crashCrumb('SLOW ' + window._slowJob); } catch (e) {} } } }; };
+  wrap('selectSound', 'instrument swap'); wrap('randAll', 'new pattern'); wrap('randomizeAppColors', 'colour change'); wrap('restoreState', 'pattern load'); wrap('_applyRainbowState', 'display mode');
+})();
 // WEIRD THING WATCHDOG — every 5s while playing: is the audio clock running at real speed, is the scheduler being starved
 // (timer gaps / skipped steps), is it running twice, is a tempo nudge stuck on? Anything off → saved to the AUDIO LOG.
 (function () {
