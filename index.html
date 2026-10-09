@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-08 23:51:44 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-09 20:13:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2686,7 +2686,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-08 23:51:44 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-09 20:13:16 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6198,6 +6198,14 @@ function scheduler() {
       if (!window._oneShot.ending) { window._oneShot.ending = true; const _os = window._oneShot; const ms = Math.max(0, (nextStepTime - ctx.currentTime) * 1000) + 400; setTimeout(() => { if (window._oneShot === _os) _tapeDrawerStopOneShot(); }, ms); }
       break;
     }
+    // AUDIO REFRESH on the bar line, using the SPARE ENGINE (no tap needed) — see AUDIO_REFRESH_ON
+    if (currentStep === NUM_STEPS - 1 && !window._oneShot && _spareReady() && _audioRefreshDue()) {
+      const wait = Math.max(0, (nextStepTime - ctx.currentTime) * 1000 - 15);
+      _audioRefreshing = true;
+      if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
+      setTimeout(() => { _audioRefreshing = false; if (playing) _refreshAudioEngine(); else if (!scheduleInterval) { /* stopped meanwhile — nothing to do */ } }, wait);
+      break;
+    }
     const step = (currentStep + 1) % NUM_STEPS; currentStep = step;
     if (window._oneShot && step === 0) window._oneShot.started = true;
     // Swing: offbeat (odd) steps get delayed by up to 60ms based on master slider.
@@ -9207,7 +9215,7 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.5309 : 1; // -5.5dB under BLAST (another -1.5dB per direct request; was 0.6309) — BLAST specifically (not just FX) on this track
-  const vel = (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten; // +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
+  const vel = (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten * 0.7079; // −3dB overall, per direct request (2026-10-09); before that: +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
   // added on top. The old version capped the WHOLE envelope at ~0.2s
@@ -9253,8 +9261,11 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   const ampEnv = ctx.createGain();
   ampEnv.gain.setValueAtTime(0, time);
   ampEnv.gain.linearRampToValueAtTime(vel, time + 0.002); // near-instant, punchy
-  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.55, time + 0.05); // quick settle from the punch into the body
-  ampEnv.gain.setValueAtTime(vel * 0.55, time + sustain); // holds through the note's actual assigned length
+  // LEGATO phrases were the loudest part (a long held body at full level, note after note) — notes held longer than a step and
+  // a half settle a further −2dB lower, per direct request; short notes keep their body level
+  const _bodyLvl = (durSec || 0) > stepDuration() * 1.5 ? 0.55 * 0.7943 : 0.55;
+  ampEnv.gain.exponentialRampToValueAtTime(vel * _bodyLvl, time + 0.05); // quick settle from the punch into the body
+  ampEnv.gain.setValueAtTime(vel * _bodyLvl, time + sustain); // holds through the note's actual assigned length
   ampEnv.gain.exponentialRampToValueAtTime(0.0006, time + sustain + tail); // short tail after that
 
   mix.connect(lp); lp.connect(ampEnv); ampEnv.connect(dest);
@@ -22218,7 +22229,7 @@ async function initAudio(opts) {
   overlay.style.pointerEvents = 'none';
   try {
     msg.textContent = 'STARTING...';
-    ctx = new (window.AudioContext || window.webkitAudioContext)(); // the device's own native rate — forcing 44.1k on 48k iPhone hardware made playback run fast and unsteady. Samples (decoded at 44.1k) are resampled correctly on playback.
+    ctx = (opts && opts.useCtx) || new (window.AudioContext || window.webkitAudioContext)(); // a SPARE engine (already started on an earlier tap) when swapping without a tap — else a new one at the device's own native rate — forcing 44.1k on 48k iPhone hardware made playback run fast and unsteady. Samples (decoded at 44.1k) are resampled correctly on playback.
     window._ctxBornAt = performance.now(); window._clockRef = { ct: ctx.currentTime, pn: performance.now(), ctx };
     _patchCtxForAutoCleanup(ctx);
     msg.textContent = 'CTX OK, RESUMING...';
@@ -22354,8 +22365,22 @@ if ('serviceWorker' in navigator) {
 // tap, it starts on the very next tap anywhere.
 const AUDIO_REFRESH_MS = 4 * 60 * 1000;
 window._ctxBornAt = 0; let _audioRefreshing = false;
-const AUDIO_REFRESH_ON = false; // OFF — both WEIRD THING snapshots came straight after a refresh (crash-hunt experiment, not a core feature)
-function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
+const AUDIO_REFRESH_ON = true; // back ON with the SPARE ENGINE (no tap needed, swapped exactly on a bar line) — Safari's audio was found to stop playing NEW sounds ~8-10 min into an engine's life (the kick vanishing); a fresh engine every few minutes keeps it from ever getting there
+// SPARE ENGINE: iOS only lets an audio engine START inside a tap, but one that's running stays running. So on any ordinary tap
+// the app quietly starts a second, empty engine and leaves it idling; when it's time to swap (every few minutes, or straight
+// away if a stall is detected) the swap uses that one — no tap, no notice. A new spare is made on the next tap after that.
+window._spareCtx = null;
+function _spareReady() { const s = window._spareCtx; return !!(s && s.state === 'running' && ctx && s.sampleRate === ctx.sampleRate); }
+function _takeSpareCtx(rate) { const s0 = window._spareCtx; if (!(s0 && s0.state === 'running' && (!rate || s0.sampleRate === rate))) { try { window._spareCtx && window._spareCtx.close(); } catch (e) {} window._spareCtx = null; return null; } const s = window._spareCtx; window._spareCtx = null; return s; }
+document.addEventListener('pointerdown', () => {
+  if (!ctx || ctx instanceof OfflineAudioContext || ctx.state !== 'running' || _audioRefreshing || !_initDone()) return;
+  const s = window._spareCtx;
+  if (s && s.state === 'running' && s.sampleRate === ctx.sampleRate) return;
+  try { if (s) s.close(); } catch (e) {}
+  try { const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; } catch (e) { window._spareCtx = null; }
+}, { capture: true });
+function _initDone() { return !!(masterGain && window._postLimiterGain); }
+function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
@@ -22379,7 +22404,9 @@ async function _refreshAudioEngine() {
     // (outside a gesture iOS left it suspended and the timing came back wrong). Never two at once.
     try { const t = old.currentTime; if (_oldMaster) { _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(0, t); } } catch (e) {}
     try { old.close(); } catch (e) {}
-    await initAudio({ refresh: true });
+    const _spare = _takeSpareCtx(old.sampleRate); // SPARE ENGINE: already running, so this swap needs no tap
+    try { window._crashCrumb && window._crashCrumb(_spare ? 'AUDIO REFRESH using spare engine' : 'AUDIO REFRESH (tap)'); } catch (e) {}
+    await initAudio({ refresh: true, useCtx: _spare || undefined });
     if (!ctx) throw new Error('no context');
     // put the mix back exactly as it was
     try { _applyBeatVolWithDuck(); } catch (e) {}
@@ -23177,8 +23204,10 @@ async function audioSnapshot() {
 function _healIfSourcesDead() {
   const r = window._lastSourceProbe;
   if (!r || r.osc !== 'SILENT' || r.buf !== 'SILENT' || !ctx || ctx.state !== 'running' || window._audioHealPending) return;
-  window._audioHealPending = true; window._audioRefreshArmed = true;
-  try { window._crashCrumb && window._crashCrumb('AUDIO STALLED — new sounds silent, healing on next tap'); } catch (e) {}
+  window._audioHealPending = true;
+  if (_spareReady()) { try { window._crashCrumb && window._crashCrumb('AUDIO STALLED — new sounds silent, swapping to spare engine'); } catch (e) {} _refreshAudioEngine(); return; } // no tap, no notice
+  window._audioRefreshArmed = true;
+  try { window._crashCrumb && window._crashCrumb('AUDIO STALLED — new sounds silent, no spare engine yet, healing on next tap'); } catch (e) {}
   if (!document.getElementById('_audioHealToast')) {
     const t = document.createElement('div'); t.id = '_audioHealToast';
     t.textContent = 'AUDIO STALLED — TAP HERE TO RESTORE';
