@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-09 23:57:08 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 05:13:52 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1288,10 +1288,11 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 /* PLAYDOE double-tap, per direct request: while the new pattern is pending, >> (or +) shows the asterisk instead, then goes
    back when the pattern lands. Drawn in currentColor so it takes exactly the same colour changes the glyph does now, and it
    sits inside .glyph so the same scale pulses apply. */
+@keyframes playdoe-ast-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 #randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; }
 #randBtn.playdoe-ast .glyph::after { content: none !important; }
 #randBtn.playdoe-ast .glyph::before {
-  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: none !important;
+  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: playdoe-ast-spin var(--playdoe-spin-dur, 1s) ease-in-out forwards !important;
   background-color: currentColor !important;
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
@@ -2686,7 +2687,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-09 23:57:08 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 05:13:52 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5658,6 +5659,7 @@ function toggleTrackDelay(tr) {
 const _reverbSendGains = {};
 function connectToDelay(tr, sourceNode) {
   if (!trackDelay[tr] || !ctx || !window._reverbSendBus) return;
+  if (_reverbSendGains[tr] && _reverbSendGains[tr].context !== ctx) delete _reverbSendGains[tr]; // stale engine
   if (!_reverbSendGains[tr]) {
     _reverbSendGains[tr] = ctx.createGain();
     _reverbSendGains[tr].gain.value = 0.35 * _drumReverbFactor(tr); // per-track send level into the shared reverb bus — drum / percussion tracks scaled by REVERB ON BEAT
@@ -5761,6 +5763,7 @@ function setFxActive(tr, fxVal) {
 // whatever the track's normal destination is (which can change, e.g. when
 // delay gets toggled), then left permanently in place.
 function getPumpChain(tr, dest) {
+  if (trackPumpNodes[tr] && trackPumpNodes[tr].pumpGain.context !== ctx) delete trackPumpNodes[tr]; // stale engine
   if (!trackPumpNodes[tr]) {
     const pumpGain = ctx.createGain(); pumpGain.gain.value = 1; // ducked in sync with BEAT's kick+snare
     const comp = ctx.createDynamicsCompressor(); // sustain boost — slow release keeps the tail up
@@ -5836,6 +5839,7 @@ function duckPumpTracks(t) {
 // real, cumulative level over time.
 const _amalgamLimiters = {};
 function getAmalgamLimiter(tr, dest) {
+  if (_amalgamLimiters[tr] && _amalgamLimiters[tr].comp.context !== ctx) delete _amalgamLimiters[tr]; // left over from an older audio engine (swap / rebuild / bounce) — never connect across engines
   if (!_amalgamLimiters[tr]) {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -20; comp.knee.value = 6; comp.ratio.value = 10;
@@ -5894,6 +5898,7 @@ function _makeSoftClipCurve() {
   return curve;
 }
 function getSourceSoftClip(tr, dest) {
+  if (_sourceSoftClips[tr] && _sourceSoftClips[tr].shaper.context !== ctx) delete _sourceSoftClips[tr]; // stale engine
   if (!_sourceSoftClips[tr]) {
     const shaper = ctx.createWaveShaper();
     shaper.curve = _makeSoftClipCurve();
@@ -6472,7 +6477,10 @@ function scheduler() {
     // doesn't spike the meter; read/decayed by _updateLoadMeter() below,
     // sampled on its own slow interval, not every step.
     const _loadT0 = performance.now();
-    fireStepAudio(step, t);
+    // WEIRD THING root cause: an error inside one voice used to abort this whole loop BEFORE the clock moved on, so the same
+    // step was retried (and failed) every 25ms while real time ran ahead — notes bunched, steps got skipped. Now an error is
+    // logged and the step still advances, so the timing can never get stuck again.
+    try { fireStepAudio(step, t); } catch (err) { console.error('step audio failed', err); try { if (!window._stepErrLogged || performance.now() - window._stepErrLogged > 5000) { window._stepErrLogged = performance.now(); window._crashCrumb && window._crashCrumb('STEP ERROR: ' + (err && err.message || err)); } } catch (e) {} }
     const _loadDt = performance.now() - _loadT0;
     window._fireDurEMA = (window._fireDurEMA === undefined) ? _loadDt : (window._fireDurEMA * 0.85 + _loadDt * 0.15);
     // LOGO NOTE JUMP — decoupled from fireStepAudio's own (already
@@ -11063,6 +11071,7 @@ const LEAD_INSTRUMENT_KEYS = new Set(['jcmgtr', 'clar', 'boog', 'sparkle', 'rhod
 const _BASS_KEYS_FOR_TRIM = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
 const _sourceTrimGains = {};
 function getSourceTrimGain(tr, dest) {
+  if (_sourceTrimGains[tr] && _sourceTrimGains[tr].gain.context !== ctx) delete _sourceTrimGains[tr]; // stale engine
   if (!_sourceTrimGains[tr]) {
     const g = ctx.createGain(); g.gain.value = 1;
     _sourceTrimGains[tr] = { gain: g, dest: null };
@@ -11087,6 +11096,7 @@ function _duckEligible(tr) {
 }
 const _sidechainDuckGains = {};
 function getSidechainDuckGain(tr, dest) {
+  if (_sidechainDuckGains[tr] && _sidechainDuckGains[tr].gain.context !== ctx) delete _sidechainDuckGains[tr]; // stale engine
   if (!_sidechainDuckGains[tr]) {
     const g = ctx.createGain(); g.gain.value = 1;
     _sidechainDuckGains[tr] = { gain: g, dest: null };
@@ -15210,6 +15220,7 @@ function _snapshotLiveGraph() {
     noiseGateNodes: Object.assign({}, _noiseGateNodes),
     sourceTrimGains: Object.assign({}, _sourceTrimGains),
     sourceSoftClips: Object.assign({}, _sourceSoftClips),
+    amalgamLimiters: Object.assign({}, _amalgamLimiters),
     trackPumpNodes: Object.assign({}, trackPumpNodes),
   };
 }
@@ -15227,6 +15238,7 @@ function _restoreLiveGraph(snap) {
   Object.keys(_noiseGateNodes).forEach(k => delete _noiseGateNodes[k]); Object.assign(_noiseGateNodes, snap.noiseGateNodes);
   Object.keys(_sourceTrimGains).forEach(k => delete _sourceTrimGains[k]); Object.assign(_sourceTrimGains, snap.sourceTrimGains);
   Object.keys(_sourceSoftClips).forEach(k => delete _sourceSoftClips[k]); Object.assign(_sourceSoftClips, snap.sourceSoftClips);
+  Object.keys(_amalgamLimiters).forEach(k => delete _amalgamLimiters[k]); Object.assign(_amalgamLimiters, snap.amalgamLimiters || {});
   Object.keys(trackPumpNodes).forEach(k => delete trackPumpNodes[k]); Object.assign(trackPumpNodes, snap.trackPumpNodes);
 }
 
@@ -15287,6 +15299,7 @@ function _buildBounceGraph(targetCtx) {
   Object.keys(_sourceTrimGains).forEach(k => delete _sourceTrimGains[k]);
   Object.keys(_sourceSoftClips).forEach(k => delete _sourceSoftClips[k]);
   Object.keys(trackPumpNodes).forEach(k => delete trackPumpNodes[k]);
+  Object.keys(_amalgamLimiters).forEach(k => delete _amalgamLimiters[k]);
   for (let i = 0; i < NUM_TRACKS; i++) {
     const g = targetCtx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
     const ef = targetCtx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
@@ -17300,7 +17313,17 @@ function stopAllAutoRand() {
     // PLAYDOE: single tap = new instruments on the same pattern; DOUBLE tap = a normal new pattern (what a single tap does
     // with PLAYDOE off). The single tap waits out the double-tap window first, so a double tap never swaps instruments too.
     if (window._playdoeOn) {
-      if (_playdoeTapTimer) { clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null; btn.classList.add('playdoe-ast'); setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */ setBtnBlueHeld('randBtn'); queueRand(); return; }
+      if (_playdoeTapTimer) {
+        clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
+        // the asterisk makes one full eased turn over exactly the time it's on screen — until the new pattern lands (next bar
+        // line while playing; about a second while stopped), per direct request
+        let _spin = 1;
+        if (playing && ctx) { try { _spin = Math.max(0.3, (NUM_STEPS - 1 - currentStep) * stepDuration() + Math.max(0, nextStepTime - ctx.currentTime)); } catch (e) {} }
+        btn.style.setProperty('--playdoe-spin-dur', _spin.toFixed(3) + 's');
+        btn.classList.remove('playdoe-ast'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
+        setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
+        setBtnBlueHeld('randBtn'); queueRand(); return;
+      }
       // Same look as a normal single tap, per direct request: pressed colours + the glyph build-up/glow while it waits out
       // the double-tap window, then the new-pattern pulse, with the button's background easing into the new colours.
       btn.classList.remove('new-pattern'); setBtnBlueHeld('randBtn');
@@ -19674,10 +19697,15 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
   // uses this trick for.
   const _sixteenthDur = (60 / bpm) / 4;
   const _cascadeStagger = _sixteenthDur / (notes.length + 1);
-  const _cascadeStart = time - ((notes.length - 1) * _cascadeStagger) / 2;
-  notes.forEach((n, i) => {
-    _playPhantomNote(tr, n.key, n.freq, false, _cascadeStart + i * _cascadeStagger, dest, durSec);
-  });
+  const _cascadeStart = Math.max(0, time - ((notes.length - 1) * _cascadeStagger) / 2); // never before time zero (a bounce's very first step used to throw here)
+  try {
+    notes.forEach((n, i) => {
+      _playPhantomNote(tr, n.key, n.freq, false, _cascadeStart + i * _cascadeStagger, dest, durSec);
+    });
+  } finally {
+  // ALWAYS reset, even if a note failed — a stuck override routes EVERY other synth track through the TEXTURE limiter
+  _amalgamVolOverride = null;
+  }
   _amalgamVolOverride = null; // reset AFTER the notes read it — it was being cleared too early before, so every note fell back to the flat default instead of the computed volume
 }
 // Right tape spool (reel2) — single tap plays the amalgam swell (see
@@ -22410,7 +22438,7 @@ async function _refreshAudioEngine() {
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
     window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; window._eightBitFed = false;
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
-    [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
+    [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes, _amalgamLimiters].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} });
     _initStarted = false;
     // Runs inside a tap: shut the old engine and start the new one in the same gesture so iOS lets it run straight away
     // (outside a gesture iOS left it suspended and the timing came back wrong). Never two at once.
@@ -22481,6 +22509,7 @@ async function hardResetAudioEngine() {
     window._reverbSendBus = null; window._reverbOutGain = null; window._masterReverbSend = null;
     window._eightBitNode = null; window._eightBitDryGain = null; window._eightBitWetGain = null; window._eightBitWorkletModulePromise = null; window._eightBitFed = false; // stale references tied to the closed context — _ensureEightBitSplit must rebuild fresh ones next time (including re-registering the worklet module, which is per-context, not skip on the guard thinking these still exist
     trackGainNodes.length = 0; trackEnvFilters.length = 0; trackFxNodes.length = 0;
+    [_reverbSendGains, _sidechainDuckGains, _sourceTrimGains, _sourceSoftClips, trackPumpNodes, _amalgamLimiters, _noiseGateNodes].forEach(o => { try { Object.keys(o).forEach(k => delete o[k]); } catch (e) {} }); // nothing from the closed engine may survive
     currentStep = -1; nextStepTime = 0;
 
     _initStarted = false;
@@ -22638,7 +22667,7 @@ async function hardResetAudioEngine() {
     swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
     swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2), t, 0.02);
     // SWEEP itself fades down by up to 5dB as the finger goes right, per direct request
-    if (sweepNodes && sweepNodes.sweepMaster) sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, -5 * depth / 20), t, 0.02);
+    if (sweepNodes && sweepNodes.sweepMaster) sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, -7 * depth / 20), t, 0.02); // −7dB at full right (was −5), per direct request
   }
   function _sweepCrushRelease(t, dur) {
     const sc = swCrush; if (!sc) return; swCrush = null;
@@ -23182,14 +23211,20 @@ async function audioSnapshot() {
 // WEIRD THING WATCHDOG — every 5s while playing: is the audio clock running at real speed, is the scheduler being starved
 // (timer gaps / skipped steps), is it running twice, is a tempo nudge stuck on? Anything off → saved to the AUDIO LOG.
 (function () {
-  let prev = null, lastFlag = 0;
+  let prev = null, lastFlag = 0, slowRuns = 0;
   setInterval(() => {
     if (!ctx || !playing || ctx.state !== 'running' || document.visibilityState !== 'visible' || ctx instanceof OfflineAudioContext) { prev = null; return; }
     const st = window._schedStats, cur = { ct: ctx.currentTime, pn: performance.now(), calls: st.calls, snaps: st.snaps, late: st.late, ctx };
     if (prev && prev.ctx === ctx) {
       const wall = (cur.pn - prev.pn) / 1000, clk = (cur.ct - prev.ct) / wall, cps = (cur.calls - prev.calls) / wall;
       const odd = [];
-      if (wall > 3 && Math.abs(clk - 1) > 0.02) odd.push('audio clock running at ' + clk.toFixed(3) + 'x real time' + ((Math.abs(clk - 44100 / 48000) < 0.012 || Math.abs(clk - 48000 / 44100) < 0.012) ? ' — matches a 44.1k/48k SAMPLE-RATE MISMATCH (engine ' + ctx.sampleRate + ')' : ''));
+      // A single 5s window running slow is usually a one-off dropout (e.g. iOS briefly pausing the output while it sets up
+      // another audio player) — you don't hear it as 'weird'. Only a clock that's STILL off in the next window too is a real
+      // drift; one-offs just go in the recent-actions log.
+      const clockOff = wall > 3 && Math.abs(clk - 1) > 0.02;
+      slowRuns = clockOff ? slowRuns + 1 : 0;
+      if (clockOff && slowRuns === 1) { try { window._crashCrumb && window._crashCrumb('audio dropout ~' + Math.round(Math.abs(1 - clk) * wall * 1000) + 'ms'); } catch (e) {} }
+      if (clockOff && slowRuns >= 2) odd.push('audio clock running at ' + clk.toFixed(3) + 'x real time for 10s+' + ((Math.abs(clk - 44100 / 48000) < 0.012 || Math.abs(clk - 48000 / 44100) < 0.012) ? ' — matches a 44.1k/48k SAMPLE-RATE MISMATCH (engine ' + ctx.sampleRate + ')' : ''));
       if (cps > 60) odd.push('scheduler running ' + cps.toFixed(0) + 'x/s (should be ~40 — doubled?)');
       if (cur.snaps > prev.snaps) odd.push((cur.snaps - prev.snaps) + ' snap-forward(s) — steps skipped');
       if (cur.late - prev.late > 2) odd.push((cur.late - prev.late) + ' steps scheduled late');
