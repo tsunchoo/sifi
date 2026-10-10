@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 06:16:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 06:21:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2701,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:16:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:21:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3474,9 +3474,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEW PATTERN NOISE VOLUME</div>
-            <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">30%</div>
+            <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">65%</div>
           </div>
-          <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="30" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
+          <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="65" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
@@ -21305,7 +21305,7 @@ function setSweepDecaySpeed(v) {
 // NEW PATTERN NOISE VOLUME (SETTINGS slider, 0-100) — the noise-sweep cue
 // in playRandReleaseSweep() that plays whenever a new pattern actually
 // lands. 100 = its current level, 0 = silent.
-window._randReleaseSweepVol = 0.3; // hardcoded default per direct request (was 1, i.e. slider 100)
+window._randReleaseSweepVol = 0.65; // default 65% per direct request (was 30%, 100% before that)
 function setRandReleaseSweepVol(v) {
   window._randReleaseSweepVol = (+v) / 100;
   const readout = document.getElementById('randReleaseSweepVolReadout');
@@ -22577,8 +22577,8 @@ async function hardResetAudioEngine() {
   // target at press, and where drag position 0 maps to) and the ceiling
   // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
   // maps drag position onto both this and the pitch range together.
-  const SWEEP_ATTACK_LEVEL = 0.01704; // +6dB (was 0.00854), per direct request; // −3dB (was 0.01206), per direct request; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.16032; // +6dB (was 0.08035), per direct request; // −3dB (was 0.11350), per direct request; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.02407; // +3dB (was 0.01704), per direct request; // +6dB (was 0.00854), per direct request; // −3dB (was 0.01206), per direct request; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.22646; // +3dB (was 0.16032), per direct request; // +6dB (was 0.08035), per direct request; // −3dB (was 0.11350), per direct request; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
   // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
   // ramps toward the next downbeat) removed along with startSweepTakeover
   // and the RMS sidechain duck — nothing here is time-based any more, only
@@ -22680,8 +22680,13 @@ async function hardResetAudioEngine() {
     if (!swCrush || !ctx) return;
     const t = ctx.currentTime;
     swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
-    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2) * Math.pow(10, 5 * depth / 20), t, 0.02); // the 8-bit side comes UP by 5dB at full right (was 3), per direct request
-    window._swDepthX = depth; _sweepApplyOwnLevel();
+    window._swDepthX = depth; _sweepCrushWet(); _sweepApplyOwnLevel();
+  }
+  // the 8-bit side comes UP by 5dB at full right, plus another 3dB when it's also at full drag-down (the bottom-right corner), per direct request
+  function _sweepCrushWet() {
+    if (!swCrush || !ctx) return;
+    const x = window._swDepthX || 0, y = window._swDepthY || 0;
+    swCrush.wet.gain.setTargetAtTime(Math.sin(x * Math.PI / 2) * Math.pow(10, (5 * x + 3 * x * y) / 20), ctx.currentTime, 0.02);
   }
   function _sweepCrushRelease(t, dur) {
     const sc = swCrush; if (!sc) return; swCrush = null;
@@ -22697,7 +22702,10 @@ async function hardResetAudioEngine() {
   // Applied on sweepMaster, which only carries SWEEP, so the music isn't touched by it.
   function _sweepApplyOwnLevel() {
     if (!sweepNodes || !sweepNodes.sweepMaster || !ctx) return;
-    const dB = -7 * (window._swDepthX || 0) - 7 * (window._swDepthY || 0);
+    // −7dB at full right, −7dB at full drag-down, but back to 0dB in the bottom-right corner (both at max), per direct request —
+    // blended smoothly in between (bilinear), so there's no step anywhere along the way.
+    const x = window._swDepthX || 0, y = window._swDepthY || 0;
+    const dB = -7 * x - 7 * y + 14 * x * y;
     sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, dB / 20), ctx.currentTime, 0.02);
   }
   function _sweepUpdateX(x) {
@@ -22752,9 +22760,9 @@ async function hardResetAudioEngine() {
     window._sweepDragStartY = startY ?? btnRect.bottom;
     const startX = e ? (e.touches ? e.touches[0]?.clientX : e.clientX) : null;
     window._sweepDragStartX = startX ?? (btnRect.left + btnRect.width / 2);
-    window._sweepDragRangeX = Math.max(60, (window.innerWidth - window._sweepDragStartX) * 0.75); // full 8-bit a bit before the right edge
+    window._sweepDragRangeX = Math.max(60, window.innerWidth - 40 - window._sweepDragStartX); // full 8-bit 40px from the right edge, per direct request
 
-    window._sweepDragRange = Math.max(60, (window.innerHeight - btnRect.bottom) * (1 - SWEEP_DRAG_BUFFER));
+    window._sweepDragRange = Math.max(60, window.innerHeight - 40 - window._sweepDragStartY); // full drag-down 40px from the bottom edge, per direct request (was SWEEP_DRAG_BUFFER of the space below the button)
     startSweep();
     btn.classList.add('active');
   };
@@ -22807,7 +22815,7 @@ async function hardResetAudioEngine() {
     // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −6dB (was −10dB, −20dB before that) over the same
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
     try { window._normalTrackFadeGain.gain.setTargetAtTime(Math.pow(10, -6 * progress / 20), ctx.currentTime, 0.03); } catch (e) {}
-    window._swDepthY = progress; _sweepApplyOwnLevel(); // SWEEP's own −7dB at full drag-down
+    window._swDepthY = progress; _sweepCrushWet(); _sweepApplyOwnLevel(); // SWEEP's own −7dB at full drag-down (0dB if also full right)
   }
   document.addEventListener('mousemove', e => { if (window._sweepGestureActive) { _sweepUpdateFreqFromY(e.clientY); _sweepUpdateX(e.clientX); } });
 
