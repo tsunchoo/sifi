@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-09 20:13:16 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-09 23:57:08 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2686,7 +2686,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-09 20:13:16 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-09 23:57:08 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22238,6 +22238,18 @@ async function initAudio(opts) {
     // recognizes an active background-eligible audio session.
     try {
       const ka = document.getElementById('_bgKeepAlive');
+      // WEIRD THING: the keep-alive loop was an 8kHz file. Two reports caught the 48kHz audio engine's clock running at
+      // 0.921x real time — almost exactly 44.1/48 — i.e. the phone's output had been switched to a different sample rate
+      // underneath it. A second audio player at a different rate is the prime suspect, so the keep-alive is now rebuilt as a
+      // silent loop at the audio engine's OWN rate, so nothing ever asks iOS for another rate.
+      if (ka && !_refresh && ctx.sampleRate && ka.dataset.rate !== String(ctx.sampleRate)) {
+        const sr = ctx.sampleRate, n = Math.round(sr / 2), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+        const w = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+        w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+        try { if (ka.dataset.blob) URL.revokeObjectURL(ka.dataset.blob); } catch (e) {}
+        const u = URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })); ka.src = u; ka.dataset.blob = u; ka.dataset.rate = String(sr);
+      }
       if (ka) { ka.volume = 1; ka.play().catch(() => {}); }
     } catch (e) {}
     if ('mediaSession' in navigator) {
@@ -23177,7 +23189,7 @@ async function audioSnapshot() {
     if (prev && prev.ctx === ctx) {
       const wall = (cur.pn - prev.pn) / 1000, clk = (cur.ct - prev.ct) / wall, cps = (cur.calls - prev.calls) / wall;
       const odd = [];
-      if (wall > 3 && Math.abs(clk - 1) > 0.02) odd.push('audio clock running at ' + clk.toFixed(3) + 'x real time');
+      if (wall > 3 && Math.abs(clk - 1) > 0.02) odd.push('audio clock running at ' + clk.toFixed(3) + 'x real time' + ((Math.abs(clk - 44100 / 48000) < 0.012 || Math.abs(clk - 48000 / 44100) < 0.012) ? ' — matches a 44.1k/48k SAMPLE-RATE MISMATCH (engine ' + ctx.sampleRate + ')' : ''));
       if (cps > 60) odd.push('scheduler running ' + cps.toFixed(0) + 'x/s (should be ~40 — doubled?)');
       if (cur.snaps > prev.snaps) odd.push((cur.snaps - prev.snaps) + ' snap-forward(s) — steps skipped');
       if (cur.late - prev.late > 2) odd.push((cur.late - prev.late) + ' steps scheduled late');
