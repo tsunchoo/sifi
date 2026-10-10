@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 05:38:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 05:44:10 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2693,7 +2693,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 05:38:41 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 05:44:10 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22607,7 +22607,7 @@ async function hardResetAudioEngine() {
     // pressing — not a "rise," just anti-pop hygiene.
     const baseGain = ctx.createGain();
     baseGain.gain.setValueAtTime(0, t);
-    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL, t + 0.02);
+    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL * 1.9953, t + 0.02); // +6dB at press, per direct request
     window._sweepPressStartT = t; // still used for reference elsewhere
 
     // Back through masterGain (and its kick-triggered sidechain duck stage),
@@ -22791,7 +22791,10 @@ async function hardResetAudioEngine() {
     btn.style.setProperty('--sweep-p', progress.toFixed(3)); // drives the button's highlight/glow (see #clearBtn.active CSS)
     const freq = SWEEP_FLOOR_FREQ * Math.pow(SWEEP_CEIL_FREQ / SWEEP_FLOOR_FREQ, progress);
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
-    const level = SWEEP_ATTACK_LEVEL; // NO swell any more, per direct request — drag-down only brightens; SWEEP's level now stays where it was at press and fades 7dB by the bottom (see _sweepApplyOwnLevel), exactly like dragging right
+    // Starts 6dB louder than before, swells up a little (+6dB by about a third of the way down), then comes back down — with
+    // the −7dB trim (see _sweepApplyOwnLevel) the bottom ends 7dB under the starting level. Per direct request.
+    const _swellDb = progress < 0.35 ? 6 * (progress / 0.35) : 6 * (1 - (progress - 0.35) / 0.65);
+    const level = SWEEP_ATTACK_LEVEL * 1.9953 * Math.pow(10, _swellDb / 20);
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
     // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −6dB (was −10dB, −20dB before that) over the same
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
