@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 05:32:21 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 05:38:41 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1289,11 +1289,17 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
    back when the pattern lands. Drawn in currentColor so it takes exactly the same colour changes the glyph does now, and it
    sits inside .glyph so the same scale pulses apply. */
 @keyframes playdoe-ast-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* while it spins, the asterisk fades up to full white and its glow builds to the maximum, both peaking exactly as the new
+   pattern lands (same duration as the spin), per direct request. The glow is a drop-shadow on the glyph box, since the
+   asterisk itself is a masked shape that a text-shadow can't reach. */
+@keyframes playdoe-ast-white { to { background-color: #fff; } }
+@keyframes playdoe-ast-glow { from { filter: drop-shadow(0 0 0 rgba(255,255,255,0)); } to { filter: drop-shadow(0 0 calc(4px * var(--rglow, 1)) #fff) drop-shadow(0 0 calc(12px * var(--rglow, 1)) #fff); } }
+#randBtn.playdoe-ast .glyph { animation: playdoe-ast-glow var(--playdoe-spin-dur, 1s) ease-in forwards !important; }
 #randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; }
 #randBtn.playdoe-ast .glyph::after { content: none !important; }
 #randBtn.playdoe-ast .glyph::before {
-  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: playdoe-ast-spin var(--playdoe-spin-dur, 1s) ease-in-out forwards !important;
-  background-color: currentColor !important;
+  content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: playdoe-ast-spin var(--playdoe-spin-dur, 1s) ease-in-out forwards, playdoe-ast-white var(--playdoe-spin-dur, 1s) ease-in forwards !important;
+  background-color: currentColor; /* not !important, so the fade-to-white animation can take over */
   -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>"); mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='black' stroke-width='3.4' fill='none' stroke-linecap='butt'/></svg>");
   -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; -webkit-mask-position: center; mask-position: center;
 }
@@ -2687,7 +2693,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 05:32:21 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 05:38:41 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22666,7 +22672,7 @@ async function hardResetAudioEngine() {
     if (!swCrush || !ctx) return;
     const t = ctx.currentTime;
     swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
-    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2) * Math.pow(10, 3 * depth / 20), t, 0.02); // the 8-bit side comes UP by 3dB at full right, per direct request
+    swCrush.wet.gain.setTargetAtTime(Math.sin(depth * Math.PI / 2) * Math.pow(10, 5 * depth / 20), t, 0.02); // the 8-bit side comes UP by 5dB at full right (was 3), per direct request
     window._swDepthX = depth; _sweepApplyOwnLevel();
   }
   function _sweepCrushRelease(t, dur) {
@@ -22785,7 +22791,7 @@ async function hardResetAudioEngine() {
     btn.style.setProperty('--sweep-p', progress.toFixed(3)); // drives the button's highlight/glow (see #clearBtn.active CSS)
     const freq = SWEEP_FLOOR_FREQ * Math.pow(SWEEP_CEIL_FREQ / SWEEP_FLOOR_FREQ, progress);
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
-    const level = SWEEP_ATTACK_LEVEL + progress * (SWEEP_CEILING_LEVEL - SWEEP_ATTACK_LEVEL);
+    const level = SWEEP_ATTACK_LEVEL; // NO swell any more, per direct request — drag-down only brightens; SWEEP's level now stays where it was at press and fades 7dB by the bottom (see _sweepApplyOwnLevel), exactly like dragging right
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
     // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −6dB (was −10dB, −20dB before that) over the same
     // drag that brings SWEEP up. SWEEP itself is past this fade (see startSweep), so its own level is untouched.
