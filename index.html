@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 06:23:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 06:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2701,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:23:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6193,6 +6193,9 @@ function _schedLookahead() {
   // TAPE DRAWER PLAY ALL: the next tape is loaded inside this loop right at the bar line, and loading one is a heavy job — plan
   // further ahead (~0.55s) while there are tapes still queued, so the load finishes before the new tape's first beat is due.
   if (window._oneShot && window._oneShot.queue && window._oneShot.queue.length) st.gapMax = Math.max(st.gapMax, 350);
+  // MENU CLOSE: the LOOK AND FEEL / SETTINGS changes get applied as the menu closes, which can freeze the page briefly — plan
+  // ~0.6s ahead around that moment so the music rides straight through it instead of stopping (see the menu-close code).
+  if (window._schedBoostUntil && now < window._schedBoostUntil) st.gapMax = Math.max(st.gapMax, 380);
   st.la = Math.max(LOOKAHEAD, Math.min(0.6, st.gapMax / 1000 * 1.5 + 0.03));
   return st.la;
 }
@@ -22615,7 +22618,7 @@ async function hardResetAudioEngine() {
     // pressing — not a "rise," just anti-pop hygiene.
     const baseGain = ctx.createGain();
     baseGain.gain.setValueAtTime(0, t);
-    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL * 1.9953, t + 0.02); // +6dB at press, per direct request
+    baseGain.gain.linearRampToValueAtTime(SWEEP_ATTACK_LEVEL * 1.9953 * 1.2589, t + 0.02); // +6dB at press, plus another +2dB as it first comes in, per direct request
     window._sweepPressStartT = t; // still used for reference elsewhere
 
     // Back through masterGain (and its kick-triggered sidechain duck stage),
@@ -22809,7 +22812,7 @@ async function hardResetAudioEngine() {
     sweepNodes.bp.frequency.setTargetAtTime(freq, ctx.currentTime, 0.012); // was 0.03 — snappier tracking
     // Starts 6dB louder than before, swells up a little (+6dB by about a third of the way down), then comes back down — with
     // the −7dB trim (see _sweepApplyOwnLevel) the bottom ends 7dB under the starting level. Per direct request.
-    const _swellDb = progress < 0.35 ? 6 * (progress / 0.35) : 6 * (1 - (progress - 0.35) / 0.65);
+    const _swellDb = progress < 0.35 ? 2 + 4 * (progress / 0.35) : 6 * (1 - (progress - 0.35) / 0.65); // starts +2dB (as it first comes in, per direct request) and still peaks at the same +6dB
     const level = SWEEP_ATTACK_LEVEL * 1.9953 * Math.pow(10, _swellDb / 20);
     sweepNodes.gain.gain.setTargetAtTime(level, ctx.currentTime, 0.012);
     // MUSIC FADE, per direct request: the rest of the mix (tracks + DRUMS + reverb) fades from 0dB down to −6dB (was −10dB, −20dB before that) over the same
@@ -23140,7 +23143,7 @@ window._drumHitCounts = {};
 // Listens to the DRUMS bus and the final output for ms milliseconds; returns hits fired + peak dB per band.
 async function _listenDrums(ms) {
   if (!ctx || ctx instanceof OfflineAudioContext || !window._beatGain || !window._postLimiterGain) return null;
-  const c0 = Object.assign({}, window._drumHitCounts);
+  const c0 = Object.assign({}, window._drumHitCounts), ctx0 = ctx;
   const mk = src => { const a = ctx.createAnalyser(); a.fftSize = 2048; src.connect(a); return a; };
   const aBus = mk(window._beatGain), aOut = mk(window._postLimiterGain);
   const pk = { bus: [-200, -200, -200], out: [-200, -200, -200] };
@@ -23151,6 +23154,7 @@ async function _listenDrums(ms) {
   await new Promise(r => setTimeout(r, ms));
   clearInterval(iv);
   try { window._beatGain.disconnect(aBus); } catch (e) {} try { window._postLimiterGain.disconnect(aOut); } catch (e) {}
+  if (ctx !== ctx0) return null; // the engine was swapped mid-listen — this was measuring the old one, so it means nothing
   const fired = {}; Object.keys(window._drumHitCounts).forEach(k => { const n = window._drumHitCounts[k] - (c0[k] || 0); if (n) fired[k] = n; });
   return { fired, bus: pk.bus.map(Math.round), out: pk.out.map(Math.round) };
 }
@@ -23180,19 +23184,20 @@ function _showAudioLog(extra) {
 // buffer, each straight into an analyser (sent on to the output at zero volume, so nothing is heard).
 async function _sourceProbe() {
   if (!ctx || ctx instanceof OfflineAudioContext) return ['SOURCE PROBE: no context'];
+  const ctx0 = ctx; // pinned: an engine swap mid-probe must not mix contexts or misread the old engine as the new one
   const res = {};
-  const mute = ctx.createGain(); mute.gain.value = 0; mute.connect(ctx.destination);
-  const t = ctx.currentTime + 0.02;
-  const osc = ctx.createOscillator(); osc.frequency.value = 110;
-  const buf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * 0.5), ctx.sampleRate); { const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
-  const bs = ctx.createBufferSource(); bs.buffer = buf;
-  const mk = n => { const a = ctx.createAnalyser(); a.fftSize = 2048; n.connect(a); a.connect(mute); return a; };
+  const mute = ctx0.createGain(); mute.gain.value = 0; mute.connect(ctx0.destination);
+  const t = ctx0.currentTime + 0.02;
+  const osc = ctx0.createOscillator(); osc.frequency.value = 110;
+  const buf = ctx0.createBuffer(1, Math.ceil(ctx0.sampleRate * 0.5), ctx0.sampleRate); { const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const bs = ctx0.createBufferSource(); bs.buffer = buf;
+  const mk = n => { const a = ctx0.createAnalyser(); a.fftSize = 2048; n.connect(a); a.connect(mute); return a; };
   const aO = mk(osc), aB = mk(bs);
   osc.start(t); osc.stop(t + 0.4); bs.start(t); bs.stop(t + 0.4);
   await new Promise(r => setTimeout(r, 250));
   const d = new Float32Array(2048);
   const rms = a => { a.getFloatTimeDomainData(d); let m = 0; for (const v of d) m += v * v; m = Math.sqrt(m / d.length); return m > 0 ? (20 * Math.log10(m)).toFixed(1) + 'dB' : 'SILENT'; };
-  res.osc = rms(aO); res.buf = rms(aB); window._lastSourceProbe = res;
+  res.osc = rms(aO); res.buf = rms(aB); res.ctx = ctx0; window._lastSourceProbe = res;
   await new Promise(r => setTimeout(r, 250));
   try { mute.disconnect(); aO.disconnect(); aB.disconnect(); } catch (e) {}
   return ['SOURCE PROBE (healthy ≈ osc -3dB / noise -5dB): oscillator ' + res.osc + ' | noise buffer ' + res.buf + ' | oscillators made so far ' + (window._oscMadeCount || 0)];
@@ -23281,9 +23286,20 @@ async function audioSnapshot() {
 // that had already started, but every NEW sound coming out silent (test tone AND test noise both SILENT, ~9 min in). A fresh
 // audio engine is the cure, and iOS only lets one start inside a tap — so: check for it every 30s while playing, and when it
 // happens, rebuild the engine on the very next tap anywhere (not on a button), with a notice saying so.
+// A bad probe is re-run once straight away before anything is swapped, so a one-off hiccup (the page busy at the moment the
+// test is read) can't trigger a needless engine swap.
+function _probeBad(r) { const _db = v => v === 'SILENT' ? -999 : parseFloat(v); return !!r && r.ctx === ctx && (_db(r.osc) < -15 || _db(r.buf) < -15); }
+async function _confirmAndHeal() {
+  if (!_probeBad(window._lastSourceProbe)) return;
+  try { await _sourceProbe(); } catch (e) { return; }
+  _healIfSourcesDead();
+}
 function _healIfSourcesDead() {
   const r = window._lastSourceProbe;
-  if (!r || r.osc !== 'SILENT' || r.buf !== 'SILENT' || !ctx || ctx.state !== 'running' || window._audioHealPending) return;
+  // Heal as soon as the OSCILLATOR test dies or sags (< −15dB, healthy is −3dB) — not only once noise has gone silent too. Every
+  // report shows oscillators going first (kick, then snare body) while noise sounds keep playing, which is exactly the
+  // "bottom drops out until there's no kick and it's all high end" — waiting for both meant healing only after all of it.
+  if (!_probeBad(r) || !ctx || ctx.state !== 'running' || window._audioHealPending) return;
   window._audioHealPending = true;
   if (_spareReady()) { try { window._crashCrumb && window._crashCrumb('AUDIO STALLED — new sounds silent, swapping to spare engine'); } catch (e) {} _refreshAudioEngine(); return; } // no tap, no notice
   window._audioRefreshArmed = true;
@@ -23301,9 +23317,9 @@ function _healIfSourcesDead() {
   setInterval(async () => {
     if (busy || !ctx || !playing || ctx.state !== 'running' || document.visibilityState !== 'visible' || window._audioHealPending || _audioRefreshing) return;
     busy = true;
-    try { await _sourceProbe(); _healIfSourcesDead(); } catch (e) {}
+    try { await _sourceProbe(); await _confirmAndHeal(); } catch (e) {}
     busy = false;
-  }, 30000);
+  }, 8000); // every 8s (was 30s), so a dying engine is swapped out within seconds of the kick starting to fade
 })();
 // DRUMS WATCHDOG — see the note at the top of this block.
 (function () {
@@ -23335,7 +23351,7 @@ function _healIfSourcesDead() {
       if (r && odd.length) {
         lastFlag = Date.now();
         let _probe = []; try { _probe = await _sourceProbe(); } catch (e) { _probe = ['source probe failed: ' + e.message]; }
-        _healIfSourcesDead();
+        await _confirmAndHeal();
         _saveAudioLog(['SI-FI AUDIO SNAPSHOT (auto) ' + new Date().toISOString() + ' | ' + ((document.getElementById('buildTimestamp') || {}).textContent || '')].concat(['FLAGGED: ' + odd.join('; ')], _audioStateLines(), _listenLines(r), _probe).join('\n'));
         try { window._crashCrumb && window._crashCrumb('DRUMS WATCHDOG flagged'); } catch (e) {}
         const t = document.createElement('div');
@@ -24290,18 +24306,20 @@ let _reelHoldTimer = null;
     // restarted after a short breather, per direct request — gives the
     // browser a clean moment to rebuild the screen without the sequencer
     // hammering it at the same time.
-    const hasLook = !!lookMenu && [...pending, ...radioPending.values()].some(el => lookMenu.contains(el) && (el.type === 'radio' ? true : changed(el)));
-    const wasPlaying = hasLook && typeof playing !== 'undefined' && playing;
-    if (wasPlaying) { try { togglePlay(); } catch (e) {} }
-    flush((look) => {
-      if (wasPlaying) { clearTimeout(restartT); restartT = setTimeout(() => { if (!wasOpen && typeof playing !== 'undefined' && !playing) { try { togglePlay(); } catch (e) {} } }, 450); }
+    // NO MORE PAUSE, per direct request: playback used to be stopped while LOOK AND FEEL changes applied and restarted ~0.5s
+    // later. Now it keeps playing — the scheduler plans further ahead (≈0.6s of audio already queued) while the changes land,
+    // so a brief freeze from rebuilding the screen doesn't reach the sound. The changes start ~80ms after the menu closes so
+    // the scheduler has run at least once with the longer plan-ahead first.
+    window._schedBoostUntil = performance.now() + 4000;
+    setTimeout(() => flush((look) => {
+      window._schedBoostUntil = performance.now() + 1500;
       clearTimeout(glowT);
       glowT = setTimeout(() => {
         if (wasOpen) return;
         const g = document.getElementById('glowsOnToggle');
         b.toggle('no-glow', g ? !g.checked : false);
       }, 150);
-    });
+    }), 80);
   };
   glowMenus.forEach(m => new MutationObserver(check).observe(m, { attributes: true, attributeFilter: ['style', 'class'] }));
 })();
