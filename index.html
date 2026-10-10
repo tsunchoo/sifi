@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 06:21:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 06:23:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2701,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:21:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:23:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22702,11 +22702,11 @@ async function hardResetAudioEngine() {
   // Applied on sweepMaster, which only carries SWEEP, so the music isn't touched by it.
   function _sweepApplyOwnLevel() {
     if (!sweepNodes || !sweepNodes.sweepMaster || !ctx) return;
-    // −7dB at full right, −7dB at full drag-down, but back to 0dB in the bottom-right corner (both at max), per direct request —
-    // blended smoothly in between (bilinear), so there's no step anywhere along the way.
+    // −7dB at full right, −7dB at full drag-down, and SILENT in the bottom-right corner (both at max), per direct request —
+    // the (1 − x·y) factor fades it smoothly to nothing as you head into the corner, with no step anywhere along the way.
     const x = window._swDepthX || 0, y = window._swDepthY || 0;
-    const dB = -7 * x - 7 * y + 14 * x * y;
-    sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, dB / 20), ctx.currentTime, 0.02);
+    const dB = -7 * x - 7 * y;
+    sweepNodes.sweepMaster.gain.setTargetAtTime(masterVol * MASTER_OUTPUT_BOOST * Math.pow(10, dB / 20) * Math.max(0, 1 - x * y), ctx.currentTime, 0.02);
   }
   function _sweepUpdateX(x) {
     if (!sweepNodes || x == null || window._sweepDragStartX === undefined) return;
