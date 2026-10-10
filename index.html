@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-10 06:16:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1293,10 +1293,18 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
    pattern lands (same duration as the spin), per direct request. The glow is a drop-shadow on the glyph box, since the
    asterisk itself is a masked shape that a text-shadow can't reach. */
 @keyframes playdoe-ast-white { to { background-color: #fff; } }
-@keyframes playdoe-ast-glow { from { -webkit-filter: drop-shadow(0 0 1px rgba(255,255,255,0)) drop-shadow(0 0 1px rgba(255,255,255,0)); filter: drop-shadow(0 0 1px rgba(255,255,255,0)) drop-shadow(0 0 1px rgba(255,255,255,0)); } to { -webkit-filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 12px #fff); filter: drop-shadow(0 0 4px #fff) drop-shadow(0 0 12px #fff); } } /* fixed px, no var()/calc(): iOS Safari drops a filter keyframe built from var() inside calc(), which is why there was no glow at all on the phone */
-#randBtn.playdoe-ast .glyph { animation: playdoe-ast-glow var(--playdoe-spin-dur, 1s) ease-in forwards !important; }
-#randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; will-change: filter; }
-#randBtn.playdoe-ast .glyph::after { content: none !important; }
+/* GLOW, rebuilt per direct report (still no glow on iPhone): iOS Safari doesn't draw a parent's CSS filter over a child that
+   is spinning on its own layer, so the glow is now its own pre-blurred white asterisk (an SVG with the blur baked in) sitting
+   just behind the real one, spinning with it and fading 0 → full as the pattern lands. No CSS filter involved at all. */
+@keyframes playdoe-ast-glowfade { from { opacity: 0; } to { opacity: 1; } }
+#randBtn.playdoe-ast .glyph { font-size: 0 !important; line-height: 0 !important; position: relative !important; }
+#randBtn.playdoe-ast .glyph::after {
+  content: '' !important; display: block !important; position: absolute !important; z-index: -1; pointer-events: none;
+  left: calc(50% - 1px); top: calc(50% + 3px); width: 4.4rem; height: 4.4rem; margin: -2.2rem 0 0 -2.2rem !important; padding: 0 !important;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -12 48 48'><defs><filter id='g' filterUnits='userSpaceOnUse' x='-12' y='-12' width='48' height='48'><feGaussianBlur in='SourceGraphic' stdDeviation='1.4' result='a'/><feGaussianBlur in='SourceGraphic' stdDeviation='4.2' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='b'/><feMergeNode in='a'/><feMergeNode in='a'/></feMerge></filter></defs><path d='M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91' stroke='white' stroke-width='3.4' fill='none' stroke-linecap='butt' filter='url(%23g)'/></svg>") center / 100% 100% no-repeat !important;
+  -webkit-mask-image: none !important; mask-image: none !important;
+  animation: playdoe-ast-spin var(--playdoe-spin-dur, 1s) ease-in-out forwards, playdoe-ast-glowfade var(--playdoe-spin-dur, 1s) ease-in forwards !important;
+}
 #randBtn.playdoe-ast .glyph::before {
   content: '' !important; display: inline-block !important; vertical-align: middle; width: 2.2rem; height: 2.2rem; padding: 0 !important; position: relative !important; left: -1px; top: 3px; animation: playdoe-ast-spin var(--playdoe-spin-dur, 1s) ease-in-out forwards, playdoe-ast-white var(--playdoe-spin-dur, 1s) ease-in forwards !important;
   background-color: currentColor; /* not !important, so the fade-to-white animation can take over */
@@ -2693,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:16:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -22569,8 +22577,8 @@ async function hardResetAudioEngine() {
   // target at press, and where drag position 0 maps to) and the ceiling
   // (where full drag distance maps to). See _sweepUpdateFreqFromY, which
   // maps drag position onto both this and the pitch range together.
-  const SWEEP_ATTACK_LEVEL = 0.00854; // −3dB (was 0.01206), per direct request; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
-  const SWEEP_CEILING_LEVEL = 0.08035; // −3dB (was 0.11350), per direct request; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
+  const SWEEP_ATTACK_LEVEL = 0.01704; // +6dB (was 0.00854), per direct request; // −3dB (was 0.01206), per direct request; // +2dB (was 0.00958), per direct request; // -3.5dB (was 0.01434), per direct request; // -5dB more (was 0.0255, -8dB before that, was 0.064, -4dB before that, was 0.1015, -2.5dB before that, -2dB before that, was 0.1704)
+  const SWEEP_CEILING_LEVEL = 0.16032; // +6dB (was 0.08035), per direct request; // −3dB (was 0.11350), per direct request; // +2dB (was 0.09016), per direct request; // -3.5dB (was 0.13496), per direct request; // -5dB more (was 0.24, -8dB before that, was 0.6029, -4dB before that, was 0.9555, -2dB before that, was 1.2029)
   // _sweepPlannedDuration / _sweepTimeToNextDownbeat (pacing pitch/gain
   // ramps toward the next downbeat) removed along with startSweepTakeover
   // and the RMS sidechain duck — nothing here is time-based any more, only
