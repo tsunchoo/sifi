@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-10 06:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-11 17:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2701,7 +2701,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-10 06:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-11 17:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -4966,7 +4966,7 @@ function setNoButtonSounds(on) {
   const cb = document.getElementById('noButtonSoundsToggle'); if (cb) cb.checked = !!on;
 }
 document.addEventListener('DOMContentLoaded', () => { setButtonSoundsToMix(window._buttonSoundsToMix); setNoButtonSounds(window._noButtonSounds); });
-function playUiSound(name, forceMix) { // forceMix: always through the mix (so REALTIME recording captures it), whatever BUTTON SOUNDS TO MIX says
+function playUiSound(name, forceMix, trim) { // trim: optional extra gain multiplier for this one play // forceMix: always through the mix (so REALTIME recording captures it), whatever BUTTON SOUNDS TO MIX says
   if (window._noButtonSounds) return;
   if (window._tapeDrawerQuiet) return; // TAPE DRAWER is silent — no tape button / play / stop noises while it's open, per direct request
   if (!ctx || !window._uiSoundBufs || !window._uiSoundBufs[name]) return;
@@ -4979,7 +4979,7 @@ function playUiSound(name, forceMix) { // forceMix: always through the mix (so R
   // their existing relative levels — covers rewind/rewind2, Stop,
   // StopReversed, Cymbal, Rand, and the plain 0.7 default (click, play,
   // clickoff).
-  g.gain.value = (name === 'rewind' ? 0.625 : name === 'Stop' ? 0.7 * 0.376 : name === 'StopReversed' ? 0.7 * 0.376 : name === 'Cymbal' ? 0.7 * 0.299 : name === 'Rand' ? 0.7 * 0.3548 : name === 'tinyclick' ? 0.7 * 0.7079 : 0.7) * 0.7943; // tinyclick (header icon drags) -3dB, per direct request
+  g.gain.value = (name === 'rewind' ? 0.625 : name === 'Stop' ? 0.7 * 0.376 : name === 'StopReversed' ? 0.7 * 0.376 : name === 'Cymbal' ? 0.7 * 0.299 : name === 'Rand' ? 0.7 * 0.3548 : name === 'tinyclick' ? 0.7 * 0.7079 : 0.7) * 0.7943 * (trim || 1); // tinyclick (header icon drags) -3dB, per direct request
   if (window._buttonSoundsToMix === false && !forceMix) {
     // Straight to the speakers, level-matched to the mix path (see above).
     g.gain.value *= (masterGain ? masterGain.gain.value : 1) * (window._makeupGain ? window._makeupGain.gain.value : 1);
@@ -7319,7 +7319,7 @@ function updateBeatPulse() {
 
 function togglePlay() {
   if (ctx) ctx.resume();
-  playUiSound(playing ? 'clickoff' : 'play');
+  if (!window._silentPlayToggle) { playUiSound(playing ? 'clickoff' : 'play'); window._playdoeRwTok = null; } // PLAYDOE double-tap stops/restarts without these clicks; a real play/stop press cancels its pending restart
   playing = !playing;
   const btn = document.getElementById('playBtn');
   if (playing) {
@@ -17332,6 +17332,29 @@ function stopAllAutoRand() {
     if (window._playdoeOn) {
       if (_playdoeTapTimer) {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
+        // PLAYDOE DOUBLE TAP WHILE PLAYING, per direct request: playback stops, the RECALL rewind sound plays (2dB quieter),
+        // the new pattern loads underneath it, and playback starts again the moment the rewind ends — no play/stop clicks.
+        if (playing && ctx) {
+          const _rwName = Math.random() < 0.5 ? 'rewind' : 'rewind2';
+          const _rwBuf = window._uiSoundBufs && window._uiSoundBufs[_rwName];
+          const _rwDur = _rwBuf ? _rwBuf.duration / (_rwName === 'rewind' ? 1.5 : 1) : 0.6;
+          btn.style.setProperty('--playdoe-spin-dur', _rwDur.toFixed(3) + 's');
+          btn.classList.remove('rand-building', 'playdoe-ast'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
+          setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
+          setBtnBlueHeld('randBtn');
+          window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
+          playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
+          try { _recallSnapB = snapshotState(); randAll(); } catch (e) { console.error('PLAYDOE new pattern failed:', e); }
+          const _rwTok = window._playdoeRwTok = {};
+          setTimeout(() => {
+            if (window._playdoeRwTok !== _rwTok) return;
+            if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
+            document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
+            btn.classList.add('new-pattern'); clearBtnBlueHeld('randBtn');
+            clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
+          }, _rwDur * 1000);
+          return;
+        }
         // the asterisk makes one full eased turn over exactly the time it's on screen — until the new pattern lands (next bar
         // line while playing; about a second while stopped), per direct request
         let _spin = 1;
