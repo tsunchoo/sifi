@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-12 07:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 07:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3643,7 +3643,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:none;flex-direction:column;gap:10px;"><!-- COUNT LATENCY hidden (stays on AUTO), per direct request -->
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT LATENCY <span style="font-weight:400;color:#666;">(PERFORMANCE MODE — delays the 1-2-3-4 count to match the speaker)</span></div>
           <div id="countLatencyReadout" style="font-size:0.85rem;font-weight:700;color:#111;white-space:nowrap;">AUTO</div>
@@ -6239,7 +6239,7 @@ function _outputLatencySec() {
 // COUNT LATENCY (SETTINGS slider, 0-200ms), per direct request: AUTO (the default) uses the delay the phone reports for the
 // current output; moving the slider sets it by hand instead (remembered on this device). AUTO button goes back to automatic.
 window._countLatencyManual = null;
-try { const v = localStorage.getItem('_countLatencyMs'); if (v !== null && v !== '') window._countLatencyManual = Math.max(0, Math.min(200, +v)); } catch (e) {}
+try { localStorage.removeItem('_countLatencyMs'); } catch (e) {} // slider hidden — always AUTO, and any value set by hand earlier is dropped
 function _countLatencyMs() { return window._countLatencyManual != null ? window._countLatencyManual : Math.min(200, _outputLatencySec() * 1000); }
 function _countLatencyReadout(v, dragging) {
   const r = document.getElementById('countLatencyReadout'); if (!r) return;
