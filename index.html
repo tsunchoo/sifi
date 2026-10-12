@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-12 06:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 06:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 06:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 06:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6220,6 +6220,14 @@ function _schedLookahead() {
   st.la = Math.max(LOOKAHEAD, Math.min(st.gapMax > 400 ? 1.0 : 0.6, st.gapMax / 1000 * 1.5 + 0.03)); // up to 1s of audio planned ahead once the page has shown half-second stalls (Low Power Mode report: a 708ms freeze beat the old 0.6s cap and skipped steps)
   return st.la;
 }
+// The delay between the audio clock and sound actually leaving the speaker, as the browser reports it for the current output.
+// Bluetooth reports a much bigger number than the built-in speaker; re-read every call, so switching outputs mid-play follows.
+function _outputLatencySec() {
+  if (!ctx) return 0;
+  const o = (typeof ctx.outputLatency === 'number' && isFinite(ctx.outputLatency)) ? ctx.outputLatency : 0;
+  const b = (typeof ctx.baseLatency === 'number' && isFinite(ctx.baseLatency)) ? ctx.baseLatency : 0;
+  return Math.min(0.5, Math.max(0, o + b));
+}
 function scheduler() {
   const LA = _schedLookahead();
   if (window._oneShot && window._oneShot.ending) return; // TAPE DRAWER: last tape has finished its bar and is about to stop — nothing more to plan (and its frozen clock isn't 'late steps')
@@ -7085,7 +7093,12 @@ function _placeBeatCount() {
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
 function updatePlayhead(step) {
-  _setBeatCount(Math.floor(((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS / (NUM_STEPS / 4)) + 1);
+  // 1-2-3-4 COUNT, PERFORMANCE MODE: held back by the speaker's own output delay (outputLatency + baseLatency, as the phone reports
+  // it — about 0.1s+ on Bluetooth, ~0.01s on the phone speaker), so the count lands with the beat you actually hear. Per direct
+  // request; nothing else here (playhead, flashes) is delayed.
+  const _bc = Math.floor(((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS / (NUM_STEPS / 4)) + 1;
+  const _bcMs = document.body.classList.contains('performance-mode') ? _outputLatencySec() * 1000 : 0;
+  if (_bcMs > 4) setTimeout(() => { if (playing) _setBeatCount(_bc); }, _bcMs); else _setBeatCount(_bc);
   document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
@@ -23188,6 +23201,7 @@ function _audioStateLines() {
   const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
   L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
   L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' clock=' + g(() => { const r = window._clockRef; if (!r || r.ctx !== ctx) return '-'; const wall = (performance.now() - r.pn) / 1000; return wall > 2 ? ((ctx.currentTime - r.ct) / wall).toFixed(4) + 'x' : '-'; }) + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
+  L.push('OUTPUT LATENCY ' + g(() => Math.round(_outputLatencySec() * 1000)) + 'ms (the 1-2-3-4 count is delayed by this in PERFORMANCE MODE: ' + document.body.classList.contains('performance-mode') + ')');
   L.push('TIMING lookahead=' + g(() => window._schedStats.la.toFixed(3)) + ' worstGap=' + g(() => Math.round(window._schedStats.gapMax)) + 'ms snaps=' + g(() => window._schedStats.snaps) + ' lateSteps=' + g(() => window._schedStats.late) + ' nudge=' + g(() => _tempoNudge.toFixed(2)) + ' step=' + g(() => (stepDuration() * 1000).toFixed(1)) + 'ms interval=' + !!scheduleInterval + ' lowPower?=' + g(() => window._schedStats.gapMax > 60));
   L.push('ENDED BACKSTOPS (finished sounds iOS never reported, cleaned up by hand): ' + (window._endedBackstops || 0));
   L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
