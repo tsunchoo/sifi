@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-12 07:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 07:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7011,9 +7011,9 @@ function _cycleBeatCountMode() {
 }
 function _cycleBeatCountModeInner() {
   const el = document.getElementById('beatCount'); if (!el) return;
-  // PERFORMANCE MODE, per direct request: the count is always shown, and a tap just switches between its two modes — plain
+  // PERFORMANCE MODE (= LIVE, the logo drag-down), per direct request: the count is always shown, and a tap just switches between its two modes — plain
   // count <-> count + click (pulse). No X, no hiding.
-  if (document.body.classList.contains('performance-mode')) {
+  if (document.body.classList.contains('live-layout')) {
     clearTimeout(el._offT); el._xHold = false; el.classList.remove('beat-count-hidden');
     if (el.classList.contains('beat-count-pulse')) el.classList.remove('beat-count-pulse', 'beat-pop'); else el.classList.add('beat-count-pulse');
     if (typeof _placeBeatCount === 'function') _placeBeatCount();
@@ -7136,7 +7136,7 @@ function _placeBeatCount() {
   const start = () => {
     _placeBeatCount(); setTimeout(_placeBeatCount, 300); setTimeout(_placeBeatCount, 1500);
     window.addEventListener('resize', () => requestAnimationFrame(_placeBeatCount));
-    new MutationObserver(() => { if (!document.body.classList.contains('seq-playing')) _setBeatCount('-'); if (document.body.classList.contains('performance-mode')) { const bc = document.getElementById('beatCount'); if (bc && bc.classList.contains('beat-count-hidden')) { clearTimeout(bc._offT); bc._xHold = false; bc.classList.remove('beat-count-hidden'); } } requestAnimationFrame(_placeBeatCount); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { if (!document.body.classList.contains('seq-playing')) _setBeatCount('-'); { const bc = document.getElementById('beatCount'), live = document.body.classList.contains('live-layout'); if (bc && live && !bc._inLive) { bc._inLive = true; bc._preLive = bc._preLiveSnap || { hidden: bc.classList.contains('beat-count-hidden'), pulse: bc.classList.contains('beat-count-pulse') }; clearTimeout(bc._offT); bc._xHold = false; bc.classList.remove('beat-count-hidden'); _syncCountClick(); } else if (bc && !live && bc._inLive) { bc._inLive = false; const pr = bc._preLive || { hidden: true, pulse: false }; bc.classList.toggle('beat-count-pulse', pr.pulse); if (!pr.pulse) bc.classList.remove('beat-pop'); bc.classList.toggle('beat-count-hidden', pr.hidden); _syncCountClick(); } } requestAnimationFrame(_placeBeatCount); }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
   };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
@@ -7148,7 +7148,7 @@ function updatePlayhead(step) {
   // ...and it now waits for the step's own AUDIO time too (it used to show as soon as the step was planned, up to a second early),
   // so the number lands with the COUNT click and the beat as heard: audio time + speaker delay. Per direct request.
   const _at = window._stepAudioTime && window._stepAudioTime[step];
-  const _bcMs = (document.body.classList.contains('performance-mode') && ctx) ? Math.max(0, (_at != null ? (_at - ctx.currentTime) * 1000 : 0)) + _countLatencyMs() : 0;
+  const _bcMs = (document.body.classList.contains('live-layout') && ctx) ? Math.max(0, (_at != null ? (_at - ctx.currentTime) * 1000 : 0)) + _countLatencyMs() : 0;
   if (_bcMs > 4) setTimeout(() => { if (playing) _setBeatCount(_bc); }, _bcMs); else _setBeatCount(_bc);
   document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
@@ -20920,6 +20920,7 @@ function _syncTapeTint() {
   if (document.body) go(); else document.addEventListener('DOMContentLoaded', go, { once: true }); })();
 function _applyRainbowState(m) {
   try { _audioCushion(); } catch (e) {}
+  try { const bc = document.getElementById('beatCount'); if (bc && !document.body.classList.contains('live-layout')) bc._preLiveSnap = { hidden: bc.classList.contains('beat-count-hidden'), pulse: bc.classList.contains('beat-count-pulse') }; } catch (e) {} // how the count was before LIVE, so leaving LIVE puts it back
   // BATTERY SAVER per mode (m.batterySaver — LIVE): switched OFF first when leaving such a mode (so its own restore runs before this
   // mode's settings go on), switched ON last when entering one (so it records and overrides the mode's settings) — see the end
   if (!m.batterySaver && window._modeBatteryOn) { window._modeBatteryOn = false; if (window._batterySaverOn && typeof toggleBatterySaver === 'function') toggleBatterySaver(); }
@@ -23224,7 +23225,7 @@ function stopRecallLoop() {
 // COUNT toggle in SETTINGS — shows / hides the beat count (same states as tapping the count itself)
 function _setBeatCountShown(on) {
   const el = document.getElementById('beatCount'); if (!el) return;
-  if (!on && document.body.classList.contains('performance-mode')) on = true; // always shown in PERFORMANCE MODE
+  if (!on && document.body.classList.contains('live-layout')) on = true; // always shown in PERFORMANCE MODE
   if (el._xHold) { clearTimeout(el._offT); el._xHold = false; _beatCountLast = null; }
   if (on) { el.classList.remove('beat-count-hidden'); if (typeof _placeBeatCount === 'function') _placeBeatCount(); }
   else { el.classList.remove('beat-count-pulse', 'beat-pop'); el.classList.add('beat-count-hidden'); }
@@ -23255,7 +23256,7 @@ function _audioStateLines() {
   const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
   L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
   L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' clock=' + g(() => { const r = window._clockRef; if (!r || r.ctx !== ctx) return '-'; const wall = (performance.now() - r.pn) / 1000; return wall > 2 ? ((ctx.currentTime - r.ct) / wall).toFixed(4) + 'x' : '-'; }) + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
-  L.push('OUTPUT LATENCY ' + g(() => Math.round(_outputLatencySec() * 1000)) + 'ms reported; COUNT LATENCY ' + g(() => Math.round(_countLatencyMs())) + 'ms ' + (window._countLatencyManual != null ? '(manual)' : '(auto)') + ' (used in PERFORMANCE MODE: ' + document.body.classList.contains('performance-mode') + ')');
+  L.push('OUTPUT LATENCY ' + g(() => Math.round(_outputLatencySec() * 1000)) + 'ms reported; COUNT LATENCY ' + g(() => Math.round(_countLatencyMs())) + 'ms ' + (window._countLatencyManual != null ? '(manual)' : '(auto)') + ' (used in LIVE/PERFORMANCE MODE: ' + document.body.classList.contains('live-layout') + ')');
   L.push('TIMING lookahead=' + g(() => window._schedStats.la.toFixed(3)) + ' worstGap=' + g(() => Math.round(window._schedStats.gapMax)) + 'ms snaps=' + g(() => window._schedStats.snaps) + ' lateSteps=' + g(() => window._schedStats.late) + ' nudge=' + g(() => _tempoNudge.toFixed(2)) + ' step=' + g(() => (stepDuration() * 1000).toFixed(1)) + 'ms interval=' + !!scheduleInterval + ' lowPower?=' + g(() => window._schedStats.gapMax > 60));
   L.push('ENDED BACKSTOPS (finished sounds iOS never reported, cleaned up by hand): ' + (window._endedBackstops || 0));
   L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
