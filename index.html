@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-11 17:32:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 04:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -532,7 +532,9 @@ body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph { font-size: 0; line-he
    its own text box, which Safari clips. Each chevron now sits fully inside its own box. Same ~-0.2em overlap as before. */
 body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before,
 body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { content: '>'; font-size: 2.8875rem; line-height: 1; display: inline-block; vertical-align: middle; padding: 0.1em 0.12em; }
-body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.44em; } /* -0.2em overlap, minus both chevrons' 0.12em side padding */
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.44em; padding-right: 0.24em; margin-right: -0.12em; } /* -0.2em overlap, minus both chevrons' 0.12em side padding. Extra right padding (cancelled by the negative margin, so nothing moves) gives the right tip's faux-bold ink more room inside its own box */
+/* the pair nudged 2px left inside the button, per direct request — more clearance between the right tip and the button's right edge */
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before, body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { position: relative; left: -2px; }
 /* The padding gives each chevron spare room on every side: on the iPhone the 900 weight is faux-bolded (only 400-700 are loaded),
    which thickens the strokes OUTSIDE the glyph's own box, and the button's animated (composited) glyph layer clips anything outside
    its bounds — that was the cut-off right tip. Same spacing as before. */
@@ -2706,7 +2708,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-11 17:32:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 04:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3664,9 +3666,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">SWING</div>
-          <div id="swingReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">25ms</div>
+          <div id="swingReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">4.6%</div>
         </div>
-        <input type="range" id="swingBar" min="0" max="100" value="62" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="swingBar" min="0" max="100" value="37" class="master-vol-slider" style="width:100%;">
       </div>
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
@@ -3924,7 +3926,11 @@ function setMasterVol(v) {
   if (slider) slider.value = Math.round(masterVol * 100);
 }
 
-let swingVal = 0.625; // 0-1, independent of master vol — default ~25ms
+// SWING is now a share of a QUARTER NOTE, so it scales with tempo, per direct request (was a flat 0-40ms). Slider 0-100 = 0-12.5%
+// of a quarter (half a 16th — a dotted, hard-shuffle feel); a true triplet shuffle sits at 8.3% (slider ~67).
+const SWING_MAX_QTR = 0.125;
+const _swingPct = v => (v * SWING_MAX_QTR * 100).toFixed(1) + '%';
+let swingVal = 0.37; // default 4.6% of a quarter — the same feel the old 25ms default had at ~110 BPM
 
 function setSwingVal(v) {
   swingVal = Math.max(0, Math.min(1, v));
@@ -3965,15 +3971,13 @@ function updateSwingReadout() {
   const readout = document.getElementById('swingReadout');
   if (!readout) return;
   const _sb = document.getElementById('swingBar');
-  if (_sb && window._menuSliderPending && window._menuSliderPending(_sb)) { readout.textContent = Math.round(_sb.value / 100 * 40) + 'ms'; return; } // not applied yet (menu still open) — keep showing where the slider is
-  const liveMs = Math.round(swingVal * 40);
-  const committedMs = Math.round(_committedSwing * 40);
-  readout.textContent = liveMs + 'ms';
-  readout.style.opacity = (liveMs !== committedMs && playing) ? '0.45' : '1';
+  if (_sb && window._menuSliderPending && window._menuSliderPending(_sb)) { readout.textContent = _swingPct(_sb.value / 100); return; } // not applied yet (menu still open) — keep showing where the slider is
+  readout.textContent = _swingPct(swingVal);
+  readout.style.opacity = (_swingPct(swingVal) !== _swingPct(_committedSwing) && playing) ? '0.45' : '1';
 }
-let _committedSwing = 0.625; // only updates at bar start to avoid mid-bar timing artifacts
+let _committedSwing = 0.37; // only updates at bar start to avoid mid-bar timing artifacts
 function getSwingOffsetMs() {
-  return _committedSwing * 40; // 0 at min, 40ms at max
+  return _committedSwing * SWING_MAX_QTR * stepDuration() * 4 * 1000; // share of a quarter note (4 sixteenth steps), so it follows the tempo
 }
 function updateBgPulseSpeedReadout() {
   const readout = document.getElementById('bgPulseSpeedReadout');
@@ -21712,7 +21716,7 @@ function fullReset() {
   }
 
   // Global music state
-  bpm = 110; swingVal = 0.625; masterVol = 0.8; randAllLevel = 0;
+  bpm = 110; swingVal = 0.37; masterVol = 0.8; randAllLevel = 0;
   document.documentElement.style.setProperty('--spirit-pulse-dur', (60 / bpm) + 's'); // keep SPIRIT PULSE matching the reset tempo
   _tempoLocked = false; _beatTypeLocked = false; _beatType = 'disco';
   // Neither the lock icon/UI nor the BPM number display anywhere ever
@@ -22461,12 +22465,12 @@ function _takeSpareCtx(rate) { const s0 = window._spareCtx; if (!(s0 && s0.state
 document.addEventListener('pointerdown', () => {
   if (!ctx || ctx instanceof OfflineAudioContext || ctx.state !== 'running' || _audioRefreshing || !_initDone()) return;
   const s = window._spareCtx;
-  if (s && s.state === 'running' && s.sampleRate === ctx.sampleRate) return;
+  if (s && s.state === 'running' && s.sampleRate === ctx.sampleRate && s.currentTime < 90) return; // keep the spare FRESH: one that's been idling more than 90s is replaced on this tap — a spare is the same age as its own clock, and an old one was dying ~8s after being swapped in
   try { if (s) s.close(); } catch (e) {}
   try { const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; } catch (e) { window._spareCtx = null; }
 }, { capture: true });
 function _initDone() { return !!(masterGain && window._postLimiterGain); }
-function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && (performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS && !window._oneShot; }
+function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && ((performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS || ctx.currentTime > AUDIO_REFRESH_MS / 1000) && !window._oneShot; } // ctx.currentTime = the engine's real age, which for a swapped-in spare is older than the swap itself
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
@@ -24239,7 +24243,7 @@ let _reelHoldTimer = null;
   // position (BUGFIX: SWING showed 0-100 "ms" while dragging, then snapped
   // back — its own refresh re-wrote the old applied value).
   const FMT = {
-    swingBar: v => Math.round(v / 100 * 40) + 'ms',
+    swingBar: v => _swingPct(v / 100),
     sweepDecaySpeedSlider: v => (v / 100).toFixed(2) + 'X',
     devOffsetStepSlider: v => (typeof _DEV_OFFSET_STEP_LABELS !== 'undefined' && _DEV_OFFSET_STEP_LABELS[v]) || '16TH',
     trackBtnShadeSlider: v => (v > 0 ? '+' : '') + v,
