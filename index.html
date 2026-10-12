@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-12 07:14:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 07:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:14:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6535,6 +6535,7 @@ function scheduler() {
         updateSlotButtons();
       });
     }
+    (window._stepAudioTime || (window._stepAudioTime = {}))[step] = t; // when this step actually sounds — the PERFORMANCE MODE count waits for it
     requestAnimationFrame(() => updatePlayhead(step));
     // While a RAND transition flourish is playing (the last quarter note
     // before a new pattern lands), cut all normal playback so only the
@@ -7125,7 +7126,10 @@ function updatePlayhead(step) {
   // it — about 0.1s+ on Bluetooth, ~0.01s on the phone speaker), so the count lands with the beat you actually hear. Per direct
   // request; nothing else here (playhead, flashes) is delayed.
   const _bc = Math.floor(((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS / (NUM_STEPS / 4)) + 1;
-  const _bcMs = document.body.classList.contains('performance-mode') ? _countLatencyMs() : 0;
+  // ...and it now waits for the step's own AUDIO time too (it used to show as soon as the step was planned, up to a second early),
+  // so the number lands with the COUNT click and the beat as heard: audio time + speaker delay. Per direct request.
+  const _at = window._stepAudioTime && window._stepAudioTime[step];
+  const _bcMs = (document.body.classList.contains('performance-mode') && ctx) ? Math.max(0, (_at != null ? (_at - ctx.currentTime) * 1000 : 0)) + _countLatencyMs() : 0;
   if (_bcMs > 4) setTimeout(() => { if (playing) _setBeatCount(_bc); }, _bcMs); else _setBeatCount(_bc);
   document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
