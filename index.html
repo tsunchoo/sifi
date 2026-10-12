@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-12 06:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-12 07:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -535,7 +535,7 @@ body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { content: '>'; 
 body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { margin-left: -0.44em; padding-right: 0.24em; margin-right: -0.12em; } /* -0.2em overlap, minus both chevrons' 0.12em side padding. Extra right padding (cancelled by the negative margin, so nothing moves) gives the right tip's faux-bold ink more room inside its own box */
 /* the pair nudged 2px left inside the button, per direct request — more clearance between the right tip and the button's right edge */
 /* the pair nudged 2px left inside the button, per direct request */
-body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before, body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { position: relative; left: 1px; } /* was −2px; 3px back to the right, per direct request */
+body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::before, body.rand-btn-ff:not(.rand-btn-asterisk) #randBtn .glyph::after { position: relative; left: 3px; } /* was −2px, then 1px; another 2px right, per direct request */
 /* FLAT TIPS FIX, per direct report: the app only loads DM Sans up to 700, so iOS FAKES the 900 weight of >> by drawing the glyph
    a second time 1px to the right — and that extra copy pokes past the glyph's own bounds, so its tip gets clipped flat. The
    chevrons now use the REAL DM Sans 900 '>' (embedded, just that one character, <1KB), so nothing is faked and nothing pokes
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 06:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-12 07:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3642,6 +3642,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT LATENCY <span style="font-weight:400;color:#666;">(PERFORMANCE MODE — delays the 1-2-3-4 count to match the speaker)</span></div>
+          <div id="countLatencyReadout" style="font-size:0.85rem;font-weight:700;color:#111;white-space:nowrap;">AUTO</div>
+        </div>
+        <input type="range" id="countLatencySlider" min="0" max="200" value="0" oninput="_countLatencyReadout(this.value, true)" onchange="_setCountLatency(this.value)" class="master-vol-slider" style="width:100%;">
+        <button type="button" onclick="_setCountLatency(null)" style="align-self:flex-start;font:700 0.6rem 'DM Sans',sans-serif;letter-spacing:1px;padding:4px 8px;background:none;border:1px solid #999;color:#111;cursor:pointer;">AUTO</button>
       </div>
     </div>
 
@@ -6228,6 +6236,26 @@ function _outputLatencySec() {
   const b = (typeof ctx.baseLatency === 'number' && isFinite(ctx.baseLatency)) ? ctx.baseLatency : 0;
   return Math.min(0.5, Math.max(0, o + b));
 }
+// COUNT LATENCY (SETTINGS slider, 0-200ms), per direct request: AUTO (the default) uses the delay the phone reports for the
+// current output; moving the slider sets it by hand instead (remembered on this device). AUTO button goes back to automatic.
+window._countLatencyManual = null;
+try { const v = localStorage.getItem('_countLatencyMs'); if (v !== null && v !== '') window._countLatencyManual = Math.max(0, Math.min(200, +v)); } catch (e) {}
+function _countLatencyMs() { return window._countLatencyManual != null ? window._countLatencyManual : Math.min(200, _outputLatencySec() * 1000); }
+function _countLatencyReadout(v, dragging) {
+  const r = document.getElementById('countLatencyReadout'); if (!r) return;
+  r.textContent = (dragging || window._countLatencyManual != null) ? Math.round(+v) + 'ms' : 'AUTO (' + Math.round(_countLatencyMs()) + 'ms)';
+}
+function _setCountLatency(v) {
+  window._countLatencyManual = (v === null) ? null : Math.max(0, Math.min(200, +v));
+  try { if (v === null) localStorage.removeItem('_countLatencyMs'); else localStorage.setItem('_countLatencyMs', String(window._countLatencyManual)); } catch (e) {}
+  _syncCountLatencyUI();
+}
+function _syncCountLatencyUI() {
+  const sl = document.getElementById('countLatencySlider'); const ms = _countLatencyMs();
+  if (sl) sl.value = Math.round(ms);
+  _countLatencyReadout(ms, false);
+}
+document.addEventListener('DOMContentLoaded', _syncCountLatencyUI);
 function scheduler() {
   const LA = _schedLookahead();
   if (window._oneShot && window._oneShot.ending) return; // TAPE DRAWER: last tape has finished its bar and is about to stop — nothing more to plan (and its frozen clock isn't 'late steps')
@@ -7097,7 +7125,7 @@ function updatePlayhead(step) {
   // it — about 0.1s+ on Bluetooth, ~0.01s on the phone speaker), so the count lands with the beat you actually hear. Per direct
   // request; nothing else here (playhead, flashes) is delayed.
   const _bc = Math.floor(((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS / (NUM_STEPS / 4)) + 1;
-  const _bcMs = document.body.classList.contains('performance-mode') ? _outputLatencySec() * 1000 : 0;
+  const _bcMs = document.body.classList.contains('performance-mode') ? _countLatencyMs() : 0;
   if (_bcMs > 4) setTimeout(() => { if (playing) _setBeatCount(_bc); }, _bcMs); else _setBeatCount(_bc);
   document.querySelectorAll('.step-cell').forEach(el => el.classList.remove('playing'));
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
@@ -18912,6 +18940,7 @@ function _updateSongNameFromSettings(v) {
   markModified();
 }
 function showSettings() {
+  try { _syncCountLatencyUI(); } catch (e) {}
   const el = document.getElementById('settingsOverlay');
   if (el) { el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'center'; }
   const snd = document.getElementById('settingsNameDisplay');
@@ -23201,7 +23230,7 @@ function _audioStateLines() {
   const g = f => { try { return f(); } catch (e) { return 'ERR ' + e.message; } };
   L.push('playing=' + playing + ' beatPlaying=' + beatPlaying + ' beatPending=' + _beatPending + ' beat=' + _beatType + ' sambaVar=' + g(() => _sambaSnareVariant) + ' beatOffset=' + _beatOffset + ' bpm=' + bpm);
   L.push('ctx=' + g(() => ctx && ctx.state) + ' rate=' + g(() => ctx && ctx.sampleRate) + ' t=' + g(() => ctx && ctx.currentTime.toFixed(1)) + ' offline=' + g(() => ctx instanceof OfflineAudioContext) + ' engineAge=' + g(() => Math.round((performance.now() - window._ctxBornAt) / 1000) + 's') + ' clock=' + g(() => { const r = window._clockRef; if (!r || r.ctx !== ctx) return '-'; const wall = (performance.now() - r.pn) / 1000; return wall > 2 ? ((ctx.currentTime - r.ct) / wall).toFixed(4) + 'x' : '-'; }) + ' baseLat=' + g(() => ctx && ctx.baseLatency) + ' outLat=' + g(() => ctx && ctx.outputLatency));
-  L.push('OUTPUT LATENCY ' + g(() => Math.round(_outputLatencySec() * 1000)) + 'ms (the 1-2-3-4 count is delayed by this in PERFORMANCE MODE: ' + document.body.classList.contains('performance-mode') + ')');
+  L.push('OUTPUT LATENCY ' + g(() => Math.round(_outputLatencySec() * 1000)) + 'ms reported; COUNT LATENCY ' + g(() => Math.round(_countLatencyMs())) + 'ms ' + (window._countLatencyManual != null ? '(manual)' : '(auto)') + ' (used in PERFORMANCE MODE: ' + document.body.classList.contains('performance-mode') + ')');
   L.push('TIMING lookahead=' + g(() => window._schedStats.la.toFixed(3)) + ' worstGap=' + g(() => Math.round(window._schedStats.gapMax)) + 'ms snaps=' + g(() => window._schedStats.snaps) + ' lateSteps=' + g(() => window._schedStats.late) + ' nudge=' + g(() => _tempoNudge.toFixed(2)) + ' step=' + g(() => (stepDuration() * 1000).toFixed(1)) + 'ms interval=' + !!scheduleInterval + ' lowPower?=' + g(() => window._schedStats.gapMax > 60));
   L.push('ENDED BACKSTOPS (finished sounds iOS never reported, cleaned up by hand): ' + (window._endedBackstops || 0));
   L.push('DRUMS fx=' + _beatFx + ' blast=' + _beatPump + ' vol=' + _beatVolRaw.toFixed(3) + ' busGain=' + g(() => window._beatGain.gain.value.toFixed(3)) + ' soloMuted=' + _beatSoloMuted + ' inSolo=' + g(() => _beatIncludedInSolo) + ' revOnBeat=' + g(() => (+_beatReverbMix).toFixed(2)));
