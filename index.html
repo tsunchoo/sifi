@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-15 05:22:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-15 05:52:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2718,7 +2718,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-15 05:22:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-15 05:52:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17319,7 +17319,7 @@ function randAll(mode, opts) {
 
 // Little downward sweep when a new RAND pattern actually starts playing —
 // bandpassed noise falling from high to low, fading out over a full measure.
-function playRandReleaseSweep(time) {
+function playRandReleaseSweep(time, mult) { // mult: optional extra level (SWEEP release uses it)
   if (!ctx || !masterGain) return;
   const dur = stepDuration() * 16; // a full measure (doubled from half)
   const bufLen = Math.ceil(ctx.sampleRate * dur);
@@ -17329,7 +17329,7 @@ function playRandReleaseSweep(time) {
   bp.frequency.setValueAtTime(5200, time);
   bp.frequency.exponentialRampToValueAtTime(140, time + dur);
   const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0779 * (window._randReleaseSweepVol !== undefined ? window._randReleaseSweepVol : 1), time); // -50% (was 0.1558) — the noise-sweep cue that plays whenever a new pattern actually lands, especially noticeable mid-playback. Now also scaled by the NEW PATTERN NOISE VOLUME slider (SETTINGS) — 1 = this current level, 0 = silent
+  g.gain.setValueAtTime(0.0779 * (window._randReleaseSweepVol !== undefined ? window._randReleaseSweepVol : 1) * (mult == null ? 1 : mult), time); // -50% (was 0.1558) — the noise-sweep cue that plays whenever a new pattern actually lands, especially noticeable mid-playback. Now also scaled by the NEW PATTERN NOISE VOLUME slider (SETTINGS) — 1 = this current level, 0 = silent
   g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
   src.connect(bp); bp.connect(g); g.connect(masterGain);
   src.start(time);
@@ -20691,7 +20691,7 @@ function _cycleRainbowMode() {
 }
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "14", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
-  { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
+  { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105", "emptyMarkerSizeCircleSlider": "16", "emptyMarkerOpacityCircleSlider": "100"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'mortar-extra': false, 'notes-grayscale': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
@@ -20736,12 +20736,14 @@ function _showModeLabel(m) {
     el.style.cssText = 'position:absolute;top:26px;right:62px;font-family:"DM Sans",sans-serif;font-size:0.6rem;font-weight:700;letter-spacing:1.5px;color:var(--header-text-color,#111);white-space:nowrap;pointer-events:none;z-index:5;transition:opacity 0.4s ease;opacity:0;';
     const h = document.querySelector('header'); (h || document.body).appendChild(el);
   }
-  el.textContent = 'MODE ' + (i + 1) + (m.name ? ' \u00b7 ' + m.name : '');
+  el.textContent = m.name || ('MODE ' + (i + 1)); // just the mode's name, per direct request (was 'MODE n · NAME')
   el.style.opacity = '1';
-  // right edge of the text 10px from the right edge of the SCREEN, per direct request (the header may not span the full width;
-  // the trailing letter-spacing after the last letter is taken off so it's the ink that sits at 10px)
-  { const hd = el.parentElement, hr = hd.getBoundingClientRect(), ls = parseFloat(getComputedStyle(el).letterSpacing) || 0;
-    el.style.right = (10 - ls - (document.documentElement.clientWidth - hr.right) - (parseFloat(getComputedStyle(hd).borderRightWidth) || 0)) + 'px'; }
+  // LEFT edge of the text lined up with the LEFT edge of the rainbow icon's drawing, per direct request (was right-aligned 10px
+  // from the screen edge). Measured on the icon's own graphic, not its padded button.
+  { const hd = el.parentElement, hr = hd.getBoundingClientRect();
+    const db = document.getElementById('devMenuBtn'), ic = db && (db.querySelector('svg, img') || db);
+    if (ic) { const ir = ic.getBoundingClientRect(); el.style.right = 'auto';
+      el.style.left = (ir.left - hr.left - (parseFloat(getComputedStyle(hd).borderLeftWidth) || 0)) + 'px'; } }
   clearTimeout(_modeLabelT); _modeLabelT = setTimeout(() => { el.style.opacity = '0'; }, 1600);
 }
 // TAPE TINT (dark modes): a tiny inline SVG filter that multiplies the
@@ -22938,7 +22940,12 @@ async function hardResetAudioEngine() {
   // instantly.
   const endPress = () => {
     window._sweepGestureActive = false;
+    // RELEASE AFTER A DRAG plays the NEW PATTERN NOISE sweep, per direct request — its level follows how far down the drag got:
+    // full drag-down = the NEW PATTERN NOISE VOLUME set in SETTINGS, no drag-down = 12dB under that, in a straight dB line between.
+    // A plain tap (no drag at all) doesn't play it.
+    const _wasSweeping = !!sweepNodes, _py = window._swDepthY || 0, _px = window._swDepthX || 0;
     stopSweep();
+    if (_wasSweeping && ctx && (_py > 0.01 || _px > 0.01)) { try { playRandReleaseSweep(ctx.currentTime + 0.01, Math.pow(10, -12 * (1 - Math.min(1, _py)) / 20)); } catch (e) {} }
   };
 
   btn.addEventListener('touchstart', e => { e.preventDefault(); beginPress(e); }, { passive: false });
