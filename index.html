@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-15 05:52:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-16 01:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2679,6 +2679,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     setTimeout(function(){ if (b.parentNode) b.remove(); }, 20000);
   }
 
+  window._sifiLastSessionCrashed = !!crashed;
   crumb('load' + (crashed ? ' (after crash)' : ''));
   write();
   setInterval(function(){ snapshot(); write(); }, 1000); // every 1s (was 3s) — smaller blind spot before a crash
@@ -2718,7 +2719,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-15 05:52:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-16 01:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7440,7 +7441,7 @@ function togglePlay() {
     window._reelReversePending = false;
 
     // Auto-start recording if armed
-    if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') {
+    if (!window._silentPlayToggle && _recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') { // PLAYDOE double-tap's quick stop/restart never starts…
       _mediaRecorder.start();
       updateRecBtn();
     }
@@ -7489,7 +7490,7 @@ function togglePlay() {
     if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
     // Auto-stop recording after half-bar delay (to capture reverb tail),
     // plus an extra fixed 2s on top before actually finishing the file.
-    if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') {
+    if (!window._silentPlayToggle && _recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') { // …or ends a recording — it carries straight on through the rewind, per direct request
       _showBounceToast();
       const tailMs = (stepDuration() * 8) * 1000 + 2000; // half bar + 2s
       setTimeout(() => {
@@ -16485,8 +16486,8 @@ function randAll(mode, opts) {
   // Same as JAZZ above — always forced regardless of the slider.
   if (_beatType === 'disco' && !pool.includes('shihat')) {
     const bassKeysLocal3 = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']);
-    let replaceIdx = -1;
-    for (let i = pool.length - 1; i >= 0; i--) {
+    let replaceIdx = pool.findIndex(k => soloHatKeys.has(k)); // a shaker/tamb/maracas already in the pool gives up ITS slot, so the forced hihat never ends up alongside one (one-of rule)
+    if (replaceIdx === -1) for (let i = pool.length - 1; i >= 0; i--) {
       if (!bassKeysLocal3.has(pool[i]) && pool[i] !== 'skick' && pool[i] !== 'shihat') { replaceIdx = i; break; }
     }
     if (replaceIdx === -1) replaceIdx = pool.length - 1;
@@ -24548,6 +24549,79 @@ function snapshotDisplay() {
   mk('CLOSE', () => ov.remove());
   ov.appendChild(ta); ov.appendChild(row); document.body.appendChild(ov);
 }
+</script>
+<script>
+/* SESSION AUTOSAVE, per direct request ("when it crashes you lose everything"): the current pattern, the TAPE DRAWER and the
+   six slots are saved on this phone every few seconds (only when something changed). If the last session ended in a crash or
+   iOS unloaded the page, a RESTORE LAST SESSION bar appears on the next load — one tap puts it all back. Nothing is restored
+   unless you tap it. */
+(function () {
+  const KEY = '_sifiAutosave';
+  let lastJson = '';
+  function collect() {
+    if (typeof snapshotState !== 'function') return null;
+    return {
+      at: Date.now(),
+      build: (document.getElementById('buildTimestamp') || {}).textContent || '',
+      snap: snapshotState(),
+      tapes: (window._tapeDrawerItems || []).map(it => ({ snap: it.snap, sig: it.sig, name: it.name, color: it.color, at: it.at })),
+      slots: (typeof slots !== 'undefined') ? slots.slice() : [],
+      activeSlot: (typeof activeSlot !== 'undefined') ? activeSlot : null,
+    };
+  }
+  function save() {
+    if (window._autosaveRestoring || window._autosaveDeclinedPending) return;
+    try {
+      const d = collect(); if (!d) return;
+      const body = JSON.stringify({ snap: d.snap, tapes: d.tapes, slots: d.slots });
+      if (body === lastJson) return;
+      lastJson = body;
+      localStorage.setItem(KEY, JSON.stringify(d));
+    } catch (e) {}
+  }
+  window._autosaveNow = save;
+  function restore(d) {
+    window._autosaveRestoring = true;
+    try {
+      if (d.tapes && Array.isArray(d.tapes)) window._tapeDrawerItems = d.tapes.slice(-12);
+      if (d.slots && typeof slots !== 'undefined') { for (let i = 0; i < slots.length; i++) slots[i] = d.slots[i] || null; }
+      if (d.snap) restoreState(d.snap, { withMode: true });
+      if (typeof activeSlot !== 'undefined' && d.activeSlot != null) { try { activeSlot = d.activeSlot; } catch (e) {} }
+      try { updateSlotButtons(); } catch (e) {}
+      try { window._crashCrumb && window._crashCrumb('SESSION RESTORED (' + (d.tapes ? d.tapes.length : 0) + ' tapes)'); } catch (e) {}
+    } catch (e) { console.error('session restore failed', e); }
+    window._autosaveRestoring = false;
+    lastJson = ''; save();
+  }
+  function offer(d) {
+    const mins = Math.max(1, Math.round((Date.now() - d.at) / 60000));
+    const b = document.createElement('div'); b.id = '_restoreBar';
+    b.style.cssText = 'position:fixed;left:8px;right:8px;top:160px;z-index:99999;background:#f17d21;color:#000;font:700 12px monospace;letter-spacing:0.5px;padding:12px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,0.45);';
+    const t = document.createElement('span'); t.style.flex = '1';
+    t.textContent = 'RESTORE LAST SESSION? (' + (d.tapes ? d.tapes.length : 0) + ' TAPES · ' + mins + ' MIN AGO)';
+    const yes = document.createElement('button'); yes.textContent = 'RESTORE';
+    yes.style.cssText = 'background:#000;color:#f17d21;border:none;padding:8px 12px;font:700 12px monospace;';
+    const no = document.createElement('button'); no.textContent = '✕';
+    no.style.cssText = 'background:none;color:#000;border:none;font:700 16px monospace;padding:4px 6px;';
+    const done = () => { window._autosaveDeclinedPending = false; b.remove(); };
+    yes.onclick = (e) => { e.stopPropagation(); done(); restore(d); };
+    no.onclick = (e) => { e.stopPropagation(); done(); };
+    b.appendChild(t); b.appendChild(yes); b.appendChild(no); document.body.appendChild(b);
+    setTimeout(() => { if (b.parentNode) done(); }, 60000);
+  }
+  function start() {
+    let d = null; try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+    const recent = d && d.snap && (Date.now() - d.at) < 48 * 3600 * 1000;
+    if (recent && window._sifiLastSessionCrashed) {
+      window._autosaveDeclinedPending = true; // don't overwrite the old session with the fresh startup pattern until you've chosen
+      offer(d);
+    }
+    setInterval(save, 5000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') save(); });
+    window.addEventListener('pagehide', save);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 500)); else setTimeout(start, 500);
+})();
 </script>
 </body>
 </html>
