@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-17 18:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-17 19:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2725,7 +2725,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 18:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 19:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -15979,6 +15979,7 @@ function _newPatternPulse() {
 // markers appear column by column from left to right over CASCADE_MS; over that same time the tempo readout counts up or down
 // from the old tempo to the new one. While playing it starts when the new bar is actually heard; stopped, straight away.
 const CASCADE_MS = 640;
+const CASCADE_GLOW_MS = 160; // how long each column holds the playhead glow as it lands
 let _cascadeTimers = [];
 function _patternCascade(fromBpm, toBpm) {
   _cascadeTimers.forEach(clearTimeout); _cascadeTimers = [];
@@ -15988,7 +15989,12 @@ function _patternCascade(fromBpm, toBpm) {
   const cols = [];
   cells.forEach(c => { const st = +c.dataset.step; (cols[st] = cols[st] || []).push(c); });
   for (let st = 0; st < NUM_STEPS; st++) {
-    _cascadeTimers.push(setTimeout(() => { (cols[st] || []).forEach(c => c.classList.remove('cascade-hidden')); }, startDelay + (st + 1) * CASCADE_MS / NUM_STEPS));
+    _cascadeTimers.push(setTimeout(() => {
+      // each column lights up with the same PLAY FLASH glow the playhead gives a note as it passes, for a moment, as it appears
+      const col = cols[st] || [];
+      col.forEach(c => { c.classList.remove('cascade-hidden'); c.classList.add('playing', 'cascade-glow'); });
+      setTimeout(() => col.forEach(c => { if (c.classList.contains('cascade-glow')) { c.classList.remove('cascade-glow'); if (!(playing && c.dataset.step == (typeof currentStep !== 'undefined' ? currentStep : -9))) c.classList.remove('playing'); } }), CASCADE_GLOW_MS);
+    }, startDelay + (st + 1) * CASCADE_MS / NUM_STEPS));
   }
   _cascadeTimers.push(setTimeout(() => { document.querySelectorAll('.step-cell.cascade-hidden').forEach(c => c.classList.remove('cascade-hidden')); }, startDelay + CASCADE_MS + 100)); // failsafe
   const tt = document.getElementById('topTempoBpmNum');
