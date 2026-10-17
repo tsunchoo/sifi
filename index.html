@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-17 20:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-17 20:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2725,7 +2725,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 20:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 20:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -24759,16 +24759,30 @@ function snapshotDisplay() {
     document.body.classList.remove('help-mode'); btn && btn.classList.remove('help-on');
   }
   window._helpMode = { enter, exit, isOn: () => on };
+  let _qInk = null; // ink box of the '?' glyph within its advance (for exact spacing)
+  function qInk() {
+    if (_qInk) return _qInk;
+    try { const c = document.createElement('canvas').getContext('2d'); c.font = getComputedStyle(btn).font; const m = c.measureText('?');
+      if (m.actualBoundingBoxRight) _qInk = { rsb: m.width - m.actualBoundingBoxRight, w: m.width }; } catch (e) {}
+    return _qInk || { rsb: 1, w: 9 };
+  }
   function place() {
     const dm = document.getElementById('devMenuBtn'); if (!dm || !btn) return;
     const hd = dm.offsetParent || dm.parentElement; if (!hd) return;
     const ic = (dm.querySelector('svg') || dm).getBoundingClientRect(), hr = hd.getBoundingClientRect();
-    btn.style.left = (ic.left - hr.left - 26) + 'px'; btn.style.top = (ic.top - hr.top + ic.height / 2 - 11) + 'px';
+    // Same visual gap as rainbow → reverb icon (measured ink-to-ink, not button boxes).
+    const rvB = document.getElementById('randomizeReverbIconBtn'), rv = rvB && (rvB.querySelector('svg') || rvB).getBoundingClientRect();
+    const rbInkL = ic.left - 0.3 * (ic.width / 22), rbInkR = ic.right + 0.3 * (ic.width / 22);
+    let gap = 6; if (rv && rv.width) { const rvInkL = rv.left + 0.35 * (rv.width / 22); gap = Math.max(0, rvInkL - rbInkR); }
+    const q = qInk(), bw = btn.offsetWidth || 24;
+    // button content is right-aligned, so the glyph's ink right edge = btn right − right side-bearing
+    btn.style.left = (rbInkL - gap + q.rsb - bw - hr.left) + 'px';
+    btn.style.top = (ic.top - hr.top + ic.height / 2 - btn.offsetHeight / 2) + 'px';
   }
   function init() {
     const dm = document.getElementById('devMenuBtn'); if (!dm) return;
     btn = document.createElement('button'); btn.id = '_helpBtn'; btn.setAttribute('aria-label', 'Help');
-    btn.style.cssText = "position:absolute;z-index:99995;width:22px;height:22px;padding:0;border-radius:50%;border:1.6px solid var(--header-text-color,#111);background:none;color:var(--header-text-color,#111);font:700 13px/1 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;";
+    btn.style.cssText = "position:absolute;z-index:99995;width:24px;height:24px;padding:0;margin:0;border:none;border-radius:4px;background:none;color:var(--header-text-color,#111);font:700 16px/1 'DM Sans',sans-serif;-webkit-text-stroke:0.5px currentColor;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;touch-action:manipulation;";
     btn.textContent = '?';
     btn.addEventListener('click', e => { e.stopPropagation(); on ? exit() : enter(); });
     dm.parentElement.appendChild(btn); place();
@@ -24778,7 +24792,7 @@ function snapshotDisplay() {
 })();
 </script>
 <style>
-#_helpBtn.help-on { background: #f17d21 !important; border-color: #f17d21 !important; color: #000 !important; }
+#_helpBtn.help-on { background: none !important; color: #f17d21 !important; }
 </style>
 </body>
 </html>
