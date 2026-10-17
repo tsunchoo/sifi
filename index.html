@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-17 23:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 00:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2725,7 +2725,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 23:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 00:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9037,10 +9037,15 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   const prevVoice = _motownActiveVoice[tr];
   if (prevVoice && prevVoice.endTime > time) {
     try {
-      prevVoice.ampEnv.gain.cancelScheduledValues(time);
-      prevVoice.ampEnv.gain.setValueAtTime(prevVoice.ampEnv.gain.value, time);
-      prevVoice.ampEnv.gain.linearRampToValueAtTime(0.0001, time + 0.006);
-      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.008); } catch(e) {} });
+      // MICROFADE the outgoing voice on its own output-fade node (flat 1 by this point, so no guessing its level —
+      // the old code read ampEnv.gain.value, which is the level NOW, not at `time` (up to 1s earlier with the
+      // lookahead), and jumped to it = a click on every overlapping note)
+      const of = prevVoice.outFade;
+      if (of) {
+        if (typeof of.gain.cancelAndHoldAtTime === 'function') of.gain.cancelAndHoldAtTime(time); else { of.gain.cancelScheduledValues(time); of.gain.setValueAtTime(1, time); }
+        of.gain.linearRampToValueAtTime(0, time + 0.006);
+      }
+      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.012); } catch(e) {} });
     } catch(e) {}
   }
   const vel = isAccent ? 1.5962 : 1.1572; // +6dB total (was +4dB)
@@ -9069,18 +9074,26 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   const decay = Math.min(durSec * 0.55, 0.18); // quick attack settle
   const tail = 0.12; // short tail after the hold
   const sustainEnd = Math.max(durSec, decay + 0.05);
+  // CLIPPING FIX, per direct report: the attack used to peak at full vel — two in-phase saws + sub made that
+  // ~2.1 (+6.5dBFS) for the first ~25ms of EVERY note, hard-clipped by the source soft-clip (curve tops out at ±1).
+  // Peak now 0.44·vel (just under the ceiling); body nudged 0.35→0.37 to keep the weight.
+  const _pk = vel * 0.44, _body = vel * 0.37;
   ampEnv.gain.setValueAtTime(0, time);
-  ampEnv.gain.linearRampToValueAtTime(vel, time + 0.008);
-  ampEnv.gain.exponentialRampToValueAtTime(vel * 0.35, time + decay);
-  ampEnv.gain.setValueAtTime(vel * 0.35, time + sustainEnd); // hold at body level through the note's actual assigned length
+  ampEnv.gain.linearRampToValueAtTime(_pk, time + 0.008);
+  ampEnv.gain.exponentialRampToValueAtTime(_body, time + decay);
+  ampEnv.gain.setValueAtTime(_body, time + sustainEnd); // hold at body level through the note's actual assigned length
   ampEnv.gain.exponentialRampToValueAtTime(0.001, time + sustainEnd + tail);
+  const stopAtMotown = time + sustainEnd + tail + 0.05;
+  // MICROFADES on the voice's final output: 3ms in, 10ms to true zero before the oscillators stop
+  const outFade = ctx.createGain();
+  outFade.gain.setValueAtTime(0, time); outFade.gain.linearRampToValueAtTime(1, time + 0.003);
+  outFade.gain.setValueAtTime(1, stopAtMotown - 0.012); outFade.gain.linearRampToValueAtTime(0, stopAtMotown - 0.002);
 
   saw1.connect(mix); saw2.connect(mix); sub.connect(mix);
-  mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(dest);
-  const stopAtMotown = time + sustainEnd + tail + 0.05;
+  mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(outFade); outFade.connect(dest);
   [saw1, saw2, sub].forEach(o => { o.start(time); o.stop(stopAtMotown); });
-  saw1.onended = () => { try { mix.disconnect(); filt.disconnect(); ampEnv.disconnect(); } catch(e) {} };
-  _motownActiveVoice[tr] = { ampEnv, oscs: [saw1, saw2, sub], endTime: stopAtMotown };
+  saw1.onended = () => { try { mix.disconnect(); filt.disconnect(); ampEnv.disconnect(); outFade.disconnect(); } catch(e) {} };
+  _motownActiveVoice[tr] = { ampEnv, outFade, oscs: [saw1, saw2, sub], endTime: stopAtMotown };
 }
 
 // ── Forest Bells: soft felt-bell tone — sine fundamental plus two gentle
@@ -13566,11 +13579,13 @@ async function renderSlotToWav(snap) {
           filt.frequency.setValueAtTime(freq*3,t); filt.frequency.exponentialRampToValueAtTime(freq*1.1,t+0.03);
           const ampEnv = o.createGain();
           const decay = Math.min(dur*0.55,0.18);
-          ampEnv.gain.setValueAtTime(0,t); ampEnv.gain.linearRampToValueAtTime(vel,t+0.004);
-          ampEnv.gain.exponentialRampToValueAtTime(vel*0.35,t+decay);
+          ampEnv.gain.setValueAtTime(0,t); ampEnv.gain.linearRampToValueAtTime(vel*0.44,t+0.008); // same clipping fix as live
+          ampEnv.gain.exponentialRampToValueAtTime(vel*0.37,t+decay);
           ampEnv.gain.exponentialRampToValueAtTime(0.001,t+dur*0.85);
+          const outFade = o.createGain(); outFade.gain.setValueAtTime(0,t); outFade.gain.linearRampToValueAtTime(1,t+0.003);
+          outFade.gain.setValueAtTime(1,t+dur+0.006); outFade.gain.linearRampToValueAtTime(0,t+dur+0.018); // microfades
           saw1.connect(mix); saw2.connect(mix); sub.connect(mix);
-          mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(offDest);
+          mix.connect(filt); filt.connect(ampEnv); ampEnv.connect(outFade); outFade.connect(offDest);
           [saw1,saw2,sub].forEach(osc=>{ osc.start(t); osc.stop(t+dur+0.02); });
 
         } else if (key === 'sbass4') {
@@ -15154,7 +15169,7 @@ function _analogousToNeutralTopColor() {
 
 document.documentElement.style.setProperty('--bar-color', _currentBarColor);
 // 80s sci-fi movie character names (not actors) — a database roughly matching the scale of the celestial objects list above (~240 entries), drawn from Star Wars, Blade Runner, Aliens, The Terminator, Back to the Future, RoboCop, Predator, The Thing, Tron, Flash Gordon, Dune, Star Trek II-IV, and many more.
-const SPECIES_NAMES = ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'phobos', 'deimos', 'io', 'europa', 'ganymede', 'callisto', 'amalthea', 'himalia', 'titan', 'enceladus', 'mimas', 'dione', 'rhea', 'tethys', 'hyperion', 'iapetus', 'phoebe', 'titania', 'oberon', 'umbriel', 'ariel', 'miranda', 'puck', 'caliban', 'sycorax', 'triton', 'nereid', 'proteus', 'larissa', 'galatea', 'despina', 'thalassa', 'charon', 'nix', 'hydra', 'kerberos', 'styx', 'ceres', 'pluto', 'eris', 'makemake', 'haumea', 'sedna', 'orcus', 'quaoar', 'ixion', 'pallas', 'vesta', 'hygiea', 'juno', 'psyche', 'davida', 'sylvia', 'interamnia', 'bamberga', 'herculina', 'euphrosyne', 'doris', 'themis', 'cybele', 'camilla', 'halley', 'encke', 'tempel', 'hartley', 'churyumov', 'biela', 'arend', 'bennett', 'bradfield', 'hale', 'bopp', 'hyakutake', 'ikeya', 'seki', 'lovejoy', 'neowise', 'sirius', 'canopus', 'rigel', 'vega', 'capella', 'arcturus', 'aldebaran', 'spica', 'antares', 'fomalhaut', 'deneb', 'regulus', 'altair', 'betelgeuse', 'pollux', 'castor', 'procyon', 'achernar', 'acrux', 'mimosa', 'hadar', 'mizar', 'alioth', 'alcor', 'dubhe', 'merak', 'phecda', 'megrez', 'alnitak', 'alnilam', 'mintaka', 'saiph', 'bellatrix', 'alderamin', 'alpheratz', 'schedar', 'caph', 'ruchbah', 'segin', 'enif', 'sadalsuud', 'sadalmelik', 'sadachbia', 'sadalbari', 'ancha', 'shaula', 'lesath', 'alniyat', 'graffias', 'dschubba', 'fang', 'pi', 'rho', 'zubenelgenubi', 'zubeneschamali', 'zubenelhakrabi', 'andromeda', 'triangulum', 'centaurus', 'sculptor', 'fornax', 'tucana', 'carina', 'orion', 'helix', 'crab', 'ring', 'eagle', 'lagoon', 'trifid', 'rosette', 'omega', 'dumbell', 'blinking', 'eskimo', 'cat', 'owl', 'boomerang', 'hourglass', 'red', 'spider', 'butterfly', 'stingray', 'cassiopeia', 'cygnus', 'lyra', 'aquila', 'serpens', 'ophiuchus', 'hercules', 'bootes', 'corona', 'virgo', 'libra', 'scorpius', 'sagittarius', 'capricornus', 'aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'leo', 'draco', 'ursa', 'lupus', 'ara', 'pavo', 'grus', 'phoenix', 'hydrus', 'reticulum', 'pictor', 'columba', 'lepus', 'eridanus', 'milkyway', 'lmc', 'smc', 'bodes', 'cigar', 'whirlpool', 'sombrero', 'pinwheel', 'southernpinwheel', 'blackeye', 'sunflower', 'centaurusa', 'sculptorgalaxy', 'barnards', 'ic10', 'ic1613', 'leoi', 'leoii', 'wlm', 'pegasusdwarf', 'aquariusdwarf', 'sextansa', 'sextansb', 'dracodwarf', 'ursaminordwarf', 'sculptordwarf', 'fornaxdwarf', 'carinadwarf', 'ngc185', 'ngc147', 'm32', 'm110', 'piscesdwarf', 'cetusdwarf', 'antliadwarf', 'tucanadwarf', 'phoenixdwarf', 'cartwheel', 'antennae']
+const SPECIES_NAMES = ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'phobos', 'deimos', 'io', 'europa', 'ganymede', 'callisto', 'amalthea', 'himalia', 'titan', 'enceladus', 'mimas', 'dione', 'rhea', 'tethys', 'hyperion', 'iapetus', 'phoebe', 'titania', 'oberon', 'umbriel', 'ariel', 'miranda', 'puck', 'caliban', 'sycorax', 'triton', 'nereid', 'proteus', 'larissa', 'galatea', 'despina', 'thalassa', 'charon', 'nix', 'hydra', 'kerberos', 'styx', 'ceres', 'pluto', 'eris', 'makemake', 'haumea', 'sedna', 'orcus', 'quaoar', 'ixion', 'pallas', 'vesta', 'hygiea', 'juno', 'psyche', 'davida', 'sylvia', 'interamnia', 'bamberga', 'herculina', 'euphrosyne', 'doris', 'themis', 'cybele', 'camilla', 'halley', 'encke', 'tempel', 'hartley', 'churyumov', 'biela', 'arend', 'bennett', 'bradfield', 'hale', 'bopp', 'hyakutake', 'ikeya', 'seki', 'lovejoy', 'neowise', 'sirius', 'canopus', 'rigel', 'vega', 'capella', 'arcturus', 'aldebaran', 'spica', 'antares', 'fomalhaut', 'deneb', 'regulus', 'altair', 'betelgeuse', 'pollux', 'castor', 'procyon', 'achernar', 'acrux', 'mimosa', 'hadar', 'mizar', 'alioth', 'alcor', 'dubhe', 'merak', 'phecda', 'megrez', 'alnitak', 'alnilam', 'mintaka', 'saiph', 'bellatrix', 'alderamin', 'alpheratz', 'schedar', 'caph', 'ruchbah', 'segin', 'enif', 'sadalsuud', 'sadalmelik', 'sadachbia', 'sadalbari', 'ancha', 'shaula', 'lesath', 'alniyat', 'graffias', 'dschubba', 'fang', 'pi', 'rho', 'zubenelgenubi', 'zubeneschamali', 'zubenelhakrabi', 'andromeda', 'triangulum', 'centaurus', 'sculptor', 'fornax', 'tucana', 'carina', 'orion', 'helix', 'crab', 'ring', 'eagle', 'lagoon', 'trifid', 'rosette', 'omega', 'dumbell', 'blinking', 'eskimo', 'cat', 'owl', 'boomerang', 'hourglass', 'red', 'spider', 'butterfly', 'stingray', 'cassiopeia', 'cygnus', 'lyra', 'aquila', 'serpens', 'ophiuchus', 'hercules', 'bootes', 'corona', 'virgo', 'libra', 'scorpius', 'sagittarius', 'capricornus', 'aquarius', 'pisces', 'aries', 'taurus', 'gemini', 'leo', 'draco', 'ursa', 'lupus', 'ara', 'pavo', 'grus', 'phoenix', 'hydrus', 'reticulum', 'pictor', 'columba', 'lepus', 'eridanus', 'milkyway', 'lmc', 'smc', 'bodes', 'cigar', 'whirlpool', 'sombrero', 'pinwheel', 'southernpinwheel', 'blackeye', 'sunflower', 'centaurusa', 'sculptorgalaxy', 'barnards', 'ic10', 'ic1613', 'leoi', 'leoii', 'wlm', 'pegasus', 'sextansa', 'sextansb', 'ngc185', 'ngc147', 'm32', 'm110', 'cetus', 'antlia', 'cartwheel', 'antennae']
 const SCIFI_SURNAMES = ['Deckard','Kowalski','Sebastian','Tyrell','Ripley','Hicks','Vasquez','Hudson','Gorman','Apone','Drake','Ferro','Frost','Spunkmeyer','Connor','Reese','Traxler','Vukovich','Silberman','Buchanan','Ventura','Brown','Tannen','Garrett','Baines','Parker','Wilson','Murphy','Lewis','Boddicker','Jones','Morton','Antonowsky','Schaefer','Flynn','Bradley','Gibbs','Arden','Zarkov','Halleck','Idaho','Vries','Yueh','Crandall','Muller','Woods','Davidge','McCoy','Marcus','Scott','Taylor','Luckett','Selwyn','Finley','Lefkowitz','Speck','Crosby','Jabituya','Marner','Riley','Pendleton','Putter','Maxwell','Scrimshaw','Brundle','Quaife','Borans','Rogan','Gordon','Priddy','Gomez','OConnor','Carruthers','Wallace','Donnelly','Freeman','McAdams','Richardson','Webster','Treadwell','Johnson','Owens','Lightman','Mack','Falken','Beringer','Brace','Reynolds','Floyd','Chandra','Curnow','Kirbuk','Bowman','Hayden','Shermin','Fox','Donovan','Parrish','Carter','Carlsen','Fallada','Caine','McFadden','Brigman','Coffey','Sykes','Harcourt','Benson','Cane','Lazarus','Nix','Laan','Schopmeyer']; // just surnames now — first names were dead weight, never actually used
 // 90s sci-fi movie character surnames — Terminator 2, Jurassic Park, The
 // Matrix, Total Recall, Stargate, 12 Monkeys, Starship Troopers, Contact,
@@ -15176,7 +15191,11 @@ function getSpeciesName() {
   });
   const celestialCap = split.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   // 50/50 which comes first
-  return Math.random() < 0.5 ? `${celestialCap} ${surname}` : `${surname} ${celestialCap}`;
+  const _full = Math.random() < 0.5 ? `${celestialCap} ${surname}` : `${surname} ${celestialCap}`;
+  // TWO WORDS MAX, per direct request: drop the shortest word until only two remain (order otherwise kept)
+  const _w = _full.split(/\s+/).filter(Boolean);
+  while (_w.length > 2) { let si = 0; for (let i = 1; i < _w.length; i++) if (_w[i].length < _w[si].length) si = i; _w.splice(si, 1); }
+  return _w.join(' ');
 }
 let _currentSpecies = getSpeciesName();
 // SONG NAME SCROLL-IN — sets #nameDisplay's text and triggers one of the
