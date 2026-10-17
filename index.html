@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-16 01:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-17 18:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -493,8 +493,8 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
    the + glyph jumps big with a heavy glow and eases back to its resting
    size/glow over two beats (duration set from the tempo in JS). */
 @keyframes new-pattern-pulse {
-  0%   { color: #fff; transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
-  20%  { color: var(--play-hl, currentColor); transform: translateY(-2px) scale(1.45); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
+  0%   { color: #fff; transform: translateY(-2px) scale(1.225); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
+  20%  { color: var(--play-hl, currentColor); transform: translateY(-2px) scale(1.225); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
   100% { transform: translateY(-2px) scale(1); text-shadow: 0 0 calc(6.9px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 20% * var(--rglow, 1))), transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 14% * var(--rglow, 1))), transparent); }
 }
 /* ...and the button's background eases from its highlighted (pressed)
@@ -734,6 +734,12 @@ html body .transport #saveBtn { transform-origin: right center !important; }
 #randomizeReverbIconBtn.press-pulse, #devMenuBtn.press-pulse, #liveKey.press-pulse { animation: press-pulse 0.5s ease-out; } /* both header icons pulse when tapped, per direct request */
 #markerStyleIconBtn.press-pulse { animation: press-pulse 0.5s ease-out; }
 @keyframes press-pulse { 0% { transform: scale(1); } 40% { transform: scale(0.85); } 100% { transform: scale(1); } }
+/* NEW PATTERN CASCADE, per direct request: every note marker is cleared the moment a new pattern lands, then the new ones appear column by
+   column, left to right. visibility (not opacity) so nothing gets its own GPU layer — cheap even with ~100 markers. Empty markers stay. */
+html body .step-cell.cascade-hidden.on::after, html body .step-cell.cascade-hidden.soft::after, html body .step-cell.cascade-hidden.legato-tail::after, html body .step-cell.cascade-hidden.split32::after { visibility: hidden !important; }
+/* >> button: half the press-pulse (0.925 instead of 0.85) and half the new-pattern glyph pulse (1.225 instead of 1.45), per direct request */
+@keyframes press-pulse-half { 0% { transform: scale(1); } 40% { transform: scale(0.925); } 100% { transform: scale(1); } }
+html body .transport #randBtn.press-pulse { animation: press-pulse-half 0.5s ease-out; }
 /* MARKER STYLE header icon — sits to the right of the reverb room icon
    (swapped positions with the rainbow COLOR MENU icon per direct request),
    top row color, sized like an accented note marker. Shows the shape
@@ -2719,7 +2725,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-16 01:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-17 18:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3963,7 +3969,7 @@ function syncSettingsPanel() {
   const bv = document.getElementById('bpmVal');
   if (bv) bv.textContent = bpm + ' BPM';
   const tt = document.getElementById('topTempoBpmNum');
-  if (tt) tt.textContent = bpm;
+  if (tt && !window._tempoTweening) tt.textContent = bpm;
   const bs = document.getElementById('bpmSettingsSlider');
   if (bs) bs.value = bpm;
   const kd = document.getElementById('keyDisplayValue');
@@ -6227,6 +6233,9 @@ function _schedLookahead() {
   // MENU CLOSE: the LOOK AND FEEL / SETTINGS changes get applied as the menu closes, which can freeze the page briefly — plan
   // ~0.6s ahead around that moment so the music rides straight through it instead of stopping (see the menu-close code).
   if (window._schedBoostUntil && now < window._schedBoostUntil) st.gapMax = Math.max(st.gapMax, 700); // → the full 1s plan-ahead
+  // NEW PATTERN ABOUT TO LAND (WEIRD THING reports: every skipped step came right after a new pattern — the swap freezes the page
+  // 0.5–1.6s in Low Power Mode): plan the full second ahead BEFORE the bar line where it lands, so the freeze can't reach the sound.
+  try { if (typeof _autoRandPending !== 'undefined' && (_autoRandPending || (_autoRandLoopActive && _autoRandBarCount >= _autoRandPeriod - 1) || (typeof _pendingSlot !== 'undefined' && _pendingSlot >= 0))) st.gapMax = Math.max(st.gapMax, 700); } catch (e) {}
   st.la = Math.max(LOOKAHEAD, Math.min(st.gapMax > 400 ? 1.0 : 0.6, st.gapMax / 1000 * 1.5 + 0.03)); // up to 1s of audio planned ahead once the page has shown half-second stalls (Low Power Mode report: a 708ms freeze beat the old 0.6s cap and skipped steps)
   return st.la;
 }
@@ -6383,6 +6392,7 @@ function scheduler() {
           rbClear.style.color = '';
         }
         _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
+        window._barAudioT = t;
         randAll(_autoRandMode); _autoRandMode = undefined;
         clearBtnBlueHeld('randBtn');
         playRandReleaseSweep(t);
@@ -6417,6 +6427,7 @@ function scheduler() {
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
+            window._barAudioT = t;
             randAll(undefined);
             activeSlot = _savedSlot2; // automatic evolution isn't a manual edit — don't invalidate the slot match
             updateSlotButtons();
@@ -11647,7 +11658,7 @@ window.addEventListener('scroll', () => {
 // which path changed it (tap tempo, jog wheel, RAND, slot restore, nudge).
 setInterval(() => {
   const tt = document.getElementById('topTempoBpmNum');
-  if (tt && tt.textContent !== String(bpm)) tt.textContent = bpm;
+  if (tt && !window._tempoTweening && tt.textContent !== String(bpm)) tt.textContent = bpm;
 }, 250);
 
 // BEAT button: quick tap still toggles beat instantly (same responsiveness
@@ -15964,6 +15975,38 @@ function _newPatternPulse() {
   b.classList.remove('new-pattern', 'rand-building'); requestAnimationFrame(() => b.classList.add('new-pattern')); // next-frame restart, no forced reflow (crash hunt)
   clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
 }
+// NEW PATTERN CASCADE + TEMPO COUNT, per direct request: when a new pattern lands, all note markers clear at once, then the new
+// markers appear column by column from left to right over CASCADE_MS; over that same time the tempo readout counts up or down
+// from the old tempo to the new one. While playing it starts when the new bar is actually heard; stopped, straight away.
+const CASCADE_MS = 640;
+let _cascadeTimers = [];
+function _patternCascade(fromBpm, toBpm) {
+  _cascadeTimers.forEach(clearTimeout); _cascadeTimers = [];
+  const cells = document.querySelectorAll('.step-cell');
+  cells.forEach(c => c.classList.add('cascade-hidden'));
+  const startDelay = (window._inSchedulerTick && ctx && window._barAudioT) ? Math.max(0, (window._barAudioT - ctx.currentTime) * 1000) : 0;
+  const cols = [];
+  cells.forEach(c => { const st = +c.dataset.step; (cols[st] = cols[st] || []).push(c); });
+  for (let st = 0; st < NUM_STEPS; st++) {
+    _cascadeTimers.push(setTimeout(() => { (cols[st] || []).forEach(c => c.classList.remove('cascade-hidden')); }, startDelay + (st + 1) * CASCADE_MS / NUM_STEPS));
+  }
+  _cascadeTimers.push(setTimeout(() => { document.querySelectorAll('.step-cell.cascade-hidden').forEach(c => c.classList.remove('cascade-hidden')); }, startDelay + CASCADE_MS + 100)); // failsafe
+  const tt = document.getElementById('topTempoBpmNum');
+  if (!tt || fromBpm === toBpm) return;
+  window._tempoTweening = true; const tok = window._tempoTweenTok = {};
+  tt.textContent = fromBpm;
+  _cascadeTimers.push(setTimeout(() => {
+    const t0 = performance.now();
+    const frame = () => {
+      if (window._tempoTweenTok !== tok) return; // a newer pattern took over the count
+      const k = Math.min(1, (performance.now() - t0) / CASCADE_MS);
+      tt.textContent = Math.round(fromBpm + (toBpm - fromBpm) * k);
+      if (k < 1) requestAnimationFrame(frame);
+      else { window._tempoTweening = false; tt.textContent = bpm; }
+    };
+    requestAnimationFrame(frame);
+  }, startDelay));
+}
 function randAll(mode, opts) {
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
   // one of them used to start its own CSS transition in the same frame (~80 at once measured — note markers fade their opacity,
@@ -15975,6 +16018,7 @@ function randAll(mode, opts) {
   const _raT0 = performance.now(); setTimeout(() => { try { window._crashCrumb && window._crashCrumb('new pattern (' + Math.round(performance.now() - _raT0) + 'ms to next task)'); } catch (e) {} }, 0); // crash log: when each new pattern lands and how long it blocked
   if (!window._quietPlus) { try { _newPatternPulse(); } catch (e) {} } // QUIET + (DIAGNOSTICS crash test): skip the visual side of a new pattern
   opts = opts || {};
+  const _cascadeFromBpm = bpm;
   _clearAllSolo(); // a new pattern replaces every track — solo state from the old one isn't meaningful anymore
   // RANDOMIZE REVERB (Settings toggle) — same "goes along with every new
   // pattern" reasoning as WILD colors below: fires on every full pattern
@@ -16014,26 +16058,35 @@ function randAll(mode, opts) {
     } else {
       // WILD also jumps to a random DISPLAY MODE (never LIVE, never the one it's already in), per direct request — then the colours
       // are re-rolled on top as before
-      try {
-        const cur = window._rainbowIdx, pool = _RAINBOW_CYCLE.map((m, i) => i).filter(i => i !== cur && !_RAINBOW_CYCLE[i].liveOnly);
-        if (pool.length && !(_RAINBOW_CYCLE[cur] && _RAINBOW_CYCLE[cur].liveOnly)) { const nm = _RAINBOW_CYCLE[pool[Math.floor(Math.random() * pool.length)]]; _applyRainbowState(nm); _showModeLabel(nm); }
-      } catch (e) {}
-      randomizeAppColors();
+      const _wildLook = () => {
+        try {
+          const cur = window._rainbowIdx, pool = _RAINBOW_CYCLE.map((m, i) => i).filter(i => i !== cur && !_RAINBOW_CYCLE[i].liveOnly);
+          if (pool.length && !(_RAINBOW_CYCLE[cur] && _RAINBOW_CYCLE[cur].liveOnly)) { const nm = _RAINBOW_CYCLE[pool[Math.floor(Math.random() * pool.length)]]; _applyRainbowState(nm); _showModeLabel(nm); }
+        } catch (e) {}
+        randomizeAppColors();
+      };
+      // When the new pattern lands from the scheduler (bar line, playing), the heavy look change (display mode + colours) runs
+      // on its own, when the bar is actually HEARD — after the scheduler has planned well ahead — instead of inside the
+      // scheduler's own tick, where its freeze used to skip steps.
+      if (window._inSchedulerTick && ctx && window._barAudioT) setTimeout(_wildLook, Math.max(0, (window._barAudioT - ctx.currentTime) * 1000));
+      else _wildLook();
     }
   }
   // Briefly dip master gain to hide node creation noise
   if (ctx && masterGain) {
+    // the dip lands at the bar line the new pattern starts on (not "now", which with a long plan-ahead is the middle of the old bar)
+    const _dT = (window._inSchedulerTick && window._barAudioT > ctx.currentTime) ? window._barAudioT - 0.04 : ctx.currentTime;
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
-    masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
-    masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.04);
-    masterGain.gain.linearRampToValueAtTime(masterVol, ctx.currentTime + 0.18);
+    masterGain.gain.setValueAtTime(masterGain.gain.value, Math.max(ctx.currentTime, _dT));
+    masterGain.gain.linearRampToValueAtTime(0, _dT + 0.04);
+    masterGain.gain.linearRampToValueAtTime(masterVol, _dT + 0.18);
     // Safety: force back to masterVol after 300ms regardless
     setTimeout(() => {
       if (masterGain && ctx) {
         masterGain.gain.cancelScheduledValues(ctx.currentTime);
         masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
       }
-    }, 300);
+    }, Math.max(0, (_dT - ctx.currentTime) * 1000) + 300); // 300ms after the dip itself, wherever it lands
   }
   // Randomise tempo (70-135 BPM) and beat type — skipped for auto-mode cycles
   // so the bar-count stays in sync with what's actually playing.
@@ -17314,6 +17367,7 @@ function randAll(mode, opts) {
   // No longer auto-saving to a slot here — double-clicking a track name is
   // now the only way a pattern gets into the slot bar.
   setTimeout(() => { updateLegatoVisuals(); }, NUM_TRACKS * 30 + 50);
+  try { _patternCascade(_cascadeFromBpm, bpm); } catch (e) {}
   setTimeout(() => { _ensureMozambiqueKitCorrect(); }, NUM_TRACKS * 30 + 60); // just after the legato pass above, same reasoning — waits for every staggered per-track call to genuinely finish first
   setTimeout(() => { _ensureJazzKitCorrect(); }, NUM_TRACKS * 30 + 60); // same class of bug as MOZAMBIQUE's own safety net above, same fix — JAZZ's RIDE/comping pattern is written by the same staggered per-track setTimeout mechanism (see the _hasFixedBeatPattern block), so it depended on the same timing/state lining up and could come out with RIDE assigned but its fixed pattern never actually written (or the track still muted from before), reported as "came in without the RIDE track and pattern"
 }
