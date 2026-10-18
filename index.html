@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 18:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 19:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1126,6 +1126,8 @@ html body .track-name-btn.name-shuffle-hit:not(.muted) {
    per-track FX/N buttons (.track-ctrl-row), which stay at their own size. */
 #beatCtrlFx, #beatCtrlRand { font-size: calc(1.2rem * var(--track-btn-font-scale, 1)); }
 .track-ctrl-icon-btn.rand-btn:not(#beatCtrlRand) .glyph { display: inline-block; transform: translateY(-1.5px); }
+/* TOP ROW + (the new-pattern button when it shows the plain + rather than >> or the asterisk): 1px left, per direct request */
+body:not(.rand-btn-ff):not(.rand-btn-asterisk) #randBtn > .glyph { position: relative; left: -1px; }
 /* Lock (L) button — half the width of the other track-ctrl-icon-btns.
    Font-size is inherited from .track-ctrl-icon-btn above and untouched
    here, so the "L" stays the same size while its box shrinks around it.
@@ -2734,7 +2736,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 18:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 19:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7123,7 +7125,11 @@ function _placeHeaderIcons() {
   _beatMeasureCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
   const rg = document.createRange(); rg.selectNodeContents(lbl);
   const bInkLeft = rg.getBoundingClientRect().left - _beatMeasureCtx.measureText('b').actualBoundingBoxLeft;
-  const d = bInkLeft - iconInkLeft; if (Math.abs(d) < 0.25) return;
+  // ORDER rainbow · reverb · ? (help), per direct request: the ? circle (same width as the reverb icon) now takes the
+  // right-hand slot lined up on the 'b', so reverb + rainbow sit one icon-plus-gap further left. Gap = rainbow → reverb ink gap.
+  const ds = dm.querySelector('svg'), dr = ds && ds.getBoundingClientRect();
+  const gap = dr && dr.width ? Math.max(0, iconInkLeft - (dr.right + 0.3 * (dr.width / 22))) : 14;
+  const d = (bInkLeft - (sr.width + gap)) - iconInkLeft; if (Math.abs(d) < 0.25) return;
   [rv, dm].forEach(el => { el.style.right = ((parseFloat(el.style.right) || 0) - d) + 'px'; });
 }
 const _LIVE_SCALE_LABELS = { 'penta-min': 'pentatonic minor', 'penta-maj': 'pentatonic major', 'major': 'major', 'minor': 'minor', 'dorian': 'dorian', 'mixolydian': 'mixolydian', 'blues': 'blues' }; // full names, per direct request (was abbreviated)
@@ -24991,7 +24997,9 @@ function snapshotDisplay() {
     } catch (e) {}
     // circle the same width as the reverb icon
     const D = Math.round((rv && rv.width) || 24); if (btn.offsetWidth !== D) { btn.style.width = D + 'px'; btn.style.height = D + 'px'; }
-    btn.style.left = (rbInkL - gap - D - hr.left) + 'px';
+    // ? now sits to the RIGHT of the reverb icon (order: rainbow · reverb · ?), the same gap away
+    const rvInkR = rv && rv.width ? rv.right - 0.35 * (rv.width / 22) : rbInkR + gap + 24;
+    btn.style.left = (rvInkR + gap - hr.left) + 'px';
     btn.style.top = (ic.top - hr.top + ic.height / 2 - btn.offsetHeight / 2) + 'px';
   }
   function init() {
