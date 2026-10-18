@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 09:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 09:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2734,7 +2734,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 09:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 09:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7275,7 +7275,7 @@ function updatePlayhead(step) {
         // once that fall-back genuinely finishes.
         const fillEl = vb.querySelector('.track-vol-fill-solid');
         if (fillEl) {
-          clearTimeout(fillEl._flashPulseTimer);
+          clearTimeout(fillEl._flashPulseTimer); fillEl._restHit = false;
           fillEl.classList.remove('flash-pulse-hit', 'flash-pulse-decay');
           void fillEl.offsetWidth;
           fillEl.classList.add('flash-pulse-hit');
@@ -12042,8 +12042,28 @@ function setVolBanger(on) {
 // VOL BANGER on by default, per direct request.
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setVolBanger(true), { once: true });
 else setTimeout(() => setVolBanger(true), 0);
+// STOPPED = PEAKING LOOK, per direct request: while playback is stopped every (unmuted) track's fill sits in its hit/peak state —
+// the PLAY FLASH colour with that display mode's own glow rules — exactly the .flash-pulse-hit look a note gives it. On play the
+// rest state hands back to the normal note-driven pulses with one ordinary decay.
+function _vbRestLook() {
+  const stopped = !(typeof playing !== 'undefined' && playing);
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const vb = document.getElementById(`vbar-${tr}`); const f = vb && vb.querySelector('.track-vol-fill-solid'); if (!f) continue;
+    const want = stopped && !trackMuted[tr];
+    if (want && !f._restHit) {
+      clearTimeout(f._flashPulseTimer); f.classList.remove('flash-pulse-decay'); f.classList.add('flash-pulse-hit'); f._restHit = true;
+    } else if (!want && f._restHit) {
+      f._restHit = false;
+      if (f.classList.contains('flash-pulse-hit')) {
+        clearTimeout(f._flashPulseTimer); f.classList.remove('flash-pulse-hit'); f.classList.add('flash-pulse-decay');
+        f._flashPulseTimer = setTimeout(() => f.classList.remove('flash-pulse-decay'), 380);
+      }
+    } else if (want && !f.classList.contains('flash-pulse-hit')) { f.classList.remove('flash-pulse-decay'); f.classList.add('flash-pulse-hit'); }
+  }
+}
 function _volBangerLoop(now) {
   _vbRaf = requestAnimationFrame(_volBangerLoop);
+  try { _vbRestLook(); } catch (e) {}
   if (!ctx) return;
   if (document.body.classList.contains('menu-open')) { _vbLastT = 0; return; } // menu open: tracks aren't drawn, so skip the meter work entirely
   const dt = _vbLastT ? Math.min(0.1, (now - _vbLastT) / 1000) : 0; _vbLastT = now;
@@ -16077,9 +16097,32 @@ let _cascadeTimers = [];
 function _patternCascade(fromBpm, toBpm) {
   _cascadeTimers.forEach(clearTimeout); _cascadeTimers = [];
   try { _cancelRandInst(); } catch (e) {} // stops any name shuffle still running (and puts the real names back)
+  document.querySelectorAll('.cascade-ghost').forEach(g => g.remove());
   const cells = document.querySelectorAll('.step-cell');
+  // OUTGOING PATTERN CASCADES AWAY FIRST, per direct request: a snapshot (clone) of each row as it stands right now — the old
+  // pattern; the new one's per-track redraws are still queued behind this call — sits over the real cells, and its columns
+  // clear left → right before the new notes cascade in. When the swap is waiting for the bar line, the clear-out happens in the
+  // time before the bar, so the new notes still start drawing exactly on the bar.
+  const ghosts = [];
+  const snap = window._cascadeGhostSnap; window._cascadeGhostSnap = null; // taken at the very top of randAll, before anything changed
+  (snap || []).forEach(({ cc, g }) => {
+    try {
+      if (!cc.isConnected) return;
+      g.style.cssText += `;position:absolute;left:${cc.offsetLeft}px;top:${cc.offsetTop}px;width:${cc.offsetWidth}px;height:${cc.offsetHeight}px;margin:0;pointer-events:none;z-index:4;`;
+      cc.parentNode.insertBefore(g, cc.nextSibling); ghosts.push(g);
+    } catch (e) {}
+  });
   cells.forEach(c => c.classList.add('cascade-hidden'));
-  const startDelay = (window._inSchedulerTick && ctx && window._barAudioT) ? Math.max(0, (window._barAudioT - ctx.currentTime) * 1000) : 0;
+  const _barDelay = (window._inSchedulerTick && ctx && window._barAudioT) ? Math.max(0, (window._barAudioT - ctx.currentTime) * 1000) : 0;
+  const CASCADE_OUT_MS = CASCADE_MS / 2;
+  const startDelay = Math.max(_barDelay, CASCADE_OUT_MS), outStart = startDelay - CASCADE_OUT_MS;
+  const gcols = [];
+  ghosts.forEach(g => g.querySelectorAll('.step-cell').forEach(c => { const st = +c.dataset.step; (gcols[st] = gcols[st] || []).push(c); }));
+  for (let st = 0; st < NUM_STEPS; st++) {
+    _cascadeTimers.push(setTimeout(() => { (gcols[st] || []).forEach(c => c.classList.add('cascade-hidden')); }, outStart + st * CASCADE_OUT_MS / NUM_STEPS));
+  }
+  _cascadeTimers.push(setTimeout(() => ghosts.forEach(g => g.remove()), startDelay));
+  setTimeout(() => ghosts.forEach(g => { if (g.isConnected) g.remove(); }), startDelay + CASCADE_MS + 500); // failsafe (outside the cancellable list)
   const cols = [];
   cells.forEach(c => { const st = +c.dataset.step; (cols[st] = cols[st] || []).push(c); });
   for (let st = 0; st < NUM_STEPS; st++) {
@@ -16120,7 +16163,27 @@ function _patternCascade(fromBpm, toBpm) {
     requestAnimationFrame(frame);
   }, startDelay));
 }
+function _snapCascadeGhosts() {
+  // Clone every row's cells exactly as they look now (the OUTGOING pattern, its own colours included) for _patternCascade's
+  // clear-out — must run before randAll touches anything, since parts of the grid redraw synchronously.
+  const out = [];
+  document.querySelectorAll('.step-lane-cells').forEach(cc => {
+    try {
+      const g = cc.cloneNode(true); g.classList.add('cascade-ghost'); g.removeAttribute('id');
+      g.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+      g.querySelectorAll('.playing, .cascade-glow, .cascade-hidden').forEach(n => n.classList.remove('playing', 'cascade-glow', 'cascade-hidden'));
+      const lane = cc.closest('.step-lane'); const csl = lane && getComputedStyle(lane);
+      if (csl) ['--track-color'].forEach(v => { const val = csl.getPropertyValue(v); if (val) g.style.setProperty(v, val.trim()); });
+      // freeze the colours the markers are drawn in right now (a WILD colour change can land before the clear-out runs)
+      const csr = getComputedStyle(document.documentElement), csb = getComputedStyle(document.body);
+      ['--play-flash-color', '--note-marker-opacity', '--empty-marker-opacity', '--empty-marker-opacity-circle'].forEach(v => { const val = (csb.getPropertyValue(v) || csr.getPropertyValue(v)).trim(); if (val) g.style.setProperty(v, val); });
+      out.push({ cc, g });
+    } catch (e) {}
+  });
+  window._cascadeGhostSnap = out;
+}
 function randAll(mode, opts) {
+  try { _snapCascadeGhosts(); } catch (e) {}
   try { _cancelRandInst(); } catch (e) {} // a new pattern supersedes any >> instrument swap still shuffling
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
   // one of them used to start its own CSS transition in the same frame (~80 at once measured — note markers fade their opacity,
