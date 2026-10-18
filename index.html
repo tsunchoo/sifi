@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 00:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 08:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1097,6 +1097,9 @@ body.track-pulse-a .track-name-btn.note-pulse { animation: top-row-pulse 0.44s e
    (updatePlayhead, one flash per actual note hit), separate setting,
    both can be on/off independently of each other. */
 body.track-text-pulse-a .track-name-btn.playing { color: var(--track-text-pulse-color, var(--highlight3-color, #adff00)) !important; }
+/* >> NAME SHUFFLE pulse — PLAY FLASH colour + a quick pop, like a note marker as the playhead passes */
+html body .track-name-btn.name-shuffle-hit:not(.muted) { color: var(--play-flash-color, #f8ff00) !important; animation: name-shuffle-pop 140ms ease-out; }
+@keyframes name-shuffle-pop { 0% { transform: scale(1.06); filter: brightness(1.25); } 100% { transform: scale(1); filter: none; } }
 .track-name-btn.shifting { background: var(--playhead) !important; color: #fff !important; animation: pulse 0.5s infinite alternate; }
 .track-ctrl-icon-btn {
   width: calc(32px * var(--track-btn-scale, 1)); flex-shrink: 0;
@@ -2725,7 +2728,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 00:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 08:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3845,6 +3848,7 @@ function _playdoePlus() {
   const now = performance.now();
   if (_playdoePreSwap && now - _playdoeLastTap < PLAYDOE_DOUBLE_MS) {
     const pre = _playdoePreSwap; _playdoePreSwap = null; _playdoeLastTap = 0;
+    try { _cancelRandInst(); } catch (e) {} // pending swaps must not land on top of the restored pattern
     try { restoreState(pre.snap, { skipBeatState: true, withMode: true }); _recallSnapB = pre.prevB; } catch (e) { console.error('PLAYDOE undo failed', e); }
     try { setBtnBlueHeld('randBtn'); } catch (e) {}
     queueRand();
@@ -5562,8 +5566,33 @@ function _songNameNextNumeral(name) {
   return name + ' II';
 }
 const RANDINST_STAGGER_MS = 90; let _randInstTimers = [];
+// NAME SHUFFLE, per direct request: on a >> instrument swap each changing track's name button flicks through random names from
+// its own group, pulsing in the PLAY FLASH colour on every flick like a note marker as the playhead passes, then lands on the new
+// instrument (the actual sound swap lands at the same moment).
+const NAME_SHUFFLE_MS = 480, NAME_SHUFFLE_TICK = 60; let _nameShuffles = [];
+function _cancelRandInst() {
+  _randInstTimers.forEach(clearTimeout); _randInstTimers = [];
+  _nameShuffles.forEach(sh => { clearInterval(sh.iv); const nb = document.getElementById(`tbtn-${sh.tr}`); if (nb) { nb.classList.remove('name-shuffle-hit'); const k = trackInstruments[sh.tr]; if (k && INSTRUMENTS[k]) nb.textContent = INSTRUMENTS[k].name; } });
+  _nameShuffles = [];
+}
+function _startNameShuffle(tr, pool) {
+  const nb = document.getElementById(`tbtn-${tr}`); if (!nb || !pool.length) return null;
+  let n = 0, last = nb.textContent;
+  const iv = setInterval(() => {
+    let nm = last; for (let i = 0; i < 6 && nm === last; i++) nm = INSTRUMENTS[pool[Math.floor(Math.random() * pool.length)]].name;
+    last = nm; nb.textContent = nm;
+    nb.classList.remove('name-shuffle-hit'); if (n++ % 2 === 0) { void nb.offsetWidth; nb.classList.add('name-shuffle-hit'); }
+  }, NAME_SHUFFLE_TICK);
+  const sh = { tr, iv }; _nameShuffles.push(sh); return sh;
+}
+function _endNameShuffle(sh) {
+  if (!sh) return; clearInterval(sh.iv); _nameShuffles = _nameShuffles.filter(x => x !== sh);
+  const nb = document.getElementById(`tbtn-${sh.tr}`); if (!nb) return;
+  nb.classList.remove('name-shuffle-hit'); void nb.offsetWidth; nb.classList.add('name-shuffle-hit'); // one last pulse as it lands
+  setTimeout(() => nb.classList.remove('name-shuffle-hit'), 200);
+}
 function randomizeCurrentInstruments() {
-  _randInstTimers.forEach(clearTimeout); _randInstTimers = []; // a fresh press cancels any swaps still waiting from the last one
+  _cancelRandInst(); // a fresh press cancels any swaps (and name shuffles) still waiting from the last one
   // A/B + colors, per direct request: this now counts as a NEW PATTERN as
   // far as A/B (RECALL) is concerned — the pattern as it was, instruments
   // and colors included, is saved as the "previous" one right before the
@@ -5607,15 +5636,22 @@ function randomizeCurrentInstruments() {
     // STAGGERED, per direct request: each track's swap lands RANDINST_STAGGER_MS after the previous one instead of all six
     // at once, so building the new voices is spread out rather than hitting the phone's audio in one spike.
     const _tr = tr, _muted = mutedBefore[tr];
+    // CASCADE top to bottom (track 1 → 6), per direct request: each changing track starts its name shuffle one stagger step
+    // after the one above, shuffles for the full NAME_SHUFFLE_MS, then lands — so the shuffle rolls down the tracks.
+    const _pool = INSTRUMENT_KEYS.filter(x => groupOf(x) === grp && INSTRUMENTS[x] && x !== 'toms');
+    const _shBox = {}; const _startDelay = changed * RANDINST_STAGGER_MS;
+    _randInstTimers.push(setTimeout(() => { _shBox.sh = _startNameShuffle(_tr, _pool); }, _startDelay));
     _randInstTimers.push(setTimeout(() => {
-      try { selectSound(_tr, k); if (_muted) { trackMuted[_tr] = true; updateTrackMute(_tr); } redrawTrackCells(_tr, true); } catch (e) { console.error('instrument swap failed', e); }
-    }, changed * RANDINST_STAGGER_MS));
+      const _sh = _shBox.sh;
+      try { clearInterval(_sh && _sh.iv); selectSound(_tr, k); if (_muted) { trackMuted[_tr] = true; updateTrackMute(_tr); } redrawTrackCells(_tr, true); } catch (e) { console.error('instrument swap failed', e); }
+      _endNameShuffle(_sh);
+    }, _startDelay + NAME_SHUFFLE_MS));
     changed++;
   }
   if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
   // colour theme is LEFT ALONE now, per direct request — only the instruments change
   // each track repaints as its own swap lands (see above); markModified once the last one is in
-  _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
+  _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, NAME_SHUFFLE_MS + Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
   return changed;
 }
 // LOCK BUTTONS = NEW SOUND (LOOK AND FEEL toggle under PERFORMANCE MODE), per direct request — the track's lock button shows the
@@ -16048,6 +16084,7 @@ function _patternCascade(fromBpm, toBpm) {
   }, startDelay));
 }
 function randAll(mode, opts) {
+  try { _cancelRandInst(); } catch (e) {} // a new pattern supersedes any >> instrument swap still shuffling
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
   // one of them used to start its own CSS transition in the same frame (~80 at once measured — note markers fade their opacity,
   // buttons fade colours). On iPhone each opacity transition gets its own GPU layer while it runs, so a + briefly doubled the
