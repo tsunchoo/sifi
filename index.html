@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 08:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 09:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2734,7 +2734,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 08:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 09:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -16076,6 +16076,7 @@ const CASCADE_GLOW_MS = 160; // how long each column holds the playhead glow as 
 let _cascadeTimers = [];
 function _patternCascade(fromBpm, toBpm) {
   _cascadeTimers.forEach(clearTimeout); _cascadeTimers = [];
+  try { _cancelRandInst(); } catch (e) {} // stops any name shuffle still running (and puts the real names back)
   const cells = document.querySelectorAll('.step-cell');
   cells.forEach(c => c.classList.add('cascade-hidden'));
   const startDelay = (window._inSchedulerTick && ctx && window._barAudioT) ? Math.max(0, (window._barAudioT - ctx.currentTime) * 1000) : 0;
@@ -16090,6 +16091,19 @@ function _patternCascade(fromBpm, toBpm) {
     }, startDelay + (st + 1) * CASCADE_MS / NUM_STEPS));
   }
   _cascadeTimers.push(setTimeout(() => { document.querySelectorAll('.step-cell.cascade-hidden').forEach(c => c.classList.remove('cascade-hidden')); }, startDelay + CASCADE_MS + 100)); // failsafe
+  // TRACK NAMES do the >> name-shuffle at the same time, per direct request — cascading track 1 → 6 and all landing on the new
+  // instrument by the time the last note column is drawn. Locked tracks keep their instrument, so they're left alone.
+  const _NAME_STEP = 60, _NAME_RUN = Math.max(120, CASCADE_MS - (NUM_TRACKS - 1) * _NAME_STEP);
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const k = trackInstruments[tr]; if (!k || !INSTRUMENTS[k] || (typeof trackSweep !== 'undefined' && trackSweep[tr])) continue;
+    const g = INSTRUMENTS[k].group;
+    const pool = INSTRUMENT_KEYS.filter(x => INSTRUMENTS[x] && x !== 'toms' && INSTRUMENTS[x].group === g);
+    const box = {};
+    _cascadeTimers.push(setTimeout(() => { try { box.sh = _startNameShuffle(tr, pool); } catch (e) {} }, startDelay + tr * _NAME_STEP));
+    _cascadeTimers.push(setTimeout(() => {
+      try { if (box.sh) clearInterval(box.sh.iv); const nb = document.getElementById(`tbtn-${tr}`); const kk = trackInstruments[tr]; if (nb && kk && INSTRUMENTS[kk]) nb.textContent = INSTRUMENTS[kk].name; _endNameShuffle(box.sh); } catch (e) {}
+    }, startDelay + tr * _NAME_STEP + _NAME_RUN));
+  }
   const tt = document.getElementById('topTempoBpmNum');
   if (!tt || fromBpm === toBpm) return;
   window._tempoTweening = true; const tok = window._tempoTweenTok = {};
