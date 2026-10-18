@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 19:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 19:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2736,7 +2736,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 19:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 19:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5577,13 +5577,15 @@ const RANDINST_STAGGER_MS = 90; let _randInstTimers = [];
 // NAME SHUFFLE, per direct request: on a >> instrument swap each changing track's name button flicks through random names from
 // its own group, pulsing in the PLAY FLASH colour on every flick like a note marker as the playhead passes, then lands on the new
 // instrument (the actual sound swap lands at the same moment).
-const NAME_SHUFFLE_MS = 480, NAME_SHUFFLE_TICK = 60; let _nameShuffles = [];
+const NAME_SHUFFLE_MS = 480, NAME_SHUFFLE_TICK = 80; let _nameShuffles = [];
 function _cancelRandInst() {
   _randInstTimers.forEach(clearTimeout); _randInstTimers = [];
   _nameShuffles.forEach(sh => { clearInterval(sh.iv); const nb = document.getElementById(`tbtn-${sh.tr}`); if (nb) { nb.classList.remove('name-shuffle-hit'); const k = trackInstruments[sh.tr]; if (k && INSTRUMENTS[k]) nb.textContent = INSTRUMENTS[k].name; } });
   _nameShuffles = [];
 }
+let _nshT = 0;
 function _nshTextColour() { // dark text on a light PLAY FLASH background, light text on a dark one
+  if (performance.now() - _nshT < 1500) return; _nshT = performance.now(); // once per swap, not once per track (PERF)
   try {
     const probe = document.createElement('span'); probe.style.cssText = 'position:absolute;visibility:hidden;color:var(--play-flash-color, #f8ff00)';
     document.body.appendChild(probe); const m = getComputedStyle(probe).color.match(/[\d.]+/g); probe.remove();
@@ -5600,14 +5602,14 @@ function _startNameShuffle(tr, pool) {
   const iv = setInterval(() => {
     let nm = last; for (let i = 0; i < 6 && nm === last; i++) nm = INSTRUMENTS[pool[Math.floor(Math.random() * pool.length)]].name;
     last = nm; nb.textContent = nm;
-    nb.classList.remove('name-shuffle-hit'); if (n++ % 2 === 0) { void nb.offsetWidth; nb.classList.add('name-shuffle-hit'); }
+    nb.classList.toggle('name-shuffle-hit', n++ % 2 === 0); // on / off flashes — no forced reflow to restart an animation (PERF)
   }, NAME_SHUFFLE_TICK);
   const sh = { tr, iv }; _nameShuffles.push(sh); return sh;
 }
 function _endNameShuffle(sh) {
   if (!sh) return; clearInterval(sh.iv); _nameShuffles = _nameShuffles.filter(x => x !== sh);
   const nb = document.getElementById(`tbtn-${sh.tr}`); if (!nb) return;
-  nb.classList.remove('name-shuffle-hit'); void nb.offsetWidth; nb.classList.add('name-shuffle-hit'); // one last pulse as it lands
+  nb.classList.add('name-shuffle-hit'); // one last flash as it lands (no forced reflow — PERF)
   setTimeout(() => nb.classList.remove('name-shuffle-hit'), 200);
 }
 function randomizeCurrentInstruments() {
@@ -16109,21 +16111,28 @@ function _patternCascade(fromBpm, toBpm) {
   // pattern; the new one's per-track redraws are still queued behind this call — sits over the real cells, and its columns
   // clear left → right before the new notes cascade in. When the swap is waiting for the bar line, the clear-out happens in the
   // time before the bar, so the new notes still start drawing exactly on the bar.
-  const ghosts = [];
+  const ghosts = [], gcols = [];
   const snap = window._cascadeGhostSnap; window._cascadeGhostSnap = null; // taken at the very top of randAll, before anything changed
-  (snap || []).forEach(({ cc, g }) => {
-    try {
-      if (!cc.isConnected) return;
-      g.style.cssText += `;position:absolute;left:${cc.offsetLeft}px;top:${cc.offsetTop}px;width:${cc.offsetWidth}px;height:${cc.offsetHeight}px;margin:0;pointer-events:none;z-index:4;`;
-      cc.parentNode.insertBefore(g, cc.nextSibling); ghosts.push(g);
-    } catch (e) {}
-  });
+  // PERF (WEIRD THING reports: steps skipped right after new patterns in Low Power Mode): placing the ghosts needs a layout
+  // read, which inside the scheduler tick forced a full-page layout right as the new bar was being planned. Done on the next
+  // frame instead (before anything paints, so it still covers the old notes seamlessly).
+  let _ghostsPlaced = false;
+  const _placeGhosts = () => {
+    if (_ghostsPlaced) return; _ghostsPlaced = true;
+    (snap || []).forEach(({ cc, g }) => {
+      try {
+        if (!cc.isConnected) return;
+        g.style.cssText += `;position:absolute;left:${cc.offsetLeft}px;top:${cc.offsetTop}px;width:${cc.offsetWidth}px;height:${cc.offsetHeight}px;margin:0;pointer-events:none;z-index:4;`;
+        cc.parentNode.insertBefore(g, cc.nextSibling); ghosts.push(g);
+        g.querySelectorAll('.step-cell').forEach(c => { const st = +c.dataset.step; (gcols[st] = gcols[st] || []).push(c); });
+      } catch (e) {}
+    });
+  };
+  requestAnimationFrame(_placeGhosts); setTimeout(_placeGhosts, 60);
   cells.forEach(c => c.classList.add('cascade-hidden'));
   const _barDelay = (window._inSchedulerTick && ctx && window._barAudioT) ? Math.max(0, (window._barAudioT - ctx.currentTime) * 1000) : 0;
   const CASCADE_OUT_MS = CASCADE_MS / 2;
   const startDelay = Math.max(_barDelay, CASCADE_OUT_MS), outStart = startDelay - CASCADE_OUT_MS;
-  const gcols = [];
-  ghosts.forEach(g => g.querySelectorAll('.step-cell').forEach(c => { const st = +c.dataset.step; (gcols[st] = gcols[st] || []).push(c); }));
   for (let st = 0; st < NUM_STEPS; st++) {
     _cascadeTimers.push(setTimeout(() => { (gcols[st] || []).forEach(c => c.classList.add('cascade-hidden')); }, outStart + st * CASCADE_OUT_MS / NUM_STEPS));
   }
@@ -16178,11 +16187,10 @@ function _snapCascadeGhosts() {
       const g = cc.cloneNode(true); g.classList.add('cascade-ghost'); g.removeAttribute('id');
       g.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
       g.querySelectorAll('.playing, .cascade-glow, .cascade-hidden').forEach(n => n.classList.remove('playing', 'cascade-glow', 'cascade-hidden'));
-      const lane = cc.closest('.step-lane'); const csl = lane && getComputedStyle(lane);
-      if (csl) ['--track-color'].forEach(v => { const val = csl.getPropertyValue(v); if (val) g.style.setProperty(v, val.trim()); });
-      // freeze the colours the markers are drawn in right now (a WILD colour change can land before the clear-out runs)
-      const csr = getComputedStyle(document.documentElement), csb = getComputedStyle(document.body);
-      ['--play-flash-color', '--note-marker-opacity', '--empty-marker-opacity', '--empty-marker-opacity-circle'].forEach(v => { const val = (csb.getPropertyValue(v) || csr.getPropertyValue(v)).trim(); if (val) g.style.setProperty(v, val); });
+      // the row's colour lives in the lane's own inline style — read that directly (no getComputedStyle: this runs inside the
+      // scheduler tick, and a computed-style read there forces a full style recalc at the worst moment)
+      const lane = cc.closest('.step-lane'); const tc = lane && lane.style.getPropertyValue('--track-color');
+      if (tc) g.style.setProperty('--track-color', tc.trim());
       out.push({ cc, g });
     } catch (e) {}
   });
