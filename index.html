@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 09:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-18 19:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2734,7 +2734,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 09:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 19:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -24974,17 +24974,31 @@ function snapshotDisplay() {
     const rbInkL = ic.left - 0.3 * (ic.width / 22), rbInkR = ic.right + 0.3 * (ic.width / 22);
     let gap = 6; if (rv && rv.width) { const rvInkL = rv.left + 0.35 * (rv.width / 22); gap = Math.max(0, rvInkL - rbInkR); }
     // tint like the tempo number, which already follows every display mode's light/dark header colour
-    try { const tn = document.getElementById('topTempoBpmNum'); if (tn) { const c = getComputedStyle(tn).color; if (c && btn.style.color !== c) btn.style.color = c; } } catch (e) {}
-    const q = qInk(), bw = btn.offsetWidth || 24;
-    // button content is right-aligned, so the glyph's ink right edge = btn right − right side-bearing
-    btn.style.left = (rbInkL - gap + q.rsb - bw - hr.left) + 'px';
+    // INVERTED, per direct request: a filled circle in the header tint (follows every display mode via the tempo number's
+    // colour) with the ? knocked out in the opposite tone — dark circle / light ? on light headers, and the reverse on dark ones.
+    try {
+      const tn = document.getElementById('topTempoBpmNum');
+      if (tn) {
+        const c = getComputedStyle(tn).color;
+        if (c && btn._tint !== c) {
+          btn._tint = c; btn.style.background = c;
+          const m = c.match(/[\d.]+/g) || [17, 17, 17];
+          const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+          const L = 0.2126 * lin(+m[0]) + 0.7152 * lin(+m[1]) + 0.0722 * lin(+m[2]);
+          btn.style.color = L > 0.35 ? '#111' : '#fff';
+        }
+      }
+    } catch (e) {}
+    // circle the same width as the reverb icon
+    const D = Math.round((rv && rv.width) || 24); if (btn.offsetWidth !== D) { btn.style.width = D + 'px'; btn.style.height = D + 'px'; }
+    btn.style.left = (rbInkL - gap - D - hr.left) + 'px';
     btn.style.top = (ic.top - hr.top + ic.height / 2 - btn.offsetHeight / 2) + 'px';
   }
   function init() {
     const dm = document.getElementById('devMenuBtn'); if (!dm) return;
     btn = document.createElement('button'); btn.id = '_helpBtn'; btn.setAttribute('aria-label', 'Help');
-    btn.style.cssText = "position:absolute;z-index:99995;width:34px;height:34px;padding:0;margin:0;border:none;border-radius:4px;background:none;color:var(--header-text-color,#111);font:700 27px/1 'DM Sans',sans-serif;letter-spacing:0.5px;cursor:pointer;display:flex;align-items:center;justify-content:flex-end;touch-action:manipulation;";
-    btn.textContent = '?';
+    btn.style.cssText = "position:absolute;z-index:99995;width:24px;height:24px;padding:0;margin:0;border:none;border-radius:50%;background:#111;color:#fff;font:700 16px/1 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;";
+    btn.innerHTML = '<span style="display:block;transform:translate(-1px,2px);pointer-events:none;">?</span>'; // glyph nudged 1px left / 2px down in the circle, per direct request
     btn.addEventListener('click', e => { e.stopPropagation(); on ? exit() : enter(); });
     dm.parentElement.appendChild(btn); place();
     window.addEventListener('resize', place); setInterval(place, 1500); try { new MutationObserver(() => requestAnimationFrame(place)).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); } catch (e) {} // follows the header icons when they shift (display modes, LIVE)
@@ -24993,7 +25007,7 @@ function snapshotDisplay() {
 })();
 </script>
 <style>
-#_helpBtn.help-on { background: none !important; color: #f17d21 !important; }
+#_helpBtn.help-on { background: #f17d21 !important; color: #000 !important; }
 </style>
 </body>
 </html>
