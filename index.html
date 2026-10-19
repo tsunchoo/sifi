@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-18 19:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-19 05:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2736,7 +2736,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-18 19:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-19 05:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -15290,6 +15290,7 @@ let _currentSpecies = getSpeciesName();
 // animation is still mid-flight (remove -> reflow -> re-add, same trick
 // _pressPulse uses elsewhere for the same reason).
 const _SONG_NAME_SCROLL_STYLES = ['song-name-scroll-left', 'song-name-scroll-right', 'song-name-scroll-up', 'song-name-scroll-down'];
+/* OLD SCROLL-IN TRANSITION — kept for now, switched off in favour of the SPLIT-FLAP board below, per direct request.
 function _setSongNameDisplay(text) {
   const nd = document.getElementById('nameDisplay');
   if (!nd) return;
@@ -15299,6 +15300,50 @@ function _setSongNameDisplay(text) {
   // style + layout pass right in the middle of a new pattern's colour changes (crash hunt)
   const style = _SONG_NAME_SCROLL_STYLES[Math.floor(Math.random() * _SONG_NAME_SCROLL_STYLES.length)];
   requestAnimationFrame(() => nd.classList.add(style));
+}
+*/
+// SONG NAME = SPLIT-FLAP BOARD (default now), per direct request: like a 70s/80s airport departures board — every letter
+// flicks through random characters, then they lock onto the real name one by one from left to right. Each letter's box is
+// locked to its final width first (one layout read), so the flicking never makes the name bar jump around.
+const _FLAP_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const FLAP_TICK_MS = 55, FLAP_MIN_MS = 260, FLAP_STAGGER_MS = 45;
+let _flapRun = 0;
+function _setSongNameDisplay(text) {
+  const nd = document.getElementById('nameDisplay');
+  if (!nd) return;
+  text = text || '';
+  _SONG_NAME_SCROLL_STYLES.forEach(c => nd.classList.remove(c));
+  const run = ++_flapRun;
+  nd.dataset.full = text;
+  const chars = [...text];
+  nd.textContent = '';
+  const spans = chars.map(ch => {
+    const sp = document.createElement('span'); sp.textContent = ch;
+    if (ch !== ' ') sp.style.cssText = 'display:inline-block;text-align:center;white-space:pre;';
+    nd.appendChild(sp); return sp;
+  });
+  requestAnimationFrame(() => {
+    if (run !== _flapRun) return;
+    // lock widths at the REAL letters' sizes (one layout read), then start flicking
+    spans.forEach((sp, i) => { if (chars[i] !== ' ') sp.style.width = sp.getBoundingClientRect().width + 'px'; });
+    const t0 = performance.now(); let last = 0;
+    const doneAt = spans.map((_, i) => FLAP_MIN_MS + i * FLAP_STAGGER_MS);
+    const frame = now => {
+      if (run !== _flapRun) return;
+      const el = now - t0;
+      if (now - last >= FLAP_TICK_MS) {
+        last = now;
+        spans.forEach((sp, i) => {
+          if (chars[i] === ' ' || sp._done) return;
+          if (el >= doneAt[i]) { sp.textContent = chars[i]; sp._done = true; }
+          else sp.textContent = _FLAP_CHARS[Math.floor(Math.random() * _FLAP_CHARS.length)];
+        });
+      }
+      if (spans.every((sp, i) => chars[i] === ' ' || sp._done)) { nd.textContent = text; return; } // back to plain text once settled
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
 }
 function getKeyName() {
   if (!globalScaleRoot) return null;
@@ -17413,7 +17458,7 @@ function randAll(mode, opts) {
   // randomizes colors, same as every other role, rather than on every
   // single RAND press regardless of WILD.
   // Update key/scale display
-  if (window._quietPlus) { const _nd = document.getElementById('nameDisplay'); if (_nd) _nd.textContent = _currentSpecies || ''; } else _setSongNameDisplay(_currentSpecies || '');
+  if (window._quietPlus) { const _nd = document.getElementById('nameDisplay'); if (_nd) { _flapRun++; _nd.textContent = _currentSpecies || ''; _nd.dataset.full = _currentSpecies || ''; } } else _setSongNameDisplay(_currentSpecies || '');
   const kd = document.getElementById('keyDisplayValue');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks. Every instrument now keeps at least a
@@ -20386,7 +20431,7 @@ function _songNameSave() {
 function _addToTapeDrawer() {
   try {
     const nd = document.getElementById('nameDisplay');
-    const name = (nd && nd.textContent.trim()) || _currentSpecies || 'UNTITLED';
+    const name = (nd && (nd.dataset.full || nd.textContent).trim()) || _currentSpecies || 'UNTITLED'; // dataset.full: the real name even while the split-flap is still flicking
     const snap = snapshotState();
     window._tapeDrawerItems.push({ snap, sig: _tapeSig(snap), name, color: _currentBarColor || '#aa64a6', at: Date.now() });
     while (window._tapeDrawerItems.length > 12) window._tapeDrawerItems.shift(); // 12 tapes max, per direct request — the oldest drops off
@@ -22430,7 +22475,7 @@ function fullReset() {
 // Initialise bar display
 (function() {
   const nd = document.getElementById('nameDisplay');
-  if (nd && _currentSpecies) nd.textContent = _currentSpecies;
+  if (nd && _currentSpecies) { nd.textContent = _currentSpecies; nd.dataset.full = _currentSpecies; }
   const barEl = nd?.parentElement;
   applyBarColor(_currentBarColor);
   const kd = document.getElementById('keyDisplayValue');
@@ -24175,17 +24220,40 @@ function _maybeEngageJazzAutoRand(tr, chance) {
 // pattern and FX engaged (not BLAST) — reuses an existing unlocked hihat
 // track if the pattern already has one, rather than creating a second,
 // duplicate hihat track; only picks a fresh target if it has to.
+// BEAT-TYPE TRACK TAKEOVER RULE, per direct request: a beat type's own extra tracks (DISCO hihat, JAZZ ride/comping,
+// MOZAMBIQUE ride/sidestick/toms, BOSSA/SAMBA sidestick) may only ever take over a MUTED (and unlocked) track — never one
+// that's unmuted / playing. If an unmuted track already holds that instrument, that part counts as covered and is left
+// exactly as it is. Parts with no free muted track are simply skipped.
+function _beatFreeTracks(exclude) {
+  const out = [];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && trackMuted[tr] && !(exclude && exclude.includes(tr))) out.push(tr);
+  return out;
+}
+// For each role key: an unlocked track already holding it → if unmuted, the role is covered (null = leave alone); if muted, it's
+// that role's target. Otherwise the next free muted track (non-essential instruments first). Returns {key: tr|null|undefined}.
+function _beatPickTargets(keys, essentialKeys, altKeys) {
+  const res = {}, used = [];
+  keys.forEach(key => {
+    const alts = (altKeys && altKeys[key]) || [key];
+    const has = (k, tr) => alts.includes(k) && !trackSweep[tr] && !used.includes(tr);
+    let ex = trackInstruments.findIndex((k, tr) => has(k, tr) && !trackMuted[tr]); // an unmuted copy wins (role covered, untouched)
+    if (ex === -1) ex = trackInstruments.findIndex((k, tr) => has(k, tr));
+    if (ex !== -1) { used.push(ex); res[key] = trackMuted[ex] ? ex : null; }
+  });
+  keys.forEach(key => {
+    if (key in res) return;
+    const free = _beatFreeTracks(used);
+    const pref = free.filter(tr => !essentialKeys.has(trackInstruments[tr]));
+    const tr = pref.length ? pref[0] : (free.length ? free[0] : undefined);
+    if (tr !== undefined) used.push(tr);
+    res[key] = tr;
+  });
+  return res;
+}
 function _applyDiscoHihatToCurrentPattern() {
   const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo', 'ride', 'sidestick', 'ssnare']);
-  const _existingHihatTr = trackInstruments.findIndex((k, tr) => k === 'shihat' && !trackSweep[tr]);
-  let targetTr = _existingHihatTr;
-  if (targetTr === -1) {
-    const _unlocked = [];
-    for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
-    if (_unlocked.length < 1) return; // nothing safe to use
-    const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
-    targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
-  }
+  const targetTr = _beatPickTargets(['shihat'], _essentialKeys).shihat;
+  if (targetTr == null) return; // an unmuted hihat is already there, or no muted track is free — leave everything as it is
   trackInstruments[targetTr] = 'shihat';
   trackMuted[targetTr] = false; updateTrackMute(targetTr); // a beat type's own fixed tracks must always be audible when they're forced in, not silently sitting muted from before
   trackOffset[targetTr] = 0; // any leftover per-track shift would misalign this fixed pattern against the beat engine's own kick
@@ -24209,20 +24277,10 @@ function _applyJazzTracksToCurrentPattern() {
   // toggling away from JAZZ and back (e.g. to SHUFFLE and back) could
   // leave the old RIDE track in place while a second, different track
   // also gets forced to RIDE, ending up with two identical RIDE tracks.
-  const _existingRideTr = trackInstruments.findIndex(k => k === 'ride');
-  const _existingCompingTr = trackInstruments.findIndex(k => k === 'sidestick' || k === 'ssnare');
   const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo']);
-  const _unlocked = [];
-  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
-  if (_unlocked.length < 2) return; // nothing safe to overwrite
-  const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
-  const _targets = [];
-  if (_existingRideTr !== -1 && !trackSweep[_existingRideTr]) _targets.push(_existingRideTr);
-  if (_existingCompingTr !== -1 && !trackSweep[_existingCompingTr] && !_targets.includes(_existingCompingTr)) _targets.push(_existingCompingTr);
-  for (const tr of _preferred) { if (_targets.length < 2 && !_targets.includes(tr)) _targets.push(tr); }
-  for (const tr of _unlocked) { if (_targets.length < 2 && !_targets.includes(tr)) _targets.push(tr); }
-  if (_targets.length < 2) return;
-  const [rideTr, compingTr] = _targets;
+  const _t = _beatPickTargets(['ride', 'comp'], _essentialKeys, { comp: ['sidestick', 'ssnare'] }); // muted tracks only — see _beatPickTargets
+  const rideTr = _t.ride, compingTr = _t.comp;
+  if (rideTr == null && compingTr == null) return;
   const _jazzCompingKey = Math.random() < 0.5 ? 'sidestick' : 'ssnare';
   const _applyOne = (tr, key) => {
     trackInstruments[tr] = key;
@@ -24259,8 +24317,8 @@ function _applyJazzTracksToCurrentPattern() {
     redrawTrackCells(tr);
     if (key === 'sidestick' || key === 'ssnare') _maybeEngageJazzAutoRand(tr, 0.85); // "plenty of chance" per direct request — was 0.5; RIDE above still never gets this at all, stays fixed/straight
   };
-  _applyOne(rideTr, 'ride');
-  _applyOne(compingTr, _jazzCompingKey);
+  if (rideTr != null) _applyOne(rideTr, 'ride');
+  if (compingTr != null) _applyOne(compingTr, _jazzCompingKey);
   _dedupeBeatOwnedTracks(['ride', 'sidestick', 'ssnare']);
   markModified();
 }
@@ -24300,22 +24358,10 @@ function _dedupeBeatOwnedTracks(keys) {
 // to 4 of the current pattern's tracks the moment MOZAMBIQUE is picked
 // directly from the BEAT menu, not just to whatever RAND generates next.
 function _applyMozambiqueTracksToCurrentPattern() {
-  const _existingRideTr = trackInstruments.findIndex(k => k === 'ride');
-  const _existingSidestickTr = trackInstruments.findIndex(k => k === 'sidestick');
-  const _existingTomsTr = trackInstruments.findIndex(k => k === 'toms');
   const _essentialKeys = new Set(['shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo']); // 'skick' deliberately NOT in this set — MOZAMBIQUE's kick is BEAT-menu-only synthesis, never a real track (see percKeysAll's own exclusion), so an existing kick track should be preferred for overwriting into RIDE/SIDESTICK/TOMS, not protected from it the way a genuinely essential instrument would be
-  const _unlocked = [];
-  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
-  if (_unlocked.length < 3) return; // nothing safe to overwrite
-  const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
-  const _targets = [];
-  if (_existingRideTr !== -1 && !trackSweep[_existingRideTr]) _targets.push(_existingRideTr);
-  if (_existingSidestickTr !== -1 && !trackSweep[_existingSidestickTr] && !_targets.includes(_existingSidestickTr)) _targets.push(_existingSidestickTr);
-  if (_existingTomsTr !== -1 && !trackSweep[_existingTomsTr] && !_targets.includes(_existingTomsTr)) _targets.push(_existingTomsTr);
-  for (const tr of _preferred) { if (_targets.length < 3 && !_targets.includes(tr)) _targets.push(tr); }
-  for (const tr of _unlocked) { if (_targets.length < 3 && !_targets.includes(tr)) _targets.push(tr); }
-  if (_targets.length < 3) return;
-  const [rideTr, sidestickTr, tomsTr] = _targets;
+  const _t = _beatPickTargets(['ride', 'sidestick', 'toms'], _essentialKeys); // muted tracks only — see _beatPickTargets
+  const rideTr = _t.ride, sidestickTr = _t.sidestick, tomsTr = _t.toms;
+  if (rideTr == null && sidestickTr == null && tomsTr == null) return;
   const _applyOneMoz = (tr, key) => {
     trackInstruments[tr] = key;
     trackMuted[tr] = false; updateTrackMute(tr); // a beat type's own fixed tracks must always be audible when they're forced in, not silently sitting muted from before
@@ -24340,9 +24386,9 @@ function _applyMozambiqueTracksToCurrentPattern() {
     }
     redrawTrackCells(tr);
   };
-  _applyOneMoz(rideTr, 'ride');
-  _applyOneMoz(sidestickTr, 'sidestick');
-  _applyOneMoz(tomsTr, 'toms');
+  if (rideTr != null) _applyOneMoz(rideTr, 'ride');
+  if (sidestickTr != null) _applyOneMoz(sidestickTr, 'sidestick');
+  if (tomsTr != null) _applyOneMoz(tomsTr, 'toms');
   _dedupeBeatOwnedTracks(['ride', 'sidestick', 'toms']);
   markModified();
 }
@@ -24418,16 +24464,9 @@ function _ensureJazzKitCorrect() {
 // before each one) and hihat foot close (every "&") stay BEAT-menu-only
 // synthesis — see the bossa branches in the main scheduler dispatch.
 function _applyBossaTracksToCurrentPattern() {
-  const _existingSidestickTr = trackInstruments.findIndex(k => k === 'sidestick');
   const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo', 'ride', 'toms', 'ssnare']);
-  const _unlocked = [];
-  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
-  if (_unlocked.length < 1) return; // nothing safe to overwrite
-  let targetTr = (_existingSidestickTr !== -1 && !trackSweep[_existingSidestickTr]) ? _existingSidestickTr : -1;
-  if (targetTr === -1) {
-    const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
-    targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
-  }
+  const targetTr = _beatPickTargets(['sidestick'], _essentialKeys).sidestick; // muted tracks only — see _beatPickTargets
+  if (targetTr == null) return;
   trackInstruments[targetTr] = 'sidestick';
   trackMuted[targetTr] = false; updateTrackMute(targetTr); // a beat type's own fixed tracks must always be audible when they're forced in, not silently sitting muted from before
   trackOffset[targetTr] = 0; // any leftover per-track shift would misalign this fixed clave pattern against the beat engine's own kick
@@ -24467,16 +24506,9 @@ function _applyBossaTracksToCurrentPattern() {
 // ever reported as glitchy.
 function _applySambaTracksToCurrentPattern() {
   if (_sambaSnareVariant !== 'sidestick') return;
-  const _existingSidestickTr = trackInstruments.findIndex(k => k === 'sidestick');
   const _essentialKeys = new Set(['skick', 'shihat', ...TONAL_KEYS, 'congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo', 'ride', 'toms', 'ssnare']);
-  const _unlocked = [];
-  for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr]) _unlocked.push(tr);
-  if (_unlocked.length < 1) return; // nothing safe to overwrite
-  let targetTr = (_existingSidestickTr !== -1 && !trackSweep[_existingSidestickTr]) ? _existingSidestickTr : -1;
-  if (targetTr === -1) {
-    const _preferred = _unlocked.filter(tr => !_essentialKeys.has(trackInstruments[tr]));
-    targetTr = _preferred.length > 0 ? _preferred[0] : _unlocked[0];
-  }
+  const targetTr = _beatPickTargets(['sidestick'], _essentialKeys).sidestick; // muted tracks only — see _beatPickTargets
+  if (targetTr == null) return;
   trackInstruments[targetTr] = 'sidestick';
   trackMuted[targetTr] = false; updateTrackMute(targetTr); // a beat type's own fixed tracks must always be audible when they're forced in, not silently sitting muted from before
   trackOffset[targetTr] = 0; // any leftover per-track shift would misalign this fixed pattern against the beat engine's own kick
