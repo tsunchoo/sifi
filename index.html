@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 04:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 05:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -507,9 +507,11 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
    scroll out to the right through their cell and come back in from the left to rest where they were, with the usual
    new-pattern colour / glow fade alongside. */
 @keyframes rand-glyph-scroll {
-  0%     { transform: translate(0, -2px); }
-  42%    { transform: translate(135%, -2px); animation-timing-function: steps(1, end); }
-  42.01% { transform: translate(-135%, -2px); }
+  /* no dead time, per direct request: the chevrons travel exactly until they've left the button's right edge, then reappear
+     touching its left edge (distances measured per tap → --scr-out / --scr-in); accelerate out, decelerate in */
+  0%     { transform: translate(0, -2px); animation-timing-function: cubic-bezier(0.55, 0, 1, 0.6); }
+  50%    { transform: translate(var(--scr-out, 135%), -2px); animation-timing-function: steps(1, end); }
+  50.01% { transform: translate(var(--scr-in, -135%), -2px); animation-timing-function: cubic-bezier(0, 0.45, 0.3, 1); }
   100%   { transform: translate(0, -2px); }
 }
 #randBtn.np-scroll { overflow: hidden; }
@@ -2764,7 +2766,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 04:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 05:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17871,6 +17873,8 @@ function stopAllAutoRand() {
         if (!window._randoCfg.click.shuffle) { // RANDO BUTTON: CLICK set to a NEW PATTERN — that column's settings, on the next bar
           btn.classList.remove('rand-building'); _randoApply('click'); setBtnBlueHeld('randBtn'); queueRand(); return;
         }
+        try { const g = btn.querySelector('.glyph'), br = btn.getBoundingClientRect(), gr = g.getBoundingClientRect();
+          btn.style.setProperty('--scr-out', Math.ceil(br.right - gr.left) + 'px'); btn.style.setProperty('--scr-in', -Math.ceil(gr.right - br.left) + 'px'); } catch (e) {}
         btn.classList.remove('rand-building'); btn.classList.add('new-pattern', 'np-scroll'); // transition is live BEFORE the colours change... (np-scroll: chevrons scroll through instead of scale-pulsing)
         _randoShuffle('click');                                                 // ...new instruments (+ that column's extra rolls)...
         clearBtnBlueHeld('randBtn');                                           // ...so the background eases from pressed into the new colour
@@ -25039,10 +25043,18 @@ function snapshotDisplay() {
     b.appendChild(t); b.appendChild(yes); b.appendChild(no); document.body.appendChild(b);
     setTimeout(() => { if (b.parentNode) done(); }, 60000);
   }
+  // UPDATE (see the update check below): save everything, mark it, reload — the new build then puts the session straight back
+  window._sifiUpdateReload = () => {
+    try { lastJson = ''; save(); localStorage.setItem('_sifiUpdateRestore', String(Date.now())); } catch (e) {}
+    try { if (typeof playing !== 'undefined' && playing) togglePlay(); } catch (e) {}
+    location.reload();
+  };
   function start() {
     let d = null; try { d = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
     const recent = d && d.snap && (Date.now() - d.at) < 48 * 3600 * 1000;
-    if (recent && window._sifiLastSessionCrashed) {
+    let upd = 0; try { upd = +localStorage.getItem('_sifiUpdateRestore') || 0; localStorage.removeItem('_sifiUpdateRestore'); } catch (e) {}
+    if (upd && Date.now() - upd < 5 * 60 * 1000 && d && d.snap) { restore(d); setTimeout(() => { try { _showNotice('UPDATED — SESSION RESTORED'); } catch (e) {} }, 400); }
+    else if (recent && window._sifiLastSessionCrashed) {
       window._autosaveDeclinedPending = true; // don't overwrite the old session with the fresh startup pattern until you've chosen
       offer(d);
     }
@@ -25051,6 +25063,50 @@ function snapshotDisplay() {
     window.addEventListener('pagehide', save);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(start, 500)); else setTimeout(start, 500);
+})();
+</script>
+<script>
+/* SELF-UPDATE, per direct request (home-screen app): the app checks GitHub Pages for a newer build — when you come back to it,
+   and every 10 minutes while it's open but stopped — by reading just the first bytes of the live page for its BUILD stamp. If
+   the live build is newer, an UPDATE bar appears; tapping it saves the session (pattern, tape drawer, slots), reloads into the
+   new build and puts the session straight back. Nothing reloads on its own, so it can never cut into a performance. */
+(function () {
+  const stampOf = txt => { const m = /BUILD(?: TIMESTAMP:)? (\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) UTC/.exec(txt || ''); return m ? m[1] : null; };
+  const mine = () => stampOf((document.getElementById('buildTimestamp') || {}).textContent) || stampOf(document.documentElement.innerHTML.slice(0, 400));
+  let checking = false, lastCheck = 0, shown = false;
+  async function check(force) {
+    if (checking || shown || location.protocol === 'file:' || !navigator.onLine) return;
+    if (!force && performance.now() - lastCheck < 60 * 1000) return;
+    checking = true; lastCheck = performance.now();
+    try {
+      const url = location.pathname + '?sifiUpdateCheck=' + Date.now();
+      const res = await fetch(url, { cache: 'no-store', headers: { Range: 'bytes=0-2047' } });
+      let head = '';
+      if (res.body && res.body.getReader) { const rd = res.body.getReader(); const { value } = await rd.read(); head = new TextDecoder().decode(value || new Uint8Array()); try { rd.cancel(); } catch (e) {} }
+      else head = (await res.text()).slice(0, 2048);
+      const live = stampOf(head), cur = mine();
+      if (live && cur && live > cur) offer(live);
+    } catch (e) {}
+    checking = false;
+  }
+  function offer(live) {
+    shown = true;
+    try { navigator.serviceWorker && navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {}); } catch (e) {}
+    const b = document.createElement('div'); b.id = '_updateBar';
+    b.style.cssText = 'position:fixed;left:8px;right:8px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:99999;background:#111;color:#fff;font:700 12px "DM Sans",sans-serif;letter-spacing:1px;padding:12px 12px 12px 16px;display:flex;align-items:center;gap:10px;border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,0.4);';
+    const t = document.createElement('span'); t.style.flex = '1'; t.textContent = 'NEW VERSION READY';
+    const go = document.createElement('button'); go.textContent = 'UPDATE';
+    go.style.cssText = 'background:#f17d21;color:#000;border:none;border-radius:999px;padding:8px 14px;font:700 12px "DM Sans",sans-serif;letter-spacing:1px;';
+    const x = document.createElement('button'); x.textContent = '✕';
+    x.style.cssText = 'background:none;color:#fff;border:none;font:700 16px monospace;padding:4px 6px;';
+    go.onclick = e => { e.stopPropagation(); go.textContent = 'UPDATING…'; if (window._sifiUpdateReload) window._sifiUpdateReload(); else location.reload(); };
+    x.onclick = e => { e.stopPropagation(); b.remove(); setTimeout(() => { shown = false; }, 30 * 60 * 1000); }; // ask again in half an hour
+    b.appendChild(t); b.appendChild(go); b.appendChild(x); document.body.appendChild(b);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(() => check(true), 1500); });
+  setInterval(() => { if (document.visibilityState === 'visible' && !(typeof playing !== 'undefined' && playing)) check(false); }, 10 * 60 * 1000);
+  setTimeout(() => check(true), 8000); // once shortly after opening
+  window._sifiCheckUpdate = () => check(true);
 })();
 </script>
 <script>
