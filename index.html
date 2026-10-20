@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 02:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 04:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -374,7 +374,7 @@ body.live-layout #liveKey { display: flex; pointer-events: auto; cursor: pointer
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
 /* (LIVE no longer doubles the tempo, per direct request — the key just matches the tempo's normal size) */
 #liveKey .lk-sharp { font-size: 0.5em; }
-#liveKey .lk-scale { display: inline-block; white-space: normal; line-height: 1.05; font-size: 0.768rem; letter-spacing: 1px; } /* exactly the "bpm" label's size AND letter-spacing, per direct request */
+#liveKey .lk-scale { display: inline-block; white-space: normal; line-height: 1.05; font-size: 0.96rem; letter-spacing: 1px; } /* 25% bigger than the 'bpm' size, per direct request */ /* exactly the "bpm" label's size AND letter-spacing, per direct request */
 body.hide-tape #tapeReels, body.hide-tape #tapeReels * { animation: none !important; filter: none !important; box-shadow: none !important; }
 html body.no-ast-pulse .lock-ast-shape.ast-beat-a, html body.no-ast-pulse .lock-ast-shape.ast-beat-b { animation: none !important; }
 /* BATTERY SAVER: every pulse off except the beat COUNT and the playhead (the logo is handled with logo-pulse-expired above) */
@@ -2764,7 +2764,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 04:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2812,12 +2812,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   </button>
   <button id="randomizeReverbIconBtn" style="position:absolute;top:1px;right:2px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;" title="Click and drag down to randomize reverb settings">
     <svg width="24" height="16" viewBox="0 0 22 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="1" width="20" height="12" stroke="#555" stroke-width="1.3"/>
-      <rect x="7" y="4" width="8" height="6" stroke="#555" stroke-width="1.3"/>
-      <line x1="1" y1="1" x2="7" y2="4" stroke="#555" stroke-width="1.3"/>
-      <line x1="21" y1="1" x2="15" y2="4" stroke="#555" stroke-width="1.3"/>
-      <line x1="1" y1="13" x2="7" y2="10" stroke="#555" stroke-width="1.3"/>
-      <line x1="21" y1="13" x2="15" y2="10" stroke="#555" stroke-width="1.3"/>
+      <rect x="1" y="1" width="20" height="12" stroke="#555" stroke-width="1.8"/>
+      <rect x="7" y="4" width="8" height="6" stroke="#555" stroke-width="1.8"/>
+      <line x1="1" y1="1" x2="7" y2="4" stroke="#555" stroke-width="1.8"/>
+      <line x1="21" y1="1" x2="15" y2="4" stroke="#555" stroke-width="1.8"/>
+      <line x1="1" y1="13" x2="7" y2="10" stroke="#555" stroke-width="1.8"/>
+      <line x1="21" y1="13" x2="15" y2="10" stroke="#555" stroke-width="1.8"/>
     </svg>
   </button>
   <button id="devMenuBtn" style="position:absolute;top:0;right:40px;background:none;border:none;padding:4px;cursor:pointer;line-height:0;touch-action:none;">
@@ -7177,7 +7177,7 @@ function _placeHeaderIcons() {
   const svg = rv.querySelector('svg'); if (!svg) return;
   const sr = svg.getBoundingClientRect(); if (!sr.width) return;
   const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : { width: 22 };
-  const iconInkLeft = sr.left + (1 - 0.65) * (sr.width / (vb.width || 22)); // outer rect at x=1, stroke 1.3
+  const iconInkLeft = sr.left + (1 - 0.9) * (sr.width / (vb.width || 22)); // outer rect at x=1, stroke 1.8 (thicker, per direct request)
   const cs = getComputedStyle(lbl);
   _beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d');
   _beatMeasureCtx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
@@ -7240,7 +7240,7 @@ function _placeLiveKey() {
   const el = document.getElementById('liveKey'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent || !document.body.classList.contains('live-layout')) return;
   const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect(), ncs = getComputedStyle(num);
-  const note = el.firstChild; note.style.fontSize = ncs.fontSize; note.style.lineHeight = ncs.lineHeight;
+  const note = el.firstChild; note.style.fontSize = (parseFloat(ncs.fontSize) * 1.25) + 'px'; note.style.lineHeight = (parseFloat(ncs.lineHeight) * 1.25 || parseFloat(ncs.fontSize) * 1.25) + 'px'; // 25% bigger, per direct request
   // TAKES THE LOGO'S PLACE in LIVE, per direct request (the logo is hidden there): vertically centred on the logo's own box,
   // left edge on the logo's text. Layout geometry (offsets), not on-screen rects, so the logo's running wobble / drag offsets
   // can't push it around.
@@ -16386,7 +16386,7 @@ function randAll(mode, opts) {
       const _wildLook = () => {
         try {
           const cur = window._rainbowIdx, pool = _RAINBOW_CYCLE.map((m, i) => i).filter(i => i !== cur && !_RAINBOW_CYCLE[i].liveOnly);
-          if (pool.length && !(_RAINBOW_CYCLE[cur] && _RAINBOW_CYCLE[cur].liveOnly)) { const nm = _RAINBOW_CYCLE[pool[Math.floor(Math.random() * pool.length)]]; _applyRainbowState(nm); _showModeLabel(nm); }
+          if (pool.length && !(_RAINBOW_CYCLE[cur] && _RAINBOW_CYCLE[cur].liveOnly)) { const nm = _RAINBOW_CYCLE[pool[Math.floor(Math.random() * pool.length)]]; _applyRainbowState(nm); }
         } catch (e) {}
         randomizeAppColors();
       };
@@ -21137,7 +21137,10 @@ function _applyDisplayPalette(name) {
 // modes can be referred to by number.
 let _modeLabelT = null;
 function _showModeLabel(m) {
+  // NORMAL DIALOG BOX now, per direct request — the display mode's name in the centre notice (the header text below is retired)
   const i = _RAINBOW_CYCLE.indexOf(m); if (i < 0) return;
+  _showNotice(m.name || ('MODE ' + (i + 1)));
+  return;
   let el = document.getElementById('modeLabel');
   if (!el) {
     el = document.createElement('div'); el.id = 'modeLabel';
@@ -22045,8 +22048,8 @@ function setTonalPercBalance(v) {
     const toggleLive = window._toggleLiveMode = () => {
       const liveIdx = _RAINBOW_CYCLE.findIndex(m => m.liveOnly); if (liveIdx < 0) return;
       playUiSound('tinyclick');
-      if (window._rainbowIdx === liveIdx) { const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showModeLabel(back); }
-      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); _showModeLabel(lm); }
+      if (window._rainbowIdx === liveIdx) { const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showNotice('NORMAL MODE'); }
+      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); _showNotice('LIVE MODE'); }
     };
     const move = (y, e) => {
       if (y0 === null) return;
@@ -25138,7 +25141,7 @@ function snapshotDisplay() {
     // Same visual gap as rainbow → reverb icon (measured ink-to-ink, not button boxes).
     const rvB = document.getElementById('randomizeReverbIconBtn'), rv = rvB && (rvB.querySelector('svg') || rvB).getBoundingClientRect();
     const rbInkL = ic.left - 0.3 * (ic.width / 22), rbInkR = ic.right + 0.3 * (ic.width / 22);
-    let gap = 6; if (rv && rv.width) { const rvInkL = rv.left + 0.35 * (rv.width / 22); gap = Math.max(0, rvInkL - rbInkR); }
+    let gap = 6; if (rv && rv.width) { const rvInkL = rv.left + 0.1 * (rv.width / 22); gap = Math.max(0, rvInkL - rbInkR); }
     // tint like the tempo number, which already follows every display mode's light/dark header colour
     // INVERTED, per direct request: a filled circle in the header tint (follows every display mode via the tempo number's
     // colour) with the ? knocked out in the opposite tone — dark circle / light ? on light headers, and the reverse on dark ones.
@@ -25158,7 +25161,7 @@ function snapshotDisplay() {
     // circle the same width as the reverb icon
     const D = Math.round((rv && rv.width) || 24); if (btn.offsetWidth !== D) { btn.style.width = D + 'px'; btn.style.height = D + 'px'; }
     // ? now sits to the RIGHT of the reverb icon (order: rainbow · reverb · ?), the same gap away
-    const rvInkR = rv && rv.width ? rv.right - 0.35 * (rv.width / 22) : rbInkR + gap + 24;
+    const rvInkR = rv && rv.width ? rv.right - 0.1 * (rv.width / 22) : rbInkR + gap + 24;
     btn.style.left = (rvInkR + gap - hr.left) + 'px';
     btn.style.top = (ic.top - hr.top + ic.height / 2 - btn.offsetHeight / 2) + 'px';
     // ☰ one more slot to the right, same size as the ? circle, same gap
@@ -25189,10 +25192,14 @@ function snapshotDisplay() {
     let longest = 0;
     icons.forEach((el, i) => {
       const r = el.getBoundingClientRect(), dx = Math.round((hr.left + hr.width / 2) - (r.left + r.width / 2));
-      const from = { translate: dx + 'px 0', opacity: 0 }, to = { translate: '0px 0', opacity: 1 };
-      const delay = open ? i * 50 : (icons.length - 1 - i) * 50, dur = open ? 280 : 220;
+      // SHINE, per direct request: on the way out / in each icon flashes up to white with a soft white glow, then settles
+      const plain = 'brightness(1) invert(0) drop-shadow(0 0 0px rgba(255,255,255,0))', shine = 'brightness(0) invert(1) drop-shadow(0 0 7px rgba(255,255,255,0.95))';
+      const kf = open
+        ? [{ translate: dx + 'px 0', opacity: 0, filter: shine }, { translate: Math.round(dx * 0.15) + 'px 0', opacity: 1, filter: shine, offset: 0.55 }, { translate: '0px 0', opacity: 1, filter: plain }]
+        : [{ translate: '0px 0', opacity: 1, filter: plain }, { translate: Math.round(dx * 0.35) + 'px 0', opacity: 1, filter: shine, offset: 0.4 }, { translate: dx + 'px 0', opacity: 0, filter: shine }];
+      const delay = open ? i * 50 : (icons.length - 1 - i) * 50, dur = open ? 380 : 300;
       longest = Math.max(longest, delay + dur);
-      try { _hdrAnims.push(el.animate(open ? [from, to] : [to, from], { duration: dur, delay, easing: open ? 'cubic-bezier(0.2, 0.8, 0.3, 1)' : 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'both' })); } catch (e) {}
+      try { _hdrAnims.push(el.animate(kf, { duration: dur, delay, easing: open ? 'cubic-bezier(0.2, 0.8, 0.3, 1)' : 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'both' })); } catch (e) {}
     });
     setTimeout(() => {
       if (tok !== _hdrTok) return;
