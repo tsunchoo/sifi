@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 09:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 09:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1517,8 +1517,9 @@ body.battery-saver-mode #randomizeReverbIconBtn { opacity: 0.3 !important; point
 body.battery-saver-mode #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
 /* ACTIVE whenever REVERB MIX isn't 0%, per direct request — in EVERY display mode (glows-off modes included, which used to hide
    it): the lines go to the header's full text colour and keep the glow. */
-html body #randomizeReverbIconBtn.rev-on svg rect, html body #randomizeReverbIconBtn.rev-on svg line { stroke: var(--header-text-color, #111) !important; }
-html body.no-glow:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg, html body.safe-gfx:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: drop-shadow(0 0 1.5px var(--header-text-color, #555)) drop-shadow(0 0 3px color-mix(in srgb, var(--header-text-color, #555) 45%, transparent)) !important; }
+html body #randomizeReverbIconBtn.rev-on svg rect, html body #randomizeReverbIconBtn.rev-on svg line { stroke: var(--hdr-tint, #111) !important; }
+html body:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: drop-shadow(0 0 1.5px var(--hdr-tint, #555)) drop-shadow(0 0 4px color-mix(in srgb, var(--hdr-tint, #555) 55%, transparent)) !important; } /* lit in the header's own colour — light on dark modes, dark on light ones */
+html body.battery-saver-mode:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
 body.battery-saver-mode #randomizeReverbIconBtn svg rect,
 body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) !important; }
 /* The "<" offset button specifically (not the "R" reverb toggle, which
@@ -2774,7 +2775,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 09:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 09:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -17690,7 +17691,7 @@ function randAll(mode, opts) {
       if (fb) fb.classList.toggle('blast-on', blastOn);
       // CHINK in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
       // with notes); a track that lands on it swaps its FX for CHINK, the button's 4th stop.
-      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && _chinkAllowed(tr) && Math.random() < blastChance / Math.max(0.01, 1 - blastChance);
+      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && _chinkAllowed(tr) && Math.random() < 0.47; // as often as plain FX on the tracks that can take it, per direct request (was only as often as BLAST)
       if (chinkOn) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
         if (fb) { fb.classList.remove('on', 'blast-on'); }
@@ -21275,6 +21276,13 @@ function _makeSwipeIcon(btn, opts) {
   btn.addEventListener('touchmove', e => { e.preventDefault(); move(e.touches[0].clientY); }, { passive: false });
   btn.addEventListener('touchend', e => { e.preventDefault(); end(); }, { passive: false });
   btn.addEventListener('touchcancel', () => { clearHold(); downY = null; snapBack(); });
+  // STUCK-DOWN FIX, per direct report: if the touch's end never reaches the icon (it was hidden / tucked away mid-drag, or iOS
+  // dropped the event), the finger lifting ANYWHERE still finishes the drag and springs the icon back; and a backstop puts it
+  // back at rest shortly after any release.
+  document.addEventListener('touchend', e => { if (downY !== null && e.touches.length === 0) end(); }, { capture: true, passive: true });
+  document.addEventListener('touchcancel', () => { if (downY !== null) { clearHold(); downY = null; snapBack(); } }, { capture: true, passive: true });
+  const _rest = () => { if (downY === null && btn.style.transform && btn.style.transform !== 'translateY(0px)') snapBack(); };
+  ['touchend', 'mouseup'].forEach(t => document.addEventListener(t, () => setTimeout(_rest, 450), { capture: true, passive: true }));
   btn.addEventListener('mousedown', e => {
     if (Date.now() - touchJustHandled < 1000) return;
     start(e.clientY);
@@ -25432,6 +25440,7 @@ function snapshotDisplay() {
         const c = getComputedStyle(tn).color;
         if (c && btn._tint !== c) {
           btn._tint = c; btn.style.background = c;
+          document.body.style.setProperty('--hdr-tint', c); // the header's actual text colour in this mode (dark modes = light) — the lit reverb icon uses it
           const m = c.match(/[\d.]+/g) || [17, 17, 17];
           const lin = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
           const L = 0.2126 * lin(+m[0]) + 0.7152 * lin(+m[1]) + 0.0722 * lin(+m[2]);
