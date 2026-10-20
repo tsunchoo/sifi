@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-19 05:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 01:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -369,6 +369,7 @@ body.bg-beat-pulse { animation: bg-pulse var(--bg-pulse-duration, 0.15s) ease-ou
 body.hide-tape #tapeReels { opacity: 0 !important; }
 /* LIVE layout: tempo twice the size, the key shown big on the left of the tempo row (placed by _placeLiveKey), count 2.5x (see _placeBeatCount) */
 #liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 0; }
+body.live-layout #siFiTitle { visibility: hidden !important; pointer-events: none !important; } /* LIVE: the key takes the logo's place, per direct request */
 body.live-layout #liveKey { display: flex; pointer-events: auto; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; } /* tap opens SETTINGS in LIVE, per direct request */
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
 /* (LIVE no longer doubles the tempo, per direct request — the key just matches the tempo's normal size) */
@@ -497,6 +498,23 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
   20%  { color: var(--play-hl, currentColor); transform: translateY(-2px) scale(1.225); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
   100% { transform: translateY(-2px) scale(1); text-shadow: 0 0 calc(6.9px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 20% * var(--rglow, 1))), transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 14% * var(--rglow, 1))), transparent); }
 }
+@keyframes new-pattern-glow {
+  0%   { color: #fff; text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
+  20%  { color: var(--play-hl, currentColor); text-shadow: 0 0 calc(9.2px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent), 0 0 calc(38.4px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 100% * var(--rglow, 1))), transparent); }
+  100% { text-shadow: 0 0 calc(6.9px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 20% * var(--rglow, 1))), transparent), 0 0 calc(18px * var(--rglow, 1)) color-mix(in srgb, currentColor calc(min(100%, 14% * var(--rglow, 1))), transparent); }
+}
+/* SINGLE TAP (PLAYDOE instrument swap) on >>, per direct request: no scale pulse on the button or the glyph — the chevrons
+   scroll out to the right through their cell and come back in from the left to rest where they were, with the usual
+   new-pattern colour / glow fade alongside. */
+@keyframes rand-glyph-scroll {
+  0%     { transform: translate(0, -2px); }
+  42%    { transform: translate(135%, -2px); animation-timing-function: steps(1, end); }
+  42.01% { transform: translate(-135%, -2px); }
+  100%   { transform: translate(0, -2px); }
+}
+#randBtn.np-scroll { overflow: hidden; }
+html body #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 520ms cubic-bezier(0.45, 0, 0.25, 1) both, new-pattern-glow var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+html body.battery-saver-mode #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 520ms cubic-bezier(0.45, 0, 0.25, 1) both !important; }
 /* ...and the button's background eases from its highlighted (pressed)
    shade back to normal over the same duration as the glyph, per direct
    request, instead of snapping back when the held state clears. */
@@ -1050,6 +1068,7 @@ html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-h
    instead, so the handle is the same solid colour on every track. */
 html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1; } /* solid handle in every tip colour mode, not just the play-colour one */
 html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: 1; } /* fully opaque now, per direct request ("the fill never gets to fully white") — it had inherited TRACK BUTTON OPACITY's 75% when that was moved off the bar */
+html body:not(.seq-playing) .track-wrap .track-vol-bar .track-vol-fill-solid { opacity: 0.7 !important; } /* STOPPED: the resting peak-look fill at 70%, per direct request */
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
@@ -2736,7 +2755,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-19 05:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 01:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7131,7 +7150,8 @@ function _placeHeaderIcons() {
   // right-hand slot lined up on the 'b', so reverb + rainbow sit one icon-plus-gap further left. Gap = rainbow → reverb ink gap.
   const ds = dm.querySelector('svg'), dr = ds && ds.getBoundingClientRect();
   const gap = dr && dr.width ? Math.max(0, iconInkLeft - (dr.right + 0.3 * (dr.width / 22))) : 14;
-  const d = (bInkLeft - (sr.width + gap)) - iconInkLeft; if (Math.abs(d) < 0.25) return;
+  // + the HAMBURGER (☰) on the far right now, per direct request: order rainbow · reverb · ? · ☰, the ☰ on the 'b' slot
+  const d = (bInkLeft - 2 * (sr.width + gap)) - iconInkLeft; if (Math.abs(d) < 0.25) return;
   [rv, dm].forEach(el => { el.style.right = ((parseFloat(el.style.right) || 0) - d) + 'px'; });
 }
 const _LIVE_SCALE_LABELS = { 'penta-min': 'pentatonic minor', 'penta-maj': 'pentatonic major', 'major': 'major', 'minor': 'minor', 'dorian': 'dorian', 'mixolydian': 'mixolydian', 'blues': 'blues' }; // full names, per direct request (was abbreviated)
@@ -7155,16 +7175,47 @@ function _updateLiveKey() {
 // LIVE: tapping the key opens SETTINGS, per direct request (the element only takes taps while it's showing, i.e. in LIVE)
 document.addEventListener('DOMContentLoaded', () => {
   const lk = document.getElementById('liveKey'); if (!lk) return;
-  lk.addEventListener('click', e => { if (!document.body.classList.contains('live-layout')) return; e.stopPropagation(); _pressPulse('liveKey'); showSettings(); });
+  // DRAG DOWN on the key = back to normal mode, per direct request (mirrors the logo's drag into LIVE: follows the finger up to
+  // 30px, fires at the end; a drag swallows the tap that would open SETTINGS).
+  let y0 = null, dragging = false, fired = false, suppressUntil = 0; const START = 6, MAXD = 30;
+  const live = () => document.body.classList.contains('live-layout');
+  const vis = dy => { lk.style.transition = 'none'; lk.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
+  const snap = () => { lk.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; lk.style.translate = '0 0'; };
+  const move = (y, e) => {
+    if (y0 === null) return; const dy = y - y0;
+    if (!dragging && dy > START) dragging = true; if (!dragging) return;
+    if (e && e.cancelable) e.preventDefault();
+    vis(dy);
+    if (!fired && dy >= MAXD) { fired = true; try { window._toggleLiveMode && window._toggleLiveMode(); } catch (er) {} }
+  };
+  const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
+  lk.style.touchAction = 'none';
+  lk.addEventListener('touchstart', e => { if (!live()) return; y0 = e.touches[0].clientY; dragging = false; fired = false; }, { passive: true });
+  lk.addEventListener('touchmove', e => move(e.touches[0].clientY, e), { passive: false });
+  lk.addEventListener('touchend', end); lk.addEventListener('touchcancel', end);
+  lk.addEventListener('mousedown', e => { if (!live()) return; y0 = e.clientY; dragging = false; fired = false;
+    const mm = me => move(me.clientY, me), mu = () => { end(); document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm); document.addEventListener('mouseup', mu); });
+  lk.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+    if (!document.body.classList.contains('live-layout')) return; e.stopPropagation(); _pressPulse('liveKey'); showSettings(); });
 });
 function _placeLiveKey() {
   const el = document.getElementById('liveKey'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent || !document.body.classList.contains('live-layout')) return;
   const pr = el.offsetParent.getBoundingClientRect(), nr = num.getBoundingClientRect(), ncs = getComputedStyle(num);
   const note = el.firstChild; note.style.fontSize = ncs.fontSize; note.style.lineHeight = ncs.lineHeight;
-  el.style.top = (nr.top - pr.top) + 'px';
-  const lr = logo ? logo.getBoundingClientRect() : { left: pr.left + 12 };
-  el.style.left = (lr.left - pr.left + (parseFloat(getComputedStyle(logo || el).paddingLeft) || 0)) + 'px';
+  // TAKES THE LOGO'S PLACE in LIVE, per direct request (the logo is hidden there): vertically centred on the logo's own box,
+  // left edge on the logo's text. Layout geometry (offsets), not on-screen rects, so the logo's running wobble / drag offsets
+  // can't push it around.
+  if (logo && logo.offsetParent === el.offsetParent) {
+    const lcs = getComputedStyle(logo);
+    el.style.top = (logo.offsetTop + (logo.offsetHeight - el.offsetHeight) / 2) + 'px';
+    el.style.left = (logo.offsetLeft + (parseFloat(lcs.paddingLeft) || 0)) + 'px';
+  } else {
+    const lr = logo ? logo.getBoundingClientRect() : { left: pr.left + 12, top: nr.top, height: el.offsetHeight };
+    el.style.top = (lr.top - pr.top + (lr.height - el.offsetHeight) / 2) + 'px';
+    el.style.left = (lr.left - pr.left + (parseFloat(getComputedStyle(logo || el).paddingLeft) || 0)) + 'px';
+  }
   const sc = el.lastChild, sw = document.getElementById('clearBtn');
   if (sc && sw && sc.firstChild) {
     sc.style.marginLeft = '6px'; // just follows the note with a small gap — no longer lined up with SWEEP, per direct request
@@ -16138,7 +16189,7 @@ function _randomizeReverbSettings() {
 function _newPatternPulse() {
   const b = document.getElementById('randBtn'); if (!b) return;
   document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's'); // two beats + a white lead-in a quarter of that long (half a beat), per direct request
-  b.classList.remove('new-pattern', 'rand-building'); requestAnimationFrame(() => b.classList.add('new-pattern')); // next-frame restart, no forced reflow (crash hunt)
+  b.classList.remove('new-pattern', 'rand-building', 'np-scroll'); requestAnimationFrame(() => b.classList.add('new-pattern')); // next-frame restart, no forced reflow (crash hunt)
   clearTimeout(b._npT); b._npT = setTimeout(() => b.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
 }
 // NEW PATTERN CASCADE + TEMPO COUNT, per direct request: when a new pattern lands, all note markers clear at once, then the new
@@ -17687,8 +17738,19 @@ function stopAllAutoRand() {
     else queueRand();
   };
 
+  let _autoOffTapT = 0;
   const singleFire = () => {
-    if (_autoRandLoopActive) { stopAuto(); _showNotice('AUTO MODE OFF'); return; } // turning AUTO off doesn't need its own press-pulse
+    if (_autoRandLoopActive) { stopAuto(); _showNotice('AUTO MODE OFF'); _autoOffTapT = performance.now(); return; } // turning AUTO off doesn't need its own press-pulse
+    // DOUBLE-TAP OUT OF AUTO, per direct request: the first tap switches AUTO off (above); a second tap straight after it also
+    // fires a brand-new pattern — whatever PLAYDOE's own single/double-tap meanings would otherwise be.
+    if (_autoOffTapT && performance.now() - _autoOffTapT < 400) {
+      _autoOffTapT = 0;
+      btn.style.background = ''; btn.style.color = ''; btn.style.transform = ''; btn.style.transition = '';
+      btn.classList.remove('btn-flash-blue', 'rand-pending-fast');
+      _pressPulse('randBtn'); setBtnBlueHeld('randBtn'); queueRand();
+      return;
+    }
+    _autoOffTapT = 0;
     // Defensive reset before applying this press's own visual state — a
     // prior interaction (e.g. the sweep-drag-onto-RAND gesture, or some
     // other path not yet identified) has occasionally been observed
@@ -17701,12 +17763,13 @@ function stopAllAutoRand() {
     // never pinned down.
     btn.style.background = ''; btn.style.color = ''; btn.style.transform = ''; btn.style.transition = '';
     btn.classList.remove('btn-flash-blue', 'rand-pending-fast');
-    _pressPulse('randBtn');
+    if (!window._playdoeOn) _pressPulse('randBtn'); // PLAYDOE: no scale pulse on a single tap, per direct request — a double tap adds it below
     // PLAYDOE: single tap = new instruments on the same pattern; DOUBLE tap = a normal new pattern (what a single tap does
     // with PLAYDOE off). The single tap waits out the double-tap window first, so a double tap never swaps instruments too.
     if (window._playdoeOn) {
       if (_playdoeTapTimer) {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
+        _pressPulse('randBtn'); // double tap keeps its press pulse
         // PLAYDOE DOUBLE TAP WHILE PLAYING, per direct request: playback stops, the RECALL rewind sound plays (2dB quieter),
         // the new pattern loads underneath it, and playback starts again the moment the rewind ends — no play/stop clicks.
         if (playing && ctx) {
@@ -17714,7 +17777,7 @@ function stopAllAutoRand() {
           const _rwBuf = window._uiSoundBufs && window._uiSoundBufs[_rwName];
           const _rwDur = _rwBuf ? _rwBuf.duration / (_rwName === 'rewind' ? 1.5 : 1) : 0.6;
           btn.style.setProperty('--playdoe-spin-dur', _rwDur.toFixed(3) + 's');
-          btn.classList.remove('rand-building', 'playdoe-ast'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
+          btn.classList.remove('rand-building', 'playdoe-ast', 'np-scroll'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
           setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
           setBtnBlueHeld('randBtn');
           window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
@@ -17736,7 +17799,7 @@ function stopAllAutoRand() {
         let _spin = 1;
         if (playing && ctx) { try { _spin = Math.max(0.3, (NUM_STEPS - 1 - currentStep) * stepDuration() + Math.max(0, nextStepTime - ctx.currentTime)); } catch (e) {} }
         btn.style.setProperty('--playdoe-spin-dur', _spin.toFixed(3) + 's');
-        btn.classList.remove('playdoe-ast'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
+        btn.classList.remove('playdoe-ast', 'np-scroll'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
         setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
         setBtnBlueHeld('randBtn'); queueRand(); return;
       }
@@ -17747,10 +17810,10 @@ function stopAllAutoRand() {
       _playdoeTapTimer = setTimeout(() => {
         _playdoeTapTimer = null;
         document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
-        btn.classList.remove('rand-building'); btn.classList.add('new-pattern'); // transition is live BEFORE the colours change...
+        btn.classList.remove('rand-building'); btn.classList.add('new-pattern', 'np-scroll'); // transition is live BEFORE the colours change... (np-scroll: chevrons scroll through instead of scale-pulsing)
         _playdoePlus();                                                        // ...new instruments + new colour scheme...
         clearBtnBlueHeld('randBtn');                                           // ...so the background eases from pressed into the new colour
-        clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
+        clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern', 'np-scroll'), (60 / (bpm || 110)) * 2500 + 50);
       }, PLAYDOE_DOUBLE_MS);
       return;
     }
@@ -21925,7 +21988,7 @@ function setTonalPercBalance(v) {
     };
     const vis = dy => { title.style.transition = 'none'; title.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
     const snap = () => { title.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; title.style.translate = '0 0'; };
-    const toggleLive = () => {
+    const toggleLive = window._toggleLiveMode = () => {
       const liveIdx = _RAINBOW_CYCLE.findIndex(m => m.liveOnly); if (liveIdx < 0) return;
       playUiSound('tinyclick');
       if (window._rainbowIdx === liveIdx) { const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showModeLabel(back); }
@@ -24931,10 +24994,11 @@ function snapshotDisplay() {
   const H = [
     ['#siFiTitle', 'Si•Fi LOGO', 'Tapping the logo toggles the 8-bit mix (crunchy 1990s computer feel). Dragging the logo DOWN toggles the \'LIVE\' mode — a simplified battery-saving mode for performance with a large 1-2-3-4 count display always shown; drag down again to leave.'],
     ['#_helpBtn', 'HELP MODE - click anything to see what it does', ''],
+    ['#_hamBtn', 'MENU', 'Shows or hides the rainbow (look and feel), reverb and help icons. Tap again to tuck them away.'],
     ['#devMenuBtn', 'RAINBOW · LOOK AND FEEL MENU', 'Tap to open LOOK AND FEEL — display modes, colours, marker styles and other visual settings. Swipe DOWN to cycle thru display modes.'],
     ['#randomizeReverbIconBtn', 'REVERB', 'Drag DOWN to get new reverb settings (size and mix) without touching the pattern, dragging down toggles it back off. Click and holding opens the reverb menu, where you can change the overall Reverb mix, size and how much it applies to \'DRUMS\''],
     ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle thru 3 count modes, text/text with audible click/hide count. In LIVE mode it is always shown and a tap switches the click on/off.'],
-    ['#liveKey', 'KEY', 'The key and scale of the current pattern.'],
+    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In LIVE mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to normal mode.'],
     ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the TEMPO, hold to bring up the tempo menu: NUDGE (push/pull while held), TEMPO slider, the lock and RE-UP to stop and restart the pattern/count.'],
     ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
     ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
@@ -25041,14 +25105,36 @@ function snapshotDisplay() {
     const rvInkR = rv && rv.width ? rv.right - 0.35 * (rv.width / 22) : rbInkR + gap + 24;
     btn.style.left = (rvInkR + gap - hr.left) + 'px';
     btn.style.top = (ic.top - hr.top + ic.height / 2 - btn.offsetHeight / 2) + 'px';
+    // ☰ one more slot to the right, same size as the ? circle, same gap
+    if (ham) {
+      if (ham.offsetWidth !== D) { ham.style.width = D + 'px'; ham.style.height = D + 'px'; }
+      ham.style.left = (rvInkR + gap + D + gap - hr.left) + 'px';
+      ham.style.top = btn.style.top;
+      if (btn._tint && ham.style.color !== btn._tint) ham.style.color = btn._tint; // drawn in the header tint, like the tempo number
+    }
   }
+  // HAMBURGER, per direct request: the rainbow / reverb / ? icons are tucked away by default; tapping ☰ shows them (and makes
+  // them usable), tapping it again tucks them away. The body class 'hdr-icons-open' carries the state.
+  let ham = null;
+  function setHdrOpen(open) {
+    document.body.classList.toggle('hdr-icons-open', !!open);
+    if (ham) ham.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (!open && on) exit(); // closing the icons also leaves help mode
+  }
+  window._setHdrIconsOpen = setHdrOpen;
   function init() {
     const dm = document.getElementById('devMenuBtn'); if (!dm) return;
     btn = document.createElement('button'); btn.id = '_helpBtn'; btn.setAttribute('aria-label', 'Help');
     btn.style.cssText = "position:absolute;z-index:99995;width:24px;height:24px;padding:0;margin:0;border:none;border-radius:50%;background:#111;color:#fff;font:700 16px/1 'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;";
     btn.textContent = '?';
     btn.addEventListener('click', e => { e.stopPropagation(); on ? exit() : enter(); });
-    dm.parentElement.appendChild(btn); place();
+    dm.parentElement.appendChild(btn);
+    ham = document.createElement('button'); ham.id = '_hamBtn'; ham.setAttribute('aria-label', 'Menu');
+    ham.style.cssText = "position:absolute;z-index:99995;width:24px;height:24px;padding:0;margin:0;border:none;background:none;color:var(--header-text-color,#111);cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;";
+    ham.innerHTML = '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="pointer-events:none"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+    ham.addEventListener('click', e => { e.stopPropagation(); setHdrOpen(!document.body.classList.contains('hdr-icons-open')); });
+    dm.parentElement.appendChild(ham);
+    setHdrOpen(false); place();
     window.addEventListener('resize', place); setInterval(place, 1500); try { new MutationObserver(() => requestAnimationFrame(place)).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); } catch (e) {} // follows the header icons when they shift (display modes, LIVE)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 300)); else setTimeout(init, 300);
@@ -25056,6 +25142,9 @@ function snapshotDisplay() {
 </script>
 <style>
 #_helpBtn.help-on { background: #f17d21 !important; color: #000 !important; }
+/* ☰ closed (default): rainbow, reverb and ? are hidden and can't be pressed; open: they fade in and work as normal */
+#devMenuBtn, #randomizeReverbIconBtn, #_helpBtn { transition: opacity 160ms ease-out; }
+body:not(.hdr-icons-open) #devMenuBtn, body:not(.hdr-icons-open) #randomizeReverbIconBtn, body:not(.hdr-icons-open) #_helpBtn { opacity: 0 !important; pointer-events: none !important; visibility: hidden; }
 </style>
 </body>
 </html>
