@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 08:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 08:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -738,8 +738,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 /* NEW PATTERN EVERY... greyed out (and not adjustable) until AUTO is on, per direct request */
 #autoPeriodRow { transition: opacity 0.15s; }
 #autoPeriodRow.disabled { opacity: 0.35; pointer-events: none; }
-body.dbl-gray > *:not(.transport):not(script):not(style), body.dbl-gray .transport > *:not(#randBtn) { filter: grayscale(1) !important; }
-body.dbl-gray-out > *:not(.transport):not(script):not(style), body.dbl-gray-out .transport > *:not(#randBtn) { transition: filter 240ms ease-out !important; }
+html body .fx-btn.chink-on { background: var(--track-btn-blast-color, var(--playhead)) !important; color: var(--track-btn-blast-text, #fff) !important; letter-spacing: 0 !important; font-size: 0.82em !important; outline: 2px dashed currentColor; outline-offset: -5px; }
 #randoCols { display: grid; grid-template-columns: 1fr 92px 92px; column-gap: 8px; row-gap: 12px; align-items: center; }
 #randoCols .rc-lab { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #111; }
 #randoCols .rc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -2773,7 +2772,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 08:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 08:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5545,10 +5544,16 @@ window._randoCfg = _RANDO_DEFAULT();
 window._randoLast = null;
 // DOUBLE CLICK on >>: the whole screen except the >> button drops to grayscale for a flash (~0.12s), then eases back.
 function _dblGrayFlash() {
-  const b = document.body;
-  b.classList.remove('dbl-gray', 'dbl-gray-out'); void b.offsetWidth; b.classList.add('dbl-gray');
-  clearTimeout(window._dblGrayT); window._dblGrayT = setTimeout(() => { b.classList.add('dbl-gray-out'); b.classList.remove('dbl-gray');
-    window._dblGrayT = setTimeout(() => b.classList.remove('dbl-gray-out'), 260); }, 120);
+  // PERF (WEIRD THING reports): filtering every element on the screen made the phone redraw everything twice right as the new
+  // pattern was being built. Now it's ONE layer on top that blends whatever's under it to grey ('saturation' blend with a grey
+  // fill = no colour), with a hole cut out over the >> button so that stays in colour. Same look, a fraction of the work.
+  let ov = document.getElementById('_dblGray');
+  if (!ov) { ov = document.createElement('div'); ov.id = '_dblGray'; ov.style.cssText = 'position:fixed;inset:0;z-index:99980;pointer-events:none;background:#808080;mix-blend-mode:saturation;opacity:0;'; document.body.appendChild(ov); }
+  const rb = document.getElementById('randBtn'), r = rb && rb.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+  ov.style.clipPath = r ? `path(evenodd, 'M0 0H${W}V${H}H0Z M${r.left} ${r.top}H${r.right}V${r.bottom}H${r.left}Z')` : 'none';
+  ov.style.transition = 'none'; ov.style.opacity = '1';
+  clearTimeout(window._dblGrayT);
+  window._dblGrayT = setTimeout(() => { ov.style.transition = 'opacity 240ms ease-out'; ov.style.opacity = '0'; }, 120);
 }
 function _randoApply(which) {
   const c = window._randoCfg[which]; if (!c) return;
@@ -5835,7 +5840,7 @@ function _setTrackReverb(tr, on) {
     // this track's own filter/panner/masterGain — so whatever FX/BLAST
     // state is active gets carried into reverb automatically, instead of
     // reverb drawing from the raw pre-FX signal like it used to.
-    if (ctx && trackGainNodes[tr]) connectToDelay(tr, trackGainNodes[tr]);
+    if (ctx && trackGainNodes[tr]) connectToDelay(tr, _chinkGate(tr) || trackGainNodes[tr]); // after the CHINK gate
   } else if (_reverbSendGains[tr]) {
     try { _reverbSendGains[tr].disconnect(); } catch(e) {}
     delete _reverbSendGains[tr];
@@ -6349,6 +6354,36 @@ function _applyRytmGtrVolCut(tr) {
 }
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackDelay = new Array(NUM_TRACKS).fill(false);
+// CHINK (4th stop on a track's FX button: off → FX → FX+BLAST → CHINK), per direct request — recreates the "little chinks of
+// sound" heard during some glitches on purpose. That glitch is notes being scheduled LATE: everything in a note's envelope
+// that's already in the past gets applied instantly, so only a tiny sliver of each hit comes out. Here a per-track gate after
+// the track's volume sits closed and opens for just a blip (~10ms, ~18ms on accents) at the start of every hit.
+const trackChink = new Array(NUM_TRACKS).fill(false);
+window._chinkGates = [];
+function _chinkGate(tr) { const g = window._chinkGates[tr]; return (g && ctx && g.context === ctx) ? g : null; }
+function _setChink(tr, on) {
+  trackChink[tr] = !!on;
+  const g = _chinkGate(tr); if (!g) return;
+  const now = ctx.currentTime;
+  try { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(on ? 0 : 1, now); } catch (e) {}
+}
+function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHINK off (it's a performance effect)
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (!trackChink[tr] || (onlyUnlocked && trackSweep[tr])) continue;
+    _setChink(tr, false);
+    const b = document.getElementById(`fxbtn-${tr}`); if (b) { b.classList.remove('chink-on'); b.textContent = 'FX'; }
+  }
+}
+function _chinkHit(tr, t, accent) {
+  const g = _chinkGate(tr); if (!g) return;
+  const w = accent ? 0.018 : 0.010;
+  try {
+    g.gain.setValueAtTime(0, Math.max(0, t - 0.001));
+    g.gain.linearRampToValueAtTime(1, t + 0.0015);
+    g.gain.setValueAtTime(1, t + w);
+    g.gain.linearRampToValueAtTime(0, t + w + 0.004);
+  } catch (e) {}
+}
 // Pump/sustain/crunch — repurposed offset ("<") button. Chain order per
 // track: sidechain pump (ducks with BEAT's kick+snare) -> sustain boost
 // (slow-release compressor) -> crunch (waveshaper). Off by default.
@@ -6784,6 +6819,7 @@ function fireStepAudio(step, t) {
       const is32Split = rawVal === 3;
       const val = is32Split ? 2 : rawVal; // treat split as accent-level for the main hit
       if (val > 0) {
+        if (trackChink[tr]) _chinkHit(tr, t, val === 2); // CHINK: open the gate for just a blip on this hit
         if (tr !== 0) duckEchoTrack(t); // TEXTURE gets pumped by everything else going on
         const key = trackInstruments[tr];
         if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge' || key === 'stab' || key === 'chug' || key === 'bashp' || key === 'denial' || key === 'jcmgtr' || key === 'sprkls' || key === 'clar' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'spiano' || key === 'satk' || key === 'boog' || key === 'magic' || key === 'fflute' || key === 'blunt' || key === 'damask' || key === 'yamask' || key === 'dulc' || (key === 'opening' || key === 'tralaarp') || key === 'drone' || key === 'dronePlus' || key === 'underpass') {
@@ -12777,9 +12813,14 @@ function buildUI() {
     fxBtn.textContent = 'FX';
     const fxVal = trackFx[tr]; fxBtn.classList.toggle('on', fxVal && (fxVal.x > 0 || fxVal.y > 0));
     fxBtn.classList.toggle('blast-on', !!trackPump[tr]);
-    fxBtn.textContent = 'FX'; // stays "FX" always now — used to switch to a single "X" during BLAST, per direct request to stop that
+    fxBtn.classList.toggle('chink-on', !!trackChink[tr]);
+    fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHINK is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
     const cycleFxBtn = () => {
       const cur = trackFx[tr], fxIsOn = cur && (cur.x > 0 || cur.y > 0);
+      if (trackChink[tr]) { // CHINK -> off
+        _setChink(tr, false); fxBtn.classList.remove('chink-on'); fxBtn.textContent = 'FX';
+        markModified(); return;
+      }
       if (!fxIsOn) {
         // off -> FX on
         const newVal = { x: 0.5, y: 0.5 };
@@ -12791,12 +12832,12 @@ function buildUI() {
         trackPump[tr] = true;
         fxBtn.classList.add('blast-on');
       } else {
-        // FX+BLAST on -> off
+        // FX+BLAST on -> CHINK (FX and BLAST off, every hit cut to a blip)
         trackFx[tr] = { x: 0, y: 0 };
         if (ctx) setFxActive(tr, trackFx[tr]);
         trackPump[tr] = false;
         fxBtn.classList.remove('on', 'blast-on');
-        fxBtn.textContent = 'FX';
+        _setChink(tr, true); fxBtn.classList.add('chink-on'); fxBtn.textContent = 'CHK';
       }
       markModified();
     };
@@ -15746,7 +15787,7 @@ function _buildBounceGraph(targetCtx) {
   for (let i = 0; i < NUM_TRACKS; i++) {
     const g = targetCtx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
     const ef = targetCtx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
-    g.connect(ef); trackEnvFilters[i] = ef; // caller connects ef -> masterGain for whichever track(s) it wants live
+    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; g.connect(cg); cg.connect(ef); } trackEnvFilters[i] = ef; // CHINK gate too. caller connects ef -> masterGain for whichever track(s) it wants live
     trackFxNodes[i] = buildFxChain(g);
     if (trackInstruments[i] === 'ngate') initNoiseGate(i);
     if (trackFx[i] && (trackFx[i].x > 0 || trackFx[i].y > 0)) setFxActive(i, trackFx[i]);
@@ -16407,6 +16448,7 @@ function _snapCascadeGhosts() {
 }
 function randAll(mode, opts) {
   try { _snapCascadeGhosts(); } catch (e) {}
+  try { _clearChink(true); } catch (e) {} // locked tracks keep their CHINK
   setTimeout(() => { try { _randoCapture(); } catch (e) {} }, 0); // RANDO BUTTON: rolled ratio / intensity back into that column
   try { _cancelRandInst(); } catch (e) {} // a new pattern supersedes any >> instrument swap still shuffling
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
@@ -17586,6 +17628,14 @@ function randAll(mode, opts) {
       const blastOn = isJinx ? (fxOn && hasNotes) : (fxOn && hasNotes && Math.random() < blastChance); // BLAST requires FX itself to be on — otherwise the button's off->on->on+blast->off cycle starts from an invalid combination and needs an extra click to untangle. JINX: no separate roll — BLAST just follows its own linked FX roll directly
       trackPump[tr] = blastOn;
       if (fb) fb.classList.toggle('blast-on', blastOn);
+      // CHINK in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
+      // with notes); a track that lands on it swaps its FX for CHINK, the button's 4th stop.
+      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && Math.random() < blastChance / Math.max(0.01, 1 - blastChance);
+      if (chinkOn) {
+        trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
+        if (fb) { fb.classList.remove('on', 'blast-on'); }
+        _setChink(tr, true); if (fb) { fb.classList.add('chink-on'); fb.textContent = 'CHK'; }
+      }
     } else if (!trackSweep[tr]) {
       // Perc/non-tonal: FX already reset above, just update bar. BLAST wasn't
       // being cleared here at all, so a percussion track could carry a stale
@@ -17922,6 +17972,7 @@ function stopAllAutoRand() {
           const _rwTok = window._playdoeRwTok = {};
           setTimeout(() => {
             if (window._playdoeRwTok !== _rwTok) return;
+            window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
             if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
             try { if (ctx && playing) playRandReleaseSweep(ctx.currentTime + 0.02); } catch (e) {} // the NEW PATTERN noise sweep, as the new pattern comes in — same as any other new pattern landing, per direct request
             document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
@@ -18134,7 +18185,7 @@ function snapshotState() {
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof restoreState !== 'function' || restoreState._revFloor) return;
   const _rs0 = restoreState;
-  restoreState = function (...a) { const r = _rs0.apply(this, a); setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, 60); return r; };
+  restoreState = function (...a) { try { _clearChink(false); } catch (e) {} const r = _rs0.apply(this, a); setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, 60); return r; };
   restoreState._revFloor = true;
   setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, 1500); // the startup pattern, whichever way it was made
 });
@@ -23068,7 +23119,8 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
       // per-track tap into the whole-mix reverb send, so DRUM / PERCUSSION tracks can follow REVERB ON BEAT (see _syncDrumReverbTaps)
       const revTap = ctx.createGain(); revTap.gain.value = 1; window._trackMasterRevTap = window._trackMasterRevTap || []; window._trackMasterRevTap[i] = revTap;
       const revTapD = ctx.createGain(); revTapD.gain.value = 0; window._trackDrumRevTap = window._trackDrumRevTap || []; window._trackDrumRevTap[i] = revTapD;
-      g.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); pan.connect(revTapD); revTapD.connect(window._drumMasterRevSend); trackEnvFilters[i] = ef;
+      const cg = ctx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; // CHINK gate (open = normal)
+      g.connect(cg); cg.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); pan.connect(revTapD); revTapD.connect(window._drumMasterRevSend); trackEnvFilters[i] = ef;
       trackFxNodes[i] = buildFxChain(g);
       if (trackInstruments[i] === 'ngate') initNoiseGate(i);
       // Reflect any FX state already set in the data model (e.g. Track 1's
