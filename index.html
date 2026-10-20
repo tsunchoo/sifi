@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 01:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 01:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2837,7 +2837,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5660,9 +5660,12 @@ function _dblGrayFlash() {
   if (!ov) { ov = document.createElement('div'); ov.id = '_dblGray'; ov.style.cssText = 'position:fixed;inset:0;z-index:99980;pointer-events:none;background:#808080;mix-blend-mode:saturation;opacity:0;'; document.body.appendChild(ov); }
   const rb = document.getElementById('randBtn'), r = rb && rb.getBoundingClientRect(), W = innerWidth, H = innerHeight;
   ov.style.clipPath = r ? `path(evenodd, 'M0 0H${W}V${H}H0Z M${r.left} ${r.top}H${r.right}V${r.bottom}H${r.left}Z')` : 'none';
-  ov.style.transition = 'none'; ov.style.opacity = '1';
-  clearTimeout(window._dblGrayT);
+  ov.style.display = 'block'; ov.style.transition = 'none'; ov.style.opacity = '1';
+  clearTimeout(window._dblGrayT); clearTimeout(window._dblGrayT2);
   window._dblGrayT = setTimeout(() => { ov.style.transition = 'opacity 240ms ease-out'; ov.style.opacity = '0'; }, 120);
+  // GONE afterwards, per direct report: iOS Safari tints the strips under the clock and below the page from full-screen FIXED
+  // layers — this grey one, left in place at opacity 0, turned both strips light grey after the first double-click.
+  window._dblGrayT2 = setTimeout(() => { ov.style.display = 'none'; }, 120 + 300);
 }
 function _randoApply(which) {
   const c = window._randoCfg[which]; if (!c) return;
