@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 07:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 08:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2773,7 +2773,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 07:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 08:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9770,7 +9770,9 @@ function playStab(freq, durSec, isAccent, time, tr) {
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
-  lp.frequency.setValueAtTime(isAccent ? 5000 : 3500, time);
+  // FASTER ATTACK, per direct request: the filter starts wide open for the pick, then sweeps down as before
+  lp.frequency.setValueAtTime(isAccent ? 7000 : 5200, time);
+  lp.frequency.exponentialRampToValueAtTime(isAccent ? 5000 : 3500, time + 0.012);
   lp.frequency.exponentialRampToValueAtTime(700, time + 0.22); // floor raised (was 500 @ 0.15s) — keeps more low-mid body instead of choking all the way down
 
   // No internal waveshaper — FX chain handles crunch when on, cleaner when off
@@ -9784,7 +9786,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
 
   // Chord stack: root + (5th if minor scale, 3rd if major scale) + octave
   const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
-  const strumDelays = [0, 0.004, 0.008];
+  const strumDelays = [0, 0.002, 0.004]; // tighter strum (was 0 / 4 / 8ms) — the chord speaks at once, per direct request
   const freqRatios  = [1.0, _isMajorish ? 1.2599 : 1.498, 2.0];
   const detunesCents = [0, +8, -6];
 
@@ -9796,7 +9798,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
 
     const env = ctx.createGain();
     env.gain.setValueAtTime(0, t);
-    env.gain.linearRampToValueAtTime(vel * (i === 0 ? 1.0 : 0.6), t + 0.003);
+    env.gain.linearRampToValueAtTime(vel * (i === 0 ? 1.0 : 0.6), t + 0.0012); // 1.2ms attack (was 3ms)
     env.gain.exponentialRampToValueAtTime(vel * 0.45, t + 0.16); // more sustain — held higher, longer, before decaying (was 0.4 @ 0.12)
     env.gain.exponentialRampToValueAtTime(0.0001, t + (isAccent ? 1.0 : 0.7)); // longer tail (was 0.70/0.48)
 
@@ -10947,7 +10949,7 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // a lead register
-  const vel = isAccent ? 0.0450 : 0.0315; // -3dB, then +0.5dB, per direct request
+  const vel = isAccent ? 0.0425 : 0.0297; // back down 0.5dB, per direct request
   const long = durSec >= 0.5;
   const len = Math.max(durSec, 0.28), release = long ? 0.5 : 0.22; // a longer tail too
   const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
@@ -10955,11 +10957,11 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   const cycle = [1, third, fifth, 2, fifth, third];
   const stepLen = Math.max(0.085, Math.min(0.16, len / 6)); // a few arp steps per note, never a blur
   const end = time + len;
-  const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(); o1.type = 'sawtooth'; o2.type = 'square';
-  o1.detune.value = -7; o2.detune.value = 7;
-  const m1 = ctx.createGain(), m2 = ctx.createGain(); m1.gain.value = 0.55; m2.gain.value = 0.28;
+  // SIMPLER, per direct request: one plain saw voice (was a detuned saw + square pair)
+  const o1 = ctx.createOscillator(); o1.type = 'sawtooth';
+  const m1 = ctx.createGain(); m1.gain.value = 0.72; // makes up the level the square used to add
   // the arpeggio: legato glides between chord tones (setTargetAtTime ≈ 20ms portamento), on both oscillators
-  [o1, o2].forEach(o => {
+  [o1].forEach(o => {
     o.frequency.setValueAtTime(f, time);
     let i = 1;
     for (let t = time + stepLen; t < end - 0.02; t += stepLen, i++) o.frequency.setTargetAtTime(f * cycle[i % cycle.length], t, 0.02);
@@ -10974,15 +10976,15 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   env.gain.exponentialRampToValueAtTime(0.0005, end + release);
   let lfo = null, depth = null;
   if (long) { // the wobble at the end of the note
-    lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 6;
+    lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5; // gentler, per direct request (was 6 Hz)
     depth = ctx.createGain(); depth.gain.setValueAtTime(0, time); depth.gain.setValueAtTime(0, time + len * 0.65);
-    depth.gain.linearRampToValueAtTime(45, end + release * 0.6); // ±45 cents
-    lfo.connect(depth); depth.connect(o1.detune); depth.connect(o2.detune);
+    depth.gain.linearRampToValueAtTime(15, end + release * 0.6); // ±15 cents — much less wobbly, per direct request (was ±45)
+    lfo.connect(depth); depth.connect(o1.detune);
     lfo.start(time); lfo.stop(end + release + 0.1);
   }
-  o1.connect(m1); o2.connect(m2); m1.connect(lp); m2.connect(lp); lp.connect(env); env.connect(dest);
-  [o1, o2].forEach(o => { o.start(time); o.stop(end + release + 0.05); });
-  o1.onended = () => { try { m1.disconnect(); m2.disconnect(); lp.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
+  o1.connect(m1); m1.connect(lp); lp.connect(env); env.connect(dest);
+  o1.start(time); o1.stop(end + release + 0.05);
+  o1.onended = () => { try { m1.disconnect(); lp.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
 }
 // ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
 function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
@@ -20224,6 +20226,9 @@ function _playSpoolAmalgamSwell() {
     reverbSend.connect(window._reverbSendBus);
     dest = fanOut;
   }
+  // RIGHT SPOOL SOUND 6dB quieter, per direct request — one trim on the way out, reverb send included
+  { const _spoolTrim = ctx.createGain(); _spoolTrim.gain.value = 0.5012; _spoolTrim.connect(dest); dest = _spoolTrim;
+    try { _afterAudio(now + activeSteps.length * dur + 4, () => { try { _spoolTrim.disconnect(); } catch (e) {} }); } catch (e) {} }
   activeSteps.forEach((s, i) => {
     let freq;
     if (isTonal && scale) {
@@ -25352,9 +25357,15 @@ function snapshotDisplay() {
       const r = el.getBoundingClientRect(), dx = Math.round((hr.left + hr.width / 2) - (r.left + r.width / 2));
       // SHINE, per direct request: on the way out / in each icon flashes up to white with a soft white glow, then settles
       const plain = 'brightness(1) invert(0) drop-shadow(0 0 0px rgba(255,255,255,0))', shine = 'brightness(0) invert(1) drop-shadow(0 0 7px rgba(255,255,255,0.95))';
+      // NEVER OVER THE ☰, per direct request: each icon is clipped at the ☰'s left edge while it moves, so it slides out from
+      // BEHIND the ☰ (and back behind it) instead of showing on top of it. The clip edge is worked out per keyframe in the
+      // icon's own coordinates, so it stays put on screen while the icon travels.
+      const edge = hr.left - 3, elW = r.width;
+      const clipAt = tx => { const vis = edge - (r.left + tx); const right = Math.max(0, Math.min(elW + 40, elW - vis)); return `inset(-30px ${right}px -30px -30px)`; };
+      const k = (tx, o, fl, off) => { const f = { translate: tx + 'px 0', opacity: o, filter: fl, clipPath: clipAt(tx) }; if (off !== undefined) f.offset = off; return f; };
       const kf = open
-        ? [{ translate: dx + 'px 0', opacity: 0, filter: shine }, { translate: Math.round(dx * 0.15) + 'px 0', opacity: 1, filter: shine, offset: 0.55 }, { translate: '0px 0', opacity: 1, filter: plain }]
-        : [{ translate: '0px 0', opacity: 1, filter: plain }, { translate: Math.round(dx * 0.35) + 'px 0', opacity: 1, filter: shine, offset: 0.4 }, { translate: dx + 'px 0', opacity: 0, filter: shine }];
+        ? [k(dx, 0, shine), k(Math.round(dx * 0.15), 1, shine, 0.55), k(0, 1, plain)]
+        : [k(0, 1, plain), k(Math.round(dx * 0.35), 1, shine, 0.4), k(dx, 0, shine)];
       const delay = open ? i * 50 : (icons.length - 1 - i) * 50, dur = open ? 380 : 300;
       longest = Math.max(longest, delay + dur);
       try { _hdrAnims.push(el.animate(kf, { duration: dur, delay, easing: open ? 'cubic-bezier(0.2, 0.8, 0.3, 1)' : 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'both' })); } catch (e) {}
@@ -25367,6 +25378,24 @@ function snapshotDisplay() {
     }, longest + 20);
   }
   window._setHdrIconsOpen = setHdrOpen;
+  // AUTO-CLOSE, per direct request: the icons tuck themselves away if none of them is touched for 10 seconds or 8 bars,
+  // whichever is sooner. Touching any of them restarts the wait; it never closes while help mode, LOOK AND FEEL, SETTINGS or
+  // the REVERB menu is open (it just waits again).
+  let _hdrIdleT = null;
+  function hdrIdleWait() {
+    clearTimeout(_hdrIdleT);
+    if (!document.body.classList.contains('hdr-icons-open')) return;
+    let ms = 10000;
+    try { if (typeof playing !== 'undefined' && playing) ms = Math.min(ms, 8 * NUM_STEPS * stepDuration() * 1000); } catch (e) {}
+    _hdrIdleT = setTimeout(() => {
+      if (!document.body.classList.contains('hdr-icons-open')) return;
+      const rm = document.getElementById('reverbMenu');
+      const busy = on || document.body.classList.contains('menu-open') || (rm && rm.classList.contains('visible'));
+      if (busy) { hdrIdleWait(); return; }
+      setHdrOpen(false);
+    }, Math.max(1000, ms));
+  }
+  window._hdrIdleWait = hdrIdleWait;
   function init() {
     const dm = document.getElementById('devMenuBtn'); if (!dm) return;
     btn = document.createElement('button'); btn.id = '_helpBtn'; btn.setAttribute('aria-label', 'Help');
@@ -25377,7 +25406,9 @@ function snapshotDisplay() {
     ham = document.createElement('button'); ham.id = '_hamBtn'; ham.setAttribute('aria-label', 'Menu');
     ham.style.cssText = "position:absolute;z-index:99995;width:24px;height:24px;padding:0;margin:0;border:none;background:none;color:var(--header-text-color,#111);cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;";
     ham.innerHTML = '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="pointer-events:none"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
-    ham.addEventListener('click', e => { e.stopPropagation(); setHdrOpen(!document.body.classList.contains('hdr-icons-open')); });
+    ham.addEventListener('click', e => { e.stopPropagation(); const opening = !document.body.classList.contains('hdr-icons-open'); setHdrOpen(opening); if (opening) setTimeout(hdrIdleWait, 0); else clearTimeout(_hdrIdleT); });
+    ['devMenuBtn', 'randomizeReverbIconBtn'].forEach(id => { const el = document.getElementById(id); if (el) ['pointerdown', 'touchstart'].forEach(t => el.addEventListener(t, () => hdrIdleWait(), { passive: true, capture: true })); });
+    ['pointerdown', 'touchstart'].forEach(t => btn.addEventListener(t, () => hdrIdleWait(), { passive: true, capture: true }));
     dm.parentElement.appendChild(ham);
     setHdrOpen(false, true); place();
     window.addEventListener('resize', place); setInterval(place, 1500); try { new MutationObserver(() => requestAnimationFrame(place)).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); } catch (e) {} // follows the header icons when they shift (display modes, LIVE)
