@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 22:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 23:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2824,7 +2824,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 22:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 23:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9735,16 +9735,21 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   const prevVoice = _pulseBassActiveVoice[tr];
   if (prevVoice && prevVoice.endTime > time) {
     try {
-      prevVoice.ampEnv.gain.cancelScheduledValues(time);
-      prevVoice.ampEnv.gain.setValueAtTime(prevVoice.ampEnv.gain.value, time);
-      prevVoice.ampEnv.gain.linearRampToValueAtTime(0.0001, time + 0.006);
-      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.008); } catch(e) {} });
+      // CLIPPING FIX (same bug JAMES BASS had), found by rendering it offline: the old steal read ampEnv.gain.value — the level
+      // NOW, not at `time` (up to 1s later with the lookahead) — and jumped to it, which spiked the overlap to ~2.2 (+7dBFS)
+      // into the soft-clip on every overlapping note. The outgoing voice now fades on its own output node (flat 1 there).
+      const of = prevVoice.outFade;
+      if (of) {
+        if (typeof of.gain.cancelAndHoldAtTime === 'function') of.gain.cancelAndHoldAtTime(time); else { of.gain.cancelScheduledValues(time); of.gain.setValueAtTime(1, time); }
+        of.gain.linearRampToValueAtTime(0, time + 0.006);
+      }
+      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.012); } catch(e) {} });
     } catch(e) {}
   }
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.5309 : 1; // -5.5dB under BLAST (another -1.5dB per direct request; was 0.6309) — BLAST specifically (not just FX) on this track
-  const vel = (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten * 0.7079 * (fxOn ? 0.7943 : 1) * ((fxOn || (tr !== undefined && trackPump[tr])) ? 1.122 : 1); // with FX on: another −2dB, per direct request (2026-10-11, was −3.5dB); then +1dB with ANY FX on (FX or BLAST), per direct request; // −3dB overall, per direct request (2026-10-09); before that: +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
+  const vel = 0.5 /* half level into the soft-clip (peaks ~0.5, clean side of its 0.6 knee); the track's source trim gives it back after — see getSourceTrimGain */ * (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten * 0.7079 * (fxOn ? 0.7943 : 1) * ((fxOn || (tr !== undefined && trackPump[tr])) ? 1.122 : 1); // with FX on: another −2dB, per direct request (2026-10-11, was −3.5dB); then +1dB with ANY FX on (FX or BLAST), per direct request; // −3dB overall, per direct request (2026-10-09); before that: +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
   // added on top. The old version capped the WHOLE envelope at ~0.2s
@@ -9797,12 +9802,16 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   ampEnv.gain.setValueAtTime(vel * _bodyLvl, time + sustain); // holds through the note's actual assigned length
   ampEnv.gain.exponentialRampToValueAtTime(0.0006, time + sustain + tail); // short tail after that
 
-  mix.connect(lp); lp.connect(ampEnv); ampEnv.connect(dest);
-
   const stopAtP = time + sustain + tail + 0.05;
+  // MICROFADES on the voice's final output (3ms in, 10ms to true zero before the oscillators stop) — and the node the next note fades
+  const outFade = ctx.createGain();
+  outFade.gain.setValueAtTime(0, time); outFade.gain.linearRampToValueAtTime(1, time + 0.003);
+  outFade.gain.setValueAtTime(1, stopAtP - 0.012); outFade.gain.linearRampToValueAtTime(0, stopAtP - 0.002);
+  mix.connect(lp); lp.connect(ampEnv); ampEnv.connect(outFade); outFade.connect(dest);
+  snapEnv.disconnect(); snapEnv.connect(outFade); // the attack snap goes through the same fades
   [osc1, osc2, sub, metal].forEach(o => { o.start(time); o.stop(stopAtP); });
-  osc1.onended = () => { try { mix.disconnect(); lp.disconnect(); ampEnv.disconnect(); subG.disconnect(); metalEnv.disconnect(); } catch(e) {} };
-  _pulseBassActiveVoice[tr] = { ampEnv, oscs: [osc1, osc2, sub, metal], endTime: stopAtP };
+  osc1.onended = () => { try { mix.disconnect(); lp.disconnect(); ampEnv.disconnect(); subG.disconnect(); metalEnv.disconnect(); outFade.disconnect(); } catch(e) {} };
+  _pulseBassActiveVoice[tr] = { ampEnv, outFade, oscs: [osc1, osc2, sub, metal, snap], endTime: stopAtP };
 }
 
 // ── Mario Piano: percussive rhythmic piano hit — hard hammer-strike attack,
@@ -11653,7 +11662,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
+  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
