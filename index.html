@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 08:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 09:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -275,6 +275,8 @@ body.seq-playing .track-vol-bar:not(.muted) .track-vol-fill-solid.flash-pulse-de
 @keyframes song-name-scroll-up    { from { transform: translateY(100%);  opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes song-name-scroll-down  { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 #nameDisplay { display: inline-block; }
+@keyframes name-flash-white { 0% { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.9); } 100% { text-shadow: 0 0 0 rgba(255,255,255,0); } }
+#nameDisplay.name-flash { animation: name-flash-white 450ms ease-out; }
 .track-name-btn > .tname-slide { display: inline-block; animation: song-name-scroll-left 576ms ease-out both; }
 body.tname-slide-long .track-name-btn > .tname-slide { animation-duration: 1008ms; } /* double-tap: 1.75x */ /* NEW INST swap — matches the asterisk's 576ms */
 #nameDisplay.song-name-scroll-left  { animation: song-name-scroll-left  0.5s ease-out; }
@@ -2772,7 +2774,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 08:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 09:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5573,7 +5575,7 @@ function _randoShuffle(which) {
   try { if (c.reverb) _randomizeReverbSettings(); } catch (e) {}
   try { if (c.eightBit) setEightBitMix(Math.random() * 100); } catch (e) {}
   try { if (c.beatFx) _randomizeDrumFxSettings(); } catch (e) {}
-  try { randomizeCurrentInstruments(); } catch (e) { console.error('shuffle instruments failed', e); }
+  try { randomizeCurrentInstruments({ plainName: which === 'click' }); } catch (e) { console.error('shuffle instruments failed', e); } // single click: the name just flashes white (no split-flap)
 }
 const _RANDO_ROWS = [
   ['shuffle', 'SHUFFLE INSTRUMENTS'], ['reverb', 'REVERB'], ['eightBit', '8-BIT MIX'], ['beatType', 'BEAT TYPE'], ['beatFx', 'BEAT FX'],
@@ -5695,7 +5697,7 @@ function _endNameShuffle(sh) {
   nb.classList.add('name-shuffle-hit'); // one last flash as it lands (no forced reflow — PERF)
   setTimeout(() => nb.classList.remove('name-shuffle-hit'), 200);
 }
-function randomizeCurrentInstruments() {
+function randomizeCurrentInstruments(opts) {
   _cancelRandInst(); // a fresh press cancels any swaps (and name shuffles) still waiting from the last one
   // A/B + colors, per direct request: this now counts as a NEW PATTERN as
   // far as A/B (RECALL) is concerned — the pattern as it was, instruments
@@ -5752,7 +5754,7 @@ function randomizeCurrentInstruments() {
     }, _startDelay + NAME_SHUFFLE_MS));
     changed++;
   }
-  if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
+  if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); if (opts && opts.plainName) _flashSongName(_currentSpecies); else _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
   // colour theme is LEFT ALONE now, per direct request — only the instruments change
   // each track repaints as its own swap lands (see above); markModified once the last one is in
   _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, NAME_SHUFFLE_MS + Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
@@ -6361,12 +6363,27 @@ const trackDelay = new Array(NUM_TRACKS).fill(false);
 const trackChink = new Array(NUM_TRACKS).fill(false);
 window._chinkGates = [];
 function _chinkGate(tr) { const g = window._chinkGates[tr]; return (g && ctx && g.context === ctx) ? g : null; }
+const _chinkBoost = []; // tr -> the gain ratio applied when CHINK came on (so turning it off takes back exactly that)
+function _chinkVolBoost(tr, on) { // +1dB on the track's volume slider while CHINK is on, per direct request
+  const cur = trackVolume[tr]; if (typeof cur !== 'number') return;
+  let next = cur;
+  if (on && !_chinkBoost[tr]) { next = Math.min(1, cur * 1.122); _chinkBoost[tr] = cur > 0 ? next / cur : 1; }
+  else if (!on && _chinkBoost[tr]) { next = Math.max(0, cur / _chinkBoost[tr]); _chinkBoost[tr] = 0; }
+  else return;
+  trackVolume[tr] = next;
+  if (ctx && trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(next, ctx.currentTime, 0.01);
+  try { updateVolFillDisplay(tr); } catch (e) {}
+}
 function _setChink(tr, on) {
+  if (!!trackChink[tr] !== !!on) { try { _chinkVolBoost(tr, !!on); } catch (e) {} }
   trackChink[tr] = !!on;
   const g = _chinkGate(tr); if (!g) return;
   const now = ctx.currentTime;
   try { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(on ? 0 : 1, now); } catch (e) {}
 }
+// No CHINK on basses or pads, per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
+const _NO_CHINK_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic', 'dronePlus', 'amlgm']);
+function _chinkAllowed(tr) { return !_NO_CHINK_KEYS.has(trackInstruments[tr]); }
 function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHINK off (it's a performance effect)
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (!trackChink[tr] || (onlyUnlocked && trackSweep[tr])) continue;
@@ -8784,6 +8801,29 @@ function randomizeBassTrack(tr, level) {
         trackLegatoLen[tr][s] = Math.min(wantLen, maxLen);
       }
     }
+  }
+  // GESKINS: room to breathe, per direct request — it doesn't fill the whole bar. Half its notes stop well short of the next one
+  // (at least 3 empty steps before it), and every bar gets one big hole: the emptiest 4-step window is cleared of onsets and any
+  // note running into it is cut short.
+  if (key === 'tralaarp' && trackBassScale[tr]) {
+    if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    const L = trackLegatoLen[tr];
+    const ons = () => { const o = []; for (let q = 0; q < NUM_STEPS; q++) if (grid[tr][q] > 0) o.push(q); return o; };
+    let o = ons();
+    if (o.length > 1) {
+      let best = 0, bestN = 99;
+      for (let w = 1; w <= NUM_STEPS - 4; w++) { const n = o.filter(q => q >= w && q < w + 4).length; if (n < bestN || (n === bestN && Math.random() < 0.3)) { bestN = n; best = w; } }
+      if (o.filter(q => q < best || q >= best + 4).length >= 1) {
+        for (let q = best; q < best + 4; q++) { grid[tr][q] = 0; delete L[q]; }
+        o = ons();
+        o.forEach(q => { if (q < best) { const len = L[q] || 1; if (q + len > best) L[q] = Math.max(1, best - q); } });
+      }
+    }
+    o.forEach((q, i) => {
+      const next = o[i + 1] !== undefined ? o[i + 1] : NUM_STEPS + o[0];
+      const gap = next - q;
+      if (gap >= 5 && Math.random() < 0.5) L[q] = Math.max(1, Math.min(L[q] || 1, gap - 3));
+    });
   }
 
   // Basses wander octaves at different rates — JAMES BASS roams the most,
@@ -12832,12 +12872,12 @@ function buildUI() {
         trackPump[tr] = true;
         fxBtn.classList.add('blast-on');
       } else {
-        // FX+BLAST on -> CHINK (FX and BLAST off, every hit cut to a blip)
+        // FX+BLAST on -> CHINK (FX and BLAST off, every hit cut to a blip) — or straight to off on a bass / pad (no CHINK there)
         trackFx[tr] = { x: 0, y: 0 };
         if (ctx) setFxActive(tr, trackFx[tr]);
         trackPump[tr] = false;
         fxBtn.classList.remove('on', 'blast-on');
-        _setChink(tr, true); fxBtn.classList.add('chink-on'); fxBtn.textContent = 'CHK';
+        if (_chinkAllowed(tr)) { _setChink(tr, true); fxBtn.classList.add('chink-on'); fxBtn.textContent = 'CHK'; }
       }
       markModified();
     };
@@ -15513,6 +15553,16 @@ function _setSongNameDisplay(text) {
 const _FLAP_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const FLAP_TICK_MS = 55, FLAP_MIN_MS = 260, FLAP_STAGGER_MS = 45;
 let _flapRun = 0;
+// SINGLE CLICK on >> (instrument shuffle), per direct request: no split-flap — the name (NAME → NAME II …) just changes in place
+// with a quick white flash. The split-flap board stays for new patterns / double clicks.
+function _flashSongName(text) {
+  const nd = document.getElementById('nameDisplay'); if (!nd) return;
+  _flapRun++; // stops any split-flap still running
+  _SONG_NAME_SCROLL_STYLES.forEach(c => nd.classList.remove(c));
+  nd.textContent = text || ''; nd.dataset.full = text || '';
+  nd.classList.remove('name-flash'); requestAnimationFrame(() => nd.classList.add('name-flash'));
+  clearTimeout(nd._flT); nd._flT = setTimeout(() => nd.classList.remove('name-flash'), 600);
+}
 function _setSongNameDisplay(text) {
   const nd = document.getElementById('nameDisplay');
   if (!nd) return;
@@ -17630,7 +17680,7 @@ function randAll(mode, opts) {
       if (fb) fb.classList.toggle('blast-on', blastOn);
       // CHINK in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
       // with notes); a track that lands on it swaps its FX for CHINK, the button's 4th stop.
-      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && Math.random() < blastChance / Math.max(0.01, 1 - blastChance);
+      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && _chinkAllowed(tr) && Math.random() < blastChance / Math.max(0.01, 1 - blastChance);
       if (chinkOn) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
         if (fb) { fb.classList.remove('on', 'blast-on'); }
@@ -24257,6 +24307,9 @@ function _syncDrumReverbTaps() {
   }
 }
 setInterval(() => { try { _syncDrumReverbTaps(); } catch (e) {} }, 400); // follows instrument changes from any path (RAND, picker, beat types)
+setInterval(() => { // a track that becomes a bass / pad (picker, shuffle, beat type…) drops CHINK
+  try { for (let tr = 0; tr < NUM_TRACKS; tr++) if (trackChink[tr] && !_chinkAllowed(tr)) { _setChink(tr, false); const b = document.getElementById(`fxbtn-${tr}`); if (b) { b.classList.remove('chink-on'); b.textContent = 'FX'; } } } catch (e) {}
+}, 400);
 function setBeatReverbMix(v) {
   _beatReverbMix = v;
   try { _syncDrumReverbTaps(); } catch (e) {}
