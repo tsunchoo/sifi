@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 01:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 02:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2837,7 +2837,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:25:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 02:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3030,7 +3030,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
      sets them keeps working), plus a one-shot RANDOMIZE CURRENT
      INSTRUMENTS button. -->
 <div id="randMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideRandMenu();">
-  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px 40px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
+  <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px 40px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDO BUTTON</div>
     <!-- RANDO BUTTON, per direct request: every setting twice — one column for a single CLICK on >>, one for a DOUBLE CLICK.
          SHUFFLE INSTRUMENTS (was the CURRENT INSTRUMENTS button) is now a toggle per column: on = that gesture swaps the
@@ -3070,7 +3070,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SHAKE SENSITIVITY</div>
         <div id="shakeSensVal" style="font-size:0.85rem;font-weight:700;color:#111;">5</div>
       </div>
-      <input type="range" id="shakeSensSlider" min="1" max="10" step="1" value="5" oninput="_setShakeSens(this.value)" style="width:100%;">
+      <input type="range" id="shakeSensSlider" min="1" max="10" step="1" value="5" oninput="_setShakeSens(this.value)" style="width:100%;margin-bottom:10px;"><!-- 10px under the last RANDO BUTTON setting, per direct request -->
     </div>
     <script>try { const sl = document.getElementById('shakeSensSlider'); const v = parseFloat(localStorage.getItem('sifiShakeSens')); if (v >= 1 && v <= 10) { sl.value = v; document.getElementById('shakeSensVal').textContent = String(v); } } catch (e) {}</script>
   </div>
@@ -4044,6 +4044,7 @@ document.addEventListener('touchmove', e => {
   if (e.target.closest('input[type="range"]')) return;
   if (e.target.closest('#settingsPanel')) return;
   if (e.target.closest('#devMenuOverlay')) return;
+  if (e.target.closest('#randMenuOverlay')) return; // RANDO BUTTON menu scrolls too, per direct report (it's taller than the screen now — the SHAKE settings sat out of reach below the glyph toggle)
   e.preventDefault();
 }, { passive: false });
 let masterVol = 0.8; // actual master output volume — this stays the raw 0-1 slider fraction everywhere (snapshots, UI sync); the +4dB boost below is applied only where this actually reaches masterGain's AudioParam, never to this variable itself, so save/restore round-trips correctly instead of double-applying the boost
@@ -5647,7 +5648,7 @@ function showRandMenu() {
 // AUTO repeats the CLICK action every period.
 const _RANDO_DEFAULT = () => ({
   click: { shuffle: true,  reverb: false, eightBit: false, beatType: true, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
-  dbl:   { shuffle: false, reverb: false, eightBit: false, beatType: true, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
+  dbl:   { shuffle: false, reverb: true, eightBit: false, beatType: true, beatFx: true, /* REVERB / FX on = this gesture picks new per-track allocations — on for a new pattern by default, as it always did */ ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
 });
 window._randoCfg = _RANDO_DEFAULT();
 window._randoLast = null;
@@ -5672,7 +5673,10 @@ function _dblGrayFlash() {
 function _randoApply(which) {
   const c = window._randoCfg[which]; if (!c) return;
   window._randoLast = which;
-  setRandomizeReverb(c.reverb); setRandomize8BitMix(c.eightBit); setRandomizeBeatType(c.beatType); setRandomizeDrumFx(c.beatFx);
+  // REVERB / FX rows = the per-track REVERB (R) and FX allocations, per direct request — never the REVERB MIX / REVERB ON BEAT /
+  // DRUMS FX settings any more. A new pattern always rolls fresh allocations; with the row OFF, each track keeps the R / FX it had.
+  setRandomizeReverb(false); setRandomize8BitMix(c.eightBit); setRandomizeBeatType(c.beatType); setRandomizeDrumFx(false);
+  window._randoKeepRev = !c.reverb; window._randoKeepFx = !c.beatFx;
   setRandomizeDrumMusicRatio(c.ratioRand); setRandomizeNoteIntensity(c.intRand);
   setTonalPercBalance(c.ratio); setIntensity(c.intensity);
 }
@@ -5684,16 +5688,57 @@ function _randoCapture() { // a new pattern may have rolled DRUM MUSIC RATIO / N
 function _randoShuffle(which) {
   const c = window._randoCfg[which] || {};
   window._randoLast = which;
-  try { if (c.reverb) _randomizeReverbSettings(); } catch (e) {}
+  // WEIRD THING report (1.27s FREEZE ~1.8s after a single-click shuffle, no slow JS job named → the page's drawing, not the code):
+  // plan the audio a full second ahead for the length of the shuffle animation, same as a new pattern already does, so a stall
+  // like that can't make the scheduler skip steps; and tag the window so a freeze in it is labelled in the report.
+  window._schedBoostUntil = performance.now() + 3000;
+  window._visJob = 'instrument shuffle animation'; clearTimeout(window._visJobT); window._visJobT = setTimeout(() => { window._visJob = null; }, 2600);
   try { if (c.eightBit) setEightBitMix(Math.random() * 100); } catch (e) {}
-  try { if (c.beatFx) _randomizeDrumFxSettings(); } catch (e) {}
+  // REVERB / FX: new per-track allocations for the pattern that's playing — once the shuffled instruments have landed (the rules
+  // depend on the instrument)
+  if (c.reverb || c.beatFx) { clearTimeout(window._randoAllocT); window._randoAllocT = setTimeout(() => { try { _rerollAllocations(!!c.beatFx, !!c.reverb); } catch (e) {} }, 1300); }
+  // EVERY OPTION WORKS ON EVERY GESTURE, per direct request — the column decides what that gesture does, whatever it is:
+  // BEAT TYPE: a new beat type comes in with the shuffled instruments (not while the BEAT type is locked; tempo lock rules kept;
+  // its extra tracks only take muted tracks, no question asked mid-gesture).
+  try {
+    if (c.beatType && !_beatTypeLocked) {
+      let pool = _BEAT_TYPE_POOL.filter(t => t !== _beatType);
+      if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
+      if (_tempoLocked) pool = (_beatType === 'halftime') ? [] : pool.filter(t => t !== 'halftime');
+      if (pool.length) { _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick'; setBeatType(pool[Math.floor(Math.random() * pool.length)], true, 'rolled'); try { refreshBeatMenuHighlight(); } catch (e) {} }
+    }
+  } catch (e) {}
+  // DRUM MUSIC RATIO / NOTE INTENSITY: the column's slider value (or a random one, with its toggle off) is set on the shuffle too —
+  // it governs every track's notes from here on (AUTO NOTES tracks regenerate with it every bar, + re-rolls use it) and the next pattern.
+  try { setTonalPercBalance(c.ratioRand ? Math.floor(Math.random() * 7) : c.ratio); } catch (e) {}
+  try { setIntensity(c.intRand ? [0, 25, 50, 75, 100][Math.floor(Math.random() * 5)] : c.intensity); } catch (e) {}
+  try { _randoCapture(); } catch (e) {}
   try { randomizeCurrentInstruments({ plainName: which === 'click' }); } catch (e) { console.error('shuffle instruments failed', e); } // single click: the name just flashes white (no split-flap)
 }
+// Re-rolls the per-track FX (FX/BLAST) and/or REVERB (R) allocations on the current pattern — same per-instrument chances a new
+// pattern uses. Locked and empty tracks are left alone.
+function _rerollAllocations(doFx, doRev) {
+  const revChance = k => k === 'magic' ? 0 : k === 'tralaarp' ? 0.65 : k === 'dulc' ? 0.75 : (k === 'damask' || k === 'yamask') ? 0.65 : (k === 'spiano' || k === 'jcmgtr') ? 0.7 : ['tomHi','tomMid','tomLo','toms','dronePlus'].includes(k) ? 1 : (k === 'opening') ? 0.1 : (k === 'chug') ? 0.15 : TONAL_KEYS.has(k) ? 0.5 : 0.35;
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr] || !grid[tr].some(v => v > 0)) continue;
+    const k = trackInstruments[tr];
+    if (doRev) _setTrackReverb(tr, Math.random() < revChance(k));
+    if (doFx) {
+      const tonal = TONAL_KEYS.has(k);
+      const chk = _chinkRandOk(tr) && !_NO_RAND_CHK.has(k) && Math.random() < (k === 'dulc' ? 0.95 : _CHOKE_PADS.has(k) ? 0.5 : tonal ? 0.8 : 0.24);
+      const blast = Math.random() < 0.12;
+      if (!!trackChink[tr] !== chk) _setChink(tr, chk);
+      trackPump[tr] = blast; trackFx[tr] = blast ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
+    }
+  }
+  try { if (doRev) _ensurePatternReverb(); } catch (e) {}
+  _queueFxBtnSync(); markModified();
+}
 const _RANDO_ROWS = [
-  ['shuffle', 'SHUFFLE INSTRUMENTS'], ['reverb', 'REVERB'], ['eightBit', '8-BIT MIX'], ['beatType', 'BEAT TYPE'], ['beatFx', 'BEAT FX'],
+  ['shuffle', 'SHUFFLE INSTRUMENTS'], ['reverb', 'REVERB'], ['eightBit', '8-BIT MIX'], ['beatType', 'BEAT TYPE'], ['beatFx', 'FX'],
   ['ratioRand', 'DRUM MUSIC RATIO', 'ratio'], ['intRand', 'NOTE INTENSITY', 'intensity'],
 ];
-const _RANDO_NEW_PATTERN_ONLY = new Set(['beatType', 'ratioRand', 'intRand']); // greyed out in a column set to SHUFFLE INSTRUMENTS
+const _RANDO_NEW_PATTERN_ONLY = new Set(); // nothing is greyed by SHUFFLE INSTRUMENTS any more — every option applies to both gestures, per direct request (was: beatType, ratioRand, intRand)
 const _RANDO_AST_SVG = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91" stroke="currentColor" stroke-width="3.4" fill="none"/></svg>';
 function _randoReadout(key, v) { return key === 'ratio' ? `${v} / ${6 - v}` : (_intensityLevelNames[v] || (v + '%')); }
 function _randoSyncSliders() {
@@ -5721,7 +5766,7 @@ function _randoBuildUI() {
       const max = sub === 'ratio' ? 6 : 100, step = sub === 'ratio' ? 1 : 25;
       h += '<div></div>';
       ['click', 'dbl'].forEach(w => {
-        const c = window._randoCfg[w], off = c.shuffle || c[key]; // greyed while shuffling, or while this setting is randomized
+        const c = window._randoCfg[w], off = c[key]; // greyed only while this setting is randomized (no longer while shuffling)
         h += `<div class="rc-cell rc-sub${off ? ' rc-off' : ''}" data-w="${w}" data-k="${sub}"><input type="range" id="rando-${w}-${sub}" min="0" max="${max}" step="${step}" value="${c[sub]}" class="master-vol-slider" oninput="_randoSet('${w}','${sub}',+this.value)"><div class="rc-read" id="rando-${w}-${sub}-read">${_randoReadout(sub, c[sub])}</div></div>`;
       });
     }
@@ -16732,6 +16777,21 @@ function _snapCascadeGhosts() {
   window._cascadeGhostSnap = out;
 }
 function randAll(mode, opts) {
+  { // RANDO BUTTON REVERB / FX rows OFF: every track keeps the R / FX it had before this new pattern
+    const keepR = !!window._randoKeepRev, keepF = !!window._randoKeepFx; window._randoKeepRev = window._randoKeepFx = false;
+    if (keepR || keepF) {
+      const pre = { d: [...trackDelay], c: [...trackChink], p: [...trackPump] };
+      clearTimeout(window._randoKeepT); window._randoKeepT = setTimeout(() => { try {
+        for (let tr = 0; tr < NUM_TRACKS; tr++) {
+          if (trackSweep[tr]) continue;
+          if (keepR && !!trackDelay[tr] !== !!pre.d[tr]) _setTrackReverb(tr, !!pre.d[tr]);
+          if (keepF) { if (!!trackChink[tr] !== !!pre.c[tr]) _setChink(tr, !!pre.c[tr]); trackPump[tr] = !!pre.p[tr]; trackFx[tr] = pre.p[tr] ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); }
+        }
+        _queueFxBtnSync();
+      } catch (e) {} }, 700);
+    }
+  }
+  window._visJob = 'new pattern animation'; clearTimeout(window._visJobT); window._visJobT = setTimeout(() => { window._visJob = null; }, 2600); // freeze label (see FREEZE LOG)
   window._lastPatternAt = performance.now();
   try { _snapCascadeGhosts(); } catch (e) {}
   try { _clearChink(true); } catch (e) {} // locked tracks keep their CHOKE
@@ -22976,7 +23036,7 @@ function fullReset() {
         _swipeHandled = true;
         _dragActive = false;
         if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-        if (dx > 0 && !(trackSweep[_nameHoldTr] && trackMuted[_nameHoldTr])) _toggleTrackLock(_nameHoldTr); // a MUTED locked track can't be UNLOCKED by a swipe, per direct request (locking a muted track still works) // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
+        if (dx > 0 && !trackMuted[_nameHoldTr]) _toggleTrackLock(_nameHoldTr); // a MUTED track can't be locked OR unlocked by a swipe, per direct request // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
         return;
       }
       // Mostly-horizontal movement that hasn't reached the swipe distance yet: wait for it rather than committing to a mute-drag
@@ -24327,7 +24387,7 @@ async function audioSnapshot() {
   let last = performance.now();
   setInterval(() => {
     const now = performance.now(), gap = now - last; last = now;
-    if (gap > 350 && gap < 5000 && document.visibilityState === 'visible') { try { window._crashCrumb && window._crashCrumb('FREEZE ' + Math.round(gap) + 'ms' + (window._slowJob ? ' (after ' + window._slowJob + ')' : '')); } catch (e) {} }
+    if (gap > 350 && gap < 5000 && document.visibilityState === 'visible') { try { window._crashCrumb && window._crashCrumb('FREEZE ' + Math.round(gap) + 'ms' + (window._slowJob ? ' (after ' + window._slowJob + ')' : '') + (window._visJob ? ' (during ' + window._visJob + ')' : '') + (!window._slowJob ? ' [no slow code — page drawing or iOS]' : '')); } catch (e) {} }
   }, 100);
   const wrap = (name, label) => { const o = window[name]; if (typeof o !== 'function') return; window[name] = function () { const t0 = performance.now(); try { return o.apply(this, arguments); } finally { const ms = performance.now() - t0; if (ms > 60) { window._slowJob = label + ' ' + Math.round(ms) + 'ms'; try { window._crashCrumb && window._crashCrumb('SLOW ' + window._slowJob); } catch (e) {} } } }; };
   wrap('selectSound', 'instrument swap'); wrap('randAll', 'new pattern'); wrap('randomizeAppColors', 'colour change'); wrap('restoreState', 'pattern load'); wrap('_applyRainbowState', 'display mode');
