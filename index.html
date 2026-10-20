@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 09:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 10:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2775,7 +2775,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 09:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 10:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -10980,7 +10980,7 @@ function playBooboo(freq, durSec, isAccent, time, tr) {
 function playOpening(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.0413 : 0.0286; // -2dB
+  const vel = (isAccent ? 0.0413 : 0.0286) * ((tr !== undefined && trackPump[tr]) ? 0.7499 : 1); // -2dB; and -2.5dB more with FX+BLAST, per direct request
   const sustain = Math.max(durSec, 1.2); // always has room to unfold and hold, even off a short grid note
   const release = Math.min(sustain * 0.4, 1.4);
 
@@ -17691,7 +17691,11 @@ function randAll(mode, opts) {
       if (fb) fb.classList.toggle('blast-on', blastOn);
       // CHINK in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
       // with notes); a track that lands on it swaps its FX for CHINK, the button's 4th stop.
-      const chinkOn = !blastOn && !isJinx && fxOn && hasNotes && _chinkAllowed(tr) && Math.random() < 0.47; // as often as plain FX on the tracks that can take it, per direct request (was only as often as BLAST)
+      // CHINK rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
+      // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
+      const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
+      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && Math.random() < (_isTonalTr ? 0.50 : 0.12);
+      if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
         if (fb) { fb.classList.remove('on', 'blast-on'); }
@@ -18227,6 +18231,7 @@ function snapshotState() {
     beatType: _beatType,
     trackDelay: [...trackDelay],
     trackPump: [...trackPump],
+    trackChink: [...trackChink], // CHINK is part of the pattern: A/B, slots, tapes and saved sessions keep it
     trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr]),
     activeSlot: activeSlot,
     displayMode: window._rainbowIdx, // A/B brings the display mode back with the pattern
@@ -18354,6 +18359,10 @@ function restoreState(snap, opts) {
     if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
     if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
     if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); fb2.textContent = 'FX'; } }
+    if (snap.trackChink && snap.trackChink[tr]) { // the saved volume already includes CHINK's +1dB, so switch it back on WITHOUT boosting again
+      trackChink[tr] = true; _chinkBoost[tr] = 1.122; const cg = _chinkGate(tr); if (cg) { try { cg.gain.cancelScheduledValues(ctx.currentTime); cg.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} }
+      const fb3 = document.getElementById(`fxbtn-${tr}`); if (fb3) { fb3.classList.add('chink-on'); fb3.classList.remove('on', 'blast-on'); fb3.textContent = 'CHK'; }
+    }
     if (snap.trackFxMode) { trackFxMode[tr] = snap.trackFxMode[tr] || 0; }
     if (snap.trackSweep) { trackSweep[tr] = snap.trackSweep[tr] || false; }
     if (snap.trackChop)  { trackChop[tr]  = snap.trackChop[tr]  || false; }
