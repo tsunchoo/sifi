@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 05:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 06:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2767,7 +2767,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 05:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 06:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5814,6 +5814,7 @@ function _setTrackReverb(tr, on) {
   trackDelay[tr] = !!on;
   const btn = document.getElementById(`delaybtn-${tr}`);
   if (btn) btn.classList.toggle('on', trackDelay[tr]);
+  if (trackDelay[tr]) { try { _ensurePatternReverb(); } catch (e) {} } // any R switched on → REVERB MIX ≥ 35% + icon lit, so it's always audible (per direct request)
   if (trackDelay[tr]) {
     // Reverb taps trackGainNodes[tr] directly — the single point every
     // path (dry, FX, or FX+BLAST) already converges on before heading to
@@ -17704,6 +17705,7 @@ function randAll(mode, opts) {
   setTimeout(() => { updateLegatoVisuals(); }, NUM_TRACKS * 30 + 50);
   try { _patternCascade(_cascadeFromBpm, bpm); } catch (e) {}
   setTimeout(() => { _ensureMozambiqueKitCorrect(); }, NUM_TRACKS * 30 + 60); // just after the legato pass above, same reasoning — waits for every staggered per-track call to genuinely finish first
+  setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, NUM_TRACKS * 30 + 120); // R on any track → REVERB MIX ≥ 35% + icon on
   setTimeout(() => { _ensureJazzKitCorrect(); }, NUM_TRACKS * 30 + 60); // same class of bug as MOZAMBIQUE's own safety net above, same fix — JAZZ's RIDE/comping pattern is written by the same staggered per-track setTimeout mechanism (see the _hasFixedBeatPattern block), so it depended on the same timing/state lining up and could come out with RIDE assigned but its fixed pattern never actually written (or the track still muted from before), reported as "came in without the RIDE track and pattern"
 }
 
@@ -18055,6 +18057,24 @@ function snapshotState() {
       bg: _rootCS().getPropertyValue('--bg').trim() || '#f5f0e8',
     }
   };
+}
+document.addEventListener('DOMContentLoaded', () => {
+  if (typeof restoreState !== 'function' || restoreState._revFloor) return;
+  const _rs0 = restoreState;
+  restoreState = function (...a) { const r = _rs0.apply(this, a); setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, 60); return r; };
+  restoreState._revFloor = true;
+  setTimeout(() => { try { _ensurePatternReverb(); } catch (e) {} }, 1500); // the startup pattern, whichever way it was made
+});
+// PATTERN REVERB FLOOR, per direct request: whenever a pattern lands (new pattern — the very first one at startup included —
+// a slot / tape / A-B recall or a restored session) with R (reverb) on for ANY track, REVERB MIX is lifted to at least 35% (and
+// the reverb icon lights, which follows the mix) — otherwise those tracks' reverb would be silent with the mix at zero.
+function _ensurePatternReverb() {
+  if (typeof trackDelay === 'undefined' || !trackDelay.some(Boolean)) return;
+  const cur = (window._globalDelayMix !== undefined) ? window._globalDelayMix : 0;
+  if (cur >= 0.35) return;
+  setGlobalDelayMix(0.35);
+  const dmb = document.getElementById('delayMixBar'); if (dmb) dmb.value = 35;
+  const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = '35';
 }
 function restoreState(snap, opts) {
   opts = opts || {};
