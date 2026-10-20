@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 20:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 21:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1323,34 +1323,45 @@ html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after {
   background: transparent !important;
   box-sizing: border-box !important;
-  border: var(--auto-outline-w, 1.5px) solid var(--auto-outline-col, var(--track-color, var(--text))) !important;
+  border: var(--auto-outline-w, 3.5px) solid var(--auto-outline-col, var(--track-color, var(--text))) !important;
   box-shadow: none !important;
 }
 /* a legato phrase is one long outlined shape: the head is open on its right, middle tails only draw top + bottom,
    and the last tail closes the right end */
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: 0 !important; }
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after { border-left-width: 0 !important; border-right-width: 0 !important; }
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 1.5px) !important; }
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 3.5px) !important; }
 /* PLAYHEAD: the outline flashes to the PLAY FLASH colour (white) and glows, still hollow */
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.playing:is(.on, .soft, .split32, .legato-tail)::after {
   --auto-outline-col: var(--play-flash-color, #fff);
   opacity: 1 !important;
   filter: drop-shadow(0 0 calc(3px * var(--mglow, 1.5)) var(--play-flash-color, #fff)) drop-shadow(0 0 calc(7px * var(--mglow, 1.5)) color-mix(in srgb, var(--play-flash-color, #fff) 70%, transparent)) !important;
 }
+/* un-accented notes on AUTO NOTES tracks: same opacity as the accented ones, per direct request */
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: var(--note-marker-opacity, 1) !important; }
+html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732)) !important; }
+html body.notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body.notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail:not(.playing)::after { opacity: 0.7 !important; }
 /* CIRCLES mode 32nd = two dots, so outline the two dots (two rings), not the square box around them */
 html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after {
   border: 0 !important;
   --r32: calc(25% - var(--note-marker-circle-inset, 12%) / 2);
   --c32: var(--auto-outline-col, var(--track-color, var(--text)));
   background:
-    radial-gradient(ellipse var(--r32) var(--r32) at 27% 50%, transparent calc(100% - var(--auto-outline-w, 1.5px)), var(--c32) calc(100% - var(--auto-outline-w, 1.5px)), var(--c32) 100%, transparent 100%),
-    radial-gradient(ellipse var(--r32) var(--r32) at 73% 50%, transparent calc(100% - var(--auto-outline-w, 1.5px)), var(--c32) calc(100% - var(--auto-outline-w, 1.5px)), var(--c32) 100%, transparent 100%) !important;
+    radial-gradient(ellipse var(--r32) var(--r32) at 27% 50%, transparent calc(100% - var(--auto-outline-w, 3.5px)), var(--c32) calc(100% - var(--auto-outline-w, 3.5px)), var(--c32) 100%, transparent 100%),
+    radial-gradient(ellipse var(--r32) var(--r32) at 73% 50%, transparent calc(100% - var(--auto-outline-w, 3.5px)), var(--c32) calc(100% - var(--auto-outline-w, 3.5px)), var(--c32) 100%, transparent 100%) !important;
 }
 /* outline takes the same colour the solid marker would have had in that mode */
 html body.notes-grayscale .auto-notes-lane .step-cell.on:not(.playing) { --auto-outline-col: #555; }
 html body.notes-grayscale .auto-notes-lane .step-cell.soft:not(.playing),
 html body.notes-grayscale .auto-notes-lane .step-cell.legato-tail:not(.playing) { --auto-outline-col: #999; }
 html body.notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --auto-outline-col: #555; }
+/* OUTLINE = AUTO BUTTON COLOUR toggle (under the outline slider), per direct request: outlines take the auto-notes +
+   button's colour at its most saturated — the hot glyph colour in TRACK BUTTON LIGHTS, otherwise the button's own fill */
+html body.auto-outline-btncol .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--track-btn-blast-color, var(--playhead)); }
+html body.auto-outline-btncol.track-btn-lights .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--lit-glyph-hot, var(--play-flash-hot, #ff8a2e)); }
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
    commented out per request. Icon now stays the same fixed HIGHLIGHT-3
@@ -2812,7 +2823,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 20:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 21:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3715,17 +3726,26 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO NOTE OUTLINE</div>
-          <div id="autoOutlineReadout" style="font-size:0.85rem;font-weight:700;color:#111;">1.5px</div>
+          <div id="autoOutlineReadout" style="font-size:0.85rem;font-weight:700;color:#111;">3.5px</div>
         </div>
-        <input type="range" id="autoOutlineSlider" min="0.5" max="5" step="0.25" value="1.5" class="master-vol-slider" style="width:100%;">
+        <input type="range" id="autoOutlineSlider" min="0.5" max="5" step="0.25" value="3.5" class="master-vol-slider" style="width:100%;">
       </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;margin-top:-12px;">
+        <input type="checkbox" id="autoOutlineBtnColToggle" style="width:14px;height:14px;cursor:pointer;">OUTLINE = AUTO BUTTON COLOUR
+      </label>
       <script>
+      (function(){
+        var tg = document.getElementById('autoOutlineBtnColToggle'), on = false;
+        try { on = localStorage.getItem('sifiAutoOutlineBtnCol') === '1'; } catch (e) {}
+        tg.checked = on; document.body.classList.toggle('auto-outline-btncol', on);
+        tg.addEventListener('change', function(){ document.body.classList.toggle('auto-outline-btncol', tg.checked); try { localStorage.setItem('sifiAutoOutlineBtnCol', tg.checked ? '1' : '0'); } catch (e) {} });
+      })();
       (function(){
         var sl = document.getElementById('autoOutlineSlider'), ro = document.getElementById('autoOutlineReadout');
         function ap(v){ document.documentElement.style.setProperty('--auto-outline-w', v + 'px'); if (ro) ro.textContent = v + 'px'; }
-        var v = 1.5; try { var st = localStorage.getItem('sifiAutoOutline'); if (st) v = parseFloat(st) || 1.5; } catch (e) {}
+        var v = 3.5; try { var st = localStorage.getItem('sifiAutoOutline2'); if (st) v = parseFloat(st) || 3.5; } catch (e) {} // default 3.5px, per direct request (new key, so the old saved 1.5/3 doesn't hold it back)
         sl.value = v; ap(v);
-        sl.addEventListener('input', function(){ ap(sl.value); try { localStorage.setItem('sifiAutoOutline', sl.value); } catch (e) {} });
+        sl.addEventListener('input', function(){ ap(sl.value); try { localStorage.setItem('sifiAutoOutline2', sl.value); } catch (e) {} });
       })();
       </script>
 
@@ -6255,7 +6275,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   const instrumentGain = ctx.createGain();
   const _isCongaBongoKey = (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo');
   const _congaBongoFxOnlyBoost = (_isCongaBongoKey && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) && !trackPump[tr]) ? 1.2589 : 1; // +2dB, specifically when FX is on but NOT BLAST, per direct request
-  instrumentGain.gain.value = ((key === 'shak') ? 0.265 : (key === 'clap') ? 0.2805 : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.1672 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : _isCongaBongoKey ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.1676 /* -2.5dB total (was 0.2234; -1.5dB then another -1dB), per direct request */ : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5) * _congaBongoFxOnlyBoost; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959), plus another +2dB specifically when FX (not BLAST) is engaged on that track, per direct request; TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
+  instrumentGain.gain.value = ((key === 'shak') ? 0.265 : (key === 'clap') ? 0.2971 /* +0.5dB more (was 0.2805), per direct request */ : (key === 'tamb') ? 0.4455 : (key === 'guiro') ? 0.1672 : (key === 'ngate') ? 0.4159 : (key === 'ride' && _beatType === 'mozambique') ? 0.3566 : (key === 'ride') ? 0.225 : (key === 'timbHi' || key === 'timbMid' || key === 'timbLo') ? 0.8914 : _isCongaBongoKey ? 0.6686 : (key === 'sidestick' && _beatType === 'bossa') ? 0.3541 : (key === 'sidestick') ? 0.1676 /* -2.5dB total (was 0.2234; -1.5dB then another -1dB), per direct request */ : (key === 'tomHi' && _beatType === 'mozambique') ? 0.561 : (key === 'tomHi' || key === 'tomMid' || key === 'tomLo') ? 0.3972 : 0.5) * _congaBongoFxOnlyBoost; // SHAKER -1.5dB from the +2dB bump (was 0.315); TAMBOURINE +1dB (was 0.397); NOISE -1.6dB from the 0.5 default, per direct request; CONGA/BONGO +1dB more (was 0.5959), plus another +2dB specifically when FX (not BLAST) is engaged on that track, per direct request; TIMBALE +1.5dB more (was 0.75, pulled back from 1.1221 a few requests ago after clipping — still safely under unity gain at 0.8914, but noticeably higher into the soft-clip curve than CONGA/BONGO's own 0.6686 now, worth watching if it starts sounding hot again); SIDESTICK +1dB more overall, both variants together (was 0.1991, -1.5dB before that (0.2366), -2dB before that, -4dB before that, -0.5dB from the 0.5 default before that); SIDESTICK +4dB specifically in BOSSA on top of that same overall level (was 0.3156, same relative +4dB it always was over the base); HANDCLAP +1dB more still (was 0.25, +1dB before that (0.2228), +2dB before that, was 0.177); TOM HI/MID/LOW -5dB (was 0.7063, the +3dB-from-0.5-default level before that); RIDE +1dB more, specifically in MOZAMBIQUE only (was 0.3178, +3dB before that, same as every other beat type before that) — that beat's fixed ride pattern is mostly soft-velocity hits (the quieter sample) with only a few accents, so it was landing noticeably under SIDESTICK's all-accent pattern there; boosting just this beat's level (not the soft/accent split itself, which is deliberate structural-vs-filler phrasing, and not RIDE's level in JAZZ or anywhere else it's used) closes that gap; TOM HI -5dB more, specifically in MOZAMBIQUE only (was 0.9977, same relative +3dB-over-the-shared-tom-level it always was, just carried down from the new lower base)
 
   const fxVal = trackFx[tr];
   const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
@@ -6443,6 +6463,7 @@ function _setChink(tr, on) {
 }
 // No CHOKE on basses or pads, per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
 const _NO_CHOKE_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic', 'dronePlus', 'amlgm']);
+const _NO_RAND_CHK = new Set(['skick', 'sidestick', 'shihat']); // RAND never wastes CHK on KICK / SIDESTICK / HIHAT, per direct request (still selectable by hand)
 function _chinkAllowed(tr) { return !_NO_CHOKE_KEYS.has(trackInstruments[tr]); }
 function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHOKE off (it's a performance effect)
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
@@ -8520,6 +8541,7 @@ function randomizeBassTrack(tr, level) {
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
+  if (key === 'dronePlus') noteCount = Math.min(NUM_STEPS, Math.max(noteCount + 1, Math.round(noteCount * 1.2))); // ZINGS 20% more notes, per direct request (always at least +1)
   if (key === 'dulc') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BROOTH — 4 more notes on its quota, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
   if (BASS_LEGATO_KEYS.has(key) || key === 'tralaarp') noteCount = Math.min(NUM_STEPS, noteCount + 3); // GESKINS (key 'tralaarp') gets the same +3 bonus notes, per direct request // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
@@ -17766,7 +17788,7 @@ function randAll(mode, opts) {
       // CHOKE rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
       // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
       const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
-      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && Math.random() < (_isTonalTr ? 0.50 : 0.12);
+      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
@@ -17783,6 +17805,12 @@ function randAll(mode, opts) {
       const vb = document.getElementById(`vbar-${tr}`);
       if (vb) { _setVolFillPct(vb, 0.5); }
       if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setValueAtTime(0.5, ctx.currentTime);
+      // CHOKE for the rest of the percussion too (they never got a roll before), per direct request — 24%, same as drums above
+      if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < 0.24) {
+        trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
+        if (fb2) fb2.classList.remove('on', 'blast-on');
+        trackVolume[tr] = 0.5; _setChink(tr, true); if (fb2) { fb2.classList.add('chink-on'); fb2.textContent = 'CHK'; }
+      }
     }
   }
   // Voice harmony: if >1 melody tonal track, shift 2nd+ up an octave + minor third
@@ -18103,6 +18131,9 @@ function stopAllAutoRand() {
           btn.classList.remove('rand-building', 'playdoe-ast', 'np-scroll'); void btn.offsetWidth; btn.classList.add('playdoe-ast');
           setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
           setBtnBlueHeld('randBtn');
+          // CLEAN ENGINE, per direct request: make sure a fresh, running spare engine exists NOW (inside this tap, so iOS lets it
+          // run) — the restart below swaps onto it, so the new pattern starts on a completely clear audio engine.
+          try { if (!_spareReady() && !_audioRefreshing) { try { window._spareCtx && window._spareCtx.close(); } catch (e) {} const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; window._spareMadeAt = performance.now(); } } catch (e) {}
           window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
           playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
           window._cascadeFitMs = Math.max(300, _rwDur * 1000 - 140); // all the new-pattern animation happens inside the pause
@@ -18110,7 +18141,10 @@ function stopAllAutoRand() {
           const _rwTok = window._playdoeRwTok = {};
           const _restartAt = performance.now() + _rwDur * 1000;
           const _waitThenRestart = fn => setTimeout(() => requestAnimationFrame(() => setTimeout(fn, 0)), Math.max(0, _restartAt - performance.now() - 20)); // after the last frame of the transition has drawn
-          _waitThenRestart(() => {
+          _waitThenRestart(async () => {
+            if (window._playdoeRwTok !== _rwTok) return;
+            // swap onto the fresh engine first: every tail, reverb and leftover voice from the old pattern is gone with the old one
+            if (_spareReady() && !_audioRefreshing && !playing) { try { await _refreshAudioEngine(); } catch (e) {} }
             if (window._playdoeRwTok !== _rwTok) return;
             window._lastPatternAt = performance.now(); window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
             if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
@@ -20478,7 +20512,7 @@ function _scheduleAmalgamNotes() {
         // BLAST's crunch/sustain/pump chain applies to this note too, since
         // it borrows that track's audio routing — pull it back down so it
         // doesn't come out louder/harsher than the rest of the chord.
-        _amalgamVolOverride = trackPump[n.tr] ? vol * 0.5623 : vol; // -5dB when BLAST is on that track
+        _amalgamVolOverride = (trackPump[n.tr] ? vol * 0.5623 : vol) * 1.122; // -5dB when BLAST is on that track; TEXTURE +1dB, per direct request
         _playPhantomNote(n.tr, n.key, n.freq, false);
       });
       _amalgamVolOverride = null;
@@ -20503,7 +20537,7 @@ function playAmalgamStep(isAccent, time, tr, durSec) {
   const chordNormFactor = notes.length > 0 ? 1 / notes.length : 1;
   const vol = 0.03663 * chordNormFactor * (isAccent ? 1.3 : 1); // -0.7dB more (was 0.0397, -3dB more before that, was 0.0561) — TEXTURE's own body layer now has real sustain from legato length, so overlapping/rapid hits can stack over time even though any single note's own peak was already well under the clipping ceiling
   const droneAtten = (trackInstruments[tr] === 'drone') ? 0.1996 : 1; // -14dB total now (was -10dB, +4dB more), DRONE only — TEXTURE unaffected
-  _amalgamVolOverride = trackPump[tr] ? vol * droneAtten * 0.5623 : vol * droneAtten; // -5dB when BLAST is on this track
+  _amalgamVolOverride = (trackPump[tr] ? vol * droneAtten * 0.5623 : vol * droneAtten) * (trackInstruments[tr] === 'amlgm' ? 1.122 : 1); // -5dB when BLAST is on this track; TEXTURE +1dB, per direct request
   const dest = getSynthConnectNode(tr); // one resolution — Delay/FX/BLAST all behave like any other instrument now
   // The granular chop that used to sit here (a square-wave tremolo gating
   // this output, rate driven by the busiest other track) is removed — at
@@ -21412,7 +21446,7 @@ function _cycleRainbowMode() {
 const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "14", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105", "emptyMarkerSizeCircleSlider": "16", "emptyMarkerOpacityCircleSlider": "100"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerSizeCircleSlider": "15", "emptyMarkerOpacityCircleSlider": "75"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerSizeCircleSlider": "15", "emptyMarkerOpacityCircleSlider": "75"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'mortar-extra': false, 'notes-grayscale': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'mortar-extra': true, 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true, 'mond-sat-markers': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "90", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60", "satCeilingSlider": "20"}, palette: 'bigschool', name: 'MOND' }, // mode 10 "MOND", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
