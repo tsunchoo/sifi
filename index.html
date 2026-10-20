@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 23:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 23:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2824,7 +2824,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 23:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 23:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3052,6 +3052,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div style="display:flex;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SHAKE SENSITIVITY</div>
+        <div id="shakeSensVal" style="font-size:0.85rem;font-weight:700;color:#111;">5</div>
+      </div>
+      <input type="range" id="shakeSensSlider" min="1" max="10" step="1" value="5" oninput="_setShakeSens(this.value)" style="width:100%;">
+    </div>
+    <script>try { const sl = document.getElementById('shakeSensSlider'); const v = parseFloat(localStorage.getItem('sifiShakeSens')); if (v >= 1 && v <= 10) { sl.value = v; document.getElementById('shakeSensVal').textContent = String(v); } } catch (e) {}</script>
   </div>
 </div>
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
@@ -6495,7 +6503,8 @@ const _NO_CHOKE_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', '
 const _CHOKE_PADS = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone']);
 const _CHOKE_PAD_EXTRA = 0.12; // pads hold open this much longer again on top of their own attack, so the choke cuts in noticeably later than on other notes
 const _NO_RAND_CHK = new Set(['skick', 'sidestick', 'shihat']); // RAND never wastes CHK on KICK / SIDESTICK / HIHAT, per direct request (still selectable by hand)
-function _chinkAllowed(tr) { return !_NO_CHOKE_KEYS.has(trackInstruments[tr]); }
+function _chinkAllowed(tr) { return true; } // NO RULES, per direct request: FX (CHK) can go on ANY instrument by hand — basses included. (Was: !_NO_CHOKE_KEYS.has(...); new patterns still keep it off the instruments in _NO_CHOKE_KEYS, see _chinkRandOk)
+function _chinkRandOk(tr) { return !_NO_CHOKE_KEYS.has(trackInstruments[tr]); }
 function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHOKE off (it's a performance effect)
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (!trackChink[tr] || (onlyUnlocked && trackSweep[tr])) continue;
@@ -6687,6 +6696,7 @@ function scheduler() {
     // that must not happen to it.
     // Fire pending auto-rand on downbeat
     if (step === 0) {
+      try { const w = performance.now() + Math.max(0, (t - ctx.currentTime) * 1000); (window._barStartWall = window._barStartWall || []).push(w); if (window._barStartWall.length > 8) window._barStartWall.shift(); } catch (e) {} // wall-clock time each bar actually STARTS sounding (used by SHAKE's one-bar rest)
       // RECALL only ever gets updated at two explicit moments — a new
       // whole-pattern RAND landing (top-row + button, single press or its
       // auto-mode loop) or a save slot being chosen. It does not track
@@ -17854,7 +17864,7 @@ function randAll(mode, opts) {
       // CHOKE rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
       // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
       const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
-      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _CHOKE_PADS.has(trackInstruments[tr]) ? 0.50 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
+      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkRandOk(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _CHOKE_PADS.has(trackInstruments[tr]) ? 0.50 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
       /* FX RETIRED — CHK and BLAST can now sit together (CHK+BLAST is the button's red stop):
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) { trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); if (fb) { fb.classList.remove('on', 'blast-on'); } ... } */
@@ -17870,7 +17880,7 @@ function randAll(mode, opts) {
       if (vb) { _setVolFillPct(vb, 0.5); }
       if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setValueAtTime(0.5, ctx.currentTime);
       // CHOKE for the rest of the percussion too (they never got a roll before), per direct request — 24%, same as drums above
-      if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < 0.24) {
+      if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && _chinkRandOk(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < 0.24) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
         if (fb2) fb2.classList.remove('on', 'blast-on');
         trackVolume[tr] = 0.5; _setChink(tr, true); _queueFxBtnSync();
@@ -25815,6 +25825,21 @@ function snapshotDisplay() {
 window._shakeOn = true;
 function _setShake(on) { window._shakeOn = !!on; if (on) _shakeArm(true); }
 let _shakeListening = false;
+// SENSITIVITY slider (1-10, default 5 = the original 22 m/s² jolt), per direct request: each step either way changes the
+// needed jolt by 25% — 10 is the most sensitive (~7 m/s²), 1 the least (~54 m/s²).
+window._shakeSens = 5; try { const v = parseFloat(localStorage.getItem('sifiShakeSens')); if (v >= 1 && v <= 10) window._shakeSens = v; } catch (e) {}
+function _shakeThreshold() { return 22 * Math.pow(1.25, 5 - (window._shakeSens || 5)); }
+function _setShakeSens(v) { window._shakeSens = +v; try { localStorage.setItem('sifiShakeSens', String(v)); } catch (e) {} const r = document.getElementById('shakeSensVal'); if (r) r.textContent = String(v); }
+// ONE-BAR REST, per direct request: after a shake fires, it isn't listened for again until a whole measure has finished
+// playing — i.e. the next bar to START after the shake, then the bar after that starting (the first one has fully played).
+// Not playing: no bars to wait for, so 2 seconds instead.
+function _shakeReady(now) {
+  const t0 = window._shakeTrigAt; if (!t0) return true;
+  if (!playing) { if (now - t0 > 2000) { window._shakeTrigAt = 0; return true; } return false; }
+  const after = (window._barStartWall || []).filter(w => w > t0);
+  if (after.length >= 2 && now >= after[1]) { window._shakeTrigAt = 0; return true; }
+  return false;
+}
 function _shakeListen() {
   if (_shakeListening) return; _shakeListening = true;
   let last = null, peaks = [], restUntil = 0;
@@ -25824,11 +25849,11 @@ function _shakeListen() {
     const now = performance.now();
     if (last) {
       const d = Math.abs(a.x - last.x) + Math.abs(a.y - last.y) + Math.abs(a.z - last.z);
-      if (d > 22 && now > restUntil) {
+      if (d > _shakeThreshold() && now > restUntil && _shakeReady(now)) {
         peaks = peaks.filter(t => now - t < 500);
         if (!peaks.length || now - peaks[peaks.length - 1] > 90) peaks.push(now);
         if (peaks.length >= 2) {
-          peaks = []; restUntil = now + 1500;
+          peaks = []; restUntil = now + 1500; window._shakeTrigAt = now; // listening again only once a whole measure has played — see _shakeReady
           const menuOpen = document.body.classList.contains('menu-open') || (window._helpMode && window._helpMode.isOn());
           if (!menuOpen && window._randDoubleTap) { try { window._randDoubleTap(); } catch (er) {} }
         }
