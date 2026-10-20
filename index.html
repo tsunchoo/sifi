@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 02:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 02:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2764,7 +2764,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5569,13 +5569,16 @@ function _randoBuildUI() {
     h += `<div class="rc-lab">${label}</div>`;
     ['click', 'dbl'].forEach(w => {
       const c = window._randoCfg[w], off = c.shuffle && _RANDO_NEW_PATTERN_ONLY.has(key);
-      h += `<div class="rc-cell${off ? ' rc-off' : ''}" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input type="checkbox" ${c[key] ? 'checked' : ''} onchange="_randoSet('${w}','${key}',this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
+      // DRUM MUSIC RATIO / NOTE INTENSITY, per direct request: the toggle shows whether the SLIDER is in use — on (default) = the
+      // slider's value is used and the slider is live; off = the slider greys out and a random value is rolled each new pattern.
+      const inv = !!sub, on = inv ? !c[key] : !!c[key];
+      h += `<div class="rc-cell${off ? ' rc-off' : ''}" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input type="checkbox" ${on ? 'checked' : ''} onchange="_randoSet('${w}','${key}',${inv ? '!' : ''}this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
     });
     if (sub) {
       const max = sub === 'ratio' ? 6 : 100, step = sub === 'ratio' ? 1 : 25;
       h += '<div></div>';
       ['click', 'dbl'].forEach(w => {
-        const c = window._randoCfg[w], off = c.shuffle;
+        const c = window._randoCfg[w], off = c.shuffle || c[key]; // greyed while shuffling, or while this setting is randomized
         h += `<div class="rc-cell rc-sub${off ? ' rc-off' : ''}" data-w="${w}" data-k="${sub}"><input type="range" id="rando-${w}-${sub}" min="0" max="${max}" step="${step}" value="${c[sub]}" class="master-vol-slider" oninput="_randoSet('${w}','${sub}',+this.value)"><div class="rc-read" id="rando-${w}-${sub}-read">${_randoReadout(sub, c[sub])}</div></div>`;
       });
     }
@@ -5585,7 +5588,7 @@ function _randoBuildUI() {
 function _randoSet(w, k, v) {
   window._randoCfg[w][k] = v;
   if (k === 'ratio' || k === 'intensity') { const rd = document.getElementById(`rando-${w}-${k}-read`); if (rd) rd.textContent = _randoReadout(k, v); return; }
-  if (k === 'shuffle') _randoBuildUI(); // grey / un-grey that column's new-pattern-only settings
+  if (k === 'shuffle' || k === 'ratioRand' || k === 'intRand') _randoBuildUI(); // grey / un-grey the dependent controls
 }
 document.addEventListener('DOMContentLoaded', () => { try { _randoBuildUI(); } catch (e) {} });
 function _triggerRandomizeInstruments(btn) {
@@ -7168,6 +7171,7 @@ function _inkRightGap(ch, cs) { // advance width minus the glyph's inked right e
 // HEADER ICONS, per direct request: the reverb (room) icon and the rainbow icon slide left together so the reverb icon's left edge
 // lines up with the 'b' of the tempo's "bpm". Measured on the drawn edges (the icon's outer rectangle stroke, the b's ink).
 function _placeHeaderIcons() {
+  if (window._hdrAnimating) return; // the ☰ slide is moving the icons — measuring now would read the slide, not their places
   const rv = document.getElementById('randomizeReverbIconBtn'), dm = document.getElementById('devMenuBtn'), lbl = document.getElementById('topTempoBpmLabel');
   if (!rv || !dm || !lbl || !lbl.firstChild) return;
   const svg = rv.querySelector('svg'); if (!svg) return;
@@ -25117,6 +25121,7 @@ function snapshotDisplay() {
   }
   function place() {
     const dm = document.getElementById('devMenuBtn'); if (!dm || !btn) return;
+    if (window._hdrAnimating) return; // mid-slide (see setHdrOpen)
     const hd = dm.offsetParent || dm.parentElement; if (!hd) return;
     // Hold still while the rainbow / reverb icon is mid-drag or mid-pulse (transformed) — measuring then
     // would chase the moving icon and knock the ? out of line; it re-aligns once they're back at rest.
@@ -25160,10 +25165,34 @@ function snapshotDisplay() {
   // HAMBURGER, per direct request: the rainbow / reverb / ? icons are tucked away by default; tapping ☰ shows them (and makes
   // them usable), tapping it again tucks them away. The body class 'hdr-icons-open' carries the state.
   let ham = null;
-  function setHdrOpen(open) {
-    document.body.classList.toggle('hdr-icons-open', !!open);
+  // SLIDE OUT / IN, per direct request: opening, the icons slide out from under the ☰ to their places (nearest first: ?, reverb,
+  // rainbow) and fade in; closing runs the same thing in reverse (rainbow first) back under the ☰. Web Animations on the separate
+  // 'translate' property, so it never fights the icons' own drag / pulse transforms or their inline transitions.
+  let _hdrAnims = [], _hdrTok = 0;
+  function setHdrOpen(open, instant) {
+    const b = document.body, tok = ++_hdrTok;
+    _hdrAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _hdrAnims = []; window._hdrAnimating = false;
     if (ham) ham.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (!open && on) exit(); // closing the icons also leaves help mode
+    const icons = [btn, document.getElementById('randomizeReverbIconBtn'), document.getElementById('devMenuBtn')].filter(Boolean); // nearest the ☰ first
+    if (instant || !ham || typeof Element.prototype.animate !== 'function') { b.classList.remove('hdr-icons-closing'); b.classList.toggle('hdr-icons-open', !!open); return; }
+    const hr = ham.getBoundingClientRect();
+    window._hdrAnimating = true;
+    b.classList.add('hdr-icons-open'); b.classList.toggle('hdr-icons-closing', !open);
+    let longest = 0;
+    icons.forEach((el, i) => {
+      const r = el.getBoundingClientRect(), dx = Math.round((hr.left + hr.width / 2) - (r.left + r.width / 2));
+      const from = { translate: dx + 'px 0', opacity: 0 }, to = { translate: '0px 0', opacity: 1 };
+      const delay = open ? i * 50 : (icons.length - 1 - i) * 50, dur = open ? 280 : 220;
+      longest = Math.max(longest, delay + dur);
+      try { _hdrAnims.push(el.animate(open ? [from, to] : [to, from], { duration: dur, delay, easing: open ? 'cubic-bezier(0.2, 0.8, 0.3, 1)' : 'cubic-bezier(0.5, 0, 0.8, 0.4)', fill: 'both' })); } catch (e) {}
+    });
+    setTimeout(() => {
+      if (tok !== _hdrTok) return;
+      b.classList.remove('hdr-icons-closing'); if (!open) b.classList.remove('hdr-icons-open');
+      _hdrAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _hdrAnims = [];
+      window._hdrAnimating = false; try { _placeHeaderIcons(); } catch (e) {} place();
+    }, longest + 20);
   }
   window._setHdrIconsOpen = setHdrOpen;
   function init() {
@@ -25178,7 +25207,7 @@ function snapshotDisplay() {
     ham.innerHTML = '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="pointer-events:none"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
     ham.addEventListener('click', e => { e.stopPropagation(); setHdrOpen(!document.body.classList.contains('hdr-icons-open')); });
     dm.parentElement.appendChild(ham);
-    setHdrOpen(false); place();
+    setHdrOpen(false, true); place();
     window.addEventListener('resize', place); setInterval(place, 1500); try { new MutationObserver(() => requestAnimationFrame(place)).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); } catch (e) {} // follows the header icons when they shift (display modes, LIVE)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 300)); else setTimeout(init, 300);
@@ -25187,7 +25216,7 @@ function snapshotDisplay() {
 <style>
 #_helpBtn.help-on { background: #f17d21 !important; color: #000 !important; }
 /* ☰ closed (default): rainbow, reverb and ? are hidden and can't be pressed; open: they fade in and work as normal */
-#devMenuBtn, #randomizeReverbIconBtn, #_helpBtn { transition: opacity 160ms ease-out; }
+body.hdr-icons-closing #devMenuBtn, body.hdr-icons-closing #randomizeReverbIconBtn, body.hdr-icons-closing #_helpBtn { pointer-events: none !important; }
 body:not(.hdr-icons-open) #devMenuBtn, body:not(.hdr-icons-open) #randomizeReverbIconBtn, body:not(.hdr-icons-open) #_helpBtn { opacity: 0 !important; pointer-events: none !important; visibility: hidden; }
 </style>
 </body>
