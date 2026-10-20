@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 16:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 19:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1314,6 +1314,14 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 @keyframes rand-pending-pulse { from { background: var(--playhead); } to { background: #7a1000; } }
 .rand-btn.rand-auto { background: var(--track-btn-blast-color, var(--playhead)) !important; color: var(--track-btn-blast-text, #fff); animation: engaged-btn-pulse-blast 0.6s ease-in-out infinite; }
 #randBtn.pulsing { display: flex; align-items: center; justify-content: center; }
+/* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
+   the temporary AUTO OUTLINE slider under MAIN VOL (--auto-outline-w). */
+html body .auto-notes-lane .step-cell.on::after,
+html body .auto-notes-lane .step-cell.soft::after,
+html body .auto-notes-lane .step-cell.split32::after {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 var(--auto-outline-w, 1.5px) var(--track-color, var(--text)) !important;
+}
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
    commented out per request. Icon now stays the same fixed HIGHLIGHT-3
@@ -2775,7 +2783,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 16:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 19:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3673,6 +3681,24 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MAIN VOL</div>
         <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
+
+      <!-- TEMPORARY, per direct request: outline thickness for AUTO NOTES tracks' note markers -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;">
+          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO NOTE OUTLINE</div>
+          <div id="autoOutlineReadout" style="font-size:0.85rem;font-weight:700;color:#111;">1.5px</div>
+        </div>
+        <input type="range" id="autoOutlineSlider" min="0.5" max="5" step="0.25" value="1.5" class="master-vol-slider" style="width:100%;">
+      </div>
+      <script>
+      (function(){
+        var sl = document.getElementById('autoOutlineSlider'), ro = document.getElementById('autoOutlineReadout');
+        function ap(v){ document.documentElement.style.setProperty('--auto-outline-w', v + 'px'); if (ro) ro.textContent = v + 'px'; }
+        var v = 1.5; try { var st = localStorage.getItem('sifiAutoOutline'); if (st) v = parseFloat(st) || 1.5; } catch (e) {}
+        sl.value = v; ap(v);
+        sl.addEventListener('input', function(){ ap(sl.value); try { localStorage.setItem('sifiAutoOutline', sl.value); } catch (e) {} });
+      })();
+      </script>
 
       <!-- DRUM MUSIC RATIO / NOTE INTENSITY sliders moved to the RANDOMIZATION menu (under their toggles), per direct request -->
       <!-- 8-BIT MIX moved up here, right under MAIN VOL, per direct request -->
@@ -5843,7 +5869,7 @@ function _setTrackReverb(tr, on) {
     // this track's own filter/panner/masterGain — so whatever FX/BLAST
     // state is active gets carried into reverb automatically, instead of
     // reverb drawing from the raw pre-FX signal like it used to.
-    if (ctx && trackGainNodes[tr]) connectToDelay(tr, _chinkGate(tr) || trackGainNodes[tr]); // after the CHINK gate
+    if (ctx && trackGainNodes[tr]) connectToDelay(tr, _chinkGate(tr) || trackGainNodes[tr]); // after the CHOKE gate
   } else if (_reverbSendGains[tr]) {
     try { _reverbSendGains[tr].disconnect(); } catch(e) {}
     delete _reverbSendGains[tr];
@@ -6357,15 +6383,15 @@ function _applyRytmGtrVolCut(tr) {
 }
 const trackFx = Array.from({length: NUM_TRACKS}, () => ({ x: 0, y: 0 }));
 const trackDelay = new Array(NUM_TRACKS).fill(false);
-// CHINK (4th stop on a track's FX button: off → FX → FX+BLAST → CHINK), per direct request — recreates the "little chinks of
+// CHOKE (4th stop on a track's FX button: off → FX → FX+BLAST → CHOKE), per direct request — recreates the "little chinks of
 // sound" heard during some glitches on purpose. That glitch is notes being scheduled LATE: everything in a note's envelope
 // that's already in the past gets applied instantly, so only a tiny sliver of each hit comes out. Here a per-track gate after
 // the track's volume sits closed and opens for just a blip (~10ms, ~18ms on accents) at the start of every hit.
 const trackChink = new Array(NUM_TRACKS).fill(false);
 window._chinkGates = [];
 function _chinkGate(tr) { const g = window._chinkGates[tr]; return (g && ctx && g.context === ctx) ? g : null; }
-const _chinkBoost = []; // tr -> the gain ratio applied when CHINK came on (so turning it off takes back exactly that)
-function _chinkVolBoost(tr, on) { // +1dB on the track's volume slider while CHINK is on, per direct request
+const _chinkBoost = []; // tr -> the gain ratio applied when CHOKE came on (so turning it off takes back exactly that)
+function _chinkVolBoost(tr, on) { // +1dB on the track's volume slider while CHOKE is on, per direct request
   const cur = trackVolume[tr]; if (typeof cur !== 'number') return;
   let next = cur;
   if (on && !_chinkBoost[tr]) { next = Math.min(1, cur * 1.122); _chinkBoost[tr] = cur > 0 ? next / cur : 1; }
@@ -6382,19 +6408,29 @@ function _setChink(tr, on) {
   const now = ctx.currentTime;
   try { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(on ? 0 : 1, now); } catch (e) {}
 }
-// No CHINK on basses or pads, per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
-const _NO_CHINK_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic', 'dronePlus', 'amlgm']);
-function _chinkAllowed(tr) { return !_NO_CHINK_KEYS.has(trackInstruments[tr]); }
-function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHINK off (it's a performance effect)
+// No CHOKE on basses or pads, per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
+const _NO_CHOKE_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic', 'dronePlus', 'amlgm']);
+function _chinkAllowed(tr) { return !_NO_CHOKE_KEYS.has(trackInstruments[tr]); }
+function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHOKE off (it's a performance effect)
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (!trackChink[tr] || (onlyUnlocked && trackSweep[tr])) continue;
     _setChink(tr, false);
     const b = document.getElementById(`fxbtn-${tr}`); if (b) { b.classList.remove('chink-on'); b.textContent = 'FX'; }
   }
 }
+// CHOKE adapts to the instrument, per direct request: slow-attack voices get extra open time so the choke lands after
+// the sound has actually spoken, instead of cutting it off mid-swell. Attack times read straight from each voice's own
+// envelope code (time to full level); anything not listed is fast (drums/percussion ≈0, plucked/struck tonal ≈5ms).
+const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
+function _chokeAttack(tr) {
+  const k = trackInstruments[tr];
+  if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k];
+  const g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group;
+  return g === 'tonal' ? 0.005 : 0;
+}
 function _chinkHit(tr, t, accent) {
   const g = _chinkGate(tr); if (!g) return;
-  const w = accent ? 0.018 : 0.010;
+  const w = (accent ? 0.018 : 0.010) + _chokeAttack(tr); // base blip + however long this instrument takes to reach full level
   try {
     g.gain.setValueAtTime(0, Math.max(0, t - 0.001));
     g.gain.linearRampToValueAtTime(1, t + 0.0015);
@@ -6843,7 +6879,7 @@ function fireStepAudio(step, t) {
       const is32Split = rawVal === 3;
       const val = is32Split ? 2 : rawVal; // treat split as accent-level for the main hit
       if (val > 0) {
-        if (trackChink[tr]) _chinkHit(tr, t, val === 2); // CHINK: open the gate for just a blip on this hit
+        if (trackChink[tr]) _chinkHit(tr, t, val === 2); // CHOKE: open the gate for just a blip on this hit
         if (tr !== 0) duckEchoTrack(t); // TEXTURE gets pumped by everything else going on
         const key = trackInstruments[tr];
         if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge' || key === 'stab' || key === 'chug' || key === 'bashp' || key === 'denial' || key === 'jcmgtr' || key === 'sprkls' || key === 'clar' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'spiano' || key === 'satk' || key === 'boog' || key === 'magic' || key === 'fflute' || key === 'blunt' || key === 'damask' || key === 'yamask' || key === 'dulc' || (key === 'opening' || key === 'tralaarp') || key === 'drone' || key === 'dronePlus' || key === 'underpass') {
@@ -11032,7 +11068,9 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // a lead register
-  const vel = isAccent ? 0.0425 : 0.0297; // back down 0.5dB, per direct request
+  const _gkFxOn = (tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
+  const _gkAtten = (tr !== undefined && trackPump[tr]) ? 0.2512 : (_gkFxOn ? 0.7079 : 1); // GESKINS −3dB under FX, −12dB under FX BLAST (relative to the +2dB base: net 4dB below the previous BLAST level), per direct request
+  const vel = (isAccent ? 0.0425 : 0.0297) * 1.2589 * _gkAtten; // +2dB, per direct request // back down 0.5dB, per direct request
   const long = durSec >= 0.5;
   const len = Math.max(durSec, 0.28), release = long ? 0.5 : 0.22; // a longer tail too
   const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
@@ -12861,10 +12899,10 @@ function buildUI() {
     const fxVal = trackFx[tr]; fxBtn.classList.toggle('on', fxVal && (fxVal.x > 0 || fxVal.y > 0));
     fxBtn.classList.toggle('blast-on', !!trackPump[tr]);
     fxBtn.classList.toggle('chink-on', !!trackChink[tr]);
-    fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHINK is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
+    fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHOKE is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
     const cycleFxBtn = () => {
       const cur = trackFx[tr], fxIsOn = cur && (cur.x > 0 || cur.y > 0);
-      if (trackChink[tr]) { // CHINK -> off
+      if (trackChink[tr]) { // CHOKE -> off
         _setChink(tr, false); fxBtn.classList.remove('chink-on'); fxBtn.textContent = 'FX';
         markModified(); return;
       }
@@ -12879,7 +12917,7 @@ function buildUI() {
         trackPump[tr] = true;
         fxBtn.classList.add('blast-on');
       } else {
-        // FX+BLAST on -> CHINK (FX and BLAST off, every hit cut to a blip) — or straight to off on a bass / pad (no CHINK there)
+        // FX+BLAST on -> CHOKE (FX and BLAST off, every hit cut to a blip) — or straight to off on a bass / pad (no CHOKE there)
         trackFx[tr] = { x: 0, y: 0 };
         if (ctx) setFxActive(tr, trackFx[tr]);
         trackPump[tr] = false;
@@ -15844,7 +15882,7 @@ function _buildBounceGraph(targetCtx) {
   for (let i = 0; i < NUM_TRACKS; i++) {
     const g = targetCtx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
     const ef = targetCtx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
-    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; g.connect(cg); cg.connect(ef); } trackEnvFilters[i] = ef; // CHINK gate too. caller connects ef -> masterGain for whichever track(s) it wants live
+    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; g.connect(cg); cg.connect(ef); } trackEnvFilters[i] = ef; // CHOKE gate too. caller connects ef -> masterGain for whichever track(s) it wants live
     trackFxNodes[i] = buildFxChain(g);
     if (trackInstruments[i] === 'ngate') initNoiseGate(i);
     if (trackFx[i] && (trackFx[i].x > 0 || trackFx[i].y > 0)) setFxActive(i, trackFx[i]);
@@ -16508,8 +16546,9 @@ function _snapCascadeGhosts() {
   window._cascadeGhostSnap = out;
 }
 function randAll(mode, opts) {
+  window._lastPatternAt = performance.now();
   try { _snapCascadeGhosts(); } catch (e) {}
-  try { _clearChink(true); } catch (e) {} // locked tracks keep their CHINK
+  try { _clearChink(true); } catch (e) {} // locked tracks keep their CHOKE
   setTimeout(() => { try { _randoCapture(); } catch (e) {} }, 0); // RANDO BUTTON: rolled ratio / intensity back into that column
   try { _cancelRandInst(); } catch (e) {} // a new pattern supersedes any >> instrument swap still shuffling
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
@@ -17689,9 +17728,9 @@ function randAll(mode, opts) {
       const blastOn = isJinx ? (fxOn && hasNotes) : (fxOn && hasNotes && Math.random() < blastChance); // BLAST requires FX itself to be on — otherwise the button's off->on->on+blast->off cycle starts from an invalid combination and needs an extra click to untangle. JINX: no separate roll — BLAST just follows its own linked FX roll directly
       trackPump[tr] = blastOn;
       if (fb) fb.classList.toggle('blast-on', blastOn);
-      // CHINK in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
-      // with notes); a track that lands on it swaps its FX for CHINK, the button's 4th stop.
-      // CHINK rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
+      // CHOKE in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
+      // with notes); a track that lands on it swaps its FX for CHOKE, the button's 4th stop.
+      // CHOKE rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
       // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
       const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
       const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && Math.random() < (_isTonalTr ? 0.50 : 0.12);
@@ -18040,7 +18079,7 @@ function stopAllAutoRand() {
           const _waitThenRestart = fn => setTimeout(() => requestAnimationFrame(() => setTimeout(fn, 0)), Math.max(0, _restartAt - performance.now() - 20)); // after the last frame of the transition has drawn
           _waitThenRestart(() => {
             if (window._playdoeRwTok !== _rwTok) return;
-            window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
+            window._lastPatternAt = performance.now(); window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
             if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
             try { if (ctx && playing) playRandReleaseSweep(ctx.currentTime + 0.02); } catch (e) {} // the NEW PATTERN noise sweep, as the new pattern comes in — same as any other new pattern landing, per direct request
             document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
@@ -18231,7 +18270,7 @@ function snapshotState() {
     beatType: _beatType,
     trackDelay: [...trackDelay],
     trackPump: [...trackPump],
-    trackChink: [...trackChink], // CHINK is part of the pattern: A/B, slots, tapes and saved sessions keep it
+    trackChink: [...trackChink], // CHOKE is part of the pattern: A/B, slots, tapes and saved sessions keep it
     trackAutoRand: [...Array(NUM_TRACKS)].map((_, tr) => !!autoShiftStops[tr]),
     activeSlot: activeSlot,
     displayMode: window._rainbowIdx, // A/B brings the display mode back with the pattern
@@ -18359,7 +18398,7 @@ function restoreState(snap, opts) {
     if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
     if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
     if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); fb2.textContent = 'FX'; } }
-    if (snap.trackChink && snap.trackChink[tr]) { // the saved volume already includes CHINK's +1dB, so switch it back on WITHOUT boosting again
+    if (snap.trackChink && snap.trackChink[tr]) { // the saved volume already includes CHOKE's +1dB, so switch it back on WITHOUT boosting again
       trackChink[tr] = true; _chinkBoost[tr] = 1.122; const cg = _chinkGate(tr); if (cg) { try { cg.gain.cancelScheduledValues(ctx.currentTime); cg.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} }
       const fb3 = document.getElementById(`fxbtn-${tr}`); if (fb3) { fb3.classList.add('chink-on'); fb3.classList.remove('on', 'blast-on'); fb3.textContent = 'CHK'; }
     }
@@ -19446,7 +19485,7 @@ function wireRandomizeButton(btn, tr) {
     delete autoShiftStops[tr];
     _stopRandAutoBreathe(tr);
     const _lane2 = document.getElementById(`lane-${tr}`);
-    if (_lane2) { _lane2.classList.remove('track-auto-rand'); _lane2.style.removeProperty('--track-color'); }
+    if (_lane2) { _lane2.classList.remove('track-auto-rand'); _lane2.classList.remove('auto-notes-lane'); _lane2.style.removeProperty('--track-color'); }
     setTrackNameColor(tr, trackInstruments[tr]);
   };
 
@@ -19479,7 +19518,7 @@ function wireRandomizeButton(btn, tr) {
     _setRandBtnLabel(btn, true);
     _startRandAutoBreathe(tr);
     const _lane = document.getElementById(`lane-${tr}`);
-    if (_lane) _lane.style.setProperty('--track-color', _highlight2Color());
+    if (_lane) { _lane.style.setProperty('--track-color', _highlight2Color()); _lane.classList.add('auto-notes-lane'); }
     window._isAutoBarRand = true;
     unmuteIfNeeded();
     _untagBeatOwned(tr);
@@ -23199,7 +23238,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
       // per-track tap into the whole-mix reverb send, so DRUM / PERCUSSION tracks can follow REVERB ON BEAT (see _syncDrumReverbTaps)
       const revTap = ctx.createGain(); revTap.gain.value = 1; window._trackMasterRevTap = window._trackMasterRevTap || []; window._trackMasterRevTap[i] = revTap;
       const revTapD = ctx.createGain(); revTapD.gain.value = 0; window._trackDrumRevTap = window._trackDrumRevTap || []; window._trackDrumRevTap[i] = revTapD;
-      const cg = ctx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; // CHINK gate (open = normal)
+      const cg = ctx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; // CHOKE gate (open = normal)
       g.connect(cg); cg.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); pan.connect(revTapD); revTapD.connect(window._drumMasterRevSend); trackEnvFilters[i] = ef;
       trackFxNodes[i] = buildFxChain(g);
       if (trackInstruments[i] === 'ngate') initNoiseGate(i);
@@ -23263,7 +23302,7 @@ document.addEventListener('pointerdown', () => {
   try { const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; } catch (e) { window._spareCtx = null; }
 }, { capture: true });
 function _initDone() { return !!(masterGain && window._postLimiterGain); }
-function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && ((performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS || ctx.currentTime > AUDIO_REFRESH_MS / 1000) && !window._oneShot; } // ctx.currentTime = the engine's real age, which for a swapped-in spare is older than the swap itself
+function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && (performance.now() - (window._lastPatternAt || 0)) > 6000 /* never piled on top of a new pattern / restart — it waits for a calm bar, per the WEIRD THING reports */ && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && ((performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS || ctx.currentTime > AUDIO_REFRESH_MS / 1000) && !window._oneShot; } // ctx.currentTime = the engine's real age, which for a swapped-in spare is older than the swap itself
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
@@ -24343,7 +24382,7 @@ function _syncDrumReverbTaps() {
   }
 }
 setInterval(() => { try { _syncDrumReverbTaps(); } catch (e) {} }, 400); // follows instrument changes from any path (RAND, picker, beat types)
-setInterval(() => { // a track that becomes a bass / pad (picker, shuffle, beat type…) drops CHINK
+setInterval(() => { // a track that becomes a bass / pad (picker, shuffle, beat type…) drops CHOKE
   try { for (let tr = 0; tr < NUM_TRACKS; tr++) if (trackChink[tr] && !_chinkAllowed(tr)) { _setChink(tr, false); const b = document.getElementById(`fxbtn-${tr}`); if (b) { b.classList.remove('chink-on'); b.textContent = 'FX'; } } } catch (e) {}
 }, 400);
 function setBeatReverbMix(v) {
@@ -24514,7 +24553,17 @@ function _releaseBeatOwnedTracks(newType) {
   }
   markModified();
 }
-function setBeatType(type, fromUser) {
+function setBeatType(type, fromUser, _takeoverOk) {
+  // EXTRA-TRACKS WARNING, per direct request: if this beat's extra tracks can't all fit on muted tracks, ask first.
+  if (fromUser && !_takeoverOk && type !== _beatType) {
+    _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick'; // rolled here so the check sees the same roll the switch will use
+    if (_beatNeedsTakeover(type)) { _beatTakeoverDialog(type, () => setBeatType(type, true, 'yes')); return; }
+    _takeoverOk = 'rolled';
+  }
+  window._beatForceTakeover = _takeoverOk === 'yes';
+  try { return _setBeatTypeInner(type, fromUser, !!_takeoverOk); } finally { window._beatForceTakeover = false; }
+}
+function _setBeatTypeInner(type, fromUser, _rolled) {
   const _beatChanged = type !== _beatType;
   const _wasJazz = _beatType === 'jazz';
   const _wasDisco = _beatType === 'disco';
@@ -24529,7 +24578,7 @@ function setBeatType(type, fromUser) {
   // patterns but not others.
   // SAMBA's own snare voice — SNARE 2 or SIDESTICK, 50/50, re-rolled
   // fresh each time SAMBA gets selected.
-  _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick';
+  if (!_rolled) _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick';
   if (fromUser && _beatChanged) _releaseBeatOwnedTracks(type);
   const btns = { disco: 'beatTypeDiscoBtn', halftime: 'beatTypeHalfBtn', reggae: 'beatTypeReggaeBtn', breaks: 'beatTypeBreaksBtn', bounce: 'beatTypeBounceBtn', reggae2: 'beatTypeReggae2Btn' };
   Object.entries(btns).forEach(([t, id]) => {
@@ -24602,6 +24651,62 @@ function _beatFreeTracks(exclude) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && trackMuted[tr] && !(exclude && exclude.includes(tr))) out.push(tr);
   return out;
 }
+// CONFIRMED TAKEOVER, per direct request: when there aren't enough muted tracks and the user said YES to the dialog, take
+// unmuted, unlocked tracks in this order — drums (kit) first, then percussion, then any tonal that isn't a bass or a lead.
+// Within each tier, non-essential instruments go first. Never basses, never leads, never locked tracks.
+const _BEAT_TAKEOVER_BASS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge']);
+const _BEAT_TAKEOVER_LEAD = new Set(['jcmgtr','damask','yamask','dulc','dronePlus','satk','clar','tralaarp']);
+function _beatForceTrack(used, essentialKeys) {
+  const tierOf = k => { const g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group; if (g === 'kit') return 0; if (g === 'perc') return 1; if (g === 'tonal' && !_BEAT_TAKEOVER_BASS.has(k) && !_BEAT_TAKEOVER_LEAD.has(k)) return 2; return -1; };
+  for (let tier = 0; tier < 3; tier++) {
+    const c = [];
+    for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && !used.includes(tr) && tierOf(trackInstruments[tr]) === tier) c.push(tr);
+    if (!c.length) continue;
+    const pref = c.filter(tr => !(essentialKeys && essentialKeys.has(trackInstruments[tr])));
+    return pref.length ? pref[0] : c[0];
+  }
+  return undefined;
+}
+function _beatClearForTakeover(tr) {
+  try { if (autoShiftStops[tr]) autoShiftStops[tr](); } catch (e) {}
+  try { if (trackChink && trackChink[tr]) _setChink(tr, false); } catch (e) {}
+  try { if (trackLegatoLen && trackLegatoLen[tr]) trackLegatoLen[tr] = {}; } catch (e) {}
+}
+// Would picking this beat type leave any of its extra tracks without a muted track to go on?
+function _beatTakeoverRoles(type) {
+  if (type === 'jazz') return [['ride', 'comp'], { comp: ['sidestick', 'ssnare'] }];
+  if (type === 'disco') return [['shihat']];
+  if (type === 'mozambique') return [['ride', 'sidestick', 'toms']];
+  if (type === 'bossa') return [['sidestick']];
+  if (type === 'samba' && _sambaSnareVariant === 'sidestick') return [['sidestick']];
+  return null;
+}
+function _beatNeedsTakeover(type) {
+  const r = _beatTakeoverRoles(type); if (!r) return false;
+  const prev = window._beatForceTakeover; window._beatForceTakeover = false;
+  let t; try { t = _beatPickTargets(r[0], new Set(), r[1]); } finally { window._beatForceTakeover = prev; }
+  if (!Object.values(t).some(v => v === undefined)) return false;
+  // only worth asking if YES could actually free something up
+  const used = Object.values(t).filter(v => v != null);
+  return _beatForceTrack(used, null) !== undefined;
+}
+function _beatTakeoverDialog(type, onYes) {
+  let d = document.getElementById('beatTakeoverDialog'); if (d) d.remove();
+  d = document.createElement('div'); d.id = 'beatTakeoverDialog';
+  d.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:270;background:#f5f0e8;padding:20px 24px;width:min(300px,80vw);box-sizing:border-box;display:flex;flex-direction:column;gap:14px;align-items:center;font-family:\'DM Sans\',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.35);transition:opacity 0.2s ease-out;';
+  const it = document.querySelector(`.beat-type-item[data-beat="${type}"]`);
+  const name = ((it && it.textContent.trim()) || type).toUpperCase();
+  const t = document.createElement('div'); t.textContent = `${name} NEEDS EXTRA TRACKS, PROCEED?`;
+  t.style.cssText = 'font-size:0.85rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;text-align:center;line-height:1.35;';
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;width:100%;';
+  const mk = (label, dark) => { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `flex:1;padding:10px 0;border:2px solid #111;background:${dark ? '#111' : 'transparent'};color:${dark ? '#f5f0e8' : '#111'};font:700 0.75rem 'DM Sans',sans-serif;letter-spacing:2px;cursor:pointer;`; return b; };
+  const no = mk('CANCEL', false), yes = mk('YES', true);
+  const close = () => { d.style.opacity = '0'; setTimeout(() => d.remove(), 220); };
+  no.addEventListener('click', e => { e.stopPropagation(); close(); try { refreshBeatMenuHighlight(); } catch (er) {} });
+  yes.addEventListener('click', e => { e.stopPropagation(); close(); onYes(); try { refreshBeatMenuHighlight(); } catch (er) {} });
+  row.appendChild(no); row.appendChild(yes); d.appendChild(t); d.appendChild(row);
+  document.body.appendChild(d);
+}
 // For each role key: an unlocked track already holding it → if unmuted, the role is covered (null = leave alone); if muted, it's
 // that role's target. Otherwise the next free muted track (non-essential instruments first). Returns {key: tr|null|undefined}.
 function _beatPickTargets(keys, essentialKeys, altKeys) {
@@ -24617,7 +24722,8 @@ function _beatPickTargets(keys, essentialKeys, altKeys) {
     if (key in res) return;
     const free = _beatFreeTracks(used);
     const pref = free.filter(tr => !essentialKeys.has(trackInstruments[tr]));
-    const tr = pref.length ? pref[0] : (free.length ? free[0] : undefined);
+    let tr = pref.length ? pref[0] : (free.length ? free[0] : undefined);
+    if (tr === undefined && window._beatForceTakeover) { tr = _beatForceTrack(used, essentialKeys); if (tr !== undefined) _beatClearForTakeover(tr); }
     if (tr !== undefined) used.push(tr);
     res[key] = tr;
   });
