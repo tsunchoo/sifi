@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 23:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 00:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1738,6 +1738,19 @@ html body .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn {
 html body .track-ctrl-row.row-muted.row-muted.row-muted .track-ctrl-icon-btn *,
 html body .track-ctrl-row.row-muted.row-muted.row-muted .shift-btn *,
 html body .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn * { color: #888 !important; text-shadow: none !important; filter: none !important; animation: none !important; }
+/* MUTED ON DARK BACKGROUNDS, per direct report: the fixed light greys above (#ccc buttons, #888 glyphs) are "dimmed" only on a
+   light background — on a dark one they're the brightest thing in the row, so a muted track stood out instead of receding.
+   body.bg-dark (set from the actual background lightness, see _syncBgDark) swaps them for shades sunk into the background. */
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .track-ctrl-icon-btn,
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .shift-btn,
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn { background: color-mix(in srgb, var(--bg) 82%, #888) !important; color: color-mix(in srgb, var(--bg) 45%, #888) !important; }
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .track-ctrl-icon-btn *,
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .shift-btn *,
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .fx-btn * { color: color-mix(in srgb, var(--bg) 45%, #888) !important; }
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted svg { opacity: 0.45 !important; }
+html body.bg-dark .track-vol-bar.muted, html body.bg-dark.vol-test .track-vol-bar.muted { background: color-mix(in srgb, var(--bg) 82%, #888) !important; }
+html body.bg-dark .track-ctrl-row .track-name-btn.muted { opacity: 0.4 !important; }
+html body.bg-dark .track-ctrl-row.row-muted.row-muted.row-muted .lock-btn.lock-btn .lock-ast-shape { background: color-mix(in srgb, var(--bg) 45%, #888) !important; background-color: color-mix(in srgb, var(--bg) 45%, #888) !important; filter: none !important; box-shadow: none !important; }
 
 
 
@@ -2824,7 +2837,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 23:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 00:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6045,6 +6058,14 @@ function _measureChkSqueeze() {
     if (r > 0.3) document.documentElement.style.setProperty('--chk-sx', r.toFixed(3));
   } catch (e) {}
 }
+// Dark-background detector for the muted-track colours (body.bg-dark) — reads the real page background, so it follows every
+// display mode, palette, WILD colour change and the BG sliders without each of them having to report in.
+function _syncBgDark() {
+  try { const m = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g); if (!m) return;
+    const [r, g, b] = m.map(Number); const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    document.body.classList.toggle('bg-dark', lum < 0.45); } catch (e) {}
+}
+setInterval(_syncBgDark, 700); document.addEventListener('DOMContentLoaded', _syncBgDark);
 let _fxSyncQ = null;
 try { document.fonts && document.fonts.ready.then(() => { window._chkSqMeasured = 0; _queueFxBtnSync(); }); } catch (e) {}
 function _queueFxBtnSync() { if (!window._chkSqMeasured && document.querySelector('.fx-btn')) { window._chkSqMeasured = 1; _measureChkSqueeze(); } if (_fxSyncQ) return; _fxSyncQ = true; queueMicrotask(() => { _fxSyncQ = null; for (let t = 0; t < NUM_TRACKS; t++) _syncFxBtn(t); }); }
@@ -6522,9 +6543,17 @@ function _chokeAttack(tr) {
   const g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group;
   return g === 'tonal' ? 0.005 : 0;
 }
-function _chinkHit(tr, t, accent) {
+// BASSES choke by CYCLES, per direct request: a 15-23ms blip let through only ~1 cycle of a 41-100Hz note (a click with no
+// low end, so FX made the bass vanish). On a bass the gate now stays open for CHOKE_BASS_CYCLES cycles of the note's own pitch
+// (≈170ms on a low E, ≈70ms at 100Hz) — same choppy feel, but every note keeps its tone and weight.
+const CHOKE_BASS_CYCLES = 7;
+function _chokeNoteFreq(tr, gs) {
+  try { const sc = trackBassScale[tr] || [110]; const po = trackPitchOverride[tr]; return (po && gs !== undefined && po[gs] !== undefined) ? po[gs] : sc[(gs || 0) % sc.length]; } catch (e) { return 110; }
+}
+function _chinkHit(tr, t, accent, gs) {
   const g = _chinkGate(tr); if (!g) return;
-  const w = (accent ? 0.018 : 0.010) + _chokeAttack(tr); // base blip + however long this instrument takes to reach full level
+  let w = (accent ? 0.018 : 0.010) + _chokeAttack(tr); // base blip + however long this instrument takes to reach full level
+  if (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr])) { const f = Math.max(20, _chokeNoteFreq(tr, gs) || 110); w = Math.max(w, Math.min(0.25, CHOKE_BASS_CYCLES / f)); }
   try {
     g.gain.setValueAtTime(0, Math.max(0, t - 0.001));
     g.gain.linearRampToValueAtTime(1, t + 0.0015);
@@ -6974,7 +7003,7 @@ function fireStepAudio(step, t) {
       const is32Split = rawVal === 3;
       const val = is32Split ? 2 : rawVal; // treat split as accent-level for the main hit
       if (val > 0) {
-        if (trackChink[tr]) _chinkHit(tr, t, val === 2); // CHOKE: open the gate for just a blip on this hit
+        if (trackChink[tr]) _chinkHit(tr, t, val === 2, gs); // CHOKE: open the gate for just a blip on this hit
         if (tr !== 0) duckEchoTrack(t); // TEXTURE gets pumped by everything else going on
         const key = trackInstruments[tr];
         if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge' || key === 'stab' || key === 'chug' || key === 'bashp' || key === 'denial' || key === 'jcmgtr' || key === 'sprkls' || key === 'clar' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'spiano' || key === 'satk' || key === 'boog' || key === 'magic' || key === 'fflute' || key === 'blunt' || key === 'damask' || key === 'yamask' || key === 'dulc' || (key === 'opening' || key === 'tralaarp') || key === 'drone' || key === 'dronePlus' || key === 'underpass') {
@@ -10385,14 +10414,14 @@ function playSteelGuitar(freq, durSec, isAccent, time, tr) {
 }
 
 // ── Rhodes 2: warm electric piano, more fundamental, softer attack ──
-function playRhodes2(freq, durSec, isAccent, time, tr, extLevelMul) {
+function playRhodes2(freq, durSec, isAccent, time, tr, extLevelMul, maxLife) { // maxLife: optional cap on the ring-out (MAGIC LITE under FX — the gate has cut it long before)
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
   const vel = (isAccent ? 0.0755 : 0.0529) * (extLevelMul !== undefined ? extLevelMul : 1); // +2dB
 
   const B = 0.00008; // less inharmonicity = warmer
   const inharmonic = n => freq * n * Math.sqrt(1 + B * n * n);
-  const baseDec = Math.min(durSec + 1.4, 3.0) * (1 + Math.max(0, (300 - freq) / 300) * 0.6); // longer
+  const baseDec = Math.min(Math.min(durSec + 1.4, 3.0) * (1 + Math.max(0, (300 - freq) / 300) * 0.6), maxLife || 99); // longer
 
   // Fuller tone: stronger partials, more body (trimmed the barely-audible n:4 partial)
   const partials = [
@@ -10779,6 +10808,17 @@ function playMagic(freq, durSec, isAccent, time, tr) {
     freqs = [scale[idx2], scale[idx3]]; // tonic (scale[baseIdx]) dropped — just the two color tones now, no root
   }
   const staggerMs = 0.01;
+  // MAGIC LITE under FX / FX+BLAST, per direct request (CPU — it was pushing the phone into crackly "bit-crushed" overload):
+  // the full voice is DREAM PIANO ×2 chord tones = a 9-oscillator pad (2.4s tail + reverb send) PLUS an electric piano, per
+  // tone — ~80 nodes a note, and with those long tails 20+ notes ring at once. Under FX the choke gate only lets the first
+  // ~0.17s of each note through anyway, and the pad's 0.55s swell is barely audible in that window — so with FX (or BLAST)
+  // on, MAGIC plays just the electric-piano layer, with its length capped, a touch louder to make up the missing pad body.
+  // Roughly a sixth of the work per note and far fewer voices alive at once. Without FX it's the full voice, unchanged.
+  if (tr !== undefined && (trackChink[tr] || trackPump[tr])) {
+    const liteDur = trackChink[tr] ? Math.min(durSec, 0.25) : durSec;
+    freqs.forEach((f, i) => { playRhodes2(f, liteDur, isAccent, time + i * staggerMs, tr, 0.6310 * 1.122, trackChink[tr] ? 0.45 : undefined); }); // under FX each voice also stops ringing at 0.45s (inaudible past the gate) instead of ~2-3s
+    return;
+  }
   freqs.forEach((f, i) => {
     playPrimePiano(f, durSec, isAccent, time + i * staggerMs, tr, 1);
   });
@@ -17656,6 +17696,7 @@ function randAll(mode, opts) {
         // ...then every chosen fader sits ~30% (+/-5%) further up its
         // travel (slider position, not raw gain), per direct request.
         trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * (1.25 + Math.random() * 0.10)));
+        if (trackInstruments[_tr] === 'guiro') trackVolume[_tr] = volPosToGain(volGainToPos(trackVolume[_tr]) * 0.5); // MARACAS: fader at HALF its usual default position, per direct request
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
@@ -22917,7 +22958,7 @@ function fullReset() {
         _swipeHandled = true;
         _dragActive = false;
         if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-        if (dx > 0) _toggleTrackLock(_nameHoldTr); // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
+        if (dx > 0 && !(trackSweep[_nameHoldTr] && trackMuted[_nameHoldTr])) _toggleTrackLock(_nameHoldTr); // a MUTED locked track can't be UNLOCKED by a swipe, per direct request (locking a muted track still works) // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
         return;
       }
       // Mostly-horizontal movement that hasn't reached the swipe distance yet: wait for it rather than committing to a mute-drag
