@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 21:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 22:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2823,7 +2823,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 21:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 22:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6461,8 +6461,10 @@ function _setChink(tr, on) {
   const now = ctx.currentTime;
   try { g.gain.cancelScheduledValues(now); g.gain.setValueAtTime(on ? 0 : 1, now); } catch (e) {}
 }
-// No CHOKE on basses or pads, per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
-const _NO_CHOKE_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic', 'dronePlus', 'amlgm']);
+// No CHOKE on basses (pads allowed again — later choke), per direct request (RAND never gives it to them, and their FX button skips the CHK stop)
+const _NO_CHOKE_KEYS = new Set(['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'magic', 'dronePlus', 'amlgm']); // PADS allowed again, per direct request — they choke LATER (see _CHOKE_PAD_EXTRA)
+const _CHOKE_PADS = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone']);
+const _CHOKE_PAD_EXTRA = 0.12; // pads hold open this much longer again on top of their own attack, so the choke cuts in noticeably later than on other notes
 const _NO_RAND_CHK = new Set(['skick', 'sidestick', 'shihat']); // RAND never wastes CHK on KICK / SIDESTICK / HIHAT, per direct request (still selectable by hand)
 function _chinkAllowed(tr) { return !_NO_CHOKE_KEYS.has(trackInstruments[tr]); }
 function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHOKE off (it's a performance effect)
@@ -6478,7 +6480,7 @@ function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHO
 const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
 function _chokeAttack(tr) {
   const k = trackInstruments[tr];
-  if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k];
+  if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k] + (_CHOKE_PADS.has(k) ? _CHOKE_PAD_EXTRA : 0);
   const g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group;
   return g === 'tonal' ? 0.005 : 0;
 }
@@ -9427,7 +9429,11 @@ function playMotownBass(freq, durSec, isAccent, time, tr) {
   // CLIPPING FIX, per direct report: the attack used to peak at full vel — two in-phase saws + sub made that
   // ~2.1 (+6.5dBFS) for the first ~25ms of EVERY note, hard-clipped by the source soft-clip (curve tops out at ±1).
   // Peak now 0.44·vel (just under the ceiling); body nudged 0.35→0.37 to keep the weight.
-  const _pk = vel * 0.44, _body = vel * 0.37;
+  // CLIPPING — THE REAL CAUSE, found by rendering this voice offline: accented notes still peaked at ~1.0 (soft ~0.7) going INTO
+  // the per-track safety soft-clip, which starts bending at 0.6 and hard-limits at 1.0 — so every accent was being squashed and
+  // the edge clipped. The voice now runs at HALF level (peaks ~0.53, clean side of the knee) and the track's source trim gives
+  // the same 6dB back AFTER the soft-clip (see getSourceTrimGain) — same loudness, no distortion.
+  const _pk = vel * 0.44 * 0.5, _body = vel * 0.37 * 0.5;
   ampEnv.gain.setValueAtTime(0, time);
   ampEnv.gain.linearRampToValueAtTime(_pk, time + 0.008);
   ampEnv.gain.exponentialRampToValueAtTime(_body, time + decay);
@@ -11618,7 +11624,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
+  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -17788,7 +17794,7 @@ function randAll(mode, opts) {
       // CHOKE rolls on its own now (not only on tracks that already rolled FX), per direct request: much more likely on TONAL
       // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
       const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
-      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
+      const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _CHOKE_PADS.has(trackInstruments[tr]) ? 0.50 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
