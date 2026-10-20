@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 06:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 06:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2773,7 +2773,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 06:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 06:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3906,7 +3906,7 @@ const INSTRUMENTS = {
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'HASSELL',      soft: null, accent: null, group: 'tonal' },
   sprkls: { name: 'SPARKLES',    soft: null, accent: null, group: 'tonal' },
-  tralaarp:{ name: 'TRALAARP',   soft: null, accent: null, group: 'tonal' }, // TRALAARP — takes SPARP's slot, per direct request: OPENING-style legato pad with a filter sweep up and a pitch wobble at the end of longer notes; see playTralaarp
+  tralaarp:{ name: 'TRALAARP',   soft: null, accent: null, group: 'tonal' }, // TRALAARP — takes SPARP's slot (a LEAD, not a pad), per direct request: legato arpeggio lead with a filter sweep up and a pitch wobble at the end of longer notes; see playTralaarp
   // sflute: { name: 'SPARP',   soft: null, accent: null, group: 'tonal' }, // SPARP (was SPOOG) — short UNDERPASS-style struck-tube tone playing triplet arpeggio fragments, per direct request; see playSparp. // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below  // SPARP retired from the list (playSparp kept); old saved patterns with it load as TRALAARP
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
   yamask: { name: 'YAMASK',      soft: null, accent: null, group: 'tonal' },
@@ -5701,7 +5701,7 @@ function randomizeCurrentInstruments() {
   // slot gives that slot its own distinct color too.
   _recallSnapB = snapshotState();
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
-  const isPad = k => ['fflute','blunt','sstring','sleg','opening','tralaarp','drone'].includes(k);
+  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
   const groupOf = k => {
     const g = INSTRUMENTS[k] && INSTRUMENTS[k].group;
     if (g === 'kit') return 'kit';
@@ -5760,7 +5760,7 @@ function setLockSwap(on) { document.body.classList.toggle('lock-swap', !!on); co
 function swapTrackInstrumentInGroup(tr, anyGroup, avoidKey) { // anyGroup (double-tap): pick from EVERY instrument, whatever its group — drums <-> percussion <-> tonal
   const cur = trackInstruments[tr]; if (!cur || !INSTRUMENTS[cur]) return false;
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
-  const isPad = k => ['fflute','blunt','sstring','sleg','opening','tralaarp','drone'].includes(k);
+  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
   // Tonal non-bass instruments split three ways for the asterisk, per direct request: PADS, LEAD (FIST, DAMASK, YAMASK, BROOTH,
   // ZINGS, TALK BOX, JENNY) and COMP (every other tonal instrument). A single tap only ever swaps within the track's own group.
   const isLead = k => ['jcmgtr','damask','yamask','dulc','dronePlus','satk','clar'].includes(k);
@@ -6861,7 +6861,7 @@ function fireStepAudio(step, t) {
           }
           }
           // Duck all pad tracks when busiest track fires
-          const _padKeys = new Set(['fflute','sstring','sleg','sparkle','sprkls','rhodes','rhodes2','opening','tralaarp','magic']);
+          const _padKeys = new Set(['fflute','sstring','sleg','sparkle','sprkls','rhodes','rhodes2','opening','magic']);
           if (!_padKeys.has(key)) {
             let _bestDensity = 0, _busiestTr = -1;
             for (let _i = 0; _i < NUM_TRACKS; _i++) {
@@ -10938,50 +10938,51 @@ function playOpening(freq, durSec, isAccent, time, tr) {
 
   _afterAudio(time + sustain + release + 0.6, () => { try { chordGain.disconnect(); lp.disconnect(); } catch(e) {} }); // audio-clock timed (was wall-clock from NOW, not from the note's start)
 }
-// ── TRALAARP, per direct request: OPENING's light legato pad (root, 3rd and 6th unfolding in one after another, then holding),
-// but with movement inside the phrase — on longer notes (≥ half a second) the filter sweeps UP through the frequency range
-// across the note, and a pitch wobble (vibrato) creeps in over the last stretch of the note and its release. A soft saw +
-// triangle pair per chord tone so the sweep has harmonics to open up. Short notes stay steady (no sweep / wobble).
+// ── TRALAARP, per direct request — a LEAD (SPARP's old slot, not a pad), and an ARP: each note runs a legato arpeggio up through
+// the chord (root → 3rd → 5th → octave → 5th → 3rd …), gliding smoothly from tone to tone with no re-attack, for as long as the
+// note lasts. Bright detuned saw + square through a resonant lowpass. On longer notes (≥ half a second) the filter SWEEPS UP
+// across the note, and a pitch WOBBLE (vibrato) creeps in over the last stretch and the release. Short notes = a quick rising
+// flick of the arpeggio, steady.
 function playTralaarp(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.0491 : 0.0340; // OPENING's level +1.5dB, which measures the same loudness as OPENING once the filter is in
-  const sustain = Math.max(durSec, 1.2), release = Math.min(sustain * 0.4, 1.4);
+  let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // a lead register
+  const vel = isAccent ? 0.060 : 0.042;
   const long = durSec >= 0.5;
+  const len = Math.max(durSec, 0.28), release = long ? 0.35 : 0.18;
   const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
-  const thirdRatio = _isMajorish ? 1.2599 : 1.1892, sixthRatio = _isMajorish ? 1.6818 : 1.5874;
-  const chordGain = ctx.createGain();
-  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.8;
-  if (long) { // the sweep up
-    lp.frequency.setValueAtTime(Math.min(18000, freq * 1.4), time);
-    lp.frequency.exponentialRampToValueAtTime(Math.min(18000, freq * 9), time + sustain * 0.85);
-  } else lp.frequency.value = Math.min(18000, freq * 4);
-  chordGain.connect(lp); lp.connect(dest);
-  // the wobble: one shared LFO into every voice's detune, depth fading in over the last 40% of the note into the release
-  let lfo = null, depth = null;
-  if (long) {
-    lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 5.5;
-    depth = ctx.createGain(); depth.gain.setValueAtTime(0, time); depth.gain.setValueAtTime(0, time + sustain * 0.6);
-    depth.gain.linearRampToValueAtTime(30, time + sustain + release * 0.5); // ±30 cents
-    lfo.connect(depth); lfo.start(time); lfo.stop(time + sustain + release + 0.2);
-  }
-  const notes = [{ ratio: 1.0, delay: 0.00, amp: 1.0 }, { ratio: thirdRatio, delay: 0.08, amp: 0.85 }, { ratio: sixthRatio, delay: 0.17, amp: 0.7 }];
-  notes.forEach(n => {
-    const t0 = time + n.delay, noteDur = sustain - n.delay + release, holdAt = Math.max(noteDur - release, 0.4);
-    [['sawtooth', -6, 0.26], ['triangle', 5, 0.5]].forEach(([type, det, ampScale]) => {
-      const o = ctx.createOscillator(); o.type = type; o.frequency.value = freq * n.ratio; o.detune.value = det;
-      if (depth) depth.connect(o.detune);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0, t0);
-      g.gain.linearRampToValueAtTime(vel * n.amp * ampScale, t0 + 0.35); // soft bloom like OPENING
-      g.gain.setValueAtTime(vel * n.amp * ampScale, t0 + holdAt);
-      g.gain.linearRampToValueAtTime(0, t0 + noteDur);
-      o.connect(g); g.connect(chordGain);
-      o.start(t0); o.stop(t0 + noteDur + 0.1);
-      o.onended = () => { try { g.disconnect(); } catch (e) {} };
-    });
+  const third = _isMajorish ? 1.2599 : 1.1892, fifth = 1.4983;
+  const cycle = [1, third, fifth, 2, fifth, third];
+  const stepLen = Math.max(0.085, Math.min(0.16, len / 6)); // a few arp steps per note, never a blur
+  const end = time + len;
+  const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(); o1.type = 'sawtooth'; o2.type = 'square';
+  o1.detune.value = -7; o2.detune.value = 7;
+  const m1 = ctx.createGain(), m2 = ctx.createGain(); m1.gain.value = 0.55; m2.gain.value = 0.28;
+  // the arpeggio: legato glides between chord tones (setTargetAtTime ≈ 20ms portamento), on both oscillators
+  [o1, o2].forEach(o => {
+    o.frequency.setValueAtTime(f, time);
+    let i = 1;
+    for (let t = time + stepLen; t < end - 0.02; t += stepLen, i++) o.frequency.setTargetAtTime(f * cycle[i % cycle.length], t, 0.02);
   });
-  _afterAudio(time + sustain + release + 0.6, () => { try { chordGain.disconnect(); lp.disconnect(); if (depth) depth.disconnect(); } catch (e) {} });
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 4;
+  if (long) { lp.frequency.setValueAtTime(Math.min(16000, f * 1.6), time); lp.frequency.exponentialRampToValueAtTime(Math.min(16000, f * 12), time + len * 0.9); }
+  else { lp.frequency.setValueAtTime(Math.min(16000, f * 2.5), time); lp.frequency.exponentialRampToValueAtTime(Math.min(16000, f * 5), time + len); }
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel, time + 0.012);
+  env.gain.setValueAtTime(vel, end);
+  env.gain.exponentialRampToValueAtTime(0.0005, end + release);
+  let lfo = null, depth = null;
+  if (long) { // the wobble at the end of the note
+    lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 6;
+    depth = ctx.createGain(); depth.gain.setValueAtTime(0, time); depth.gain.setValueAtTime(0, time + len * 0.65);
+    depth.gain.linearRampToValueAtTime(45, end + release * 0.6); // ±45 cents
+    lfo.connect(depth); depth.connect(o1.detune); depth.connect(o2.detune);
+    lfo.start(time); lfo.stop(end + release + 0.1);
+  }
+  o1.connect(m1); o2.connect(m2); m1.connect(lp); m2.connect(lp); lp.connect(env); env.connect(dest);
+  [o1, o2].forEach(o => { o.start(time); o.stop(end + release + 0.05); });
+  o1.onended = () => { try { m1.disconnect(); m2.disconnect(); lp.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
 }
 // ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
 function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
@@ -12454,7 +12455,7 @@ function openSoundPicker(tr) {
   document.getElementById('soundPickerTitle').textContent = `TRK ${tr+1} — SOUND`;
   const list = document.getElementById('soundPickerList'); list.innerHTML = '';
   const _isBass = k => ['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge'].includes(k);
-  const _isPad = k => ['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'tralaarp', 'drone'].includes(k);
+  const _isPad = k => ['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone'].includes(k);
   // Same category order as before (KIT, PERC, LEAD, PAD, BASS), just no
   // section headers/sub-grids — one flat grid to fit on one page.
   const GROUPS = [
@@ -12531,7 +12532,7 @@ function setTrackNameColor(tr, key) {
     'tonal': _cs.getPropertyValue('--lane-color-tonal').trim() || '#fd475d',
   };
   const isBass = ['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge'].includes(key);
-  const isPad = ['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'tralaarp', 'drone', 'magic'].includes(key);
+  const isPad = ['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic'].includes(key);
   let laneColor = _laneColors[g] || 'var(--text)';
   if (isBass) laneColor = _cs.getPropertyValue('--lane-color-bass').trim() || '#8d3ba8';
   else if (isPad) laneColor = _cs.getPropertyValue('--lane-color-pad').trim() || '#FFFF39';
@@ -16567,7 +16568,7 @@ function randAll(mode, opts) {
   const snareKeys = new Set(['ssnare']); // just the one snare now
   const soloRareLeadKeys = new Set(['rhodes','sprkls','boog']); /* JINX removed too, per direct request — as likely as DAMASK now */ /* BROOTH (dulc) removed from this group, per direct request — it now only follows YAMASK's one-of rule */ // max one of these — JINX/SPACE KOTO/SPARKLES/DREAM PIANO/BOOBOO (XYLOPHONE's old slot, sflute, removed — it's CLUNG now, matching STRINGS+'s criteria instead of this XYLOPHONE-era solo restriction)
   const jinxClashKeys = new Set(['jcmgtr', 'damask', 'yamask']); // JINX never coexists with DAMASK or YAMASK specifically
-  const padKeys = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'tralaarp', 'drone', 'magic']); // max one PAD-classified instrument per pattern — HASSELL/STRINGS/etc. never together
+  const padKeys = new Set(['fflute', 'blunt', 'sstring', 'sleg', 'opening', 'drone', 'magic']); // max one PAD-classified instrument per pattern — HASSELL/STRINGS/etc. never together
   // Exclude instruments already locked on other tracks
   const lockedInstruments = new Set();
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
