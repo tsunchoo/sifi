@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 03:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 04:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2842,7 +2842,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 03:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 04:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3044,7 +3044,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div id="randoGlobal" style="display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;"></div><!-- DRUM MUSIC RATIO: overall rule for every gesture -->
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO DOUBLE-CLICK EVERY</div>
       <label class="wild-toggle">
         <input type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
         <span class="wild-toggle-slider"></span>
@@ -3052,7 +3052,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     </div>
     <div id="autoPeriodRow" class="disabled" style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NEW PATTERN EVERY...</div>
+        <div></div>
         <div id="autoRandPeriodReadout" style="font-size:0.6rem;font-family:monospace;color:#333;">4 BARS</div>
       </div>
       <input type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
@@ -5649,10 +5649,10 @@ function showRandMenu() {
 // that gesture does. NOTES = new random notes; SHUFFLE INSTRUMENTS = new instruments; both on = a whole new pattern (what a
 // double click always did). REVERB / FX = new per-track allocations; 8-BIT MIX; BEAT TYPE; TEMPO = randomise it (off = keep it);
 // NOTE INTENSITY (toggle on = use the slider, off = random). DRUM MUSIC RATIO is one overall rule below the columns.
-const _RANDO_COL_DEFAULT = full => ({ notes: full, shuffle: true, reverb: full, beatFx: full, eightBit: false, beatType: full, tempo: full, intRand: false, intensity: 25 });
+const _RANDO_COL_DEFAULT = full => ({ notes: full, shuffle: true, reverb: full, beatFx: full, eightBit: false, beatType: full, tempo: full, intRand: false });
 const _RANDO_DEFAULT = () => ({ click: _RANDO_COL_DEFAULT(false), dbl: _RANDO_COL_DEFAULT(true), shake: _RANDO_COL_DEFAULT(true) });
 window._randoCfg = _RANDO_DEFAULT();
-window._randoGlobal = { ratioRand: false, ratio: 2 }; // DRUM MUSIC RATIO — overall rule for every gesture
+window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; // DRUM MUSIC RATIO + the one NOTE INTENSITY slider — overall rules for every gesture (each column's NOTE INTENSITY toggle: on = this slider, off = random)
 function _randoIsFull(c) { return !!(c && c.notes && c.shuffle); } // a whole new pattern (randAll)
 window._randoLast = null;
 // DOUBLE CLICK on >>: the whole screen except the >> button drops to grayscale for a flash (~0.12s), then eases back.
@@ -5682,11 +5682,11 @@ function _randoApply(which) {
   setRandomizeReverb(false); setRandomize8BitMix(c.eightBit); setRandomizeBeatType(c.beatType); setRandomizeDrumFx(false);
   window._randoKeepRev = !c.reverb; window._randoKeepFx = !c.beatFx;
   setRandomizeDrumMusicRatio(window._randoGlobal.ratioRand); setRandomizeNoteIntensity(c.intRand);
-  setTonalPercBalance(window._randoGlobal.ratio); setIntensity(c.intensity);
+  setTonalPercBalance(window._randoGlobal.ratio); setIntensity(window._randoGlobal.intensity);
 }
 function _randoCapture() { // a new pattern may have rolled DRUM MUSIC RATIO / NOTE INTENSITY — keep that column's sliders in step
   const w = window._randoLast, c = w && window._randoCfg[w]; if (!c) return;
-  window._randoGlobal.ratio = window._tonalPercBalance; c.intensity = _intensitySliderVal;
+  window._randoGlobal.ratio = window._tonalPercBalance; if (!c.intRand) window._randoGlobal.intensity = _intensitySliderVal;
   try { _randoSyncSliders(); } catch (e) {}
 }
 function _randoShuffle(which) { _randoLocal(which); } // old name, kept for its callers
@@ -5718,7 +5718,7 @@ function _randoLocal(which) {
   // DRUM MUSIC RATIO / NOTE INTENSITY: the column's slider value (or a random one, with its toggle off) is set on the shuffle too —
   // it governs every track's notes from here on (AUTO NOTES tracks regenerate with it every bar, + re-rolls use it) and the next pattern.
   try { const g = window._randoGlobal; setTonalPercBalance(g.ratioRand ? Math.floor(Math.random() * 7) : g.ratio); } catch (e) {}
-  try { setIntensity(c.intRand ? [0, 25, 50, 75, 100][Math.floor(Math.random() * 5)] : c.intensity); } catch (e) {}
+  try { setIntensity(c.intRand ? [0, 25, 50, 75, 100][Math.floor(Math.random() * 5)] : window._randoGlobal.intensity); } catch (e) {}
   try { _randoCapture(); } catch (e) {}
   // TEMPO: a fresh tempo (same 70-135 range as a new pattern) unless the tempo screen's lock is on
   try { if (c.tempo && !_tempoLocked && typeof _tapeSetBpm === 'function') { _tapeSetBpm(Math.floor(Math.random() * 66) + 70); const bd = document.getElementById('bpmDisplay'); if (bd) bd.textContent = bpm; const tb = document.getElementById('tempoBar'); if (tb) tb.value = bpm; } } catch (e) {}
@@ -5748,7 +5748,7 @@ function _rerollAllocations(doFx, doRev) {
 }
 const _RANDO_ROWS = [
   ['notes', 'NOTES'], ['shuffle', 'SHUFFLE INSTRUMENTS'], ['reverb', 'REVERB'], ['beatFx', 'FX'], ['eightBit', '8-BIT MIX'], ['beatType', 'BEAT TYPE'], ['tempo', 'TEMPO'],
-  ['intRand', 'NOTE INTENSITY', 'intensity'],
+  ['intRand', 'NOTE INTENSITY'], // toggle only — on = the one NOTE INTENSITY slider below, off = random
 ];
 const _RANDO_COLS = ['click', 'dbl', 'shake'];
 const _RANDO_HAND_SVG = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12.5V5.5a1.5 1.5 0 0 1 3 0V11"/><path d="M11 10.5V4a1.5 1.5 0 0 1 3 0v7"/><path d="M14 10.5V5a1.5 1.5 0 0 1 3 0v7"/><path d="M17 11V8.5a1.5 1.5 0 0 1 3 0V15a7 7 0 0 1-7 7h-1.2a6 6 0 0 1-4.6-2.2L3.6 15.6a1.6 1.6 0 0 1 2.5-2L8 15.5"/></svg>';
@@ -5756,8 +5756,8 @@ const _RANDO_NEW_PATTERN_ONLY = new Set(); // nothing is greyed by SHUFFLE INSTR
 const _RANDO_AST_SVG = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91" stroke="currentColor" stroke-width="3.4" fill="none"/></svg>';
 function _randoReadout(key, v) { return key === 'ratio' ? `${v} / ${6 - v}` : (_intensityLevelNames[v] || (v + '%')); }
 function _randoSyncSliders() {
-  _RANDO_COLS.forEach(w => { const sl = document.getElementById(`rando-${w}-intensity`), rd = document.getElementById(`rando-${w}-intensity-read`);
-    if (sl) sl.value = window._randoCfg[w].intensity; if (rd) rd.textContent = _randoReadout('intensity', window._randoCfg[w].intensity); });
+  { const sl = document.getElementById('rando-g-intensity'), rd = document.getElementById('rando-g-intensity-read');
+    if (sl) sl.value = window._randoGlobal.intensity; if (rd) rd.textContent = _randoReadout('intensity', window._randoGlobal.intensity); }
   const gs = document.getElementById('rando-g-ratio'), gr = document.getElementById('rando-g-ratio-read');
   if (gs) gs.value = window._randoGlobal.ratio; if (gr) gr.textContent = _randoReadout('ratio', window._randoGlobal.ratio);
 }
@@ -5771,7 +5771,7 @@ function _randoBuildUI() {
   _RANDO_ROWS.forEach(([key, label, sub]) => {
     h += `<div class="rc-lab">${label}</div>`;
     _RANDO_COLS.forEach(w => {
-      const c = window._randoCfg[w], inv = !!sub, on = inv ? !c[key] : !!c[key];
+      const c = window._randoCfg[w], inv = !!sub || key === 'intRand', on = inv ? !c[key] : !!c[key];
       h += `<div class="rc-cell" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input type="checkbox" ${on ? 'checked' : ''} onchange="_randoSet('${w}','${key}',${inv ? '!' : ''}this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
     });
     if (sub) {
@@ -5786,7 +5786,10 @@ function _randoBuildUI() {
   // DRUM MUSIC RATIO — the overall rule, full width under the columns (as it used to be)
   const g = window._randoGlobal, gh = document.getElementById('randoGlobal');
   if (gh) gh.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><div class="rc-lab" style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;color:#111;">DRUM MUSIC RATIO</div><label class="wild-toggle"><input type="checkbox" ${!g.ratioRand ? 'checked' : ''} onchange="_randoSetGlobal('ratioRand', !this.checked)"><span class="wild-toggle-slider"></span></label></div>`
-    + `<div style="display:flex;align-items:center;gap:10px;${g.ratioRand ? 'opacity:0.3;pointer-events:none;' : ''}"><input type="range" id="rando-g-ratio" min="0" max="6" step="1" value="${g.ratio}" class="master-vol-slider" style="flex:1;" oninput="_randoSetGlobal('ratio', +this.value)"><div id="rando-g-ratio-read" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:34px;text-align:right;">${_randoReadout('ratio', g.ratio)}</div></div>`;
+    + `<div style="${g.ratioRand ? 'opacity:0.3;pointer-events:none;' : ''}"><div style="position:relative;"><input type="range" id="rando-g-ratio" min="0" max="6" step="1" value="${g.ratio}" class="master-vol-slider" style="width:100%;display:block;" oninput="_randoSetGlobal('ratio', +this.value)"><div style="position:absolute;left:50%;top:50%;width:2px;height:16px;margin:-8px 0 0 -1px;background:#111;opacity:0.55;pointer-events:none;"></div></div>`
+    + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:0.58rem;font-weight:700;letter-spacing:1px;color:#555;"><span>DRUMS</span><span id="rando-g-ratio-read" style="font-family:monospace;font-weight:400;color:#333;">${_randoReadout('ratio', g.ratio)}</span><span>TONES</span></div></div>`
+    + `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;"><div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;color:#111;">NOTE INTENSITY</div><div id="rando-g-intensity-read" style="font-size:0.6rem;font-family:monospace;color:#333;">${_randoReadout('intensity', g.intensity)}</div></div>`
+    + `<input type="range" id="rando-g-intensity" min="0" max="100" step="25" value="${g.intensity}" class="master-vol-slider" style="width:100%;" oninput="_randoSetGlobal('intensity', +this.value)">`;
 }
 function _randoSet(w, k, v) {
   window._randoCfg[w][k] = v;
@@ -5796,6 +5799,7 @@ function _randoSet(w, k, v) {
 function _randoSetGlobal(k, v) {
   window._randoGlobal[k] = v;
   if (k === 'ratio') { setTonalPercBalance(v); const rd = document.getElementById('rando-g-ratio-read'); if (rd) rd.textContent = _randoReadout('ratio', v); return; }
+  if (k === 'intensity') { setIntensity(v); const rd = document.getElementById('rando-g-intensity-read'); if (rd) rd.textContent = _randoReadout('intensity', v); return; }
   setRandomizeDrumMusicRatio(!!v); _randoBuildUI();
 }
 document.addEventListener('DOMContentLoaded', () => { try { _randoBuildUI(); } catch (e) {} });
@@ -6861,10 +6865,10 @@ function scheduler() {
           _autoRandBarCount++;
           if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
-            if (!_randoIsFull(window._randoCfg.click)) { // AUTO repeats the RANDO BUTTON's CLICK action — here SHUFFLE INSTRUMENTS
-              _pressPulse('randBtn'); _randoShuffle('click');
+            if (!_randoIsFull(window._randoCfg.dbl)) { // AUTO repeats the RANDO BUTTON's DOUBLE CLICK action now ("AUTO DOUBLE-CLICK EVERY"), per direct request
+              _pressPulse('randBtn'); _randoShuffle('dbl');
             } else {
-            _randoApply('click');
+            _randoApply('dbl');
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
@@ -18299,8 +18303,8 @@ function stopAllAutoRand() {
     // genuinely empty pattern (e.g. right after a reset) that meant total
     // silence, count-in included, until the first periodic threshold
     // finally landed. Now it always picks a fresh pattern immediately too.
-    if (!_randoIsFull(window._randoCfg.click)) _randoShuffle('click'); // AUTO = the CLICK action: first one straight away, then every AUTO period
-    else { _randoApply('click'); queueRand(); }
+    if (!_randoIsFull(window._randoCfg.dbl)) _randoShuffle('dbl'); // AUTO = the DOUBLE CLICK action: first one straight away, then every AUTO period
+    else { _randoApply('dbl'); queueRand(); }
   };
 
   let _autoOffTapT = 0;
@@ -22865,7 +22869,7 @@ function fullReset() {
   _setCb('automateToggle', false); if (typeof _syncAutoPeriodRow === 'function') _syncAutoPeriodRow();
   setAutoRandPeriod(0); { const sl = document.getElementById('autoRandPeriodSlider'); if (sl) sl.value = 0; }
   setTonalPercBalance(2); { const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = 2; }
-  window._randoCfg = _RANDO_DEFAULT(); window._randoGlobal = { ratioRand: false, ratio: 2 }; try { _randoBuildUI(); } catch (e) {} // RANDO BUTTON columns back to their defaults
+  window._randoCfg = _RANDO_DEFAULT(); window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; try { _randoBuildUI(); } catch (e) {} // RANDO BUTTON columns back to their defaults
   setIntensity(25); { const sl = document.getElementById('intensitySlider'); if (sl) sl.value = 25; }
   setMasterVol(0.8);
   setEightBitMix(0); { const sl = document.getElementById('eightBitMixSlider'); if (sl) sl.value = 0; }
