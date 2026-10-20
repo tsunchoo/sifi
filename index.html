@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 01:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 01:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2837,7 +2837,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5657,8 +5657,10 @@ function _dblGrayFlash() {
   // pattern was being built. Now it's ONE layer on top that blends whatever's under it to grey ('saturation' blend with a grey
   // fill = no colour), with a hole cut out over the >> button so that stays in colour. Same look, a fraction of the work.
   let ov = document.getElementById('_dblGray');
-  if (!ov) { ov = document.createElement('div'); ov.id = '_dblGray'; ov.style.cssText = 'position:fixed;inset:0;z-index:99980;pointer-events:none;background:#808080;mix-blend-mode:saturation;opacity:0;'; document.body.appendChild(ov); }
-  const rb = document.getElementById('randBtn'), r = rb && rb.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+  if (!ov) { ov = document.createElement('div'); ov.id = '_dblGray'; ov.style.cssText = 'position:absolute;left:0;top:0;width:100%;z-index:99980;pointer-events:none;background:#808080;mix-blend-mode:saturation;opacity:0;'; /* ABSOLUTE, not fixed, per direct report: Safari tints the strips under the clock / below the page from FIXED full-screen layers, so a fixed grey layer turned them grey for the length of the flash */ document.body.appendChild(ov); }
+  const rb = document.getElementById('randBtn'), _r0 = rb && rb.getBoundingClientRect(), W = innerWidth, H = Math.max(innerHeight, document.documentElement.scrollHeight);
+  ov.style.top = '0px'; ov.style.height = H + 'px';
+  const r = _r0 && { left: _r0.left + scrollX, right: _r0.right + scrollX, top: _r0.top + scrollY, bottom: _r0.bottom + scrollY }; // page coordinates now (absolute layer)
   ov.style.clipPath = r ? `path(evenodd, 'M0 0H${W}V${H}H0Z M${r.left} ${r.top}H${r.right}V${r.bottom}H${r.left}Z')` : 'none';
   ov.style.display = 'block'; ov.style.transition = 'none'; ov.style.opacity = '1';
   clearTimeout(window._dblGrayT); clearTimeout(window._dblGrayT2);
