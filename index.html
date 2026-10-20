@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 19:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 20:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1316,12 +1316,16 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 #randBtn.pulsing { display: flex; align-items: center; justify-content: center; }
 /* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
    the temporary AUTO OUTLINE slider under MAIN VOL (--auto-outline-w). */
-html body .auto-notes-lane .step-cell.on::after,
-html body .auto-notes-lane .step-cell.soft::after,
-html body .auto-notes-lane .step-cell.split32::after {
-  background: transparent !important;
-  box-shadow: inset 0 0 0 var(--auto-outline-w, 1.5px) var(--track-color, var(--text)) !important;
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.on::after,
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft::after,
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after {
+  background: transparent !important; /* stacked classes so this beats every display mode's own marker fill (e.g. NOTES GRAYSCALE) */
+  box-shadow: inset 0 0 0 var(--auto-outline-w, 1.5px) var(--auto-outline-col, var(--track-color, var(--text))) !important;
 }
+/* outline takes the same colour the solid marker would have had in that mode */
+html body.notes-grayscale .auto-notes-lane .step-cell.on:not(.playing) { --auto-outline-col: #555; }
+html body.notes-grayscale .auto-notes-lane .step-cell.soft:not(.playing),
+html body.notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --auto-outline-col: #999; }
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
    commented out per request. Icon now stays the same fixed HIGHLIGHT-3
@@ -2583,7 +2587,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   try {
     var AC = window.AudioContext || window.webkitAudioContext;
     if (AC) {
-      var W = function(){ stats.audioCtx++; crumb('AudioContext #' + stats.audioCtx + ' created'); var c = new (Function.prototype.bind.apply(AC, [null].concat([].slice.call(arguments))))(); try { c.addEventListener('statechange', function(){ crumb('audio ' + c.state); }); } catch(e){} return c; };
+      var W = function(){ stats.audioCtx++; stats.ctxOpen = (stats.ctxOpen || 0) + 1; crumb('AudioContext #' + stats.audioCtx + ' created (' + stats.ctxOpen + ' open)'); var c = new (Function.prototype.bind.apply(AC, [null].concat([].slice.call(arguments))))(); try { c.addEventListener('statechange', function(){ if (c.state === 'closed' && !c._sfClosed) { c._sfClosed = 1; stats.ctxOpen--; } crumb('audio ' + c.state); }); } catch(e){} return c; };
       W.prototype = AC.prototype;
       if (window.AudioContext) window.AudioContext = W; if (window.webkitAudioContext) window.webkitAudioContext = W;
       var P = (window.BaseAudioContext || AC).prototype;
@@ -2680,7 +2684,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     L.push('tracks: ' + a.inst);
     L.push('modes: ' + a.body);
     var s = r.stats || {};
-    L.push('TOTALS: audioContexts=' + s.audioCtx + ' audioNodesCreated=' + s.nodes + ' bufferMB=' + (s.bufMB || 0).toFixed(1) + ' decodes=' + s.decodes + ' liveBlobURLs=' + s.blobsLive + ' canvases=' + s.canvases);
+    L.push('TOTALS: audioContexts=' + s.audioCtx + ' (open now ' + (s.ctxOpen || 0) + ')' + ' audioNodesCreated=' + s.nodes + ' bufferMB=' + (s.bufMB || 0).toFixed(1) + ' decodes=' + s.decodes + ' liveBlobURLs=' + s.blobsLive + ' canvases=' + s.canvases);
     L.push('node types: ' + Object.keys(s.nodeTypes || {}).map(function(k){ return k.replace('create', '') + '=' + s.nodeTypes[k]; }).join(' '));
     L.push('TREND (1s samples, up to last 5 min; last 20s in full) up / dom / anims / LIVE nodes / LIVE bufMB / sounding / created nodes / created bufMB / blobs / frames / worst frame ms / slow frames / heap:');
     var sm = r.samples || [], head = Math.max(0, sm.length - 20), step = Math.max(1, Math.floor(head / 20));
@@ -2783,7 +2787,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 19:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 20:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5432,6 +5436,10 @@ function _ensureEightBitSplit(audioCtx) {
     _applyEightBitMixGains();
   }
   if (window._eightBitNode) return; // wet leg's crusher already built (or in flight — see below)
+  // CRASH HUNT: the crusher is an AudioWorklet — on iOS that's a whole extra script engine + audio-thread JS running 375×/s,
+  // and it was being built inside EVERY audio engine (9 in one 10-minute crash report) even with 8-BIT MIX at 0. Now it's
+  // only built once 8-BIT MIX is actually turned up.
+  if (!((window._eightBitMix || 0) > 0)) return;
   window._eightBitNode = true; // placeholder truthy value so a second call in flight doesn't also kick off addModule() again — replaced with the real node once ready
   _ensureEightBitWorkletModule(audioCtx).then(() => {
     window._eightBitNode = new AudioWorkletNode(audioCtx, 'eight-bit-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] });
@@ -23311,6 +23319,7 @@ async function _refreshAudioEngine() {
     try { window._crashCrumb && window._crashCrumb('AUDIO REFRESH'); } catch (e) {}
     if (scheduleInterval) { clearInterval(scheduleInterval); scheduleInterval = null; }
     Object.keys(_noiseGateNodes).forEach(tr => { try { _noiseGateNodes[tr].src.stop(); } catch (e) {} delete _noiseGateNodes[tr]; });
+    { const eb = window._eightBitNode; if (eb && eb !== true) { try { eb.disconnect(); } catch (e) {} try { eb.port && eb.port.close(); } catch (e) {} } } // let the old engine's crusher worklet go
     // the same "stale node" clean-out the long-press PLAY rebuild does
     _amalgamBaseBuffer = null; _droneAirNoiseBuffer = null; _amalgamTriggerTimes = [];
     ctx = null; masterGain = null;
