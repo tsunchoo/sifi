@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 02:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 02:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2764,7 +2764,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -25218,6 +25218,23 @@ function snapshotDisplay() {
     window.addEventListener('resize', place); setInterval(place, 1500); try { new MutationObserver(() => requestAnimationFrame(place)).observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] }); } catch (e) {} // follows the header icons when they shift (display modes, LIVE)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(init, 300)); else setTimeout(init, 300);
+})();
+
+// BACK-SWIPE GUARD, per direct report ("a left swipe is doing a 'back' in the browser"): iOS Safari's edge swipe goes back to
+// whatever page was open before Si•Fi in that tab — the app itself never adds history. One extra history entry is parked on top
+// after the first tap; a back swipe / back button then just lands on that entry (same page, nothing reloads) and it's parked
+// again straight away, so a stray swipe can never take you out of a session. (Added to the home screen, there's no swipe-back.)
+(function () {
+  let armed = false;
+  const arm = () => {
+    if (armed) return; armed = true;
+    try { history.pushState({ sifiGuard: 1 }, '', location.href); } catch (e) {}
+  };
+  window.addEventListener('popstate', () => {
+    if (!armed) return;
+    try { history.pushState({ sifiGuard: 1 }, '', location.href); } catch (e) {}
+  });
+  ['pointerdown', 'touchstart', 'keydown'].forEach(t => window.addEventListener(t, arm, { once: true, passive: true, capture: true }));
 })();
 </script>
 <style>
