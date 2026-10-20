@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 02:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 03:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2842,7 +2842,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 02:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 03:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3757,16 +3757,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         </div>
         <input type="range" id="autoOutlineSlider" min="0.5" max="5" step="0.25" value="2.5" class="master-vol-slider" style="width:100%;">
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;margin-top:-12px;">
-        <input type="checkbox" id="autoOutlineBtnColToggle" style="width:14px;height:14px;cursor:pointer;">OUTLINE = AUTO BUTTON COLOUR
-      </label>
+      <!-- OUTLINE = AUTO BUTTON COLOUR toggle removed, per direct request — hard-coded OFF (outlines stay the note-marker colour) -->
       <script>
-      (function(){
-        var tg = document.getElementById('autoOutlineBtnColToggle'), on = false;
-        try { on = localStorage.getItem('sifiAutoOutlineBtnCol') === '1'; } catch (e) {}
-        tg.checked = on; document.body.classList.toggle('auto-outline-btncol', on);
-        tg.addEventListener('change', function(){ document.body.classList.toggle('auto-outline-btncol', tg.checked); try { localStorage.setItem('sifiAutoOutlineBtnCol', tg.checked ? '1' : '0'); } catch (e) {} });
-      })();
+      try { document.body.classList.remove('auto-outline-btncol'); localStorage.removeItem('sifiAutoOutlineBtnCol'); } catch (e) {}
       (function(){
         var sl = document.getElementById('autoOutlineSlider'), ro = document.getElementById('autoOutlineReadout');
         function ap(v){ document.documentElement.style.setProperty('--auto-outline-w', v + 'px'); if (ro) ro.textContent = v + 'px'; }
@@ -5652,7 +5645,7 @@ function showRandMenu() {
 // instruments on the current pattern (REVERB / 8-BIT / BEAT FX rolls still apply); off = a new pattern with that column's settings.
 // AUTO repeats the CLICK action every period.
 const _RANDO_DEFAULT = () => ({
-  click: { shuffle: true,  reverb: false, eightBit: false, beatType: true, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
+  click: { shuffle: true,  reverb: false, eightBit: false, beatType: false /* OFF by default for a single click, per direct request */, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
   dbl:   { shuffle: false, reverb: true, eightBit: false, beatType: true, beatFx: true, /* REVERB / FX on = this gesture picks new per-track allocations — on for a new pattern by default, as it always did */ ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
 });
 window._randoCfg = _RANDO_DEFAULT();
@@ -9745,18 +9738,23 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   const prevVoice = _dbassActiveVoice[tr];
   if (prevVoice && prevVoice.endTime > time) {
     try {
-      prevVoice.ampEnv.gain.cancelScheduledValues(time);
-      prevVoice.ampEnv.gain.setValueAtTime(prevVoice.ampEnv.gain.value, time);
-      prevVoice.ampEnv.gain.linearRampToValueAtTime(0.0001, time + 0.006);
-      prevVoice.bodyEnv.gain.cancelScheduledValues(time);
-      prevVoice.bodyEnv.gain.setValueAtTime(prevVoice.bodyEnv.gain.value, time);
-      prevVoice.bodyEnv.gain.linearRampToValueAtTime(0.0001, time + 0.006);
-      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.008); } catch(e) {} });
+      // CLIPPING FIX (same bug JAMES / PULSE BASS had): the old steal read ampEnv.gain.value — the level NOW, not at `time` (up
+      // to 1s later with the lookahead) — and jumped to it, a spike/click on every overlapping note. The outgoing voice now
+      // fades on its own output node (flat 1 there), 6ms to zero.
+      const of = prevVoice.outFade;
+      if (of) {
+        if (typeof of.gain.cancelAndHoldAtTime === 'function') of.gain.cancelAndHoldAtTime(time); else { of.gain.cancelScheduledValues(time); of.gain.setValueAtTime(1, time); }
+        of.gain.linearRampToValueAtTime(0, time + 0.006);
+      }
+      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.012); } catch(e) {} });
     } catch(e) {}
   }
-  const dest = getSynthConnectNode(tr);
+  const _dbDest = getSynthConnectNode(tr);
+  const outFade = ctx.createGain(); // every layer of the voice (body, pluck, box resonance) goes through this — microfades + the steal fade
+  outFade.connect(_dbDest);
+  const dest = outFade;
   const _dbFxAtten = (tr !== undefined && ((trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0)) || trackPump[tr])) ? 0.5957 : 1; // -4.5dB whenever FX or BLAST is on this track, per direct request
-  const vel = (isAccent ? 0.8758 : 0.5933) * 1.585 * _dbFxAtten * ((tr !== undefined && trackPump[tr]) ? 0.8414 : 1); // + another -1.5dB under BLAST specifically, per direct request // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
+  const vel = 0.5 /* HALF level into the safety soft-clip (accents peaked ~0.92-1.04 — squashed by its 0.6 knee); the track's source trim gives the 6dB back after it, see getSourceTrimGain */ * (isAccent ? 0.8758 : 0.5933) * 1.585 * _dbFxAtten * ((tr !== undefined && trackPump[tr]) ? 0.8414 : 1); // + another -1.5dB under BLAST specifically, per direct request // +4dB in the voice itself, replacing the old vol-SLIDER boost (which pushed the fader up whenever DOUBLE BASS came on), per direct request
   const startFreq = _dbassGlide[tr] || freq;
   _dbassGlide[tr] = freq;
 
@@ -9817,10 +9815,12 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   pluckLP.connect(bodyBP); bodyBP.connect(bodyEnv); bodyEnv.connect(dest);
 
   const stopAt = time + Math.max(sustainEnd + tail, slideTime + tail) + 0.05;
+  outFade.gain.setValueAtTime(0, time); outFade.gain.linearRampToValueAtTime(1, time + 0.003);
+  outFade.gain.setValueAtTime(1, stopAt - 0.012); outFade.gain.linearRampToValueAtTime(0, stopAt - 0.002);
   tri.start(time); tri.stop(stopAt);
   sub.start(time); sub.stop(stopAt);
-  tri.onended = () => { try { triG.disconnect(); subG.disconnect(); lp.disconnect(); ampEnv.disconnect(); bodyBP.disconnect(); bodyEnv.disconnect(); } catch(e) {} };
-  _dbassActiveVoice[tr] = { ampEnv, bodyEnv, oscs: [tri, sub], endTime: stopAt };
+  tri.onended = () => { try { triG.disconnect(); subG.disconnect(); lp.disconnect(); ampEnv.disconnect(); bodyBP.disconnect(); bodyEnv.disconnect(); setTimeout(() => { try { outFade.disconnect(); } catch (e) {} }, 300); } catch(e) {} };
+  _dbassActiveVoice[tr] = { ampEnv, bodyEnv, outFade, oscs: [tri, sub, pluck], endTime: stopAt };
 }
 // ── PULSE BASS: bullet-fast attack, fat metallic body, very little tail —
 // tight, punchy, built for rhythm/dance floors rather than sustain.
@@ -11772,7 +11772,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
+  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
