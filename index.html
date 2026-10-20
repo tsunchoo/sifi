@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 10:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 16:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2775,7 +2775,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 10:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 16:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -24079,6 +24079,12 @@ async function audioSnapshot() {
   }, 100);
   const wrap = (name, label) => { const o = window[name]; if (typeof o !== 'function') return; window[name] = function () { const t0 = performance.now(); try { return o.apply(this, arguments); } finally { const ms = performance.now() - t0; if (ms > 60) { window._slowJob = label + ' ' + Math.round(ms) + 'ms'; try { window._crashCrumb && window._crashCrumb('SLOW ' + window._slowJob); } catch (e) {} } } }; };
   wrap('selectSound', 'instrument swap'); wrap('randAll', 'new pattern'); wrap('randomizeAppColors', 'colour change'); wrap('restoreState', 'pattern load'); wrap('_applyRainbowState', 'display mode');
+  // more suspects timed too (report: a 977ms FREEZE with nothing named) — so the next report says exactly which one it was
+  wrap('snapshotState', 'snapshot'); wrap('_patternCascade', 'pattern animation'); wrap('_snapCascadeGhosts', 'pattern snapshot'); wrap('playRandReleaseSweep', 'new pattern sweep');
+  wrap('_placeBeatCount', 'header layout'); wrap('updateSlotButtons', 'slot buttons'); wrap('redrawTrackCells', 'track redraw'); wrap('randomizeCurrentInstruments', 'instrument shuffle');
+  wrap('_ensurePatternReverb', 'reverb floor'); wrap('_syncDrumReverbTaps', 'reverb routing'); wrap('togglePlay', 'play/stop');
+  // the gap between two timer ticks with NO named job inside it is the phone itself (iOS throttling / garbage collection)
+  setInterval(() => { window._slowJob = null; }, 3000);
 })();
 // WEIRD THING WATCHDOG — every 5s while playing: is the audio clock running at real speed, is the scheduler being starved
 // (timer gaps / skipped steps), is it running twice, is a tempo nudge stuck on? Anything off → saved to the AUDIO LOG.
@@ -25239,6 +25245,10 @@ function snapshotDisplay() {
   }
   function save() {
     if (window._autosaveRestoring || window._autosaveDeclinedPending) return;
+    const _t0 = performance.now();
+    try { return _save(); } finally { const ms = performance.now() - _t0; if (ms > 60) { window._slowJob = 'autosave ' + Math.round(ms) + 'ms'; try { window._crashCrumb && window._crashCrumb('SLOW ' + window._slowJob); } catch (e) {} } }
+  }
+  function _save() {
     try {
       const d = collect(); if (!d) return;
       const body = JSON.stringify({ snap: d.snap, tapes: d.tapes, slots: d.slots });
