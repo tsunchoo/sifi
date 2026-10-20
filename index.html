@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 22:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 22:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1362,6 +1362,7 @@ html body.notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --
    button's colour at its most saturated — the hot glyph colour in TRACK BUTTON LIGHTS, otherwise the button's own fill */
 html body.auto-outline-btncol .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--track-btn-blast-color, var(--playhead)); }
 html body.auto-outline-btncol.track-btn-lights .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--lit-glyph-hot, var(--play-flash-hot, #ff8a2e)); }
+.fx-btn .chk-glyph { display: inline-block; transform: scaleX(var(--chk-sx, 0.7)); transform-origin: center; white-space: nowrap; letter-spacing: inherit; margin: 0 -1em; } /* CHK in exactly FX's old width; negative margins so the unscaled box can't widen the button */
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
    commented out per request. Icon now stays the same fixed HIGHLIGHT-3
@@ -2823,7 +2824,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 22:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 22:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6013,9 +6014,36 @@ function triggerFxEnvelope(tr, time) {
   g.gain.exponentialRampToValueAtTime(1, t0 + hold + 0.14);  // ease back to unity for the next hit
 }
 
+// FX RETIRED, per direct request: the FX button's own stop is now CHK. The FX (crunch) layer only ever sounds as part of
+// BLAST now — so BLAST sounds exactly as before — never on its own. The old standalone FX code is kept, commented out, at
+// the button and in RAND; this flag also neutralises FX state arriving from anywhere else (old saves, beat types, CHUG).
+const FX_RETIRED = true;
+function _syncFxBtn(tr) {
+  const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
+  if (!b.querySelector('.chk-glyph')) b.innerHTML = '<span class="chk-glyph">CHK</span>';
+  b.classList.remove('chink-on');
+  b.classList.toggle('on', !!trackChink[tr]);       // CHK lit = the FX button's old ON colour
+  b.classList.toggle('blast-on', !!trackPump[tr]);  // BLAST = the FX button's old BLAST colour
+}
+// CHK squeezed horizontally to exactly the width the two-letter "FX" glyph took, per direct request
+function _measureChkSqueeze() {
+  try {
+    const b = document.querySelector('.fx-btn'); if (!b) return;
+    const cs = getComputedStyle(b); const c = document.createElement('canvas').getContext('2d');
+    c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+    const ls = parseFloat(cs.letterSpacing) || 0;
+    const w = t => c.measureText(t).width + ls * t.length;
+    const r = Math.min(1, w('FX') / w('CHK'));
+    if (r > 0.3) document.documentElement.style.setProperty('--chk-sx', r.toFixed(3));
+  } catch (e) {}
+}
+let _fxSyncQ = null;
+try { document.fonts && document.fonts.ready.then(() => { window._chkSqMeasured = 0; _queueFxBtnSync(); }); } catch (e) {}
+function _queueFxBtnSync() { if (!window._chkSqMeasured && document.querySelector('.fx-btn')) { window._chkSqMeasured = 1; _measureChkSqueeze(); } if (_fxSyncQ) return; _fxSyncQ = true; queueMicrotask(() => { _fxSyncQ = null; for (let t = 0; t < NUM_TRACKS; t++) _syncFxBtn(t); }); }
 function setFxActive(tr, fxVal) {
+  _queueFxBtnSync();
   if (!trackFxNodes[tr]) return;
-  const on = fxVal && (fxVal.x > 0 || fxVal.y > 0);
+  const on = fxVal && (fxVal.x > 0 || fxVal.y > 0) && (!FX_RETIRED || !!trackPump[tr]);
   const { dryGain, fxSend, preGain } = trackFxNodes[tr];
   const now = ctx.currentTime;
   // Basses keep the fully-wet routing exactly as it was before the 80/20
@@ -6455,6 +6483,7 @@ function _chinkVolBoost(tr, on) { // +1dB on the track's volume slider while CHO
   try { updateVolFillDisplay(tr); } catch (e) {}
 }
 function _setChink(tr, on) {
+  _queueFxBtnSync();
   if (!!trackChink[tr] !== !!on) { try { _chinkVolBoost(tr, !!on); } catch (e) {} }
   trackChink[tr] = !!on;
   const g = _chinkGate(tr); if (!g) return;
@@ -12754,10 +12783,11 @@ function selectSound(tr, k) {
   // CHUG comes with FX on as standard — only forcing it the moment it's
   // picked (prevKey check), so a player who deliberately switches FX back
   // off afterward isn't fought every time selectSound happens to re-run.
+  /* FX RETIRED: CHUG used to arrive with FX on —
   if (k === 'chug' && prevKey !== 'chug') {
     trackFx[tr] = { x: 0.5, y: 0.5 };
     const fb = document.getElementById(`fxbtn-${tr}`); if (fb) fb.classList.add('on');
-  }
+  } */
   _setInstrVolOffset(tr, prevKey, k); // DOUBLE BASS boost / RYTM GTR cut — applied on arrival AND removed on departure now (see _setInstrVolOffset)
   if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]);
   const btn = document.getElementById(`tbtn-${tr}`); if (btn) btn.textContent = INSTRUMENTS[k].name;
@@ -12961,7 +12991,23 @@ function buildUI() {
     fxBtn.classList.toggle('blast-on', !!trackPump[tr]);
     fxBtn.classList.toggle('chink-on', !!trackChink[tr]);
     fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHOKE is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
+    fxBtn.innerHTML = '<span class="chk-glyph">CHK</span>'; // FX RETIRED: the button is CHK now
     const cycleFxBtn = () => {
+      // NEW CYCLE, per direct request: off -> CHK (FX's old slot + colour) -> CHK+BLAST (red) -> off. Basses / no-CHK
+      // instruments: off -> BLAST -> off. BLAST still carries the old FX layer underneath so it sounds the same.
+      if (FX_RETIRED) {
+        const fxOnVal = { x: 0.5, y: 0.5 }, offVal = { x: 0, y: 0 };
+        if (trackPump[tr]) { // BLAST -> off
+          trackPump[tr] = false; trackFx[tr] = offVal; if (ctx) setFxActive(tr, offVal);
+          if (trackChink[tr]) _setChink(tr, false);
+        } else if (trackChink[tr] || !_chinkAllowed(tr)) { // CHK -> CHK+BLAST (or off -> BLAST where CHK isn't allowed)
+          trackPump[tr] = true; trackFx[tr] = fxOnVal; if (ctx) setFxActive(tr, fxOnVal);
+        } else { // off -> CHK
+          _setChink(tr, true);
+        }
+        _syncFxBtn(tr); markModified(); return;
+      }
+      /* ── OLD FX CYCLE (off -> FX -> FX+BLAST -> CHOKE -> off), kept for reference — FX RETIRED ──
       const cur = trackFx[tr], fxIsOn = cur && (cur.x > 0 || cur.y > 0);
       if (trackChink[tr]) { // CHOKE -> off
         _setChink(tr, false); fxBtn.classList.remove('chink-on'); fxBtn.textContent = 'FX';
@@ -12986,6 +13032,7 @@ function buildUI() {
         if (_chinkAllowed(tr)) { _setChink(tr, true); fxBtn.classList.add('chink-on'); fxBtn.textContent = 'CHK'; }
       }
       markModified();
+      ── end OLD FX CYCLE ── */
     };
     let _fxTouchJustHandled = false;
     let _lastFxTouchStart = 0;
@@ -13006,6 +13053,7 @@ function buildUI() {
     fxBtn.addEventListener('touchstart', e => { e.preventDefault(); _lastFxTouchStart = Date.now(); }, { passive: false });
     fxBtn.addEventListener('touchend', e => { e.preventDefault(); _fxTouchJustHandled = true; setTimeout(() => { _fxTouchJustHandled = false; }, 700); cycleFxBtn(); }, { passive: false });
     ctrlRow.appendChild(fxBtn);
+    _queueFxBtnSync(); // CHK label / colours from the real state
 
     // Delay toggle button
     const delayBtn = document.createElement('button');
@@ -17442,7 +17490,7 @@ function randAll(mode, opts) {
       if (_beatType === 'disco' && trackInstruments[_tr] === 'shihat') {
         grid[_tr].fill(0);
         grid[_tr][2] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][14] = 2; // 4 accented hits on the upbeat &s
-        trackFx[_tr] = { x: 0.5, y: 0.5 }; // FX engaged
+        trackFx[_tr] = { x: 0, y: 0 }; /* FX RETIRED — was { x: 0.5, y: 0.5 }, FX engaged */
         trackPump[_tr] = false; // explicitly NOT BLAST
         if (ctx) setFxActive(_tr, trackFx[_tr]);
         const _discoFxBtn = document.getElementById(`fxbtn-${_tr}`); if (_discoFxBtn) { _discoFxBtn.classList.add('on'); _discoFxBtn.classList.remove('blast-on'); }
@@ -17772,8 +17820,10 @@ function randAll(mode, opts) {
       const fxBoost = level >= 4 ? 0.845 : (level === 3 ? 0.585 : 0); // +30% over previous 0.65/0.45
       const fxOn = (_magicPresentThisRand || (isSidestick && _beatType === 'samba')) ? false : isCongaBongo ? _congaBongoFxRoll : isJinx ? _jinxComboRoll[tr] : isSpoog ? Math.random() < 0.6 : isSludge ? Math.random() < 0.5 : isSidestick ? Math.random() < 0.7 : isKick ? Math.random() < 0.75 : isToms ? Math.random() < 0.7 : isRide ? Math.random() < 0.5 : isSlay ? Math.random() < 0.08 : isChug ? Math.random() < 0.95 : isClap ? Math.random() < 0.95 : isDamask ? Math.random() < 0.75 : isOpening ? Math.random() < 0.1 : isHopkins ? Math.random() < 0.5 : isRytmGtr ? Math.random() < 0.4 : Math.random() < Math.min(1, ((isBass ? 0.805 : 0.4025) + fxBoost) * autoBoost * 1.25); // base +15%, then +25% more; SPOOG (sflute) fixed 60% per direct request — "it's a lead instrument"; DAMASK often gets FX — a plaintive lead wants the reverb-ish send; OPENING rarely does; CHUG/CLAP almost always on but no longer absolute, so "every track" and "no tracks" both stay reachable; RIDE ~50%; SIDESTICK fixed 70%, per direct request — wasn't part of this dispatcher at all before (SIDESTICK is neither tonal, RIDE, nor CONGA/BONGO, so it fell through this whole thing untouched, never getting FX from RAND); KICK fixed 75% too, per direct request — also wasn't part of this dispatcher before; TOMS (any of toms/tomHi/tomMid/tomLo) fixed 70% too, per direct request — FX tucks them in a bit, which reads better than the raw bloatier tone; wasn't part of this dispatcher before either; SLUDGE BASS fixed 50% (from there BLAST's own existing chance can escalate it further); JINX linked to its own reverb roll above; CONGA/BONGO shared 50/50 roll for the whole pair; MAGIC anywhere in the pattern forces every track off
       const newFxVal = fxOn ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 };
-      trackFx[tr] = newFxVal;
-      if (ctx) setFxActive(tr, newFxVal);
+      /* FX RETIRED: trackFx[tr] = newFxVal; if (ctx) setFxActive(tr, newFxVal); — the FX roll now only decides whether BLAST may
+         come in (below); FX audio is only switched on together with BLAST */
+      trackFx[tr] = { x: 0, y: 0 };
+      if (ctx) setFxActive(tr, trackFx[tr]);
       else {
         // No ctx yet — just set vol bar
         const vb = document.getElementById(`vbar-${tr}`);
@@ -17788,6 +17838,7 @@ function randAll(mode, opts) {
       const blastChance = Math.min(0.25, (level * 0.05 + 0.025) * 1.25) * 0.8; // 20% less often
       const blastOn = isJinx ? (fxOn && hasNotes) : (fxOn && hasNotes && Math.random() < blastChance); // BLAST requires FX itself to be on — otherwise the button's off->on->on+blast->off cycle starts from an invalid combination and needs an extra click to untangle. JINX: no separate roll — BLAST just follows its own linked FX roll directly
       trackPump[tr] = blastOn;
+      if (blastOn) { trackFx[tr] = { x: 0.5, y: 0.5 }; if (ctx) setFxActive(tr, trackFx[tr]); } // BLAST keeps its FX layer underneath
       if (fb) fb.classList.toggle('blast-on', blastOn);
       // CHOKE in the quota, per direct request — exactly as often as BLAST (same tier-scaled chance, from the same FX-on tracks
       // with notes); a track that lands on it swaps its FX for CHOKE, the button's 4th stop.
@@ -17795,12 +17846,10 @@ function randAll(mode, opts) {
       // instruments (50%) than on percussion (12%); it takes over from any FX / BLAST that track rolled.
       const _isTonalTr = TONAL_KEYS.has(trackInstruments[tr]);
       const chinkOn = !isJinx && !_magicPresentThisRand && hasNotes && _chinkAllowed(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < (trackInstruments[tr] === 'dulc' ? 0.95 : _CHOKE_PADS.has(trackInstruments[tr]) ? 0.50 : _isTonalTr ? 0.80 : 0.24); // DOUBLED overall, per direct request: tonal 50→80% (can't double past 100), drums 12→24%, BROOTH 95% (more than most)
+      /* FX RETIRED — CHK and BLAST can now sit together (CHK+BLAST is the button's red stop):
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
-      if (chinkOn) {
-        trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
-        if (fb) { fb.classList.remove('on', 'blast-on'); }
-        _setChink(tr, true); if (fb) { fb.classList.add('chink-on'); fb.textContent = 'CHK'; }
-      }
+      if (chinkOn) { trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); if (fb) { fb.classList.remove('on', 'blast-on'); } ... } */
+      if (chinkOn) _setChink(tr, true);
     } else if (!trackSweep[tr]) {
       // Perc/non-tonal: FX already reset above, just update bar. BLAST wasn't
       // being cleared here at all, so a percussion track could carry a stale
@@ -18138,27 +18187,34 @@ function stopAllAutoRand() {
           setTimeout(() => btn.classList.remove('playdoe-ast'), 10000); /* failsafe */
           setBtnBlueHeld('randBtn');
           // CLEAN ENGINE, per direct request: make sure a fresh, running spare engine exists NOW (inside this tap, so iOS lets it
-          // run) — the restart below swaps onto it, so the new pattern starts on a completely clear audio engine.
-          try { if (!_spareReady() && !_audioRefreshing) { try { window._spareCtx && window._spareCtx.close(); } catch (e) {} const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; window._spareMadeAt = performance.now(); } } catch (e) {}
+          // run). Then ALL sound from the playing pattern stops BEFORE the rewind plays: the old engine is silenced at once and
+          // swapped out (every scheduled note, tail and reverb goes with it), and the rewind plays on the fresh engine.
+          let _spareP = null;
+          try { if (!_spareReady() && !_audioRefreshing) { try { window._spareCtx && window._spareCtx.close(); } catch (e) {} const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); _spareP = n.resume(); window._spareCtx = n; window._spareMadeAt = performance.now(); } } catch (e) {}
           window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
-          playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
-          window._cascadeFitMs = Math.max(300, _rwDur * 1000 - 140); // all the new-pattern animation happens inside the pause
-          try { _recallSnapB = snapshotState(); randAll(); } catch (e) { console.error('PLAYDOE new pattern failed:', e); }
+          const _oldCtx = ctx, _oldMaster = masterGain, _oldMasterVal = masterGain ? masterGain.gain.value : 1;
+          try { const t = ctx.currentTime; _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(_oldMasterVal, t); _oldMaster.gain.linearRampToValueAtTime(0, t + 0.008); } catch (e) {} // silent within 8ms
           const _rwTok = window._playdoeRwTok = {};
-          const _restartAt = performance.now() + _rwDur * 1000;
-          const _waitThenRestart = fn => setTimeout(() => requestAnimationFrame(() => setTimeout(fn, 0)), Math.max(0, _restartAt - performance.now() - 20)); // after the last frame of the transition has drawn
-          _waitThenRestart(async () => {
+          (async () => {
+            try { if (_spareP) await Promise.race([_spareP, new Promise(r => setTimeout(r, 200))]); } catch (e) {}
+            if (_spareReady() && !_audioRefreshing) { try { await _refreshAudioEngine(); } catch (e) {} }
             if (window._playdoeRwTok !== _rwTok) return;
-            // swap onto the fresh engine first: every tail, reverb and leftover voice from the old pattern is gone with the old one
-            if (_spareReady() && !_audioRefreshing && !playing) { try { await _refreshAudioEngine(); } catch (e) {} }
-            if (window._playdoeRwTok !== _rwTok) return;
-            window._lastPatternAt = performance.now(); window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
-            if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
-            try { if (ctx && playing) playRandReleaseSweep(ctx.currentTime + 0.02); } catch (e) {} // the NEW PATTERN noise sweep, as the new pattern comes in — same as any other new pattern landing, per direct request
-            document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
-            btn.classList.add('new-pattern'); clearBtnBlueHeld('randBtn');
-            clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
-          });
+            if (ctx === _oldCtx && _oldMaster) { try { _oldMaster.gain.cancelScheduledValues(ctx.currentTime); _oldMaster.gain.setValueAtTime(_oldMasterVal, ctx.currentTime + 0.05); } catch (e) {} } // no swap possible: bring the (now quiet) old engine back up for the rewind
+            playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
+            window._cascadeFitMs = Math.max(300, _rwDur * 1000 - 140); // all the new-pattern animation happens inside the pause
+            try { _recallSnapB = snapshotState(); randAll(); } catch (e) { console.error('PLAYDOE new pattern failed:', e); }
+            const _restartAt = performance.now() + _rwDur * 1000;
+            const _waitThenRestart = fn => setTimeout(() => requestAnimationFrame(() => setTimeout(fn, 0)), Math.max(0, _restartAt - performance.now() - 20)); // after the last frame of the transition has drawn
+            _waitThenRestart(() => {
+              if (window._playdoeRwTok !== _rwTok) return;
+              window._lastPatternAt = performance.now(); window._schedBoostUntil = performance.now() + 3000; // WEIRD THING reports: restarting while the new pattern's animations are still running skipped a step — plan the full second ahead from the very first beat
+              if (!playing) { window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; } // start again
+              try { if (ctx && playing) playRandReleaseSweep(ctx.currentTime + 0.02); } catch (e) {} // the NEW PATTERN noise sweep, as the new pattern comes in — same as any other new pattern landing, per direct request
+              document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
+              btn.classList.add('new-pattern'); clearBtnBlueHeld('randBtn');
+              clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern'), (60 / (bpm || 110)) * 2500 + 50);
+            });
+          })();
           return;
         }
         // the asterisk makes one full eased turn over exactly the time it's on screen — until the new pattern lands (next bar
@@ -18470,7 +18526,7 @@ function restoreState(snap, opts) {
     } catch (err) { console.error('restoreState: pitch/legato restore failed for track', tr, err); }
     if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
     if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
-    if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); fb2.textContent = 'FX'; } }
+    if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]); /* FX layer follows BLAST */ const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); fb2.textContent = 'FX'; } }
     if (snap.trackChink && snap.trackChink[tr]) { // the saved volume already includes CHOKE's +1dB, so switch it back on WITHOUT boosting again
       trackChink[tr] = true; _chinkBoost[tr] = 1.122; const cg = _chinkGate(tr); if (cg) { try { cg.gain.cancelScheduledValues(ctx.currentTime); cg.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} }
       const fb3 = document.getElementById(`fxbtn-${tr}`); if (fb3) { fb3.classList.add('chink-on'); fb3.classList.remove('on', 'blast-on'); fb3.textContent = 'CHK'; }
@@ -24818,7 +24874,7 @@ function _applyDiscoHihatToCurrentPattern() {
   grid[targetTr][2] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][14] = 2; // 4 accented hits on the upbeat &s
   _setTrackReverb(targetTr, false);
   const db = document.getElementById(`delaybtn-${targetTr}`); if (db) db.classList.toggle('on', false);
-  trackFx[targetTr] = { x: 0.5, y: 0.5 }; // FX engaged
+  trackFx[targetTr] = { x: 0, y: 0 }; /* FX RETIRED — was { x: 0.5, y: 0.5 }, FX engaged */
   trackPump[targetTr] = false; // explicitly NOT BLAST
   if (ctx) setFxActive(targetTr, trackFx[targetTr]);
   const fb = document.getElementById(`fxbtn-${targetTr}`); if (fb) { fb.classList.add('on'); fb.classList.remove('blast-on'); }
