@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-20 01:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-20 02:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -513,8 +513,8 @@ html body.battery-saver-mode #randBtn.new-pattern .glyph { animation: none !impo
   100%   { transform: translate(0, -2px); }
 }
 #randBtn.np-scroll { overflow: hidden; }
-html body #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 520ms cubic-bezier(0.45, 0, 0.25, 1) both, new-pattern-glow var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
-html body.battery-saver-mode #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 520ms cubic-bezier(0.45, 0, 0.25, 1) both !important; }
+html body #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 1144ms cubic-bezier(0.45, 0, 0.25, 1) both, new-pattern-glow var(--new-pattern-dur, 1s) cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+html body.battery-saver-mode #randBtn.new-pattern.np-scroll .glyph { animation: rand-glyph-scroll 1144ms cubic-bezier(0.45, 0, 0.25, 1) both !important; }
 /* ...and the button's background eases from its highlighted (pressed)
    shade back to normal over the same duration as the glyph, per direct
    request, instead of snapping back when the held state clears. */
@@ -735,6 +735,15 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 /* NEW PATTERN EVERY... greyed out (and not adjustable) until AUTO is on, per direct request */
 #autoPeriodRow { transition: opacity 0.15s; }
 #autoPeriodRow.disabled { opacity: 0.35; pointer-events: none; }
+#randoCols { display: grid; grid-template-columns: 1fr 92px 92px; column-gap: 8px; row-gap: 12px; align-items: center; }
+#randoCols .rc-lab { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #111; }
+#randoCols .rc-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+#randoCols .rc-head { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 0.55rem; font-weight: 700; letter-spacing: 1px; color: #555; }
+#randoCols .rc-glyph { height: 30px; display: flex; align-items: center; justify-content: center; color: #111; font: 900 1.9rem/1 'SiFiChevron', 'DM Sans', sans-serif; letter-spacing: -0.2em; padding-right: 0.2em; }
+#randoCols .rc-sub { margin-top: -6px; }
+#randoCols .rc-sub input[type=range] { width: 100%; }
+#randoCols .rc-read { font-size: 0.55rem; font-family: monospace; color: #333; }
+#randoCols .rc-off { opacity: 0.3; pointer-events: none; }
 /* WILD toggle — standard pill switch, HIGHLIGHT color when on */
 .wild-toggle { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; cursor: pointer; }
 .wild-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -2755,7 +2764,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 01:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-20 02:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -2949,62 +2958,11 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
      INSTRUMENTS button. -->
 <div id="randMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideRandMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px 40px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
-    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDOMIZATION</div>
-    <!-- At the top, per direct request, so the same drag down from + that
-         opens this menu can carry on down and release on it (see the +
-         button's drag handling). A normal tap works too. -->
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">REVERB</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomizeReverbToggle" onchange="setRandomizeReverb(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">8-BIT MIX</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomize8BitMixToggle" onchange="setRandomize8BitMix(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BEAT TYPE</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomizeBeatTypeToggle" checked onchange="setRandomizeBeatType(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BEAT FX</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomizeDrumFxToggle" onchange="setRandomizeDrumFx(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DRUM MUSIC RATIO</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomizeDrumMusicRatioToggle" onchange="setRandomizeDrumMusicRatio(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:-6px;">
-      <input type="range" id="tonalPercBalanceSlider" min="0" max="6" step="1" value="2" oninput="setTonalPercBalance(this.value)" class="master-vol-slider" style="flex:1;">
-      <div id="tonalPercBalanceReadout" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:40px;text-align:right;">2 / 4</div>
-    </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">NOTE INTENSITY</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randomizeNoteIntensityToggle" onchange="setRandomizeNoteIntensity(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:-6px;">
-      <input type="range" id="intensitySlider" min="0" max="100" step="25" value="25" oninput="setIntensity(this.value)" class="master-vol-slider" style="flex:1;">
-      <div id="intensityReadout" style="font-size:0.6rem;font-family:monospace;color:#333;min-width:40px;text-align:right;">LOW</div>
-    </div>
-    <!-- CURRENT INSTRUMENTS moved here, under NOTE INTENSITY, per direct request -->
-    <button id="randomizeInstrumentsBtn" class="rec-mode-btn" onclick="_triggerRandomizeInstruments(this);">CURRENT INSTRUMENTS</button>
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">RANDO BUTTON</div>
+    <!-- RANDO BUTTON, per direct request: every setting twice — one column for a single CLICK on >>, one for a DOUBLE CLICK.
+         SHUFFLE INSTRUMENTS (was the CURRENT INSTRUMENTS button) is now a toggle per column: on = that gesture swaps the
+         instruments on the current pattern; off = it makes a new pattern using that column's settings. Built in JS (_randoBuildUI). -->
+    <div id="randoCols"></div>
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO</div>
@@ -3020,20 +2978,20 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       </div>
       <input type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BUTTON GLYPH: &gt;&gt; (OFF = +)</div>
+      <label class="wild-toggle">
+        <input type="checkbox" id="randBtnFfToggle" checked onchange="setRandBtnFf(this.checked); try { _randoBuildUI(); } catch (e) {}">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
   </div>
 </div>
 <div id="devMenuOverlay" style="display:none;position:fixed;inset:0;z-index:260;background:rgba(0,0,0,0.5);" onclick="if(event.target===this) hideDevMenu();">
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:20px 24px;min-width:min(340px,90vw);max-height:85vh;overflow-y:auto;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;border-radius:8px;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">LOOK AND FEEL</div>
     <div id="lookModeLabel" style="font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;text-align:center;margin-top:-10px;"></div><!-- current display mode, per direct request -->
-    <!-- + BUTTON = >>, per direct request: alternate glyph for the top-row + button -->
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">+ BUTTON = &gt;&gt;</div>
-      <label class="wild-toggle">
-        <input type="checkbox" id="randBtnFfToggle" checked onchange="setRandBtnFf(this.checked)">
-        <span class="wild-toggle-slider"></span>
-      </label>
-    </div>
+    <!-- + BUTTON = >> moved to the bottom of the RANDO BUTTON menu, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
@@ -3042,7 +3000,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       </label>
     </div>
     <!-- PLAYDOE, per direct request: the >> button re-rolls the INSTRUMENTS (same as RANDOMIZE > CURRENT INSTRUMENTS) instead of making a new pattern. Off by default. -->
-    <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:none;align-items:center;justify-content:space-between;"><!-- hidden: replaced by RANDO BUTTON > SHUFFLE INSTRUMENTS per column -->
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYDOE</div>
       <label class="wild-toggle">
         <input type="checkbox" id="playdoeToggle" checked onchange="window._playdoeOn = this.checked">
@@ -5556,6 +5514,80 @@ function showRandMenu() {
   _syncAutoPeriodRow(); // NEW PATTERN EVERY... greyed unless AUTO is on
   window._autoAtRandMenuOpen = !!_autoRandLoopActive; // for the AUTO MODE ON notice on close
 }
+
+// ── RANDO BUTTON, per direct request ─────────────────────────────────────────────────────────────────────────────────────
+// Two full sets of randomize settings: one for a single CLICK on >>, one for a DOUBLE CLICK. Each gesture applies its own set to
+// the global switches the pattern generator reads, right before it acts. SHUFFLE INSTRUMENTS on = that gesture swaps the
+// instruments on the current pattern (REVERB / 8-BIT / BEAT FX rolls still apply); off = a new pattern with that column's settings.
+// AUTO repeats the CLICK action every period.
+const _RANDO_DEFAULT = () => ({
+  click: { shuffle: true,  reverb: false, eightBit: false, beatType: true, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
+  dbl:   { shuffle: false, reverb: false, eightBit: false, beatType: true, beatFx: false, ratioRand: false, ratio: 2, intRand: false, intensity: 25 },
+});
+window._randoCfg = _RANDO_DEFAULT();
+window._randoLast = null;
+function _randoApply(which) {
+  const c = window._randoCfg[which]; if (!c) return;
+  window._randoLast = which;
+  setRandomizeReverb(c.reverb); setRandomize8BitMix(c.eightBit); setRandomizeBeatType(c.beatType); setRandomizeDrumFx(c.beatFx);
+  setRandomizeDrumMusicRatio(c.ratioRand); setRandomizeNoteIntensity(c.intRand);
+  setTonalPercBalance(c.ratio); setIntensity(c.intensity);
+}
+function _randoCapture() { // a new pattern may have rolled DRUM MUSIC RATIO / NOTE INTENSITY — keep that column's sliders in step
+  const w = window._randoLast, c = w && window._randoCfg[w]; if (!c) return;
+  c.ratio = window._tonalPercBalance; c.intensity = _intensitySliderVal;
+  try { _randoSyncSliders(); } catch (e) {}
+}
+function _randoShuffle(which) {
+  const c = window._randoCfg[which] || {};
+  window._randoLast = which;
+  try { if (c.reverb) _randomizeReverbSettings(); } catch (e) {}
+  try { if (c.eightBit) setEightBitMix(Math.random() * 100); } catch (e) {}
+  try { if (c.beatFx) _randomizeDrumFxSettings(); } catch (e) {}
+  try { randomizeCurrentInstruments(); } catch (e) { console.error('shuffle instruments failed', e); }
+}
+const _RANDO_ROWS = [
+  ['shuffle', 'SHUFFLE INSTRUMENTS'], ['reverb', 'REVERB'], ['eightBit', '8-BIT MIX'], ['beatType', 'BEAT TYPE'], ['beatFx', 'BEAT FX'],
+  ['ratioRand', 'DRUM MUSIC RATIO', 'ratio'], ['intRand', 'NOTE INTENSITY', 'intensity'],
+];
+const _RANDO_NEW_PATTERN_ONLY = new Set(['beatType', 'ratioRand', 'intRand']); // greyed out in a column set to SHUFFLE INSTRUMENTS
+const _RANDO_AST_SVG = '<svg viewBox="0 0 24 24" width="28" height="28"><path d="M16.41 12.00L22.50 12.00 M14.21 15.82L17.25 21.09 M9.80 15.82L6.75 21.09 M7.59 12.00L1.50 12.00 M9.79 8.18L6.75 2.91 M14.21 8.18L17.25 2.91" stroke="currentColor" stroke-width="3.4" fill="none"/></svg>';
+function _randoReadout(key, v) { return key === 'ratio' ? `${v} / ${6 - v}` : (_intensityLevelNames[v] || (v + '%')); }
+function _randoSyncSliders() {
+  ['click', 'dbl'].forEach(w => ['ratio', 'intensity'].forEach(k => {
+    const sl = document.getElementById(`rando-${w}-${k}`), rd = document.getElementById(`rando-${w}-${k}-read`);
+    if (sl) sl.value = window._randoCfg[w][k]; if (rd) rd.textContent = _randoReadout(k, window._randoCfg[w][k]);
+  }));
+}
+function _randoBuildUI() {
+  const host = document.getElementById('randoCols'); if (!host) return;
+  const ff = document.body.classList.contains('rand-btn-ff');
+  let h = '<div></div>';
+  h += `<div class="rc-head"><div class="rc-glyph">${ff ? '&gt;&gt;' : '+'}</div>CLICK</div>`;
+  h += `<div class="rc-head"><div class="rc-glyph">${_RANDO_AST_SVG}</div>DOUBLE CLICK</div>`;
+  _RANDO_ROWS.forEach(([key, label, sub]) => {
+    h += `<div class="rc-lab">${label}</div>`;
+    ['click', 'dbl'].forEach(w => {
+      const c = window._randoCfg[w], off = c.shuffle && _RANDO_NEW_PATTERN_ONLY.has(key);
+      h += `<div class="rc-cell${off ? ' rc-off' : ''}" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input type="checkbox" ${c[key] ? 'checked' : ''} onchange="_randoSet('${w}','${key}',this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
+    });
+    if (sub) {
+      const max = sub === 'ratio' ? 6 : 100, step = sub === 'ratio' ? 1 : 25;
+      h += '<div></div>';
+      ['click', 'dbl'].forEach(w => {
+        const c = window._randoCfg[w], off = c.shuffle;
+        h += `<div class="rc-cell rc-sub${off ? ' rc-off' : ''}" data-w="${w}" data-k="${sub}"><input type="range" id="rando-${w}-${sub}" min="0" max="${max}" step="${step}" value="${c[sub]}" class="master-vol-slider" oninput="_randoSet('${w}','${sub}',+this.value)"><div class="rc-read" id="rando-${w}-${sub}-read">${_randoReadout(sub, c[sub])}</div></div>`;
+      });
+    }
+  });
+  host.innerHTML = h;
+}
+function _randoSet(w, k, v) {
+  window._randoCfg[w][k] = v;
+  if (k === 'ratio' || k === 'intensity') { const rd = document.getElementById(`rando-${w}-${k}-read`); if (rd) rd.textContent = _randoReadout(k, v); return; }
+  if (k === 'shuffle') _randoBuildUI(); // grey / un-grey that column's new-pattern-only settings
+}
+document.addEventListener('DOMContentLoaded', () => { try { _randoBuildUI(); } catch (e) {} });
 function _triggerRandomizeInstruments(btn) {
   randomizeCurrentInstruments(); // instruments swap right away — the flash is just visual confirmation
   btn.classList.add('rand-inst-flash');
@@ -6507,9 +6539,10 @@ function scheduler() {
           _autoRandBarCount++;
           if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
-            if (window._playdoeOn) { // PLAYDOE: AUTO shuffles the instruments on the same pattern instead of making new patterns, per direct request
-              _pressPulse('randBtn'); try { randomizeCurrentInstruments(); } catch (e) { console.error('PLAYDOE auto swap failed', e); }
+            if (window._randoCfg.click.shuffle) { // AUTO repeats the RANDO BUTTON's CLICK action — here SHUFFLE INSTRUMENTS
+              _pressPulse('randBtn'); _randoShuffle('click');
             } else {
+            _randoApply('click');
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
             const _savedSlot2 = activeSlot;
             _pressPulse('randBtn'); // glyph scale-pulse on every auto-regenerate, not just the initial press
@@ -16294,6 +16327,7 @@ function _snapCascadeGhosts() {
 }
 function randAll(mode, opts) {
   try { _snapCascadeGhosts(); } catch (e) {}
+  setTimeout(() => { try { _randoCapture(); } catch (e) {} }, 0); // RANDO BUTTON: rolled ratio / intensity back into that column
   try { _cancelRandInst(); } catch (e) {} // a new pattern supersedes any >> instrument swap still shuffling
   // PATTERN SWAP WITHOUT A TRANSITION STORM (crash hunt): a new pattern flips classes / colours on ~100 elements at once, and every
   // one of them used to start its own CSS transition in the same frame (~80 at once measured — note markers fade their opacity,
@@ -17734,8 +17768,8 @@ function stopAllAutoRand() {
     // genuinely empty pattern (e.g. right after a reset) that meant total
     // silence, count-in included, until the first periodic threshold
     // finally landed. Now it always picks a fresh pattern immediately too.
-    if (window._playdoeOn) { try { randomizeCurrentInstruments(); } catch (e) {} } // PLAYDOE: first shuffle straight away, then every AUTO period
-    else queueRand();
+    if (window._randoCfg.click.shuffle) _randoShuffle('click'); // AUTO = the CLICK action: first one straight away, then every AUTO period
+    else { _randoApply('click'); queueRand(); }
   };
 
   let _autoOffTapT = 0;
@@ -17763,13 +17797,19 @@ function stopAllAutoRand() {
     // never pinned down.
     btn.style.background = ''; btn.style.color = ''; btn.style.transform = ''; btn.style.transition = '';
     btn.classList.remove('btn-flash-blue', 'rand-pending-fast');
-    if (!window._playdoeOn) _pressPulse('randBtn'); // PLAYDOE: no scale pulse on a single tap, per direct request — a double tap adds it below
+    _pressPulse('randBtn'); // the button's 'push in' on every tap stays, per direct request (only the glyph's scale pulse is gone on a single tap)
     // PLAYDOE: single tap = new instruments on the same pattern; DOUBLE tap = a normal new pattern (what a single tap does
     // with PLAYDOE off). The single tap waits out the double-tap window first, so a double tap never swaps instruments too.
     if (window._playdoeOn) {
       if (_playdoeTapTimer) {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
-        _pressPulse('randBtn'); // double tap keeps its press pulse
+        // RANDO BUTTON: DOUBLE CLICK set to SHUFFLE INSTRUMENTS — a short asterisk turn and the swap, no new pattern
+        if (window._randoCfg.dbl.shuffle) {
+          btn.classList.remove('rand-building', 'np-scroll', 'playdoe-ast'); btn.style.setProperty('--playdoe-spin-dur', '0.6s');
+          void btn.offsetWidth; btn.classList.add('playdoe-ast'); setTimeout(() => btn.classList.remove('playdoe-ast'), 700);
+          clearBtnBlueHeld('randBtn'); _randoShuffle('dbl'); return;
+        }
+        _randoApply('dbl'); // DOUBLE CLICK column's settings for the new pattern below
         // PLAYDOE DOUBLE TAP WHILE PLAYING, per direct request: playback stops, the RECALL rewind sound plays (2dB quieter),
         // the new pattern loads underneath it, and playback starts again the moment the rewind ends — no play/stop clicks.
         if (playing && ctx) {
@@ -17810,10 +17850,13 @@ function stopAllAutoRand() {
       _playdoeTapTimer = setTimeout(() => {
         _playdoeTapTimer = null;
         document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
+        if (!window._randoCfg.click.shuffle) { // RANDO BUTTON: CLICK set to a NEW PATTERN — that column's settings, on the next bar
+          btn.classList.remove('rand-building'); _randoApply('click'); setBtnBlueHeld('randBtn'); queueRand(); return;
+        }
         btn.classList.remove('rand-building'); btn.classList.add('new-pattern', 'np-scroll'); // transition is live BEFORE the colours change... (np-scroll: chevrons scroll through instead of scale-pulsing)
-        _playdoePlus();                                                        // ...new instruments + new colour scheme...
+        _randoShuffle('click');                                                 // ...new instruments (+ that column's extra rolls)...
         clearBtnBlueHeld('randBtn');                                           // ...so the background eases from pressed into the new colour
-        clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern', 'np-scroll'), (60 / (bpm || 110)) * 2500 + 50);
+        clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern', 'np-scroll'), Math.max(1250, (60 / (bpm || 110)) * 2500 + 50)); // never cut the 1.144s scroll short at fast tempos
       }, PLAYDOE_DOUBLE_MS);
       return;
     }
@@ -22223,6 +22266,7 @@ function fullReset() {
   _setCb('automateToggle', false); if (typeof _syncAutoPeriodRow === 'function') _syncAutoPeriodRow();
   setAutoRandPeriod(0); { const sl = document.getElementById('autoRandPeriodSlider'); if (sl) sl.value = 0; }
   setTonalPercBalance(2); { const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = 2; }
+  window._randoCfg = _RANDO_DEFAULT(); try { _randoBuildUI(); } catch (e) {} // RANDO BUTTON columns back to their defaults
   setIntensity(25); { const sl = document.getElementById('intensitySlider'); if (sl) sl.value = 25; }
   setMasterVol(0.8);
   setEightBitMix(0); { const sl = document.getElementById('eightBitMixSlider'); if (sl) sl.value = 0; }
@@ -25005,7 +25049,7 @@ function snapshotDisplay() {
     ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Single click opens the SETTINGS MENU and clicking and dragging down to open the TAPE DRAWER — every pattern you saved this session (double-tap the song name to save). Tap a tape to hear it once, or PLAY ALL.'],
     ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Double-tap to save to the TAPE DRAWER (a heart floats up) to the next free slot.'],
     ['#slotBar', 'SLOTS', 'Up to six saved patterns. Tap one to switch to it on the next beat.'],
-    ['#randBtn', '>>  RANDOMIZER', 'Tapping swaps the instruments of the current patterns and double-tapping loads a brand-new randomized groove (new tempo, drum beat, key, instruments and notes) on the next bar. Holding turns on AUTO mode. Click and drag down opens the RANDOMIZATION menu.'],
+    ['#randBtn', '>>  RANDOMIZER', 'Tapping swaps the instruments of the current patterns and double-tapping loads a brand-new randomized groove (new tempo, drum beat, key, instruments and notes) on the next bar. Holding turns on AUTO mode. Click and drag down opens the RANDO BUTTON menu, where you choose what a click and a double-click each do.'],
     ['#clearBtn', 'SWEEP', 'Sweep is for transitions between patterns, clicking and dragging down for more of the filter-sweep riser and dragging to the right increases the 8-bit crunch mix. Releasing will return the mix to where it was.'],
     ['#playBtn', 'PLAY / STOP', 'Tap to start and stop. Double-tap resets the app. Long-press rebuilds the audio engine if the sound ever goes wrong.'],
     ['#beatBtn', 'DRUMS', 'Tap to switch the built-in drum beat on or off. Hold for the beat menu.'],
