@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 00:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 01:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2837,7 +2837,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 00:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 01:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5292,6 +5292,11 @@ async function loadSamples() {
   // actually sees the moment the overlay lifts, so it's the one that
   // needs to be the one that's skipped.
   window._wildColorsSkipNext = true;
+  if (window._tapeAutoPlay) { // opened from a tape link: play the tape — no new random pattern on top of it
+    window._tapeAutoPlay = null;
+    setTimeout(() => { try { if (ctx && !playing) togglePlay(); } catch (e) {} }, 150);
+    return;
+  }
   if (ctx) queueRand();
 }
 
@@ -15184,8 +15189,15 @@ async function shareTapeLink() {
 // restores it, replacing whatever's currently on the deck.
 function _offerToLoadTapePayload(payload) {
   if (!payload || payload.format !== 'sifi-tape' || !payload.state) return;
-  const proceed = confirm(`Load tape "${payload.name || 'Untitled'}"? This replaces the current pattern.`);
+  // NO QUESTION ASKED any more, per direct request: a tape link just loads, and starts playing as soon as sound is allowed —
+  // the opening "Tap to load" tap (iOS needs one tap before any sound) now reads "Tap to play <name>", and playback starts
+  // the moment the samples are in (see the end of loadSamples). If sound is already running, it starts straight away.
+  // const proceed = confirm(`Load tape "${payload.name || 'Untitled'}"? This replaces the current pattern.`);
+  const proceed = true;
+  window._tapeAutoPlay = payload.name || 'Untitled';
+  try { const lm = document.getElementById('loadingMsg'); if (lm && !ctx) lm.textContent = `Tap to play “${window._tapeAutoPlay}”`; } catch (e) {}
   if (proceed) {
+    try { _pendingRandTimeouts.forEach(id => clearTimeout(id)); _pendingRandTimeouts = []; } catch (e) {} // the startup pattern's own delayed per-track work mustn't land on top of the tape (no question to wait on any more)
     stopAllAutoRand();
     if (playing) togglePlay();
     restoreState(payload.state);
@@ -15193,6 +15205,7 @@ function _offerToLoadTapePayload(payload) {
     activeSlot = -1;
     updateSlotButtons();
     markModified();
+    if (ctx && _initDone() && !playing) { window._tapeAutoPlay = null; setTimeout(() => { if (!playing) togglePlay(); }, 400); } // sound already running: just play it
   }
 }
 // Runs once at page load. If the URL carries a tape in its hash, offers to
@@ -23517,7 +23530,10 @@ async function _refreshAudioEngine() {
     // Runs inside a tap: shut the old engine and start the new one in the same gesture so iOS lets it run straight away
     // (outside a gesture iOS left it suspended and the timing came back wrong). Never two at once.
     try { const t = old.currentTime; if (_oldMaster) { _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(0, t); } } catch (e) {}
-    try { old.close(); } catch (e) {}
+    // CRASH HUNT: confirm the old engine REALLY closed — two double-click swaps in the last crash report never logged "audio
+    // closed" and the report ended with 3 engines open. If close() hasn't finished in 1.5s, it's logged and tried again.
+    try { const _t0 = performance.now(); const p = old.close(); if (p && p.then) p.then(() => { try { window._crashCrumb && window._crashCrumb('old engine closed (' + Math.round(performance.now() - _t0) + 'ms)'); } catch (e) {} }, er => { try { window._crashCrumb && window._crashCrumb('old engine close FAILED: ' + (er && er.message)); } catch (e) {} });
+      setTimeout(() => { if (old.state !== 'closed') { try { window._crashCrumb && window._crashCrumb('old engine still ' + old.state + ' after 1.5s — closing again'); } catch (e) {} try { old.close(); } catch (e) {} } }, 1500); } catch (e) {}
     const _spare = _takeSpareCtx(old.sampleRate); // SPARE ENGINE: already running, so this swap needs no tap
     try { window._crashCrumb && window._crashCrumb(_spare ? 'AUDIO REFRESH using spare engine' : 'AUDIO REFRESH (tap)'); } catch (e) {}
     await initAudio({ refresh: true, useCtx: _spare || undefined });
