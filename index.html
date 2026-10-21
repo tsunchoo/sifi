@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 07:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 08:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -695,7 +695,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 }
 .beat-type-menu.visible { display: flex; }
 .beat-type-menu-inner {
-  background: #f5f0e8; padding: 24px;
+  background: #f5f0e8; padding: 24px 24px 34px; /* +10px at the bottom, per direct request */
   min-width: min(340px, 90vw);
   display: flex; flex-direction: column; gap: 0;
   box-shadow: 0 8px 30px rgba(0,0,0,0.4);
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 08:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -4002,7 +4002,8 @@ const INSTRUMENTS = {
   sleg:   { name: 'SOLAR PAD',   soft: null, accent: null, group: 'tonal' },
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'HASSELL',      soft: null, accent: null, group: 'tonal' },
-  sprkls: { name: 'SPARKLES',    soft: null, accent: null, group: 'tonal' },
+  // sprkls: { name: 'SPARKLES', soft: null, accent: null, group: 'tonal' }, — replaced by BALLSAC in this slot, per direct request
+  ballsac: { name: 'BALLSAC',     soft: null, accent: null, group: 'tonal' }, // BALLSAC — GESKINS' legato wandering lead, an octave lower and reedy (square + nasal formant), per direct request
   tralaarp:{ name: 'GESKINS',   soft: null, accent: null, group: 'tonal' }, // TRALAARP — takes SPARP's slot (a LEAD, not a pad), per direct request: legato arpeggio lead with a filter sweep up and a pitch wobble at the end of longer notes; see playTralaarp
   // sflute: { name: 'SPARP',   soft: null, accent: null, group: 'tonal' }, // SPARP (was SPOOG) — short UNDERPASS-style struck-tube tone playing triplet arpeggio fragments, per direct request; see playSparp. // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below  // SPARP retired from the list (playSparp kept); old saved patterns with it load as TRALAARP
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
@@ -5740,7 +5741,7 @@ function _randoLocal(which) {
 // Re-rolls the per-track FX (FX/BLAST) and/or REVERB (R) allocations on the current pattern — same per-instrument chances a new
 // pattern uses. Locked and empty tracks are left alone.
 function _rerollAllocations(doFx, doRev) {
-  const revChance = k => k === 'magic' ? 0 : k === 'tralaarp' ? 0.65 : k === 'dulc' ? 0.75 : (k === 'damask' || k === 'yamask') ? 0.65 : (k === 'spiano' || k === 'jcmgtr') ? 0.7 : ['tomHi','tomMid','tomLo','toms','dronePlus'].includes(k) ? 1 : (k === 'opening') ? 0.1 : (k === 'chug') ? 0.15 : TONAL_KEYS.has(k) ? 0.5 : 0.35;
+  const revChance = k => k === 'magic' ? 0 : (k === 'tralaarp' || k === 'ballsac') ? 0.65 : k === 'dulc' ? 0.75 : (k === 'damask' || k === 'yamask') ? 0.65 : (k === 'spiano' || k === 'jcmgtr') ? 0.7 : ['tomHi','tomMid','tomLo','toms','dronePlus'].includes(k) ? 1 : (k === 'opening') ? 0.1 : (k === 'chug') ? 0.15 : TONAL_KEYS.has(k) ? 0.5 : 0.35;
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr] || !grid[tr].some(v => v > 0)) continue;
     const k = trackInstruments[tr];
@@ -6111,7 +6112,7 @@ function triggerFxEnvelope(tr, time) {
   // — built for percussive one-shots — was stacking a fresh +4.6dB attack
   // spike on top of already-summed sustained layers every single hit,
   // which is what let FX-engaged TEXTURE distort the whole mix.
-  if (['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sstring', 'sleg', 'fflute', 'blunt', 'opening', 'tralaarp', 'amlgm'].includes(trackInstruments[tr])) return;
+  if (['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sstring', 'sleg', 'fflute', 'blunt', 'opening', 'tralaarp', 'ballsac', 'amlgm'].includes(trackInstruments[tr])) return;
   const g = trackFxNodes[tr].envGain;
   if (!g) return;
   const t0 = Math.max(time, ctx.currentTime);
@@ -6166,7 +6167,7 @@ function setFxActive(tr, fxVal) {
   const now = ctx.currentTime;
   // Basses keep the fully-wet routing exactly as it was before the 80/20
   // blend was introduced; every other instrument uses the new 20% wet mix.
-  const isBass = ['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'sstring', 'sleg', 'fflute', 'blunt', 'opening', 'tralaarp'].includes(trackInstruments[tr]);
+  const isBass = ['sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge', 'sstring', 'sleg', 'fflute', 'blunt', 'opening', 'tralaarp', 'ballsac'].includes(trackInstruments[tr]);
   const wetAmt = isBass ? 1 : 0.2;
   const dryAmt = isBass ? 0 : 0.8;
   dryGain.gain.cancelScheduledValues(now); dryGain.gain.setValueAtTime(on ? dryAmt : 1, now);
@@ -6412,7 +6413,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (key === 'damask')   { return; } // handled in scheduler
   if (key === 'yamask')   { return; } // handled in scheduler
   if (key === 'dulc')     { return; } // handled in scheduler
-  if ((key === 'opening' || key === 'tralaarp'))  { return; } // handled in scheduler
+  if ((key === 'opening' || key === 'tralaarp' || key === 'ballsac'))  { return; } // handled in scheduler
   if (key === 'blunt')    { return; }
   const buf = buffers[key]?.[isAccent ? 'accent' : 'soft'];
   if (!buf) return;
@@ -6625,7 +6626,7 @@ function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHO
 // CHOKE adapts to the instrument, per direct request: slow-attack voices get extra open time so the choke lands after
 // the sound has actually spoken, instead of cutting it off mid-swell. Attack times read straight from each voice's own
 // envelope code (time to full level); anything not listed is fast (drums/percussion ≈0, plucked/struck tonal ≈5ms).
-const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
+const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, ballsac: 0.03, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
 function _chokeAttack(tr) {
   const k = trackInstruments[tr];
   if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k] + (_CHOKE_PADS.has(k) ? _CHOKE_PAD_EXTRA : 0);
@@ -7096,7 +7097,7 @@ function fireStepAudio(step, t) {
         if (trackChink[tr]) _chinkHit(tr, t, val === 2, gs); // CHOKE: open the gate for just a blip on this hit
         if (tr !== 0) duckEchoTrack(t); // TEXTURE gets pumped by everything else going on
         const key = trackInstruments[tr];
-        if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge' || key === 'stab' || key === 'chug' || key === 'bashp' || key === 'denial' || key === 'jcmgtr' || key === 'sprkls' || key === 'clar' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'spiano' || key === 'satk' || key === 'boog' || key === 'magic' || key === 'fflute' || key === 'blunt' || key === 'damask' || key === 'yamask' || key === 'dulc' || (key === 'opening' || key === 'tralaarp') || key === 'drone' || key === 'dronePlus' || key === 'underpass') {
+        if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge' || key === 'stab' || key === 'chug' || key === 'bashp' || key === 'denial' || key === 'jcmgtr' || key === 'sprkls' || key === 'clar' || key === 'sstring' || key === 'sleg' || key === 'sparkle' || key === 'rhodes' || key === 'rhodes2' || key === 'sflute' || key === 'spiano' || key === 'satk' || key === 'boog' || key === 'magic' || key === 'fflute' || key === 'blunt' || key === 'damask' || key === 'yamask' || key === 'dulc' || (key === 'opening' || key === 'tralaarp' || key === 'ballsac') || key === 'drone' || key === 'dronePlus' || key === 'underpass') {
           const scale = trackBassScale[tr] || [110];
           const noteIdx = gs % scale.length;
           const freq = (trackPitchOverride[tr] && trackPitchOverride[tr][gs] !== undefined) ? trackPitchOverride[tr][gs] : scale[noteIdx];
@@ -7164,6 +7165,7 @@ function fireStepAudio(step, t) {
           if (key === 'dulc')    playBrooth(freq, dur, val === 2, t, tr);
           if (key === 'opening') playOpening(freq, dur, val === 2, t, tr);
           if (key === 'tralaarp') playTralaarp(freq, dur, val === 2, t, tr);
+          if (key === 'ballsac') playBallsac(freq, dur, val === 2, t, tr);
           if (key === 'drone')   playAtmos(freq, dur, val === 2, t, tr);
           if (key === 'dronePlus') playAtmosPortamento(freq, dur, val === 2, t, tr);
           if (key === 'fflute')  {
@@ -8449,9 +8451,9 @@ let globalScaleRoot = null;
 // in the heavy crash test) — at most HEAVY_TONAL_MAX of these per pattern.
 // The remaining tonal slots go to lighter plucked/keys/lead instruments, so
 // an all-music pattern still has 6 music tracks but can't overload iOS audio.
-const HEAVY_TONAL_KEYS = new Set(['fflute','blunt','sstring','sleg','opening','tralaarp','drone','dronePlus','magic','sparkle','clar','rhodes2','underpass','sflute','boog']);
+const HEAVY_TONAL_KEYS = new Set(['fflute','blunt','sstring','sleg','opening','tralaarp', 'ballsac','drone','dronePlus','magic','sparkle','clar','rhodes2','underpass','sflute','boog']);
 const HEAVY_TONAL_MAX = 2;
-const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','stab','chug','bashp','denial','jcmgtr','sprkls','clar','sstring','sleg','sparkle','rhodes','rhodes2','sflute','spiano','satk','boog','fflute','blunt','damask','yamask','dulc','opening','tralaarp','drone','dronePlus','magic','amlgm','underpass']);
+const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','stab','chug','bashp','denial','jcmgtr','sprkls','clar','sstring','sleg','sparkle','rhodes','rhodes2','sflute','spiano','satk','boog','fflute','blunt','damask','yamask','dulc','opening','tralaarp', 'ballsac','drone','dronePlus','magic','amlgm','underpass']);
 
 function buildScaleFromRoot(root, scaleOverride, tr) {
   const scaleArr = scaleOverride || PENTA_MINOR;
@@ -8490,7 +8492,7 @@ function getRangeRoots(key) {
   if (key === 'blunt') return MID_ROOTS;
   if (key === 'chug') return CHUG_ROOTS;
   if (key === 'stab' || key === 'bashp') return MID_ROOTS;
-  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'clar' || key === 'jcmgtr' || key === 'denial' || key === 'damask' || key === 'yamask' || (key === 'opening' || key === 'tralaarp') || key === 'spiano' || key === 'dulc' || key === 'drone' || key === 'dronePlus' || key === 'sflute') return MELODY_ROOTS; // sflute (CLUNG) moved here from HIGH_ROOTS above — same root pool as STRINGS+, per direct request to match its auto-generation criteria
+  if (key === 'sstring' || key === 'sleg' || key === 'rhodes' || key === 'rhodes2' || key === 'clar' || key === 'jcmgtr' || key === 'denial' || key === 'damask' || key === 'yamask' || (key === 'opening' || key === 'tralaarp' || key === 'ballsac') || key === 'spiano' || key === 'dulc' || key === 'drone' || key === 'dronePlus' || key === 'sflute') return MELODY_ROOTS; // sflute (CLUNG) moved here from HIGH_ROOTS above — same root pool as STRINGS+, per direct request to match its auto-generation criteria
   return BASS_ROOTS;
 }
 
@@ -8688,7 +8690,8 @@ function randomizeBassTrack(tr, level) {
     dronePlus: [[2,5,0.25],[4,7,0.40],[6,10,0.55]], // STRINGS+ — same note-count table as STRINGS; duration is overridden separately (see the contiguous-legato pass) so this only governs how many notes/onsets it gets
     sflute:  [[2,4,0.20],[3,5,0.30],[4,6,0.40]],  // SPARP — fairly sparse onsets, since every note fans out into a 3-note triplet arpeggio fragment (was CLUNG/SPOOG's STRINGS+ table) (was XYLOPHONE's slot) — same table as STRINGS+, per direct request to match its auto-generation criteria; was falling through to the generic default before
     opening: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // OPENING — capped at 3 max, sustained pad chords
-    tralaarp:[[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // TRALAARP — same sparse, sustained phrasing as OPENING
+    tralaarp:[[1,2,0.60],[2,3,0.70],[2,3,0.80]],
+    ballsac: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // BALLSAC — GESKINS' phrasing   // TRALAARP — same sparse, sustained phrasing as OPENING
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
     denial:  [[1,3,0.15],[2,4,0.30],[3,5,0.40]],  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
     sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now (BUCK above no longer shares this table — cut sparser separately after it was reading as too constant/regular)
@@ -8712,7 +8715,7 @@ function randomizeBassTrack(tr, level) {
   if (key === 'dronePlus') noteCount = Math.min(NUM_STEPS, Math.max(noteCount + 1, Math.round(noteCount * 1.2))); // ZINGS 20% more notes, per direct request (always at least +1)
   if (key === 'dulc') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BROOTH — 4 more notes on its quota, per direct request
   if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
-  if (BASS_LEGATO_KEYS.has(key) || key === 'tralaarp') noteCount = Math.min(NUM_STEPS, noteCount + 3); // GESKINS (key 'tralaarp') gets the same +3 bonus notes, per direct request // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
+  if (BASS_LEGATO_KEYS.has(key) || key === 'tralaarp' || key === 'ballsac') noteCount = Math.min(NUM_STEPS, noteCount + 3); // GESKINS (key 'tralaarp') gets the same +3 bonus notes, per direct request // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
   // Shared legato chance/width — interpolates from generous at low INTENSITY
@@ -9063,7 +9066,7 @@ function randomizeBassTrack(tr, level) {
 
   // OPENING: almost always a long held chord — it only ever plays up to 3
   // times a bar, so each hit should unfold and sustain rather than stab.
-  if ((key === 'opening' || key === 'tralaarp') && trackBassScale[tr]) {
+  if ((key === 'opening' || key === 'tralaarp' || key === 'ballsac') && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
       if (grid[tr][s] > 0 && Math.random() < 0.9) {
@@ -9076,7 +9079,7 @@ function randomizeBassTrack(tr, level) {
   // GESKINS: room to breathe, per direct request — it doesn't fill the whole bar. Half its notes stop well short of the next one
   // (at least 3 empty steps before it), and every bar gets one big hole: the emptiest 4-step window is cleared of onsets and any
   // note running into it is cut short.
-  if (key === 'tralaarp' && trackBassScale[tr]) {
+  if ((key === 'tralaarp' || key === 'ballsac') && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     const L = trackLegatoLen[tr];
     const ons = () => { const o = []; for (let q = 0; q < NUM_STEPS; q++) if (grid[tr][q] > 0) o.push(q); return o; };
@@ -11366,6 +11369,54 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   o1.start(time); o1.stop(end + release + 0.05);
   o1.onended = () => { try { m1.disconnect(); lp.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
 }
+// BALLSAC, per direct request: GESKINS' wandering legato lead (the gliding chord-tone arpeggio, the slow brightening on long
+// notes, the little pitch wobble at their ends) — but an OCTAVE LOWER and REEDY: a square wave (odd harmonics, like a clarinet)
+// with a faint detuned saw for grain, through a nasal formant bump and a softer, breathier 30ms reed attack.
+function playBallsac(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  let f = freq; while (f < 110) f *= 2; while (f > 440) f /= 2; // an octave below GESKINS' register
+  const _fxOn = (tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
+  const _atten = (tr !== undefined && trackPump[tr]) ? 0.2512 : (_fxOn ? 0.7079 : 1); // same FX / BLAST cuts as GESKINS
+  const vel = (isAccent ? 0.042 : 0.030) * _atten; // level-matched to GESKINS
+  const long = durSec >= 0.5;
+  const len = Math.max(durSec, 0.3), release = long ? 0.45 : 0.2;
+  const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
+  const third = _isMajorish ? 1.2599 : 1.1892, fifth = 1.4983;
+  const cycle = [1, third, fifth, 2, fifth, third];
+  const stepLen = Math.max(0.1, Math.min(0.19, len / 5)); // a touch slower than GESKINS — it's a lower, heavier voice
+  const end = time + len;
+  const sq = ctx.createOscillator(); sq.type = 'square';
+  const sw = ctx.createOscillator(); sw.type = 'sawtooth'; sw.detune.value = 6;
+  const sqG = ctx.createGain(); sqG.gain.value = 0.62;
+  const swG = ctx.createGain(); swG.gain.value = 0.18;
+  [sq, sw].forEach(o => {
+    o.frequency.setValueAtTime(f, time);
+    let i = 1;
+    for (let t = time + stepLen; t < end - 0.02; t += stepLen, i++) o.frequency.setTargetAtTime(f * cycle[i % cycle.length], t, 0.03); // legato glides
+  });
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.6;
+  if (long) { lp.frequency.setValueAtTime(Math.min(12000, f * 2.2), time); lp.frequency.exponentialRampToValueAtTime(Math.min(12000, f * 9), time + len * 0.9); }
+  else { lp.frequency.setValueAtTime(Math.min(12000, f * 3), time); lp.frequency.exponentialRampToValueAtTime(Math.min(12000, f * 5.5), time + len); }
+  const nasal = ctx.createBiquadFilter(); nasal.type = 'peaking'; nasal.frequency.value = 1250; nasal.Q.value = 2.2; nasal.gain.value = 7; // the reedy, nasal formant
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, time);
+  env.gain.linearRampToValueAtTime(vel * 0.7, time + 0.012);
+  env.gain.linearRampToValueAtTime(vel, time + 0.03); // a reed "blowing into" the note rather than a click
+  env.gain.setValueAtTime(vel, end);
+  env.gain.exponentialRampToValueAtTime(0.0005, end + release);
+  let lfo = null, depth = null;
+  if (long) { // the wobble at the end of long notes, like GESKINS
+    lfo = ctx.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4.6;
+    depth = ctx.createGain(); depth.gain.setValueAtTime(0, time); depth.gain.setValueAtTime(0, time + len * 0.6);
+    depth.gain.linearRampToValueAtTime(14, end + release * 0.6);
+    lfo.connect(depth); depth.connect(sq.detune); depth.connect(sw.detune);
+    lfo.start(time); lfo.stop(end + release + 0.1);
+  }
+  sq.connect(sqG); sw.connect(swG); sqG.connect(lp); swG.connect(lp); lp.connect(nasal); nasal.connect(env); env.connect(dest);
+  sq.start(time); sq.stop(end + release + 0.05); sw.start(time); sw.stop(end + release + 0.05);
+  sq.onended = () => { try { sqG.disconnect(); swG.disconnect(); lp.disconnect(); nasal.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
+}
 // ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
 function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq) return;
@@ -13632,6 +13683,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'dulc')    playBrooth(freq, dur, isAccent, t, tr);
     else if (key === 'opening') playOpening(freq, dur, isAccent, t, tr);
     else if (key === 'tralaarp') playTralaarp(freq, dur, isAccent, t, tr);
+    else if (key === 'ballsac') playBallsac(freq, dur, isAccent, t, tr);
     else if (key === 'drone')   playAtmos(freq, dur, isAccent, t, tr);
     else if (key === 'fflute')  playGlassBell(freq, dur, isAccent, t, tr);
     else if (key === 'blunt')   playBlunt(freq, dur, isAccent, t, tr);
@@ -13773,7 +13825,7 @@ const BASS_LEGATO_CAP_STEPS = 8;
 // instruments".
 const PAD_LEGATO_KEYS = new Set(['sstring', 'sleg', 'drone', 'damask', 'yamask', 'amlgm', 'denial', 'boog']);
 function _legatoCapForKey(key) {
-  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key) || key === 'tralaarp') /* TRALAARP: longer legato, per direct request */ ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
+  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key) || key === 'tralaarp' || key === 'ballsac') /* TRALAARP: longer legato, per direct request */ ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 }
 
 // How long a note at ownerGs would sustain if it just ran until the next
@@ -17790,7 +17842,7 @@ function randAll(mode, opts) {
       // and their patterns are naturally busy/dense enough to trip these
       // checks often, which was silently undoing that fixed/guaranteed
       // chance right after it was set.
-      const _congaBongoTr = ['congHi', 'congLo', 'bongHi', 'bongLo', 'tomHi', 'tomMid', 'tomLo', 'toms', 'dronePlus', 'sflute', 'tralaarp'].includes(trackInstruments[_tr]); /* TRALAARP's 65% reverb survives the density strips */ // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
+      const _congaBongoTr = ['congHi', 'congLo', 'bongHi', 'bongLo', 'tomHi', 'tomMid', 'tomLo', 'toms', 'dronePlus', 'sflute', 'tralaarp', 'ballsac'].includes(trackInstruments[_tr]); /* TRALAARP's 65% reverb survives the density strips */ // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
       const _full16th = grid[_tr].every(v => v > 0);
       const _full8thRelevant = ['shihat','shak','tamb','ride','guiro'].includes(trackInstruments[_tr]) &&
         [0,2,4,6,8,10,12,14].every(s => grid[_tr][s] > 0);
@@ -17957,7 +18009,7 @@ function randAll(mode, opts) {
     // patterns are deliberately fixed, never something auto-rand should
     // be free to reinterpret every 4 bars, same reasoning as JAZZ's ride
     // never getting auto-rand either.
-    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i] && i !== 0 && trackInstruments[i] !== 'tralaarp' /* has its own 65% roll below */ && !(_beatType === 'mozambique' && _mozambiqueTrackKeys.includes(trackInstruments[i])));
+    const eligible = Array.from({length: NUM_TRACKS}, (_, i) => i).filter(i => !trackSweep[i] && i !== 0 && trackInstruments[i] !== 'tralaarp' && trackInstruments[i] !== 'ballsac' /* has its own 65% roll below */ && !(_beatType === 'mozambique' && _mozambiqueTrackKeys.includes(trackInstruments[i])));
     // Lead instruments are most likely to be picked, other tonal tracks a
     // bit more likely than percussion — weighted random sampling
     // (Efraimidis-Spirakis: rank by Math.random()^(1/weight), higher weight floats to the top)
@@ -17978,7 +18030,7 @@ function randAll(mode, opts) {
 
   // TRALAARP gets AUTO NOTES 65% of the time, per direct request — its own roll, on top of the INTENSITY-driven picks above
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
-    if (trackInstruments[tr] !== 'tralaarp' || trackSweep[tr] || Math.random() >= 0.65) continue;
+    if ((trackInstruments[tr] !== 'tralaarp' && trackInstruments[tr] !== 'ballsac') || trackSweep[tr] || Math.random() >= 0.65) continue;
     const rb = document.getElementById(`randbtn-${tr}`);
     if (rb && rb._restartAuto && !rb.classList.contains('rand-auto')) { if (autoShiftStops[tr]) autoShiftStops[tr](); rb._restartAuto(); }
   }
@@ -18010,7 +18062,7 @@ function randAll(mode, opts) {
       const isClap = trackInstruments[tr] === 'clap';
       const isSlay = trackInstruments[tr] === 'fflute';
       const isDamask = trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask';
-      const isOpening = (trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp');
+      const isOpening = (trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac');
       const isHopkins = trackInstruments[tr] === 'sparkle';
       const isRytmGtr = trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp';
       const isChug = trackInstruments[tr] === 'chug';
@@ -18074,7 +18126,7 @@ function randAll(mode, opts) {
     }
   }
   // Voice harmony: if >1 melody tonal track, shift 2nd+ up an octave + minor third
-  const melodyKeys = new Set(['sstring','sleg','sparkle','rhodes','rhodes2','stab','bashp','damask','yamask','opening','tralaarp']);
+  const melodyKeys = new Set(['sstring','sleg','sparkle','rhodes','rhodes2','stab','bashp','damask','yamask','opening','tralaarp', 'ballsac']);
   const melodyTracks = [];
   for (let tr = 1; tr < NUM_TRACKS; tr++) {
     if (melodyKeys.has(trackInstruments[tr])) melodyTracks.push(tr);
@@ -18130,7 +18182,7 @@ function randAll(mode, opts) {
     }
     const _tooDense = _maxConsec > 3 || (_onsets.length > 1 && _minGap < 4);
     const _isFull16th = grid[tr].every(v => v > 0);
-    const delayChance = (trackInstruments[tr] === 'tralaarp') ? 0.65 /* TRALAARP: reverb 65% of the time, per direct request */ : (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'dulc') ? 0.75 /* BROOTH: reverb 75% of the time, per direct request */ : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? 0.7 /* JINX: reverb 70% of the time on its own roll, per direct request (was tied 50/50 to its FX roll) */ : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : ((trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp')) ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
+    const delayChance = (trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac') ? 0.65 /* TRALAARP: reverb 65% of the time, per direct request */ : (trackInstruments[tr] === 'magic') ? 0 : (trackInstruments[tr] === 'dulc') ? 0.75 /* BROOTH: reverb 75% of the time, per direct request */ : (trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') ? 1 : (trackInstruments[tr] === 'congHi' || trackInstruments[tr] === 'congLo' || trackInstruments[tr] === 'bongHi' || trackInstruments[tr] === 'bongLo') ? (_congaBongoReverbRoll ? 1 : 0) : (_tooDense || _isFull16th) ? 0 : _noDelayKeys.has(trackInstruments[tr]) ? 0.12 : (trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask') ? 0.65 : (trackInstruments[tr] === 'spiano') ? 0.7 : (trackInstruments[tr] === 'jcmgtr') ? 0.7 /* JINX: reverb 70% of the time on its own roll, per direct request (was tied 50/50 to its FX roll) */ : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'dulc' || trackInstruments[tr] === 'sidestick' || trackInstruments[tr] === 'timbHi' || trackInstruments[tr] === 'timbMid' || trackInstruments[tr] === 'timbLo') ? 0.5 : ((trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac')) ? 0.1 : (trackInstruments[tr] === 'chug') ? 0.15 : ((trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'bashp') ? 0.4 : Math.min(1, (0.5175 + (level >= 3 ? 0.195 : 0) + (level >= 4 ? 0.195 : 0)) * autoBoost * 1.25 * 1.5 * 1.25)); // MAGIC never gets reverb through RAND — checked first, unconditional 0, only ever on if set manually via the track's own R button; TOM HI/MID/LOW, STRINGS+, and CLUNG (XYLOPHONE's old slot, matching STRINGS+'s criteria per direct request) always get reverb through RAND — unconditional 1, overrides the too-dense/full-16th gate below same as CONGA/BONGO; CONGA/BONGO linked to one shared roll for the whole pair, not independent per-track — overrides the too-dense/full-16th gate below (their patterns are often dense enough to always hit it otherwise, which was silently zeroing this out); base +15%, then +25% more, then +50% more, then +25% more still; RYTM GTR/MARIO PIANO fixed at 40%; DAMASK/YAMASK fixed at 65% reverb; SCHOOL PIANO fixed at 70% (7/10) — "most of the time"; RIDE/BOOBOO/SIDESTICK/TIMBALE fixed at 50% — TIMBALE independent per-track, not linked to a shared pair roll the way CONGA/BONGO's own 50/50 is; JINX linked to the same roll as its own FX/BLAST — reverb+FX+BLAST all together 50% of the time, not independent rolls; OPENING fixed at 10% — rarely wants it; CHUG fixed at 15% — dampened, stays dry
     const delayOn = Math.random() < delayChance;
     _setTrackReverb(tr, delayOn);
     const db = document.getElementById(`delaybtn-${tr}`);
@@ -18216,7 +18268,7 @@ function randAll(mode, opts) {
   const _reverbOnTracks = [];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (!trackDelay[tr]) continue;
-    if (trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') { _reverbProtectedTracks.push(tr); continue; } // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
+    if (trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac' || trackInstruments[tr] === 'tomHi' || trackInstruments[tr] === 'tomMid' || trackInstruments[tr] === 'tomLo' || trackInstruments[tr] === 'toms' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'sflute') { _reverbProtectedTracks.push(tr); continue; } // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
     _reverbOnTracks.push(tr);
   }
   const _reverbRemovableQuota = Math.max(0, _reverbQuota - _reverbProtectedTracks.length);
@@ -18718,7 +18770,7 @@ function restoreState(snap, opts) {
   for (let tr=0; tr<NUM_TRACKS; tr++) {
     grid[tr]=[...snap.grid[tr]]; trackOffset[tr]=snap.trackOffset[tr];
     const snapInst = snap.trackInstruments[tr];
-    trackInstruments[tr] = INSTRUMENTS[snapInst] ? snapInst : (snapInst === 'sflute' ? 'tralaarp' : Object.keys(INSTRUMENTS)[0]);
+    trackInstruments[tr] = INSTRUMENTS[snapInst] ? snapInst : (snapInst === 'sflute' ? 'tralaarp' : snapInst === 'sprkls' ? 'ballsac' : Object.keys(INSTRUMENTS)[0]);
     trackMuted[tr]=snap.trackMuted[tr];
     if (snap.trackRLevel) trackRLevel[tr] = snap.trackRLevel[tr] ?? 0;
     if (snap.trackBassScale?.[tr]) trackBassScale[tr] = [...snap.trackBassScale[tr]];
@@ -19258,7 +19310,7 @@ function randomizeTrack(tr) {
   // other kit/perc instrument. STRINGS is now a normal tonal instrument,
   // dispatched through randomizeBassTrack just below like any other lead.
 
-  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'dbass' || trackInstruments[tr] === 'pbass' || trackInstruments[tr] === 'sludge' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'denial' || trackInstruments[tr] === 'jcmgtr' || trackInstruments[tr] === 'sprkls' || trackInstruments[tr] === 'clar' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'spiano' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'magic' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt' || trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask' || trackInstruments[tr] === 'dulc' || (trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp') || trackInstruments[tr] === 'drone' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'underpass') {
+  if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'dbass' || trackInstruments[tr] === 'pbass' || trackInstruments[tr] === 'sludge' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'denial' || trackInstruments[tr] === 'jcmgtr' || trackInstruments[tr] === 'sprkls' || trackInstruments[tr] === 'clar' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'spiano' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'magic' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt' || trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask' || trackInstruments[tr] === 'dulc' || (trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac') || trackInstruments[tr] === 'drone' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'underpass') {
     randomizeBassTrack(tr, level); return;
   }
 
@@ -25026,7 +25078,7 @@ function _beatFreeTracks(exclude) {
 // unmuted, unlocked tracks in this order — drums (kit) first, then percussion, then any tonal that isn't a bass or a lead.
 // Within each tier, non-essential instruments go first. Never basses, never leads, never locked tracks.
 const _BEAT_TAKEOVER_BASS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge']);
-const _BEAT_TAKEOVER_LEAD = new Set(['jcmgtr','damask','yamask','dulc','dronePlus','satk','clar','tralaarp']);
+const _BEAT_TAKEOVER_LEAD = new Set(['jcmgtr','damask','yamask','dulc','dronePlus','satk','clar','tralaarp', 'ballsac']);
 function _beatForceTrack(used, essentialKeys) {
   const tierOf = k => { const g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group; if (g === 'kit') return 0; if (g === 'perc') return 1; if (g === 'tonal' && !_BEAT_TAKEOVER_BASS.has(k) && !_BEAT_TAKEOVER_LEAD.has(k)) return 2; return -1; };
   for (let tier = 0; tier < 3; tier++) {
