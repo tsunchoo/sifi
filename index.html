@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 05:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 05:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2842,7 +2842,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 05:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 05:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8307,7 +8307,7 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
 // (separate from the global ducking system) ──
 function playSludgeBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq || freq < 10) return;
-  const vel = (isAccent ? 1.3438 : 0.9487) * ((tr !== undefined && trackPump[tr]) ? 0.8913 : 1); // -1dB under BLAST, per direct request
+  const vel = 0.8913 /* SLUDGE BASS −1dB overall, per direct request */ * (isAccent ? 1.3438 : 0.9487) * ((tr !== undefined && trackPump[tr]) ? 0.8913 : 1); // -1dB under BLAST, per direct request
   const startFreq = _bassGlideState[tr] || freq;
   _bassGlideState[tr] = freq;
   // Was hand-resolving dest (FX routing + duck) itself, which meant this
@@ -11309,7 +11309,7 @@ function playTralaarp(freq, durSec, isAccent, time, tr) {
   let f = freq; while (f < 220) f *= 2; while (f > 880) f /= 2; // a lead register
   const _gkFxOn = (tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
   const _gkAtten = (tr !== undefined && trackPump[tr]) ? 0.2512 : (_gkFxOn ? 0.7079 : 1); // GESKINS −3dB under FX, −12dB under FX BLAST (relative to the +2dB base: net 4dB below the previous BLAST level), per direct request
-  const vel = (isAccent ? 0.0425 : 0.0297) * 1.2589 * _gkAtten; // +2dB, per direct request // back down 0.5dB, per direct request
+  const vel = (isAccent ? 0.0425 : 0.0297) * 1.2589 * 1.2589 * _gkAtten; // +2dB, per direct request; and another +2dB (2026-10-20 evening), per direct request // back down 0.5dB, per direct request
   const long = durSec >= 0.5;
   const len = Math.max(durSec, 0.28), release = long ? 0.5 : 0.22; // a longer tail too
   const _isMajorish = (currentScaleName === 'major' || currentScaleName === 'penta-maj' || currentScaleName === 'mixolydian');
