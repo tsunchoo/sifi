@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 07:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 07:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7083,6 +7083,7 @@ function _markKickBassDuck(step, t) {
   }
 }
 function fireStepAudio(step, t) {
+    window._beatHitFlag = false;
     _markKickBassDuck(step, t);
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (trackMuted[tr]) continue;
@@ -7450,6 +7451,7 @@ function fireStepAudio(step, t) {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
       }
     }
+    if (_beatChoke && window._beatHitFlag) _beatChokeHit(t); // DRUMS CHK: a blip on each step the drums actually hit
 }
 
 // BEAT COUNT (header, left) — 1..4 following the playhead, "-" when stopped.
@@ -16081,7 +16083,7 @@ function _titleCase(str) {
 function _snapshotLiveGraph() {
   return {
     ctx, masterGain,
-    beatGain: window._beatGain, duckGain: window._duckGain,
+    beatGain: window._beatGain, beatChokeGate: window._beatChokeGate, duckGain: window._duckGain,
     normalTrackFadeGain: window._normalTrackFadeGain, postLimiterGain: window._postLimiterGain,
     reverbSendBus: window._reverbSendBus, reverbOutGain: window._reverbOutGain, tonalRevIn: window._tonalRevIn,
     makeupGain: window._makeupGain, masterLimiter: window.masterLimiter, safetyLimiter: window._safetyLimiter,
@@ -16097,7 +16099,7 @@ function _snapshotLiveGraph() {
 }
 function _restoreLiveGraph(snap) {
   ctx = snap.ctx; masterGain = snap.masterGain;
-  window._beatGain = snap.beatGain; window._duckGain = snap.duckGain;
+  window._beatGain = snap.beatGain; window._beatChokeGate = snap.beatChokeGate; window._duckGain = snap.duckGain;
   window._normalTrackFadeGain = snap.normalTrackFadeGain; window._postLimiterGain = snap.postLimiterGain;
   window._reverbSendBus = snap.reverbSendBus; window._reverbOutGain = snap.reverbOutGain; window._tonalRevIn = snap.tonalRevIn;
   window._makeupGain = snap.makeupGain; window.masterLimiter = snap.masterLimiter; window._safetyLimiter = snap.safetyLimiter;
@@ -16125,6 +16127,7 @@ function _buildBounceGraph(targetCtx) {
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
   window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.5711 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatChokeGate = targetCtx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); // DRUMS FX (CHK) gate — callers connect this (not _beatGain) onward
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
   // so an isolated track/BEAT stem doesn't carry every other track along
@@ -16291,7 +16294,7 @@ async function _renderOfflineLoop(connectFn, loopSequence, tailSec) {
 // sources as the live graph.
 function _connectFullMix() {
   for (let tr = 0; tr < NUM_TRACKS; tr++) trackEnvFilters[tr].connect(masterGain);
-  window._beatGain.connect(masterGain);
+  (window._beatChokeGate || window._beatGain).connect(masterGain);
 }
 
 // Bounces always come out as one zip now, regardless of size or file count —
@@ -16401,7 +16404,7 @@ async function bounceLoopStems() {
     if (showProgress) _setBounceProgress(passesDone / totalPasses, 'Rendering BEAT…');
     _renderTapTracks = new Set(); _renderTapBeat = true;
     const beatBuf = await _renderOfflineLoop(offlineCtx => {
-      window._beatGain.connect(masterGain); // BEAT only
+      (window._beatChokeGate || window._beatGain).connect(masterGain); // BEAT only
     }, loopSequence);
     passesDone++;
     zip.addFile(`${uniqueStemName(_titleCase('BEAT'))}.wav`, audioBufferToWav(beatBuf, bpm));
@@ -22839,7 +22842,7 @@ function fullReset() {
   const _topTempoBpmNum = document.getElementById('topTempoBpmNum'); if (_topTempoBpmNum) _topTempoBpmNum.textContent = bpm;
   const _bpmSliderEl = document.getElementById('bpmSlider'); if (_bpmSliderEl) _bpmSliderEl.value = bpm;
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
-  _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false;
+  _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false; _setBeatChoke(false);
   _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
   _beatVolRaw = 0.5711; _applyBeatVolWithDuck(); // +3dB default
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
@@ -23519,7 +23522,7 @@ async function initAudio(opts) {
     window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatChokeGate = ctx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); window._beatChokeGate.connect(masterGain); /* DRUMS FX (CHK) gate, after the DRUMS level */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = (_refresh && window._uiSoundBufs) ? window._uiSoundBufs : {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -24625,6 +24628,20 @@ function setBeatVol(v) {
 // BEAT bus (window._beatGain) instead of a single track's gain node.
 let _beatReverbMix = 0.24;               // slider under BEAT VOL — 0-1, scales the send level whenever 'R' is on — 24% default (up another 10% relative from 22%)
 let _beatFx = false, _beatPump = false;  // 'FX' — 3-state cycle: off / on / on+blast
+// DRUMS FX = CHK now, per direct request (same as every track's FX button): off -> CHK -> CHK+BLAST -> off. The old crunch FX
+// only sounds as BLAST's layer underneath, like on the tracks. _beatChoke = the CHK gate on the drums bus (window._beatChokeGate).
+let _beatChoke = false;
+function _setBeatChoke(on) {
+  _beatChoke = !!on;
+  const g = window._beatChokeGate; if (!g || !ctx || g.context !== ctx) return;
+  try { g.gain.cancelScheduledValues(ctx.currentTime); g.gain.setValueAtTime(on ? 0 : 1, ctx.currentTime); } catch (e) {}
+}
+function _beatChokeHit(t) { // open for a blip on each drum hit (drums speak instantly — no attack allowance)
+  const g = window._beatChokeGate; if (!g || g.context !== ctx) return;
+  try { g.gain.setValueAtTime(0, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + 0.014); g.gain.linearRampToValueAtTime(0, t + 0.018); } catch (e) {}
+}
+// which steps actually had a drum hit: any sound connecting into the DRUMS bus during that step's scheduling
+(function () { const oc = AudioNode.prototype.connect; AudioNode.prototype.connect = function (d) { if (d && d === window._beatGain) window._beatHitFlag = true; return oc.apply(this, arguments); }; })();
 let _beatAutoRandActive = false, _beatAutoRandBarCount = 0; // rand 'R' double-tap auto mode
 const BEAT_REVERB_MIX_MAX = 0.18; // send level at slider=100% — raised to match REVERB MIX's own increase (was 0.045); same reasoning, this is a pure gain ceiling with zero CPU cost either way
 function _beatReverbGainForMix(v) {
@@ -24638,7 +24655,7 @@ function _beatReverbGainForMix(v) {
 // reverb-send paths, same shape as buildFxChain() for tracks.
 function _ensureBeatFxChain() {
   if (!ctx || !window._beatGain || window._beatDryGain) return;
-  const beatGain = window._beatGain;
+  const beatGain = window._beatChokeGate || window._beatGain; // everything downstream hangs off the CHK gate (after the DRUMS level)
   try { beatGain.disconnect(); } catch(e) {}
   const dryGain = ctx.createGain(); dryGain.gain.value = 1;
   const crunchSend = ctx.createGain(); crunchSend.gain.value = 0;
@@ -24671,7 +24688,7 @@ function updateBeatCtrlRow() {
   // '<' deliberately has no persistent 'on' state here — it doesn't stay
   // engaged, so it only gets the momentary flash in beatCtrlShift() below.
   const fBtn = document.getElementById('beatCtrlFx');
-  if (fBtn) { fBtn.classList.toggle('on', _beatFx); fBtn.classList.toggle('blast-on', _beatPump); }
+  if (fBtn) { fBtn.classList.toggle('on', _beatChoke); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red
   const rBtn = document.getElementById('beatCtrlRand');
   if (rBtn) { rBtn.classList.toggle('rand-auto', _beatAutoRandActive); rBtn.textContent = _beatAutoRandActive ? 'A' : 'N'; }
   const bb = document.getElementById('beatBtn');
@@ -24750,13 +24767,10 @@ function setBeatReverbMix(v) {
 // FX — 3-state cycle: off -> crunch on -> crunch+blast -> off, same as a track's FX button
 function beatCtrlCycleFx() {
   _ensureBeatFxChain();
-  if (!_beatFx) {
-    _beatFx = true;
-  } else if (!_beatPump) {
-    _beatPump = true;
-  } else {
-    _beatFx = false; _beatPump = false;
-  }
+  // off -> CHK -> CHK+BLAST (BLAST keeps the old crunch FX underneath) -> off
+  if (!_beatChoke && !_beatPump) { _setBeatChoke(true); _beatFx = false; }
+  else if (!_beatPump) { _beatPump = true; _beatFx = true; }
+  else { _setBeatChoke(false); _beatFx = false; _beatPump = false; }
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
   _applyBeatVolWithDuck();
   updateBeatCtrlRow();
@@ -24767,7 +24781,8 @@ function beatCtrlCycleFx() {
 // below, which needs to land on a specific randomly-picked state in one go.
 function _setBeatFxState(state) {
   _ensureBeatFxChain();
-  _beatFx = state >= 1;
+  _setBeatChoke(state >= 1); // 1 = CHK, 2 = CHK+BLAST
+  _beatFx = state >= 2;
   _beatPump = state >= 2;
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
   _applyBeatVolWithDuck();
