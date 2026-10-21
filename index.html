@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 08:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 08:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 08:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 08:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6626,7 +6626,7 @@ function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHO
 // CHOKE adapts to the instrument, per direct request: slow-attack voices get extra open time so the choke lands after
 // the sound has actually spoken, instead of cutting it off mid-swell. Attack times read straight from each voice's own
 // envelope code (time to full level); anything not listed is fast (drums/percussion ≈0, plucked/struck tonal ≈5ms).
-const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, ballsac: 0.03, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
+const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, ballsac: 0.52 /* the LONGEST FX window there is — the same as SYNTH LEG's (0.4 + the pads' 0.12), per direct request */, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
 function _chokeAttack(tr) {
   const k = trackInstruments[tr];
   if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k] + (_CHOKE_PADS.has(k) ? _CHOKE_PAD_EXTRA : 0);
@@ -11377,7 +11377,7 @@ function playBallsac(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   let f = freq; while (f < 110) f *= 2; while (f > 440) f /= 2; // an octave below GESKINS' register
   const _fxOn = (tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0));
-  const _atten = (tr !== undefined && trackPump[tr]) ? 0.2512 : (_fxOn ? 0.7079 : 1); // same FX / BLAST cuts as GESKINS
+  const _atten = (tr !== undefined && trackPump[tr]) ? 0.2512 * 0.7943 * (trackDelay[tr] ? 0.8913 : 1) : (_fxOn ? 0.7079 : 1); // same FX / BLAST cuts as GESKINS, then BLAST another −2dB — −3dB in all with reverb on as well — per direct request
   const vel = (isAccent ? 0.042 : 0.030) * _atten; // level-matched to GESKINS
   const long = durSec >= 0.5;
   const len = Math.max(durSec, 0.3), release = long ? 0.45 : 0.2;
