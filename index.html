@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 07:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 07:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5749,7 +5749,7 @@ function _rerollAllocations(doFx, doRev) {
       const tonal = TONAL_KEYS.has(k);
       const chk = _chinkRandOk(tr) && !_NO_RAND_CHK.has(k) && Math.random() < (k === 'dulc' ? 0.95 : _CHOKE_PADS.has(k) ? 0.5 : tonal ? 0.8 : 0.24);
       const blast = Math.random() < 0.12;
-      if (!!trackChink[tr] !== chk) _setChink(tr, chk);
+      if (!!trackChink[tr] !== (chk && !blast)) _setChink(tr, chk && !blast); // never CHK under BLAST
       trackPump[tr] = blast; trackFx[tr] = blast ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
     }
   }
@@ -13169,7 +13169,8 @@ function buildUI() {
         if (trackPump[tr]) { // BLAST -> off
           trackPump[tr] = false; trackFx[tr] = offVal; if (ctx) setFxActive(tr, offVal);
           if (trackChink[tr]) _setChink(tr, false);
-        } else if (trackChink[tr] || !_chinkAllowed(tr)) { // CHK -> CHK+BLAST (or off -> BLAST where CHK isn't allowed)
+        } else if (trackChink[tr] || !_chinkAllowed(tr)) { // CHK -> BLAST — CHK switched OFF there, so BLAST is exactly the old FX+BLAST (per direct report: CHK under BLAST sounded wrong)
+          if (trackChink[tr]) _setChink(tr, false);
           trackPump[tr] = true; trackFx[tr] = fxOnVal; if (ctx) setFxActive(tr, fxOnVal);
         } else { // off -> CHK
           _setChink(tr, true);
@@ -18053,7 +18054,7 @@ function randAll(mode, opts) {
       /* FX RETIRED — CHK and BLAST can now sit together (CHK+BLAST is the button's red stop):
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) { trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); if (fb) { fb.classList.remove('on', 'blast-on'); } ... } */
-      if (chinkOn) _setChink(tr, true);
+      if (chinkOn && !trackPump[tr]) _setChink(tr, true); // never CHK under BLAST
     } else if (!trackSweep[tr]) {
       // Perc/non-tonal: FX already reset above, just update bar. BLAST wasn't
       // being cleared here at all, so a percussion track could carry a stale
