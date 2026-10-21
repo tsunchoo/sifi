@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 08:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 09:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -695,7 +695,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 }
 .beat-type-menu.visible { display: flex; }
 .beat-type-menu-inner {
-  background: #f5f0e8; padding: 24px 24px 34px; /* +10px at the bottom, per direct request */
+  background: #f5f0e8; padding: 24px 24px 44px; /* +20px at the bottom in all (two +10px requests) */
   min-width: min(340px, 90vw);
   display: flex; flex-direction: column; gap: 0;
   box-shadow: 0 8px 30px rgba(0,0,0,0.4);
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 08:25:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 09:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3003,9 +3003,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 
 <div id="beatTypeMenu" class="beat-type-menu">
   <div class="beat-type-menu-inner">
-    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:16px;">DRUMS</div>
+    <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:11px;">DRUMS</div><!-- 5px less under the title, per direct request -->
     <div style="display:block;width:100%;margin-bottom:22px;position:relative;z-index:2;">
-      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">BEAT VOL</div>
+      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">DRUMS VOL</div>
       <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="margin-top:24px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
     </div>
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
@@ -3709,6 +3709,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <label style="display:flex;align-items:center;justify-content:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;cursor:pointer;"><input type="checkbox" id="tapeForceTempoToggle" onchange="_setTapeForceTempo(this.checked)" style="width:14px;height:14px;cursor:pointer;">FORCE TEMPO</label>
     <button id="tapeDrawerPlayAll" onclick="_tapeDrawerPlayAll()" style="padding:12px;border:none;background:#111;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">▶ PLAY ALL</button>
     <div id="tapeDrawerExportRow" style="display:flex;gap:8px;">
+      <!-- LOAD TAPE, per direct request: a saved tape file (or a whole tape set) straight into the drawer -->
+      <button onclick="document.getElementById('tapeDrawerFileInput').click()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">LOAD TAPE</button>
+      <input type="file" id="tapeDrawerFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" multiple style="display:none;" onchange="_drawerLoadTapeFiles(this.files)">
       <button onclick="saveAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">SAVE ALL TAPES</button>
       <button onclick="exportAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">EXPORT ALL TAPES</button>
     </div>
@@ -3721,28 +3724,21 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">SETTINGS</div>
 
     <!-- Song name on its own line, scale + tempo on the line below -->
-    <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:12px;border-bottom:1px solid #ddd;">
+    <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
       <input type="text" id="settingsNameDisplay" oninput="_updateSongNameFromSettings(this.value)" onkeydown="if(event.key==='Enter') this.blur();" style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;padding:0;width:100%;font-family:'DM Sans',sans-serif;" title="tap to rename">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div id="keyDisplay" style="display:none;font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
         <div id="bpmVal" onclick="hideSettings(); showTempoScreen();" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;" title="tap to open tempo screen">110 BPM</div>
       </div>
     </div>
-    <!-- KEY (drop-downs) + COUNT toggle, right under the tempo, per direct request -->
-    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:12px;border-bottom:1px solid #ddd;">
+    <!-- KEY (drop-downs), right under the tempo — closed up to it, per direct request (COUNT moved below CLICK LEVEL) -->
+    <div style="display:flex;flex-direction:column;gap:12px;padding-bottom:12px;border-bottom:1px solid #ddd;margin-top:-10px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">KEY</div>
         <div style="display:flex;gap:6px;">
           <select id="keyNoteSelect" onchange="_applyKeyChoice(+this.value, null)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;"></select>
           <select id="keyScaleSelect" onchange="_applyKeyChoice(null, this.value)" style="font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;padding:4px 6px;background:#fff;border:1px solid #999;color:#111;text-transform:uppercase;"></select>
         </div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT</div>
-        <label class="wild-toggle">
-          <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
-          <span class="wild-toggle-slider"></span>
-        </label>
       </div>
       <div style="display:none;flex-direction:column;gap:10px;"><!-- COUNT LATENCY hidden (stays on AUTO), per direct request -->
         <div style="display:flex;justify-content:space-between;">
@@ -3781,6 +3777,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div id="clickLevelReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0dB</div>
         </div>
         <input type="range" id="clickLevelSlider" min="0" max="100" value="50" oninput="setClickLevel(this.value)" onchange="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
+      </div>
+      <!-- COUNT, moved here below CLICK LEVEL, per direct request -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT</div>
+        <label class="wild-toggle">
+          <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
+          <span class="wild-toggle-slider"></span>
+        </label>
       </div>
 
 
@@ -4003,7 +4007,7 @@ const INSTRUMENTS = {
   fflute: { name: 'SLAY', soft: null, accent: null, group: 'tonal' },
   blunt:  { name: 'HASSELL',      soft: null, accent: null, group: 'tonal' },
   // sprkls: { name: 'SPARKLES', soft: null, accent: null, group: 'tonal' }, — replaced by BALLSAC in this slot, per direct request
-  ballsac: { name: 'BALLSAC',     soft: null, accent: null, group: 'tonal' }, // BALLSAC — GESKINS' legato wandering lead, an octave lower and reedy (square + nasal formant), per direct request
+  ballsac: { name: 'GANDA',       soft: null, accent: null, group: 'tonal' }, // renamed BALLSAC -> GANDA, per direct request (internal key kept) // BALLSAC — GESKINS' legato wandering lead, an octave lower and reedy (square + nasal formant), per direct request
   tralaarp:{ name: 'GESKINS',   soft: null, accent: null, group: 'tonal' }, // TRALAARP — takes SPARP's slot (a LEAD, not a pad), per direct request: legato arpeggio lead with a filter sweep up and a pitch wobble at the end of longer notes; see playTralaarp
   // sflute: { name: 'SPARP',   soft: null, accent: null, group: 'tonal' }, // SPARP (was SPOOG) — short UNDERPASS-style struck-tube tone playing triplet arpeggio fragments, per direct request; see playSparp. // was XYLOPHONE, then CLUNG, now renamed SPOOG per direct request — same internal key/slot ('sflute'), same engine (playClung) and same auto-generation criteria as STRINGS+ (dronePlus) — see playClung and every 'sflute'/'dronePlus' pairing below  // SPARP retired from the list (playSparp kept); old saved patterns with it load as TRALAARP
   damask: { name: 'DAMASK',      soft: null, accent: null, group: 'tonal' },
@@ -6644,11 +6648,24 @@ function _chinkHit(tr, t, accent, gs) {
   const g = _chinkGate(tr); if (!g) return;
   let w = (accent ? 0.018 : 0.010) + _chokeAttack(tr); // base blip + however long this instrument takes to reach full level
   if (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr])) { const f = Math.max(20, _chokeNoteFreq(tr, gs) || 110); w = Math.max(w, Math.min(0.25, CHOKE_BASS_CYCLES / f)); }
+  // CLIPPING FIX (per direct report, BROOTH on FX): slow instruments have open windows LONGER than a 16th step, so the next hit used
+  // to slam the still-open gate to 0 for a millisecond and back — a hard click on every note. Now a hit that lands while the gate
+  // is still open just keeps it open (no dip) and moves the close later; and slow-attack voices get softer edges (6ms in, 15ms out)
+  // instead of the drums' snap (1.5ms in, 4ms out).
+  const _soft = _chokeAttack(tr) >= 0.05 || _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]);
+  const _in = _soft ? 0.006 : 0.0015, _out = _soft ? 0.015 : 0.004;
+  const _open = (window._chokeOpenUntil = window._chokeOpenUntil || {});
   try {
-    g.gain.setValueAtTime(0, Math.max(0, t - 0.001));
-    g.gain.linearRampToValueAtTime(1, t + 0.0015);
+    if (_open[tr] && t < _open[tr]) { // still open from the last hit — hold it open, re-schedule the close
+      if (typeof g.gain.cancelAndHoldAtTime === 'function') g.gain.cancelAndHoldAtTime(t); else g.gain.cancelScheduledValues(t);
+      g.gain.linearRampToValueAtTime(1, t + _in);
+    } else {
+      g.gain.setValueAtTime(0, Math.max(0, t - 0.001));
+      g.gain.linearRampToValueAtTime(1, t + _in);
+    }
     g.gain.setValueAtTime(1, t + w);
-    g.gain.linearRampToValueAtTime(0, t + w + 0.004);
+    g.gain.linearRampToValueAtTime(0, t + w + _out);
+    _open[tr] = t + w + _out;
   } catch (e) {}
 }
 // Pump/sustain/crunch — repurposed offset ("<") button. Chain order per
@@ -11388,8 +11405,8 @@ function playBallsac(freq, durSec, isAccent, time, tr) {
   const end = time + len;
   const sq = ctx.createOscillator(); sq.type = 'square';
   const sw = ctx.createOscillator(); sw.type = 'sawtooth'; sw.detune.value = 6;
-  const sqG = ctx.createGain(); sqG.gain.value = 0.62;
-  const swG = ctx.createGain(); swG.gain.value = 0.18;
+  const sqG = ctx.createGain(); sqG.gain.value = 0.58;
+  const swG = ctx.createGain(); swG.gain.value = 0.26; // more grain from the detuned saw (GANDA)
   [sq, sw].forEach(o => {
     o.frequency.setValueAtTime(f, time);
     let i = 1;
@@ -11398,7 +11415,15 @@ function playBallsac(freq, durSec, isAccent, time, tr) {
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.6;
   if (long) { lp.frequency.setValueAtTime(Math.min(12000, f * 2.2), time); lp.frequency.exponentialRampToValueAtTime(Math.min(12000, f * 9), time + len * 0.9); }
   else { lp.frequency.setValueAtTime(Math.min(12000, f * 3), time); lp.frequency.exponentialRampToValueAtTime(Math.min(12000, f * 5.5), time + len); }
-  const nasal = ctx.createBiquadFilter(); nasal.type = 'peaking'; nasal.frequency.value = 1250; nasal.Q.value = 2.2; nasal.gain.value = 7; // the reedy, nasal formant
+  const nasal = ctx.createBiquadFilter(); nasal.type = 'peaking'; nasal.frequency.value = 1250; nasal.Q.value = 2.2; nasal.gain.value = 9; // the reedy, nasal formant (pushed further, GANDA)
+  // GANDA — more reed, texture and timbre, per direct request: a second, higher formant (the buzzy "ee" of a reed), a slow drift on
+  // the first formant so the tone keeps moving, and a breath layer (band-passed noise riding the same envelope).
+  const nasal2 = ctx.createBiquadFilter(); nasal2.type = 'peaking'; nasal2.frequency.value = 2650; nasal2.Q.value = 3; nasal2.gain.value = 6;
+  const fDrift = ctx.createOscillator(); fDrift.type = 'sine'; fDrift.frequency.value = 0.35 + Math.random() * 0.25;
+  const fDriftG = ctx.createGain(); fDriftG.gain.value = 180; fDrift.connect(fDriftG); fDriftG.connect(nasal.frequency);
+  const breath = ctx.createBufferSource(); breath.buffer = _noiseBuf(Math.ceil(ctx.sampleRate * 1.2), 0); breath.loop = true;
+  const breathBP = ctx.createBiquadFilter(); breathBP.type = 'bandpass'; breathBP.frequency.value = Math.min(4000, f * 6); breathBP.Q.value = 2.5;
+  const breathG = ctx.createGain(); breathG.gain.value = 0.09;
   const env = ctx.createGain();
   env.gain.setValueAtTime(0, time);
   env.gain.linearRampToValueAtTime(vel * 0.7, time + 0.012);
@@ -11413,9 +11438,11 @@ function playBallsac(freq, durSec, isAccent, time, tr) {
     lfo.connect(depth); depth.connect(sq.detune); depth.connect(sw.detune);
     lfo.start(time); lfo.stop(end + release + 0.1);
   }
-  sq.connect(sqG); sw.connect(swG); sqG.connect(lp); swG.connect(lp); lp.connect(nasal); nasal.connect(env); env.connect(dest);
-  sq.start(time); sq.stop(end + release + 0.05); sw.start(time); sw.stop(end + release + 0.05);
-  sq.onended = () => { try { sqG.disconnect(); swG.disconnect(); lp.disconnect(); nasal.disconnect(); env.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
+  sq.connect(sqG); sw.connect(swG); sqG.connect(lp); swG.connect(lp); lp.connect(nasal); nasal.connect(nasal2); nasal2.connect(env); env.connect(dest);
+  breath.connect(breathBP); breathBP.connect(breathG); breathG.connect(env);
+  const _stopAt = end + release + 0.05;
+  sq.start(time); sq.stop(_stopAt); sw.start(time); sw.stop(_stopAt); fDrift.start(time); fDrift.stop(_stopAt); breath.start(time, Math.random() * 0.5); breath.stop(_stopAt);
+  sq.onended = () => { try { sqG.disconnect(); swG.disconnect(); lp.disconnect(); nasal.disconnect(); nasal2.disconnect(); env.disconnect(); fDriftG.disconnect(); breathBP.disconnect(); breathG.disconnect(); if (depth) depth.disconnect(); } catch (e) {} };
 }
 // ── STINGER: aggressive impact + long atmospheric tail — 80s John Carpenter style ──
 function playCarpenterStinger(freq, durSec, isAccent, time, tr) {
@@ -21425,6 +21452,27 @@ function saveAllTapes() {
   const payload = { format: 'sifi-tapeset', version: 1, createdAt: new Date().toISOString(), tapes: items.map(it => ({ name: it.name, color: it.color, state: it.snap })) };
   const file = new File([JSON.stringify(payload)], 'Si-Fi Tapes ' + _tapeSetStamp() + '.SiFiTapes.json', { type: 'application/json' });
   shareOrDownload([file]).then(ok => { if (ok !== false) _showNotice(items.length + ' TAPES SAVED'); });
+}
+// TAPE DRAWER → LOAD TAPE: each chosen tape file is added to the drawer (12 max, oldest drops off, AUTO NOTES dropped like any
+// saved tape); a tape SET file replaces the drawer as before.
+async function _drawerLoadTapeFiles(files) {
+  const inp = document.getElementById('tapeDrawerFileInput');
+  let added = 0;
+  for (const file of Array.from(files || [])) {
+    try {
+      const payload = JSON.parse(await file.text());
+      if (payload && payload.format === 'sifi-tapeset') { _loadTapeSet(payload); added = -1; break; }
+      if (!payload || payload.format !== 'sifi-tape' || !payload.state) continue;
+      const snap = payload.state; if (snap.trackAutoRand) snap.trackAutoRand = snap.trackAutoRand.map(() => false);
+      const sig = _tapeSig(snap); if (window._tapeDrawerItems.some(it => it.sig === sig)) continue; // already in the drawer
+      window._tapeDrawerItems.push({ snap, sig, name: payload.name || snap.speciesName || 'UNTITLED', color: snap.barColor || '#aa64a6', at: Date.now() });
+      while (window._tapeDrawerItems.length > 12) window._tapeDrawerItems.shift();
+      added++;
+    } catch (e) { console.error('drawer tape load failed', e); }
+  }
+  if (inp) inp.value = '';
+  if (added === 0) { try { _showNotice('NO NEW TAPES LOADED'); } catch (e) {} return; }
+  if (added > 0) { try { const ov = document.getElementById('tapeDrawerOverlay'); if (ov && ov.style.display === 'block') _renderTapeDrawer(); else openTapeDrawer(); } catch (e) {} try { _showNotice(added === 1 ? 'TAPE LOADED' : added + ' TAPES LOADED'); } catch (e) {} }
 }
 function _loadTapeSet(payload) {
   const tapes = (payload.tapes || []).filter(t => t && t.state).slice(-12);
