@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 04:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 05:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2842,7 +2842,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 04:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 05:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5613,8 +5613,8 @@ function setRandomizeDrumMusicRatio(on) { window._randomizeDrumMusicRatio = !!on
 function setRandomizeNoteIntensity(on) { window._randomizeNoteIntensity = !!on; }
 // EXPERIMENTAL STUFF (SETTINGS, off by default), per direct request: with it off, every gesture that would open the RANDO
 // BUTTON or LOOK AND FEEL menu shows this notice instead.
-window._experimentalOn = false; try { window._experimentalOn = localStorage.getItem('sifiExperimental') === '1'; } catch (e) {}
-function _setExperimental(on) { window._experimentalOn = !!on; try { localStorage.setItem('sifiExperimental', on ? '1' : '0'); } catch (e) {} }
+window._experimentalOn = false; try { localStorage.removeItem('sifiExperimental'); } catch (e) {} // always OFF when the app starts, per direct request — not remembered between visits
+function _setExperimental(on) { window._experimentalOn = !!on; }
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('experimentalToggle'); if (t) t.checked = !!window._experimentalOn; });
 function _experimentalGate() {
   if (window._experimentalOn) return true;
@@ -5722,7 +5722,7 @@ function _randoLocal(which) {
   try { if (c.tempo && !_tempoLocked && typeof _tapeSetBpm === 'function') { _tapeSetBpm(Math.floor(Math.random() * 66) + 70); const bd = document.getElementById('bpmDisplay'); if (bd) bd.textContent = bpm; const tb = document.getElementById('tempoBar'); if (tb) tb.value = bpm; } } catch (e) {}
   // NOTES: new random notes on every unlocked track that has some (its own + re-roll, so it keeps its instrument and key)
   if (c.notes) { try { for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackSweep[tr] || !grid[tr].some(v => v > 0)) continue; _untagBeatOwned && _untagBeatOwned(tr); randomizeTrack(tr); redrawTrackCells(tr, true); } markModified(); } catch (e) { console.error('new notes failed', e); } }
-  if (c.shuffle) { try { randomizeCurrentInstruments({ plainName: which === 'click' }); } catch (e) { console.error('shuffle instruments failed', e); } } // single click: the name just flashes white (no split-flap)
+  if (c.shuffle) { try { randomizeCurrentInstruments({ plainName: which !== 'dbl' }); /* single click AND shake: the name just flashes white */ } catch (e) { console.error('shuffle instruments failed', e); } } // single click: the name just flashes white (no split-flap)
   else if ((c.reverb || c.beatFx)) { clearTimeout(window._randoAllocT); try { _rerollAllocations(!!c.beatFx, !!c.reverb); } catch (e) {} } // nothing to wait for
 }
 // Re-rolls the per-track FX (FX/BLAST) and/or REVERB (R) allocations on the current pattern — same per-instrument chances a new
@@ -18412,16 +18412,17 @@ function stopAllAutoRand() {
       // the double-tap window, then the new-pattern pulse, with the button's background easing into the new colours.
       btn.classList.remove('new-pattern'); setBtnBlueHeld('randBtn');
       btn.style.setProperty('--rand-build-dur', (PLAYDOE_DOUBLE_MS / 1000).toFixed(3) + 's'); btn.classList.add('rand-building');
+      const _ck = window._clickKey || 'click'; // CLICK, or SHAKE — a shake now plays the single-click animations with the SHAKE column's settings
       _playdoeTapTimer = setTimeout(() => {
         _playdoeTapTimer = null;
         document.documentElement.style.setProperty('--new-pattern-dur', ((60 / (bpm || 110)) * 2.5).toFixed(3) + 's');
-        if (_randoIsFull(window._randoCfg.click)) { // RANDO BUTTON: CLICK set to a NEW PATTERN — that column's settings, on the next bar
-          btn.classList.remove('rand-building'); _randoApply('click'); setBtnBlueHeld('randBtn'); queueRand(); return;
+        if (_randoIsFull(window._randoCfg[_ck])) { // RANDO BUTTON: CLICK (or SHAKE) set to a NEW PATTERN — that column's settings, on the next bar
+          btn.classList.remove('rand-building'); _randoApply(_ck); setBtnBlueHeld('randBtn'); queueRand(); return;
         }
         try { const g = btn.querySelector('.glyph'), br = btn.getBoundingClientRect(), gr = g.getBoundingClientRect();
           btn.style.setProperty('--scr-out', Math.ceil(br.right - gr.left) + 'px'); btn.style.setProperty('--scr-in', -Math.ceil(gr.right - br.left) + 'px'); } catch (e) {}
         btn.classList.remove('rand-building'); btn.classList.add('new-pattern', 'np-scroll'); // transition is live BEFORE the colours change... (np-scroll: chevrons scroll through instead of scale-pulsing)
-        _randoShuffle('click');                                                 // ...new instruments (+ that column's extra rolls)...
+        _randoShuffle(_ck);                                                    // ...new instruments (+ that column's extra rolls)...
         clearBtnBlueHeld('randBtn');                                           // ...so the background eases from pressed into the new colour
         clearTimeout(btn._npT); btn._npT = setTimeout(() => btn.classList.remove('new-pattern', 'np-scroll'), Math.max(1250, (60 / (bpm || 110)) * 2500 + 50)); // never cut the 1.144s scroll short at fast tempos
       }, PLAYDOE_DOUBLE_MS);
@@ -18430,7 +18431,7 @@ function stopAllAutoRand() {
     setBtnBlueHeld('randBtn'); queueRand();
   };
   let _playdoeTapTimer = null; const PLAYDOE_DOUBLE_MS = 300;
-  window._randDoubleTap = () => { window._dblKey = 'shake'; try { singleFire(); singleFire(); } finally { window._dblKey = null; } }; // SHAKE: the double-click gesture, run with the SHAKE column's settings
+  window._randDoubleTap = () => { window._clickKey = 'shake'; try { singleFire(); } finally { window._clickKey = null; } }; // SHAKE: exactly the SINGLE-CLICK animations on >>, run with the SHAKE column's settings, per direct request
 
   // + button, per direct request: a plain TAP still fires a single RAND
   // (or stops AUTO if it's running); a LONG PRESS now opens the RANDOMIZE
@@ -21701,7 +21702,7 @@ const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'mortar-extra': true, 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true, 'mond-sat-markers': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "90", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60", "satCeilingSlider": "20"}, palette: 'bigschool', name: 'MOND' }, // mode 10 "MOND", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': false, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "15"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, safeGfx: false, markers: 'square', classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": true, "hide-vol-track": true, "track-pulse-a": true, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": true, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "189", "bgSatSlider": "20", "bgLightSlider": "20", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "60", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "8", "topColorHueSlider": "309", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "75", "emptyMarkerSizeCircleSlider": "15", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'late', name: 'LATE' }, // "LATE", from the display snapshot, per direct request
+  // LATE removed, per direct request — was: { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, safeGfx: false, markers: 'square', classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": true, "hide-vol-track": true, "track-pulse-a": true, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": true, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "189", "bgSatSlider": "20", "bgLightSlider": "20", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "60", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "8", "topColorHueSlider": "309", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "75", "emptyMarkerSizeCircleSlider": "15", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'late', name: 'LATE' }, // "LATE", from the display snapshot, per direct request
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
@@ -23086,7 +23087,13 @@ function fullReset() {
         _swipeHandled = true;
         _dragActive = false;
         if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-        if (dx > 0 && !trackMuted[_nameHoldTr]) _toggleTrackLock(_nameHoldTr); // a MUTED track can't be locked OR unlocked by a swipe, per direct request // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
+        if (dx > 0 && !document.body.classList.contains('lock-swap')) {
+          // LOCK BUTTONS = NEW INST OFF (the button locks), per direct request: a right swipe does the NEW INSTRUMENT action instead —
+          // exactly a tap on the track's asterisk button in NEW INST mode (two quick swipes = any group, like its double-tap)
+          const lb = document.getElementById(`swpbtn-${_nameHoldTr}`);
+          if (lb) { document.body.classList.add('lock-swap'); try { lb.dispatchEvent(new MouseEvent('mouseup', { bubbles: false })); } finally { document.body.classList.remove('lock-swap'); } }
+        }
+        else if (dx > 0 && !trackMuted[_nameHoldTr]) _toggleTrackLock(_nameHoldTr); // a MUTED track can't be locked OR unlocked by a swipe, per direct request // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
         return;
       }
       // Mostly-horizontal movement that hasn't reached the swipe distance yet: wait for it rather than committing to a mute-drag
