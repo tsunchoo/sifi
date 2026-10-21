@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 05:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 06:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1332,6 +1332,15 @@ html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.
 /* SQUARES mode, per direct report: the legato head is its own (taller) square with the thinner tail bar running off its top,
    so an open right side left a gap in the outline under the bar — the head keeps its full outline there. */
 html body:not(.note-markers-circle) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: var(--auto-outline-w, 3px) !important; }
+/* ...and JOINED to its tail, per direct request: the head's right edge is only drawn BELOW the tail bar (a background line — the
+   cell is a size container so 50cqh = the tail bar's height), and the first tail cell reaches left over the gap to the head's
+   right edge, so square + bar read as one outline. (Squares, ruler off.) */
+html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start { container-type: size; }
+html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after {
+  border-right-width: 0 !important;
+  background: linear-gradient(var(--auto-outline-col, var(--track-color, var(--text))), var(--auto-outline-col, var(--track-color, var(--text)))) right bottom / var(--auto-outline-w, 3px) calc(100% - 50cqh + var(--auto-outline-w, 3px)) no-repeat border-box !important;
+}
+html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start + .step-cell.legato-tail::after { left: calc(-1 * var(--note-marker-square-inset, 12%)) !important; }
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after { border-left-width: 0 !important; border-right-width: 0 !important; }
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 3px) !important; }
 /* PLAYHEAD: the outline flashes to the PLAY FLASH colour (white) and glows, still hollow */
@@ -2845,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 05:25:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 06:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6538,7 +6547,7 @@ function updateVolFillDisplay(tr) {
 // arrives at an offset instrument some other way (a loaded slot/tape, a
 // reset) with no record, the offset is assumed to already be baked into
 // its volume, so leaving still removes it rather than stacking again.
-const _INSTR_VOL_OFFSET = { stab: -0.35 }; // DOUBLE BASS no longer moves the vol slider at all, per direct request — its lift is built into the voice instead (see playDoubleBass)
+const _INSTR_VOL_OFFSET = {}; // RYTM GTR's −0.35 fader nudge (≈ −8.4dB) is now built into its voice instead (see playStab), per direct request — faders are never moved by an instrument change // DOUBLE BASS no longer moves the vol slider at all, per direct request — its lift is built into the voice instead (see playDoubleBass)
 const _instrVolRec = new Array(NUM_TRACKS).fill(null);
 function _setInstrVolOffset(tr, prevKey, k) {
   if (prevKey === k) return;
@@ -7984,7 +7993,7 @@ function togglePlay() {
       if (btn) btn._autoRandPaused = true;
       clearInterval(btn?._autoRandInterval);
     });
-    if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setValueAtTime(1, ctx.currentTime); }
+    if (window._duckGain) { window._duckGain.gain.cancelScheduledValues(ctx.currentTime); window._duckGain.gain.setTargetAtTime(1, ctx.currentTime, 0.02); } // eased back up (was an instant jump — a click whenever the pump was mid-duck on stop)
     // Auto-stop recording after half-bar delay (to capture reverb tail),
     // plus an extra fixed 2s on top before actually finishing the file.
     if (!window._silentPlayToggle && _recArmed && _mediaRecorder && _mediaRecorder.state === 'recording') { // …or ends a recording — it carries straight on through the rewind, per direct request
@@ -10116,7 +10125,7 @@ function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
   if (!ctx || !freq) return;
   const dest = getSynthConnectNode(tr);
-  const vel = isAccent ? 0.1459 : 0.1010; // -0.5dB, per direct request (was 0.1545/0.107)
+  const vel = 0.3802 /* −8.4dB in the voice itself — replaces the fader being pulled down 35% whenever a track became RYTM GTR, per direct request */ * (isAccent ? 0.1459 : 0.1010); // -0.5dB, per direct request (was 0.1545/0.107)
 
   // Shared LP + waveshaper — all voices feed into one chain then to dest
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 2.5;
@@ -18376,15 +18385,20 @@ function stopAllAutoRand() {
           // swapped out (every scheduled note, tail and reverb goes with it), and the rewind plays on the fresh engine.
           let _spareP = null;
           try { if (!_spareReady() && !_audioRefreshing) { try { window._spareCtx && window._spareCtx.close(); } catch (e) {} const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); _spareP = n.resume(); window._spareCtx = n; window._spareMadeAt = performance.now(); } } catch (e) {}
-          window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
           const _oldCtx = ctx, _oldMaster = masterGain, _oldMasterVal = masterGain ? masterGain.gain.value : 1;
-          try { const t = ctx.currentTime; _oldMaster.gain.cancelScheduledValues(t); _oldMaster.gain.setValueAtTime(_oldMasterVal, t); _oldMaster.gain.linearRampToValueAtTime(0, t + 0.008); } catch (e) {} // silent within 8ms
+          // ELEGANT END, per direct request (there was a pop): a 70ms fade on the very last stage of the old engine — every voice, tail,
+          // reverb and the drums go through it — instead of an 8ms cut on the master, and the old engine is only closed once the
+          // fade has finished (see the wait below). Closing it mid-sound was the pop.
+          const _oldPost = window._postLimiterGain, _oldPostVal = _oldPost ? _oldPost.gain.value : 1;
+          try { const t = ctx.currentTime; if (_oldPost) { _oldPost.gain.cancelScheduledValues(t); _oldPost.gain.setValueAtTime(_oldPostVal, t); _oldPost.gain.linearRampToValueAtTime(0, t + 0.07); } } catch (e) {} // silent within 8ms
+          window._silentPlayToggle = true; try { togglePlay(); } catch (e) {} window._silentPlayToggle = false; // stop
           const _rwTok = window._playdoeRwTok = {};
           (async () => {
             try { if (_spareP) await Promise.race([_spareP, new Promise(r => setTimeout(r, 200))]); } catch (e) {}
+            await new Promise(r => setTimeout(r, 90)); // let the 70ms fade finish before the old engine is shut
             if (_spareReady() && !_audioRefreshing) { try { await _refreshAudioEngine(); } catch (e) {} }
             if (window._playdoeRwTok !== _rwTok) return;
-            if (ctx === _oldCtx && _oldMaster) { try { _oldMaster.gain.cancelScheduledValues(ctx.currentTime); _oldMaster.gain.setValueAtTime(_oldMasterVal, ctx.currentTime + 0.05); } catch (e) {} } // no swap possible: bring the (now quiet) old engine back up for the rewind
+            if (ctx === _oldCtx && _oldPost) { try { _oldPost.gain.cancelScheduledValues(ctx.currentTime); _oldPost.gain.setValueAtTime(0, ctx.currentTime); _oldPost.gain.linearRampToValueAtTime(_oldPostVal, ctx.currentTime + 0.05); } catch (e) {} } // no swap possible: bring the (now quiet) old engine back up for the rewind
             playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
             window._cascadeFitMs = Math.max(300, _rwDur * 1000 - 140); // all the new-pattern animation happens inside the pause
             try { _recallSnapB = snapshotState(); randAll(); } catch (e) { console.error('PLAYDOE new pattern failed:', e); }
