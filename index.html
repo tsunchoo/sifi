@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 06:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 06:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 06:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8276,7 +8276,7 @@ function playSparp(freq, durSec, isAccent, time, tr) {
 const _bassGlideState = {}; // tr -> lastFreq
 function playSynthBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq || freq < 10) return;
-  const vel = isAccent ? 1.3438 : 0.9487; // +10dB total (was +9dB, +1dB more)
+  const vel = 1.0593 /* +0.5dB, every bass, per direct request */ * (isAccent ? 1.3438 : 0.9487); // +10dB total (was +9dB, +1dB more)
   const startFreq = _bassGlideState[tr] || freq;
   _bassGlideState[tr] = freq;
   let dest = (tr !== undefined && trackFxNodes[tr])
@@ -8284,20 +8284,25 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
     : (trackGainNodes[tr] || masterGain);
   if (ctx && _duckEligible(tr)) dest = getSidechainDuckGain(tr, dest);
 
-  const saw = ctx.createOscillator(); saw.type = 'sawtooth';
+  // FATTER, per direct request: two saws detuned ±9 cents (a slow chorus-y width instead of one thin saw), a sine at the note
+  // itself to fill the fundamental, the octave-down sub as before, and a slightly wider, less peaky filter.
+  const saw = ctx.createOscillator(); saw.type = 'sawtooth'; saw.detune.value = -9;
+  const saw2 = ctx.createOscillator(); saw2.type = 'sawtooth'; saw2.detune.value = 9;
+  const body = ctx.createOscillator(); body.type = 'sine';
   const sub = ctx.createOscillator(); sub.type = 'sine';
-  const sawG = ctx.createGain(); sawG.gain.value = 0.25;
-  const subG = ctx.createGain(); subG.gain.value = 0.38;
+  const sawG = ctx.createGain(); sawG.gain.value = 0.14;
+  const saw2G = ctx.createGain(); saw2G.gain.value = 0.14;
+  const bodyG = ctx.createGain(); bodyG.gain.value = 0.11;
+  const subG = ctx.createGain(); subG.gain.value = 0.315; // levels set so the overall loudness matches the old voice (peaks ~0.75)
 
   const slideTime = Math.min(durSec * 0.3, 0.12);
-  saw.frequency.setValueAtTime(Math.max(startFreq, 1), time);
-  saw.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + slideTime);
+  [saw, saw2, body].forEach(o => { o.frequency.setValueAtTime(Math.max(startFreq, 1), time); o.frequency.exponentialRampToValueAtTime(Math.max(freq, 1), time + slideTime); });
   sub.frequency.setValueAtTime(Math.max(startFreq * 0.5, 1), time);
   sub.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.5, 1), time + slideTime);
 
-  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 3.5;
-  filt.frequency.setValueAtTime(Math.max(startFreq * 3.5, 20), time);
-  filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 3.5, 20), time + slideTime);
+  const filt = ctx.createBiquadFilter(); filt.type = 'lowpass'; filt.Q.value = 2.2;
+  filt.frequency.setValueAtTime(Math.max(startFreq * 4.2, 20), time);
+  filt.frequency.exponentialRampToValueAtTime(Math.max(freq * 4.2, 20), time + slideTime);
 
   const ampEnv = ctx.createGain();
   ampEnv.gain.setValueAtTime(0, time);
@@ -8306,11 +8311,12 @@ function playSynthBass(freq, durSec, isAccent, time, tr) {
   ampEnv.gain.linearRampToValueAtTime(0.001, time + durSec);
 
   saw.connect(sawG); sawG.connect(filt);
+  saw2.connect(saw2G); saw2G.connect(filt);
+  body.connect(bodyG); bodyG.connect(filt);
   sub.connect(subG); subG.connect(filt);
   filt.connect(ampEnv); ampEnv.connect(dest);
-  saw.start(time); saw.stop(time + durSec + 0.05);
-  sub.start(time); sub.stop(time + durSec + 0.05);
-  saw.onended = () => { try { sawG.disconnect(); filt.disconnect(); ampEnv.disconnect(); } catch(e) {} };
+  [saw, saw2, body, sub].forEach(o => { o.start(time); o.stop(time + durSec + 0.05); });
+  saw.onended = () => { try { sawG.disconnect(); saw2G.disconnect(); bodyG.disconnect(); filt.disconnect(); ampEnv.disconnect(); } catch(e) {} };
   sub.onended = () => { try { subG.disconnect(); } catch(e) {} };
 }
 
@@ -11814,7 +11820,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891; // -1dB for everything except basses
+  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS gets it in its voice — it doesn't come through here) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -16116,7 +16122,7 @@ function _buildBounceGraph(targetCtx) {
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
-  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.5711; /* +3dB default DRUMS level, matching _beatVolRaw */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.5711 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
   // so an isolated track/BEAT stem doesn't carry every other track along
@@ -23511,7 +23517,7 @@ async function initAudio(opts) {
     window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711; /* +3dB default DRUMS level, matching _beatVolRaw */ window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.5711 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatGain.connect(masterGain); // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = (_refresh && window._uiSoundBufs) ? window._uiSoundBufs : {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -24593,7 +24599,7 @@ function _healIfSourcesDead() {
 function _applyBeatVolWithDuck() {
   if (!window._beatGain) return;
   const duck = (_beatFx || _beatPump) ? Math.pow(10, -3 / 20) : 1; // -3dB with DRUMS FX or BLAST on (was -1.5dB; another -1.5dB per direct request)
-  const target = _beatSoloMuted ? 0 : _beatVolRaw * duck;
+  const target = _beatSoloMuted ? 0 : _beatVolRaw * duck * 1.0593; // DRUMS +0.5dB, per direct request
   if (ctx) {
     // A short, clean linear fade rather than an asymptotic setTargetAtTime
     // — matters most for the SOLO-driven silence/return here (a hard snap
