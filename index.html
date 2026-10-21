@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 07:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 07:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 07:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -24638,7 +24638,7 @@ function _setBeatChoke(on) {
 }
 function _beatChokeHit(t) { // open for a blip on each drum hit (drums speak instantly — no attack allowance)
   const g = window._beatChokeGate; if (!g || g.context !== ctx) return;
-  try { g.gain.setValueAtTime(0, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + 0.014); g.gain.linearRampToValueAtTime(0, t + 0.018); } catch (e) {}
+  try { g.gain.setValueAtTime(0, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + 0.028); g.gain.linearRampToValueAtTime(0, t + 0.032); /* open twice as long (14ms -> 28ms), per direct request */ } catch (e) {}
 }
 // which steps actually had a drum hit: any sound connecting into the DRUMS bus during that step's scheduling
 (function () { const oc = AudioNode.prototype.connect; AudioNode.prototype.connect = function (d) { if (d && d === window._beatGain) window._beatHitFlag = true; return oc.apply(this, arguments); }; })();
@@ -24767,9 +24767,9 @@ function setBeatReverbMix(v) {
 // FX — 3-state cycle: off -> crunch on -> crunch+blast -> off, same as a track's FX button
 function beatCtrlCycleFx() {
   _ensureBeatFxChain();
-  // off -> CHK -> CHK+BLAST (BLAST keeps the old crunch FX underneath) -> off
+  // off -> CHK -> BLAST (exactly the old FX+BLAST — CHK switched OFF there, per direct report that it sounded enveloped) -> off
   if (!_beatChoke && !_beatPump) { _setBeatChoke(true); _beatFx = false; }
-  else if (!_beatPump) { _beatPump = true; _beatFx = true; }
+  else if (!_beatPump) { _setBeatChoke(false); _beatPump = true; _beatFx = true; }
   else { _setBeatChoke(false); _beatFx = false; _beatPump = false; }
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
   _applyBeatVolWithDuck();
@@ -24781,7 +24781,7 @@ function beatCtrlCycleFx() {
 // below, which needs to land on a specific randomly-picked state in one go.
 function _setBeatFxState(state) {
   _ensureBeatFxChain();
-  _setBeatChoke(state >= 1); // 1 = CHK, 2 = CHK+BLAST
+  _setBeatChoke(state === 1); // 1 = CHK, 2 = BLAST (the old FX+BLAST, no CHK)
   _beatFx = state >= 2;
   _beatPump = state >= 2;
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
