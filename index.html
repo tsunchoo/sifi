@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 04:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-21 04:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1323,14 +1323,14 @@ html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after {
   background: transparent !important;
   box-sizing: border-box !important;
-  border: var(--auto-outline-w, 2.5px) solid var(--auto-outline-col, var(--track-color, var(--text))) !important;
+  border: var(--auto-outline-w, 3px) solid var(--auto-outline-col, var(--track-color, var(--text))) !important;
   box-shadow: none !important;
 }
 /* a legato phrase is one long outlined shape: the head is open on its right, middle tails only draw top + bottom,
    and the last tail closes the right end */
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: 0 !important; }
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after { border-left-width: 0 !important; border-right-width: 0 !important; }
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 2.5px) !important; }
+html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 3px) !important; }
 /* PLAYHEAD: the outline flashes to the PLAY FLASH colour (white) and glows, still hollow */
 html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.playing:is(.on, .soft, .split32, .legato-tail)::after {
   --auto-outline-col: var(--play-flash-color, #fff);
@@ -1350,8 +1350,8 @@ html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .
   --r32: calc(25% - var(--note-marker-circle-inset, 12%) / 2);
   --c32: var(--auto-outline-col, var(--track-color, var(--text)));
   background:
-    radial-gradient(ellipse var(--r32) var(--r32) at 27% 50%, transparent calc(100% - var(--auto-outline-w, 2.5px)), var(--c32) calc(100% - var(--auto-outline-w, 2.5px)), var(--c32) 100%, transparent 100%),
-    radial-gradient(ellipse var(--r32) var(--r32) at 73% 50%, transparent calc(100% - var(--auto-outline-w, 2.5px)), var(--c32) calc(100% - var(--auto-outline-w, 2.5px)), var(--c32) 100%, transparent 100%) !important;
+    radial-gradient(ellipse var(--r32) var(--r32) at 27% 50%, transparent calc(100% - var(--auto-outline-w, 3px)), var(--c32) calc(100% - var(--auto-outline-w, 3px)), var(--c32) 100%, transparent 100%),
+    radial-gradient(ellipse var(--r32) var(--r32) at 73% 50%, transparent calc(100% - var(--auto-outline-w, 3px)), var(--c32) calc(100% - var(--auto-outline-w, 3px)), var(--c32) 100%, transparent 100%) !important;
 }
 /* outline takes the same colour the solid marker would have had in that mode */
 html body.notes-grayscale .auto-notes-lane .step-cell.on:not(.playing) { --auto-outline-col: #555; }
@@ -2842,7 +2842,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 04:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 04:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3750,25 +3750,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
 
-      <!-- TEMPORARY, per direct request: outline thickness for AUTO NOTES tracks' note markers -->
-      <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;">
-          <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">AUTO NOTE OUTLINE</div>
-          <div id="autoOutlineReadout" style="font-size:0.85rem;font-weight:700;color:#111;">2.5px</div>
-        </div>
-        <input type="range" id="autoOutlineSlider" min="0.5" max="5" step="0.25" value="2.5" class="master-vol-slider" style="width:100%;">
-      </div>
-      <!-- OUTLINE = AUTO BUTTON COLOUR toggle removed, per direct request — hard-coded OFF (outlines stay the note-marker colour) -->
-      <script>
-      try { document.body.classList.remove('auto-outline-btncol'); localStorage.removeItem('sifiAutoOutlineBtnCol'); } catch (e) {}
-      (function(){
-        var sl = document.getElementById('autoOutlineSlider'), ro = document.getElementById('autoOutlineReadout');
-        function ap(v){ document.documentElement.style.setProperty('--auto-outline-w', v + 'px'); if (ro) ro.textContent = v + 'px'; }
-        var v = 2.5; try { var st = localStorage.getItem('sifiAutoOutline3'); if (st) v = parseFloat(st) || 2.5; } catch (e) {} // default 2.5px, per direct request (new key, so an older saved value doesn't hold it back)
-        sl.value = v; ap(v);
-        sl.addEventListener('input', function(){ ap(sl.value); try { localStorage.setItem('sifiAutoOutline3', sl.value); } catch (e) {} });
-      })();
-      </script>
+      <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
+      <script>try { document.body.classList.remove('auto-outline-btncol'); localStorage.removeItem('sifiAutoOutlineBtnCol'); localStorage.removeItem('sifiAutoOutline3'); } catch (e) {} document.documentElement.style.setProperty('--auto-outline-w', '3px');</script>
 
       <!-- DRUM MUSIC RATIO / NOTE INTENSITY sliders moved to the RANDOMIZATION menu (under their toggles), per direct request -->
       <!-- 8-BIT MIX moved up here, right under MAIN VOL, per direct request -->
@@ -3800,6 +3783,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
       <button id="batterySaverBtn" onclick="toggleBatterySaver()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BATTERY SAVER</button>
+      <!-- EXPERIMENTAL STUFF, per direct request (OFF by default): gates the RANDO BUTTON and LOOK AND FEEL menus -->
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
+        <input type="checkbox" id="experimentalToggle" onchange="_setExperimental(this.checked)" style="width:14px;height:14px;cursor:pointer;">EXPERIMENTAL STUFF
+      </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
         <input type="checkbox" id="loadMeterToggle" onchange="setLoadMeterEnabled(this.checked)" style="width:14px;height:14px;cursor:pointer;">LOAD METER
       </label>
@@ -5624,7 +5611,18 @@ function _syncAutoPeriodRow() {
 window._randomizeDrumMusicRatio = false; window._randomizeNoteIntensity = false; // OFF by default again, per direct request
 function setRandomizeDrumMusicRatio(on) { window._randomizeDrumMusicRatio = !!on; }
 function setRandomizeNoteIntensity(on) { window._randomizeNoteIntensity = !!on; }
+// EXPERIMENTAL STUFF (SETTINGS, off by default), per direct request: with it off, every gesture that would open the RANDO
+// BUTTON or LOOK AND FEEL menu shows this notice instead.
+window._experimentalOn = false; try { window._experimentalOn = localStorage.getItem('sifiExperimental') === '1'; } catch (e) {}
+function _setExperimental(on) { window._experimentalOn = !!on; try { localStorage.setItem('sifiExperimental', on ? '1' : '0'); } catch (e) {} }
+document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('experimentalToggle'); if (t) t.checked = !!window._experimentalOn; });
+function _experimentalGate() {
+  if (window._experimentalOn) return true;
+  try { _showNotice('EXPERIMENTAL STUFF: SEE SETTINGS MENU'); } catch (e) {}
+  return false;
+}
 function showRandMenu() {
+  if (!_experimentalGate()) return;
   const el = document.getElementById('randMenuOverlay');
   if (el) el.style.display = 'flex';
   // Same ghost-click guard as the COLOR MENU's RANDOMIZE COLORS button —
@@ -5650,7 +5648,7 @@ function showRandMenu() {
 // double click always did). REVERB / FX = new per-track allocations; 8-BIT MIX; BEAT TYPE; TEMPO = randomise it (off = keep it);
 // NOTE INTENSITY (toggle on = use the slider, off = random). DRUM MUSIC RATIO is one overall rule below the columns.
 const _RANDO_COL_DEFAULT = full => ({ notes: full, shuffle: true, reverb: full, beatFx: full, eightBit: false, beatType: full, tempo: full, intRand: false });
-const _RANDO_DEFAULT = () => ({ click: _RANDO_COL_DEFAULT(false), dbl: _RANDO_COL_DEFAULT(true), shake: _RANDO_COL_DEFAULT(true) });
+const _RANDO_DEFAULT = () => ({ click: _RANDO_COL_DEFAULT(false), dbl: _RANDO_COL_DEFAULT(true), shake: _RANDO_COL_DEFAULT(false) /* SHAKE defaults to the same as a single click, per direct request */ });
 window._randoCfg = _RANDO_DEFAULT();
 window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; // DRUM MUSIC RATIO + the one NOTE INTENSITY slider — overall rules for every gesture (each column's NOTE INTENSITY toggle: on = this slider, off = random)
 function _randoIsFull(c) { return !!(c && c.notes && c.shuffle); } // a whole new pattern (randAll)
@@ -21023,6 +21021,7 @@ function _syncLookModeLabel() {
   el.textContent = 'MODE ' + (i + 1) + (_RAINBOW_CYCLE[i].name ? ' — ' + _RAINBOW_CYCLE[i].name : '');
 }
 function showDevMenu() {
+  if (!_experimentalGate()) return;
   try { _bgCtlSync(); } catch (e) {}
   try { _syncLookModeLabel(); } catch (e) {}
   const el = document.getElementById('devMenuOverlay');
