@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 21:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 21:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1187,6 +1187,8 @@ body:not(.rand-btn-ff):not(.rand-btn-asterisk) #randBtn > .glyph { position: rel
 .track-ctrl-icon-btn.lock-btn.sweep-on:not(#beatCtrlL) { background: #999; color: #000; } /* engaged: button BG stays as it was, padlock goes black, per direct request (was #333 bg / white lock) */
 .fx-btn.on { background: var(--track-btn-on-color, #f17d21); color: var(--track-btn-on-text, #fff); }
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
+/* FX (the old crunch + a 16th-note echo) — the button's 4th stop: same look as CHK but in its own colour (the 2nd highlight) */
+.fx-btn.fx-echo { --track-btn-on-color: var(--highlight2-color, #0078ff); --track-btn-on-text: var(--highlight2-text, #fff); --lit-glyph: var(--highlight2-color, #0078ff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
 /* LOCK BUTTONS = NEW SOUND: the padlock is swapped for the asterisk glyph (same shape as + BUTTON = ASTERISK), white, lock state not shown */
@@ -2871,7 +2873,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 21:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 21:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5793,8 +5795,9 @@ function _rerollAllocations(doFx, doRev) {
       const tonal = TONAL_KEYS.has(k);
       const chk = _chinkRandOk(tr) && !_NO_RAND_CHK.has(k) && Math.random() < (k === 'dulc' ? 0.95 : _CHOKE_PADS.has(k) ? 0.5 : tonal ? 0.8 : 0.24);
       const blast = Math.random() < 0.12;
-      if (!!trackChink[tr] !== (chk && !blast)) _setChink(tr, chk && !blast); // never CHK under BLAST
-      trackPump[tr] = blast; trackFx[tr] = blast ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
+      const echo = !blast && k !== 'magic' && Math.random() < (tonal ? 0.18 : 0.12); // FX (crunch + echo) in this quota too, per direct request
+      if (!!trackChink[tr] !== (chk && !blast && !echo)) _setChink(tr, chk && !blast && !echo); // never CHK under BLAST / FX
+      trackPump[tr] = blast; trackFx[tr] = (blast || echo) ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
     }
   }
   try { if (doRev) _ensurePatternReverb(); } catch (e) {}
@@ -6136,7 +6139,12 @@ function buildFxChain(trackGain) {
   const envGain = ctx.createGain(); envGain.gain.value = 1;
   // crunch path: fxSend → preGain → ws → postGain → envGain → trackGain (no compressor = no latency)
   fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(envGain); envGain.connect(trackGain);
-  return { dryGain, fxSend, gateGain, preGain, postGain, ws, envGain };
+  // FX ECHO: the FX'd sound again a 16th later at half level (silent unless the FX stop is on — see _syncFxEcho). On a bass /
+  // pad the dry blend is 0 under FX, so the tap is the whole FX output either way.
+  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
+  const echoGain = ctx.createGain(); echoGain.gain.value = 0;
+  envGain.connect(echoDelay); dryGain.connect(echoDelay); echoDelay.connect(echoGain); echoGain.connect(trackGain);
+  return { dryGain, fxSend, gateGain, preGain, postGain, ws, envGain, echoDelay, echoGain };
 }
 
 // Fires once per note on tracks with FX engaged — quick (3ms) ramped attack
@@ -6172,11 +6180,26 @@ function triggerFxEnvelope(tr, time) {
 // BLAST now — so BLAST sounds exactly as before — never on its own. The old standalone FX code is kept, commented out, at
 // the button and in RAND; this flag also neutralises FX state arriving from anywhere else (old saves, beat types, CHUG).
 const FX_RETIRED = true;
+// FX IS BACK, per direct request, as its own stop: the old FX (crunch layer + attack/choke envelope) PLUS an echo — the
+// track repeated one 16th note later (follows the tempo) at half the level. It's simply the old "FX on, no BLAST" state, so
+// saves, tapes and A/B slots carry it as they always did.
+const FX_ECHO_LEVEL = 0.5;
+function _fxEchoOn(tr) { const f = trackFx[tr]; return !!(f && (f.x > 0 || f.y > 0) && !trackPump[tr]); }
+function _syncFxEcho(tr) {
+  const n = trackFxNodes[tr]; if (!n || !n.echoGain || !ctx) return;
+  const now = ctx.currentTime, on = _fxEchoOn(tr);
+  n.echoDelay.delayTime.setTargetAtTime(Math.min(1.9, stepDuration()), now, 0.02);
+  n.echoGain.gain.cancelScheduledValues(now); n.echoGain.gain.setTargetAtTime(on ? FX_ECHO_LEVEL : 0, now, 0.01);
+}
+// the echo follows tempo changes (TEMPO, nudges, tape tempos) — a cheap check, only touches tracks with FX on
+setInterval(() => { if (!ctx) return; const sd = Math.min(1.9, stepDuration()); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoDelay && _fxEchoOn(t) && Math.abs(n.echoDelay.delayTime.value - sd) > 0.0005) n.echoDelay.delayTime.setTargetAtTime(sd, ctx.currentTime, 0.02); } }, 250);
 function _syncFxBtn(tr) {
   const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
   if (b.textContent !== 'FX') b.textContent = 'FX'; // the glyph is always FX now, per direct request — only the colours change (off / CHK / CHK+BLAST)
   b.classList.remove('chink-on');
-  b.classList.toggle('on', !!trackChink[tr]);       // CHK lit = the FX button's old ON colour
+  const _echo = _fxEchoOn(tr);
+  b.classList.toggle('on', !!trackChink[tr] || _echo); // CHK lit = the FX button's old ON colour
+  b.classList.toggle('fx-echo', _echo);                 // FX (crunch + echo) = the same, in its own colour
   b.classList.toggle('blast-on', !!trackPump[tr]);  // BLAST = the FX button's old BLAST colour
 }
 // CHK squeezed horizontally to exactly the width the two-letter "FX" glyph took, per direct request
@@ -6205,7 +6228,8 @@ function _queueFxBtnSync() { if (!window._chkSqMeasured && document.querySelecto
 function setFxActive(tr, fxVal) {
   _queueFxBtnSync();
   if (!trackFxNodes[tr]) return;
-  const on = fxVal && (fxVal.x > 0 || fxVal.y > 0) && (!FX_RETIRED || !!trackPump[tr]);
+  const on = !!(fxVal && (fxVal.x > 0 || fxVal.y > 0)); // FX on its own sounds again (FX stop = crunch + echo), per direct request
+  try { _syncFxEcho(tr); } catch (e) {}
   const { dryGain, fxSend, preGain } = trackFxNodes[tr];
   const now = ctx.currentTime;
   // Basses keep the fully-wet routing exactly as it was before the 80/20
@@ -6646,6 +6670,7 @@ function _chinkVolBoost(tr, on) { // +1dB on the track's volume slider while CHO
 }
 function _setChink(tr, on) {
   _queueFxBtnSync();
+  if (on && typeof _fxEchoOn === 'function' && _fxEchoOn(tr)) { trackFx[tr] = { x: 0, y: 0 }; if (ctx) { try { setFxActive(tr, trackFx[tr]); } catch (e) {} } } // CHK and FX never sit together
   if (!!trackChink[tr] !== !!on) { try { _chinkVolBoost(tr, !!on); } catch (e) {} }
   trackChink[tr] = !!on;
   const g = _chinkGate(tr); if (!g) return;
@@ -13286,9 +13311,11 @@ function buildUI() {
       // instruments: off -> BLAST -> off. BLAST still carries the old FX layer underneath so it sounds the same.
       if (FX_RETIRED) {
         const fxOnVal = { x: 0.5, y: 0.5 }, offVal = { x: 0, y: 0 };
-        if (trackPump[tr]) { // BLAST -> off
-          trackPump[tr] = false; trackFx[tr] = offVal; if (ctx) setFxActive(tr, offVal);
+        if (trackPump[tr]) { // BLAST -> FX (the old FX + a 16th-note echo), per direct request
+          trackPump[tr] = false; trackFx[tr] = fxOnVal; if (ctx) setFxActive(tr, fxOnVal);
           if (trackChink[tr]) _setChink(tr, false);
+        } else if (_fxEchoOn(tr)) { // FX -> off
+          trackFx[tr] = offVal; if (ctx) setFxActive(tr, offVal);
         } else if (trackChink[tr] || !_chinkAllowed(tr)) { // CHK -> BLAST — CHK switched OFF there, so BLAST is exactly the old FX+BLAST (per direct report: CHK under BLAST sounded wrong)
           if (trackChink[tr]) _setChink(tr, false);
           trackPump[tr] = true; trackFx[tr] = fxOnVal; if (ctx) setFxActive(tr, fxOnVal);
@@ -18218,7 +18245,11 @@ function randAll(mode, opts) {
       /* FX RETIRED — CHK and BLAST can now sit together (CHK+BLAST is the button's red stop):
       if (chinkOn && trackPump[tr]) { trackPump[tr] = false; if (fb) fb.classList.remove('blast-on'); }
       if (chinkOn) { trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); if (fb) { fb.classList.remove('on', 'blast-on'); } ... } */
-      if (chinkOn && !trackPump[tr]) _setChink(tr, true); // never CHK under BLAST
+      // FX (crunch + echo) in the quota too, per direct request — from the same FX-on roll as BLAST, on tracks that didn't land
+      // BLAST; it takes over from CHK when it lands (they never sit together).
+      const _echoOn = !trackPump[tr] && fxOn && hasNotes && !isJinx && Math.random() < 0.6;
+      if (_echoOn) { trackFx[tr] = { x: 0.5, y: 0.5 }; if (ctx) setFxActive(tr, trackFx[tr]); }
+      else if (chinkOn && !trackPump[tr]) _setChink(tr, true); // never CHK under BLAST
     } else if (!trackSweep[tr]) {
       // Perc/non-tonal: FX already reset above, just update bar. BLAST wasn't
       // being cleared here at all, so a percussion track could carry a stale
@@ -18230,7 +18261,9 @@ function randAll(mode, opts) {
       if (vb) { _setVolFillPct(vb, 0.5); }
       if (trackGainNodes[tr] && ctx) trackGainNodes[tr].gain.setValueAtTime(0.5, ctx.currentTime);
       // CHOKE for the rest of the percussion too (they never got a roll before), per direct request — 24%, same as drums above
-      if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && _chinkRandOk(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < 0.24) {
+      if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && Math.random() < 0.18) { // FX (crunch + echo) in the percussion quota too, per direct request
+        trackFx[tr] = { x: 0.5, y: 0.5 }; if (ctx) setFxActive(tr, trackFx[tr]); _queueFxBtnSync();
+      } else if (!_magicPresentThisRand && grid[tr].some(v => v > 0) && _chinkRandOk(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]) && Math.random() < 0.24) {
         trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]);
         if (fb2) fb2.classList.remove('on', 'blast-on');
         trackVolume[tr] = 0.5; _setChink(tr, true); _queueFxBtnSync();
