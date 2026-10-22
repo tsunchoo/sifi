@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 21:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 22:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1063,7 +1063,7 @@ html body .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
 }
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
-html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: linear-gradient(to right, var(--play-flash-color, #f17d21), color-mix(in srgb, var(--play-flash-color, #f17d21), #fff calc(var(--vw, 0) * 100%))) !important; animation: none !important; } /* GRADIENT to white at the tip, by the track's real level (--vw), per direct request */
+html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--vbase, var(--play-flash-color, #f17d21)) !important; background-image: linear-gradient(to right, var(--vbase, var(--play-flash-color, #f17d21)) 0%, var(--vbase, var(--play-flash-color, #f17d21)) 15%, var(--vtip, var(--vbase, var(--play-flash-color, #f17d21))) 100%) !important; animation: none !important; } /* BASE -> LOUD by the real level (--vtip, mixed in JS) — see _fillTip */ /* GRADIENT to white at the tip, by the track's real level (--vw), per direct request */
 html body .track-vol-bar .track-vol-tip { z-index: 5; }
 /* VOL FILL GLOW (settings slider, 100% default, applies on release), per
    direct request — the vol fill glows in the PLAY FLASH colour in every
@@ -2873,7 +2873,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 21:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 22:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3747,6 +3747,28 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <label class="wild-toggle"><input type="checkbox" id="sweep8bitToggle" checked onchange="window._sweep8bitOn = this.checked; try { localStorage.setItem('sifiSweep8bit', this.checked ? '1' : '0'); } catch (e) {}"><span class="wild-toggle-slider"></span></label>
     </div>
     <script>try { if (localStorage.getItem('sifiSweep8bit') === '0') { window._sweep8bitOn = false; document.getElementById('sweep8bitToggle').checked = false; } } catch (e) {}</script>
+
+    <!-- VOLUME FILL colours, per direct request: the fill fades from BASE (left) to LOUD (its tip) by the track's real level.
+         Plain hue/light sliders, not the native colour picker (that can reload the home-screen app on iOS — see #topColorHueSlider). -->
+    <div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FILL BASE COLOUR <span id="fillBaseSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;"></span></div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">= PLAY FLASH<label class="wild-toggle"><input type="checkbox" id="fillBaseAutoToggle" checked onchange="_setFillBaseAuto(this.checked)"><span class="wild-toggle-slider"></span></label></label>
+      </div>
+      <div id="fillBaseSliders" style="display:flex;gap:10px;">
+        <input type="range" id="fillBaseHue" min="0" max="360" value="40" class="master-vol-slider fill-hue-slider" oninput="_fillPickInput('base')" onchange="_fillPickInput('base')" style="width:100%;">
+        <input type="range" id="fillBaseLight" min="0" max="100" value="50" class="master-vol-slider" oninput="_fillPickInput('base')" onchange="_fillPickInput('base')" style="width:100%;">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FILL LOUD COLOUR <span id="fillLoudSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;background:#fff;"></span></div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">CUSTOM<label class="wild-toggle"><input type="checkbox" id="fillLoudCustomToggle" onchange="_setFillLoudCustom(this.checked)"><span class="wild-toggle-slider"></span></label></label>
+      </div>
+      <div id="fillLoudSliders" style="display:none;gap:10px;">
+        <input type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider fill-hue-slider" oninput="_fillPickInput('loud')" onchange="_fillPickInput('loud')" style="width:100%;">
+        <input type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput('loud')" onchange="_fillPickInput('loud')" style="width:100%;">
+      </div>
+      <div style="font-size:0.55rem;color:#777;letter-spacing:0.5px;text-transform:uppercase;">LEFT SLIDER = HUE · RIGHT SLIDER = DARK → LIGHT</div>
+    </div>
 
     <!-- Song name on its own line, scale + tempo on the line below -->
     <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
@@ -12727,8 +12749,46 @@ const _vbPeakDb = new Array(NUM_TRACKS).fill(-60);
 // FILL GRADIENT WHITENESS, per direct request: the fill fades from its colour to white at its right tip, by how loud the track
 // REALLY is (absolute level, not the per-track auto-calibrated bounce) — only genuinely loud hits reach pure white.
 // Maps the peak at this tap from -45dB (none) to -12dB (pure white); typical percussion hits sit around a third, loud basses near full.
-const VW_LO_DB = -45, VW_HI_DB = -12;
+const VW_LO_DB = -50, VW_HI_DB = -12;
 const _vbWhite = new Array(NUM_TRACKS).fill(0);
+// FILL colours (SETTINGS): BASE = the PLAY FLASH colour unless picked; LOUD = white unless CUSTOM is on. The tip colour is
+// mixed here in JS (no CSS color-mix — that didn't render on the phone) and handed to each bar as --vtip.
+window._fillBaseHex = null; window._fillLoudHex = null;
+let _fillBaseRgb = [255, 255, 255], _fillBaseReadT = 0;
+function _hexRgb(h) { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(h || ''); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null; }
+function _cssRgb(c) { const h = _hexRgb(c); if (h) return h; const m = (c || '').match(/[\d.]+/g); return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : null; }
+function _fillBaseNow() {
+  if (window._fillBaseHex) return _hexRgb(window._fillBaseHex) || _fillBaseRgb;
+  const t = performance.now();
+  if (t - _fillBaseReadT > 400) { _fillBaseReadT = t; const c = _cssRgb(_rootCS().getPropertyValue('--play-flash-color').trim()); if (c) _fillBaseRgb = c; }
+  return _fillBaseRgb;
+}
+function _fillSyncRoot() {
+  const b = _fillBaseNow(), r = document.documentElement.style;
+  r.setProperty('--vbase', `rgb(${b[0]},${b[1]},${b[2]})`);
+  const bs = document.getElementById('fillBaseSwatch'); if (bs) bs.style.background = `rgb(${b[0]},${b[1]},${b[2]})`;
+  const ls = document.getElementById('fillLoudSwatch'); if (ls) ls.style.background = window._fillLoudHex || '#ffffff';
+}
+setInterval(() => { if (!window._fillBaseHex) _fillSyncRoot(); }, 500); // follows PLAY FLASH changes (modes, WILD, the picker)
+function _fillTip(amt) {
+  const b = _fillBaseNow(), l = _hexRgb(window._fillLoudHex) || [255, 255, 255];
+  return `rgb(${Math.round(b[0] + (l[0] - b[0]) * amt)},${Math.round(b[1] + (l[1] - b[1]) * amt)},${Math.round(b[2] + (l[2] - b[2]) * amt)})`;
+}
+function _fillPickInput(which) {
+  const H = +document.getElementById(which === 'base' ? 'fillBaseHue' : 'fillLoudHue').value;
+  const L = +document.getElementById(which === 'base' ? 'fillBaseLight' : 'fillLoudLight').value / 100;
+  const hex = _hslToHex(H, L <= 0.02 || L >= 0.98 ? 0 : 0.9, L);
+  if (which === 'base') { window._fillBaseHex = hex; const t = document.getElementById('fillBaseAutoToggle'); if (t) t.checked = false; }
+  else { window._fillLoudHex = hex; const t = document.getElementById('fillLoudCustomToggle'); if (t && !t.checked) { t.checked = true; _setFillLoudCustom(true); } }
+  _fillSyncRoot();
+}
+function _setFillBaseAuto(on) { if (on) window._fillBaseHex = null; else _fillPickInput('base'); _fillReadT0(); _fillSyncRoot(); }
+function _fillReadT0() { _fillBaseReadT = 0; }
+function _setFillLoudCustom(on) {
+  const w = document.getElementById('fillLoudSliders'); if (w) w.style.display = on ? 'flex' : 'none';
+  if (on) { if (!window._fillLoudHex) _fillPickInput('loud'); } else window._fillLoudHex = null;
+  _fillSyncRoot();
+}
 let _vbLastT = 0;
 let _vbLevels = new Array(NUM_TRACKS).fill(0), _vbRaf = null, _vbBuf = null;
 function setVolBanger(on) {
@@ -12827,7 +12887,7 @@ function _volBangerLoop(now) {
     if (vbar) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
       if (!(typeof playing !== 'undefined' && playing)) _vbWhite[tr] *= 0.8; // stopped: the white tip fades away
-      vbar.style.setProperty('--vw', (_vbWhite[tr] < 0.01 ? 0 : _vbWhite[tr]).toFixed(2));
+      { const w = _vbWhite[tr] < 0.01 ? 0 : _vbWhite[tr]; vbar.style.setProperty('--vw', w.toFixed(2)); vbar.style.setProperty('--vtip', _fillTip(Math.pow(w, 0.6))); } // a curve, so ordinary hits clearly show it; only loud ones reach the full LOUD colour
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
     }
   }
@@ -22418,6 +22478,7 @@ function _resetToBootState() {
     else if (el.type === 'radio') { if (bs.inputs[k] && !el.checked) { el.checked = true; fire(el); } }
     else if (el.type === 'range' || el.type === 'number' || el.type === 'color') { if (el.value !== bs.inputs[k]) { el.value = bs.inputs[k]; fire(el); } }
   });
+  try { window._fillBaseHex = null; window._fillLoudHex = null; const fl = document.getElementById('fillLoudSliders'); if (fl) fl.style.display = 'none'; { const a = document.getElementById('fillBaseAutoToggle'); if (a) a.checked = true; const c = document.getElementById('fillLoudCustomToggle'); if (c) c.checked = false; } _fillReadT0(); _fillSyncRoot(); } catch (e) {} // FILL colours back to PLAY FLASH -> white
   const want = new Set(bs.classes.filter(c => !_RESET_LIVE_CLASSES.has(c)));
   [...document.body.classList].forEach(c => { if (!_RESET_LIVE_CLASSES.has(c) && !want.has(c)) document.body.classList.remove(c); });
   want.forEach(c => document.body.classList.add(c));
