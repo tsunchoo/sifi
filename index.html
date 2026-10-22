@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-21 09:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 05:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-21 09:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 05:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7470,7 +7470,7 @@ function fireStepAudio(step, t) {
         if (bstep === 2 || bstep === 6 || bstep === 10 || bstep === 14) playSynthHihat(false, t, -1);
       }
     }
-    if (_beatChoke && window._beatHitFlag) _beatChokeHit(t); // DRUMS CHK: a blip on each step the drums actually hit
+    if (window._beatHitFlag && (_beatChoke || (window._sweepGateX || 0) > 0.01)) _beatChokeHit(t); // DRUMS CHK (or SWEEP's x-axis): a blip on each step the drums actually hit
 }
 
 // BEAT COUNT (header, left) — 1..4 following the playhead, "-" when stopped.
@@ -23983,6 +23983,8 @@ async function hardResetAudioEngine() {
     _afterAudio(t + halfNote + 0.3, () => { try { noise.disconnect(); bp.disconnect(); gain.disconnect(); } catch(e) {} try { sweepMaster && sweepMaster.disconnect(); } catch (e) {} });
     // the music comes back up over the same release as SWEEP fades out
     try { const fg = window._normalTrackFadeGain.gain; fg.cancelScheduledValues(t); fg.setValueAtTime(fg.value, t); fg.linearRampToValueAtTime(1, t + Math.max(0.05, halfNote)); } catch (e) {}
+    window._sweepGateX = 0; // drums back to normal with the 8-bit (unless DRUMS FX is on — then its own CHK stays)
+    if (!_beatChoke) { const g = window._beatChokeGate; if (g && g.context === ctx) { try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(1, t + 0.012); } catch (e) {} } }
     _sweepCrushRelease(t, 0.012); // 8-bit snaps straight back to clean the moment SWEEP is let go (12ms, just enough to avoid a click), per direct request — was over the half-note release
   }
 
@@ -24008,6 +24010,8 @@ async function hardResetAudioEngine() {
     const t = ctx.currentTime;
     swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
     window._swDepthX = depth; _sweepCrushWet(); _sweepApplyOwnLevel();
+    window._sweepGateX = depth; // drives the DRUMS gate too (see _beatChokeHit) — 8-bit and the drum chop come in together
+    if (depth <= 0.01 && !_beatChoke) { const g = window._beatChokeGate; if (g && g.context === ctx) { try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(1, t + 0.02); } catch (e) {} } } // dragged back to the left edge: drums fully open again
   }
   // the 8-bit side comes UP by 5dB at full right, plus another 3dB when it's also at full drag-down (the bottom-right corner), per direct request
   function _sweepCrushWet() {
@@ -24739,6 +24743,15 @@ function _setBeatChoke(on) {
 }
 function _beatChokeHit(t) { // open for a blip on each drum hit (drums speak instantly — no attack allowance)
   const g = window._beatChokeGate; if (!g || g.context !== ctx) return;
+  // SWEEP X-AXIS (DRUMS FX not on): the same gate, mixed in by how far right the drag is, per direct request — the further right,
+  // the harder it works: between hits the drums dip from full level (far left) to silent (far right), and each hit is let
+  // through for 120ms at the left edge down to the FX's own 28ms at the right.
+  if (!_beatChoke) {
+    const x = Math.max(0, Math.min(1, window._sweepGateX || 0)); if (x <= 0.01) return;
+    const floor = 1 - x, w = 0.12 - 0.092 * x;
+    try { g.gain.cancelScheduledValues(Math.max(0, t - 0.001)); g.gain.setValueAtTime(floor, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + w); g.gain.linearRampToValueAtTime(floor, t + w + 0.004); } catch (e) {}
+    return;
+  }
   try { g.gain.setValueAtTime(0, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + 0.028); g.gain.linearRampToValueAtTime(0, t + 0.032); /* open twice as long (14ms -> 28ms), per direct request */ } catch (e) {}
 }
 // which steps actually had a drum hit: any sound connecting into the DRUMS bus during that step's scheduling
