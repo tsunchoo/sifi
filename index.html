@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 19:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 20:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2613,7 +2613,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test vol-test-bg-4">
+<body class="drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2871,7 +2871,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 19:25:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 20:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3096,7 +3096,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SHAKE PHONE (SHAKE COLUMN)</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="shakeToggle" checked onchange="_setShake(this.checked)">
+        <input type="checkbox" id="shakeToggle" onchange="_setShake(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3352,7 +3352,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#555;">WIDE METER (was TEST)</div>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="volTestToggle" checked onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">WIDE METER
+            <input type="checkbox" id="volTestToggle" onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">WIDE METER
           </label>
           <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
             <span>METER BG</span>
@@ -4075,6 +4075,10 @@ document.addEventListener('touchmove', e => {
 }, { passive: false });
 let masterVol = 0.8; // actual master output volume — this stays the raw 0-1 slider fraction everywhere (snapshots, UI sync); the +4dB boost below is applied only where this actually reaches masterGain's AudioParam, never to this variable itself, so save/restore round-trips correctly instead of double-applying the boost
 const MASTER_OUTPUT_BOOST = Math.pow(10, 4 / 20); // +4dB on top of whatever the MAIN VOL slider is set to, per direct request
+// FOUND the VOLUME JUMP (per direct report): every new pattern / RECALL / slot swap / rewind / brake dipped the master and then
+// put it back to plain masterVol — WITHOUT the +4dB above — so the mix sat 4dB down until anything re-applied the full level
+// (an audio-engine refresh, a MAIN VOL touch, a session restore), when it jumped back up 4dB. Every restore now uses this.
+const _masterOut = () => masterVol * MASTER_OUTPUT_BOOST;
 
 function setMasterVol(v) {
   masterVol = Math.max(0, Math.min(1, v));
@@ -6957,8 +6961,8 @@ function scheduler() {
         masterGain.gain.cancelScheduledValues(now);
         masterGain.gain.setValueAtTime(masterGain.gain.value, now);
         masterGain.gain.linearRampToValueAtTime(0, now + 0.02);
-        masterGain.gain.linearRampToValueAtTime(masterVol, now + 0.12);
-        setTimeout(() => { if (masterGain && ctx) { masterGain.gain.cancelScheduledValues(ctx.currentTime); masterGain.gain.setValueAtTime(masterVol, ctx.currentTime); } }, 200);
+        masterGain.gain.linearRampToValueAtTime(_masterOut(), now + 0.12);
+        setTimeout(() => { if (masterGain && ctx) { masterGain.gain.cancelScheduledValues(ctx.currentTime); masterGain.gain.setValueAtTime(_masterOut(), ctx.currentTime); } }, 200);
       }
       // Glide/portamento state and pitch/legato overrides — same
       // reasoning as restoreState()'s equivalent cleanup: this is a
@@ -9874,6 +9878,9 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   sub.frequency.exponentialRampToValueAtTime(Math.max(freq * 0.5, 1), time + slideTime);
   const triG = ctx.createGain(); triG.gain.value = 0.32;
   const subG = ctx.createGain(); subG.gain.value = 0.42;
+  // The sub sits an octave under the note — down to ~27Hz on the low notes, below what speakers play but still eating headroom
+  // in the master limiter (it pumps/grinds on it). A gentle 32Hz high-pass on the sub only keeps the weight, loses the waste.
+  const subHP = ctx.createBiquadFilter(); subHP.type = 'highpass'; subHP.frequency.value = 32; subHP.Q.value = 0.707;
 
   // Dark, heavy lowpass — no bright sawtooth edge to tame here, just closing
   // the triangle's upper harmonics down for a warm, woody tone
@@ -9892,7 +9899,7 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   ampEnv.gain.setValueAtTime(vel * 0.4, time + sustainEnd); // hold through the note's actual length
   ampEnv.gain.exponentialRampToValueAtTime(0.0008, time + sustainEnd + tail);
 
-  tri.connect(triG); sub.connect(subG);
+  tri.connect(triG); sub.connect(subHP); subHP.connect(subG);
   triG.connect(lp); subG.connect(lp);
   lp.connect(ampEnv); ampEnv.connect(dest);
 
@@ -9924,7 +9931,7 @@ function playDoubleBass(freq, durSec, isAccent, time, tr) {
   outFade.gain.setValueAtTime(1, stopAt - 0.012); outFade.gain.linearRampToValueAtTime(0, stopAt - 0.002);
   tri.start(time); tri.stop(stopAt);
   sub.start(time); sub.stop(stopAt);
-  tri.onended = () => { try { triG.disconnect(); subG.disconnect(); lp.disconnect(); ampEnv.disconnect(); bodyBP.disconnect(); bodyEnv.disconnect(); setTimeout(() => { try { outFade.disconnect(); } catch (e) {} }, 300); } catch(e) {} };
+  tri.onended = () => { try { triG.disconnect(); subHP.disconnect(); subG.disconnect(); lp.disconnect(); ampEnv.disconnect(); bodyBP.disconnect(); bodyEnv.disconnect(); setTimeout(() => { try { outFade.disconnect(); } catch (e) {} }, 300); } catch(e) {} };
   _dbassActiveVoice[tr] = { ampEnv, bodyEnv, outFade, oscs: [tri, sub, pluck], endTime: stopAt };
 }
 // ── PULSE BASS: bullet-fast attack, fat metallic body, very little tail —
@@ -17088,12 +17095,12 @@ function randAll(mode, opts) {
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.setValueAtTime(masterGain.gain.value, Math.max(ctx.currentTime, _dT));
     masterGain.gain.linearRampToValueAtTime(0, _dT + 0.04);
-    masterGain.gain.linearRampToValueAtTime(masterVol, _dT + 0.18);
+    masterGain.gain.linearRampToValueAtTime(_masterOut(), _dT + 0.18);
     // Safety: force back to masterVol after 300ms regardless
     setTimeout(() => {
       if (masterGain && ctx) {
         masterGain.gain.cancelScheduledValues(ctx.currentTime);
-        masterGain.gain.setValueAtTime(masterVol, ctx.currentTime);
+        masterGain.gain.setValueAtTime(_masterOut(), ctx.currentTime);
       }
     }, Math.max(0, (_dT - ctx.currentTime) * 1000) + 300); // 300ms after the dip itself, wherever it lands
   }
@@ -17996,6 +18003,7 @@ function randAll(mode, opts) {
         // travel (slider position, not raw gain), per direct request.
         trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * (1.25 + Math.random() * 0.10)));
         if (trackInstruments[_tr] === 'guiro') trackVolume[_tr] = volPosToGain(volGainToPos(trackVolume[_tr]) * 0.5); // MARACAS: fader at HALF its usual default position, per direct request
+        if (_BASS_KEYS_FOR_TRIM.has(trackInstruments[_tr])) trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * 1.10)); // every BASS: fader 10% further up its travel, per direct request
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
@@ -20373,7 +20381,7 @@ function _tempoBrakeRelease() {
   if (masterGain) {
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
-    masterGain.gain.linearRampToValueAtTime(masterVol, ctx.currentTime + 0.03);
+    masterGain.gain.linearRampToValueAtTime(_masterOut(), ctx.currentTime + 0.03);
   }
   if (playing) scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
 }
@@ -20459,7 +20467,7 @@ function _leftSpoolRelease() {
     // in case this fires after some other path touched it.
     masterGain.gain.cancelScheduledValues(ctx.currentTime);
     masterGain.gain.setValueAtTime(masterGain.gain.value, ctx.currentTime);
-    masterGain.gain.linearRampToValueAtTime(masterVol, ctx.currentTime + 0.03);
+    masterGain.gain.linearRampToValueAtTime(_masterOut(), ctx.currentTime + 0.03);
   }
   if (playing) scheduleInterval = setInterval(scheduler, SCHEDULE_MS);
 }
@@ -20877,9 +20885,9 @@ function _playSpoolAmalgamSwell() {
   const compensateFactor = 1.4125; // +3dB, inverse of duckFactor
   if (masterGain) {
     masterGain.gain.cancelScheduledValues(now);
-    masterGain.gain.setValueAtTime(masterVol, now);
-    masterGain.gain.setTargetAtTime(masterVol * duckFactor, now, 0.03);
-    masterGain.gain.setTargetAtTime(masterVol, now + totalDur, 0.15);
+    masterGain.gain.setValueAtTime(_masterOut(), now);
+    masterGain.gain.setTargetAtTime(_masterOut() * duckFactor, now, 0.03);
+    masterGain.gain.setTargetAtTime(_masterOut(), now + totalDur, 0.15);
   }
   const normalDest = getSynthConnectNode(busiestTr); // routes through the source track's own volume/mute/FX chain, rather than an arbitrary unrelated one
   // Always sent through the shared reverb bus regardless of whether the
@@ -21904,15 +21912,16 @@ function _cycleRainbowMode() {
   { let _ni = (idx + 1) % _RAINBOW_CYCLE.length; while (_RAINBOW_CYCLE[_ni].liveOnly) _ni = (_ni + 1) % _RAINBOW_CYCLE.length; // LIVE is only reached by dragging the logo down, per direct request
     const _nm = _RAINBOW_CYCLE[_ni]; _applyRainbowState(_nm); _showModeLabel(_nm); } // + the temporary MODE n label
 }
-const _RAINBOW_CYCLE = [ // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "14", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
-  { perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105", "emptyMarkerSizeCircleSlider": "16", "emptyMarkerOpacityCircleSlider": "100"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
-  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerSizeCircleSlider": "15", "emptyMarkerOpacityCircleSlider": "75"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
+const _RAINBOW_CYCLE = [ // WIDE METER OFF in every display mode (and off at start), per direct request — // old mode 5 (plain, no perf) and old mode 9 (NAME TAG) removed, per direct request — later modes moved up two/one places Later, per direct request, the then-mode 5 (perf off + time ruler) and mode 10 (DARKER) removed too.
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, wide: false, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "14", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
+  { wide: false, perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105", "emptyMarkerSizeCircleSlider": "16", "emptyMarkerOpacityCircleSlider": "100"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
+  { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: false, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerSizeCircleSlider": "15", "emptyMarkerOpacityCircleSlider": "75"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'mortar-extra': false, 'notes-grayscale': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: true, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'mortar-extra': true, 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true, 'mond-sat-markers': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "90", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60", "satCeilingSlider": "20"}, palette: 'bigschool', name: 'MOND' }, // mode 10 "MOND", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: false, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'mortar-extra': true, 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true, 'mond-sat-markers': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "90", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60", "satCeilingSlider": "20"}, palette: 'bigschool', name: 'MOND' }, // mode 10 "MOND", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': false, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "15"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
   // LATE removed, per direct request — was: { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, safeGfx: false, markers: 'square', classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": true, "hide-vol-track": true, "track-pulse-a": true, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": true, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "189", "bgSatSlider": "20", "bgLightSlider": "20", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "60", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "8", "topColorHueSlider": "309", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "75", "emptyMarkerSizeCircleSlider": "15", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'late', name: 'LATE' }, // "LATE", from the display snapshot, per direct request
+  { perf: true,  ruler: false, bg0: false, rowBg: 0, jt: false, flashTop: false, tipHl: true, wide: false, glowTip: false, safeGfx: false, markers: 'circle', namesUniform: true, classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": false, "hide-vol-track": true, "track-pulse-a": false, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": false, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false, "track-pulse-solid": true, "vol-test-bg-4": true}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "214", "bgSatSlider": "31", "bgLightSlider": "13", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "100", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "16", "topColorHueSlider": "202", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "49", "noteMarkerSizeRatioCircleSlider": "101", "emptyMarkerOpacityCircleSlider": "100", "emptyMarkerSizeCircleSlider": "8", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'console', name: 'CONSOLE' }, // "CONSOLE", from the display snapshot, per direct request
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
 ];
 // Colour schemes captured from DISPLAY SNAPSHOTs, applied by display modes
@@ -21927,6 +21936,7 @@ const _DISPLAY_PALETTES = {
   baseline: {"--track-text-invert": "0", "--neutral-top": "#5e7d82", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4796", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a03fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75642", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#769933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9ab", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff337d", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ffb3ce", "--neutral-track": "#a6bbbe", "--neutral-track-text": "#ffffff", "--playhead-color": "#594ea5", "--highlight-text": "#ffffff", "--highlight2-color": "#a54e9a", "--highlight2-text": "#ffffff", "--highlight3-color": "#ae5d52", "--bg": "#c2c4bb", "--bar-color": "#9fb9a2", "--empty-cell-color": "#a5ac8c", "--vol-slider-color": "#9dd6a5", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#d7d4eb", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#b7b4c8", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#4221ff", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#594ea5", "--top-row-text-color": "#d7d4eb", "--top-row-pressed-text-color": "#cf9e97", "--play-hl": "#de9388", "--fader-hl": "#f5a499", "--fader-glow": "#0a5b66", "--track-btn-text-color": "#d7d4eb", "--play-flash-color": "#ffffff"},
   twilight: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#0c2037", "--bar-color": "#8fb59e", "--empty-cell-color": "#45515f", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff", "--tbtn-shade-col": "#fff"},
   cartoon: {"--track-text-invert": "0", "--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff334e", "--play-flash-dark": "#212121", "--lit-glyph": "#ffffff", "--lit-glyph-hot": "#ff99a7", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#c7d0b8", "--bar-color": "#8fb59e", "--empty-cell-color": "#a4af91", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--play-flash-color": "#ffffff"},
+  console: {"--neutral-top": "#516b7a", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c2f96", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a63f95", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d77842", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#5f9933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9c9", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#deff2e", "--play-flash-dark": "#332b0f", "--lit-glyph": "#fabe00", "--lit-glyph-hot": "#deff2e", "--neutral-track": "#97acb9", "--neutral-track-text": "#ffffff", "--track-text-invert": "0", "--playhead-color": "#987cc7", "--highlight-text": "#ffffff", "--highlight2-color": "#c77cab", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3734d", "--bg": "#17202c", "--bar-color": "#8fb59e", "--track-line-color": "transparent", "--empty-cell-color": "#3a4450", "--vol-slider-color": "#84cfa3", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#deb2cd", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#bd97ae", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#f80096", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#905c3d", "--top-row-text-color": "#deb2cd", "--top-row-pressed-text-color": "#c77cab", "--play-hl": "#da69b0", "--fader-hl": "#f694d2", "--fader-glow": "#096b2d", "--track-btn-text-color": "#deb2cd", "--name-bar-bg": "rgb(173, 185, 150)", "--play-flash-color": "#fabe00", "--tbtn-shade-col": "#fff"},
   late: {"--neutral-top": "#8e5f87", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#962c46", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a6a13f", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#42d758", "--lane-color-tonal-text": "#111111", "--lane-color-bass": "#337599", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#ac63e9", "--lane-color-pad-text": "#ffffff", "--play-flash-hot": "#47ff51", "--play-flash-dark": "#1c330f", "--lit-glyph": "#6aff1a", "--lit-glyph-hot": "#47ff51", "--neutral-track": "#c7aac3", "--neutral-track-text": "#ffffff", "--track-text-invert": "0", "--playhead-color": "#c0776b", "--highlight-text": "#ffffff", "--highlight2-color": "#b4c06b", "--highlight2-text": "#ffffff", "--highlight3-color": "#4db35b", "--bg": "#293a3d", "--bar-color": "#b3b0ca", "--track-line-color": "transparent", "--empty-cell-color": "#496065", "--vol-slider-color": "#a4a0d9", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#c6cf8f", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#a8b07a", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#b0ce00", "--track-btn-blast-text": "#111111", "--eq-meter-color": "#b4c06b", "--top-row-text-color": "#c6cf8f", "--top-row-pressed-text-color": "#b4c06b", "--play-hl": "#c3d556", "--fader-hl": "#e4f57e", "--fader-glow": "#1b0a81", "--track-btn-text-color": "#c6cf8f", "--name-bar-bg": "rgb(179, 176, 202)", "--play-flash-color": "#6aff1a", "--tbtn-shade-col": "#fff"},
   groovy: {"--track-text-invert": "0", "--neutral-top": "#587c84", "--neutral-top-text": "#ffffff", "--lane-color-kit": "#2c4396", "--lane-color-kit-text": "#ffffff", "--lane-color-perc": "#a53fa6", "--lane-color-perc-text": "#ffffff", "--lane-color-tonal": "#d75d42", "--lane-color-tonal-text": "#ffffff", "--lane-color-bass": "#729933", "--lane-color-bass-text": "#ffffff", "--lane-color-pad": "#63e9b1", "--lane-color-pad-text": "#111111", "--play-flash-hot": "#ff5647", "--play-flash-dark": "#330f1b", "--lit-glyph": "#ffb3cb", "--lit-glyph-hot": "#ffb4ad", "--neutral-track": "#a1bac0", "--neutral-track-text": "#ffffff", "--playhead-color": "#8678c5", "--highlight-text": "#ffffff", "--highlight2-color": "#c578b5", "--highlight2-text": "#ffffff", "--highlight3-color": "#b3604d", "--bg": "#cdd1b8", "--bar-color": "#afcab4", "--empty-cell-color": "#abb092", "--vol-slider-color": "#9fd9aa", "--track-text-pulse-color": "var(--highlight2-color, #0078ff)", "--top-row-highlight-color": "#ebd1e6", "--top-row-highlight-text": "#111111", "--track-ctrl-btn-color": "var(--neutral-top, #555)", "--track-ctrl-btn-text": "#ffffff", "--track-btn-on-color": "#c8b2c4", "--track-btn-on-text": "#ffffff", "--track-btn-blast-color": "#ff1fd6", "--track-btn-blast-text": "#ffffff", "--eq-meter-color": "#a25645", "--top-row-text-color": "#ebd1e6", "--top-row-pressed-text-color": "#cd8abf", "--play-hl": "#de79c9", "--fader-hl": "#f797e3", "--fader-glow": "#08681c", "--track-btn-text-color": "#ebd1e6", "--play-flash-color": "#ff1a63"},
 };
@@ -22333,8 +22343,42 @@ function _applyStartupMode() {
   // settings come from its _RAINBOW_CYCLE entry.
   _applyRainbowState(_RAINBOW_CYCLE.find(m => m.name === 'BASELINE') || _RAINBOW_CYCLE[0]); // BASELINE is the start-up mode now, per direct request (SCIENCE, ALICE and XWING removed)
 }
-if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _applyStartupMode, { once: true });
-else _applyStartupMode();
+// (the boot capture for the full RESET runs just BEFORE the start-up mode, so the mode's "put back on leaving" memory and the
+// reset agree on what the app's own defaults are)
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { try { _captureBootState(); } catch (e) {} _applyStartupMode(); }, { once: true });
+else { try { _captureBootState(); } catch (e) {} _applyStartupMode(); }
+// RESET = EVERYTHING (double-tap PLAY), per direct request. The hand-kept reset list kept falling behind every new setting, so
+// the app now remembers how every control (and the body's display classes) looked at start-up, before any saved session or
+// user change, and the reset puts all of them back — new settings are covered automatically. Settings that are remembered on
+// the phone (localStorage) are captured at their DEFAULTS, not the saved value, and the saved value is wiped on reset.
+function _bootKeyOf(el) { return el.type === 'radio' ? ('r:' + el.name + '=' + el.value) : (el.id ? 'i:' + el.id : null); }
+function _captureBootState() {
+  const _BOOT_LS_DEFAULTS = { sweep8bitToggle: true, shakeSensSlider: '5', countLatencySlider: '0' };
+  const inputs = {};
+  document.querySelectorAll('input').forEach(el => { const k = _bootKeyOf(el); if (!k) return; inputs[k] = (el.type === 'checkbox' || el.type === 'radio') ? el.checked : el.value; });
+  Object.keys(_BOOT_LS_DEFAULTS).forEach(id => { if (('i:' + id) in inputs) inputs['i:' + id] = _BOOT_LS_DEFAULTS[id]; });
+  window._bootState = { inputs, classes: [...document.body.classList] };
+  setTimeout(() => { try { window._bootState.barColor = _currentBarColor; } catch (e) {} }, 0); // the name bar's start-up colour (set as the start-up mode lands)
+}
+// Classes that follow live state (playing, menus, measured background, animations) — never forced by the reset.
+const _RESET_LIVE_CLASSES = new Set(['bg-dark', 'glow-pause', 'logo-pulse-expired', 'playing', 'is-playing', 'menu-open', 'hdr-icons-open', 'name-tag']);
+function _resetToBootState() {
+  const bs = window._bootState; if (!bs) return;
+  ['sifiSweep8bit', 'sifiShakeSens', '_countLatencyMs', '_buttonSoundsToMix', '_noButtonSounds', '_recordMode'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+  window._sweep8bitOn = true; window._shakeSens = 5; window._buttonSoundsToMix = true; window._noButtonSounds = false;
+  try { _recordMode = 'realtime'; } catch (e) {}
+  { const r = document.getElementById('shakeSensVal'); if (r) r.textContent = '5'; }
+  const fire = el => { window._bypassMenuDefer = true; try { ['input', 'change'].forEach(t => { try { el.dispatchEvent(new Event(t, { bubbles: true })); } catch (e) {} }); } finally { window._bypassMenuDefer = false; } };
+  document.querySelectorAll('input').forEach(el => {
+    const k = _bootKeyOf(el); if (!k || !(k in bs.inputs)) return;
+    if (el.type === 'checkbox') { if (el.checked !== bs.inputs[k]) { el.checked = bs.inputs[k]; fire(el); } }
+    else if (el.type === 'radio') { if (bs.inputs[k] && !el.checked) { el.checked = true; fire(el); } }
+    else if (el.type === 'range' || el.type === 'number' || el.type === 'color') { if (el.value !== bs.inputs[k]) { el.value = bs.inputs[k]; fire(el); } }
+  });
+  const want = new Set(bs.classes.filter(c => !_RESET_LIVE_CLASSES.has(c)));
+  [...document.body.classList].forEach(c => { if (!_RESET_LIVE_CLASSES.has(c) && !want.has(c)) document.body.classList.remove(c); });
+  want.forEach(c => document.body.classList.add(c));
+}
 (function() {
   const btn = document.getElementById('devMenuBtn');
   if (!btn) return;
@@ -23110,7 +23154,20 @@ function fullReset() {
   updateBgPulseSpeedReadout();
   updateBeatLockVisual();
   refreshBeatMenuHighlight();
+  // ...and EVERYTHING else, per direct request: every control and display class back to how the app started, the leftover
+  // "before this display mode" memories dropped, then the start-up display mode (BASELINE) applied fresh — its colours included.
+  try { _resetToBootState(); } catch (e) { console.warn('reset-to-boot', e); }
+  window._classesBeforeMode = {}; window._slidersBeforeMode = {};
+  ['_flashTopBeforeMode', '_wideBeforeMode', '_wildBeforeMode', '_countBeforeMode', '_revMixBeforeMode', '_flashBeforePalette'].forEach(k => { window[k] = undefined; });
+  try { window._rainbowRowBgOverride = undefined; _rainbowBgOpacityBefore = null; } catch (e) {}
+  beatPlaying = true; _beatPending = false; { const bb2 = document.getElementById('beatBtn'); if (bb2) bb2.classList.add('active'); } try { updateBeatPulse(); } catch (e) {} // BEAT on, as on first load
+  try { _applyStartupMode(); window._rainbowIdx = _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE'); } catch (e) {}
+  try { if (window._bootState && window._bootState.barColor) applyBarColor(window._bootState.barColor); const _bm = _RAINBOW_CYCLE.find(m => m.name === 'BASELINE'); if (_bm && _bm.palette) _applyDisplayPalette(_bm.palette); } catch (e) {}
+  try { for (let t = 0; t < NUM_TRACKS; t++) { if (typeof _setChink === 'function') _setChink(t, false); } _queueFxBtnSync(); } catch (e) {}
   markModified();
+  // ...and lands exactly where opening the app does: a fresh first pattern (drums on, BASELINE's own colours kept), drawn in
+  // the same way as on first load, then the name flaps in.
+  setTimeout(() => { window._wildColorsSkipNext = true; window._deferNameFlapMs = 750; if (ctx) { try { queueRand(); } catch (e) {} } }, 380);
 }
 (function() {
   function wireDoubleTap(btn) {
@@ -24392,7 +24449,7 @@ function stopRecallLoop() {
       const t = ctx.currentTime;
       masterGain.gain.cancelScheduledValues(t);
       masterGain.gain.setTargetAtTime(0.0, t, 0.01);          // duck fast
-      masterGain.gain.setTargetAtTime(masterVol, t + rewindDur, 0.04); // restore after rewind
+      masterGain.gain.setTargetAtTime(_masterOut(), t + rewindDur, 0.04); // restore after rewind
     }
     playUiSound(rewindName);
     // Wrapped defensively — this is the actual pattern swap, and a thrown
@@ -25759,7 +25816,7 @@ let _reelHoldTimer = null;
   const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
-    if (flushing || !el || !inMenu(el)) return;
+    if (flushing || window._bypassMenuDefer || !el || !inMenu(el)) return; // (the full RESET applies its control changes straight away)
     if (el.type !== 'range') {
       if (!DEFER_TYPES.has(el.type) || !lookMenu || !lookMenu.contains(el)) return;
       e.stopImmediatePropagation(); e.stopPropagation();
@@ -26248,7 +26305,7 @@ function snapshotDisplay() {
 // SHAKE THE PHONE = a DOUBLE CLICK on >>, per direct request (RANDO BUTTON menu toggle, on by default). iPhone only hands out
 // motion data after the person allows it, and only asks from inside a tap — so the request rides along with the first tap.
 // A shake = two hard jolts (change in acceleration > ~22 m/s²) within half a second; then a 1.5s rest so one shake = one go.
-window._shakeOn = true;
+window._shakeOn = false; // OFF by default, per direct request — switched on in the RANDO BUTTON menu
 function _setShake(on) { window._shakeOn = !!on; if (on) _shakeArm(true); }
 let _shakeListening = false;
 // SENSITIVITY slider (1-10, default 5 = the original 22 m/s² jolt), per direct request: each step either way changes the
