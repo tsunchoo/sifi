@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 20:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 21:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2871,7 +2871,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 20:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 21:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -14027,7 +14027,7 @@ document.addEventListener('touchstart', e => {
   dragMoved = false;
   dragWrittenSteps = new Set();
   _stopGathering();
-  if (dragStartWasOn || dragTrimOwnerGs >= 0) { // a held part of a LEGATO note grabs the track too, per direct request (a quick drag there still trims it)
+  if (grid[tr].some(v => v > 0)) { // HOLD ANYWHERE on a track that has notes grabs it for sliding — an empty step too, without writing a note there, per direct request (was: only on a note / a legato tail)
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return; // real movement happened — this is a drag-write gesture, not a hold
@@ -14046,6 +14046,7 @@ document.addEventListener('touchmove', e => {
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   if (tr !== dragWriteTrack) return;
   if (_slide) { _moveNoteSlide(s); if (e.cancelable) e.preventDefault(); return; } // HOLD + DRAG: slide the track
+  if (!dragMoved && s === dragStartStep) { if (e.cancelable) e.preventDefault(); return; } // finger jitter inside the first step isn't a drag — it used to cancel the hold
   if (dragTrimOwnerGs >= 0) {
     dragMoved = true;
     const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
@@ -14118,7 +14119,7 @@ document.addEventListener('mousedown', e => {
   dragMoved = false;
   dragWrittenSteps = new Set();
   _stopGathering();
-  if (dragStartWasOn || dragTrimOwnerGs >= 0) {
+  if (grid[tr].some(v => v > 0)) { // HOLD ANYWHERE — see the touchstart handler
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return;
@@ -14134,6 +14135,7 @@ document.addEventListener('mousemove', e => {
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   if (tr !== dragWriteTrack) return;
   if (_slide) { _moveNoteSlide(s); if (e.cancelable) e.preventDefault(); return; } // HOLD + DRAG: slide the track
+  if (!dragMoved && s === dragStartStep) { if (e.cancelable) e.preventDefault(); return; } // finger jitter inside the first step isn't a drag — it used to cancel the hold
   if (dragTrimOwnerGs >= 0) {
     dragMoved = true;
     const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
