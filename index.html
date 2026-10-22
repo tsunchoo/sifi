@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 18:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 19:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1002,11 +1002,14 @@ html body.vol-banger .track-vol-bar.vb-silent .track-vol-fill-solid { visibility
      COLOR's pressed/active shade (--top-row-pressed-bg);
    - no track line to the right of the fader;
    - the fader handle sits in front of everything. */
-html body.vol-test .track-vol-bar {
+/* WIDE METER now ONLY widens the meter, per direct request: everything else that used to come with it (the bar background, the
+   fill's PLAY FLASH colour and glow, no scale marks, the tip on top) applies with it OFF too, so switching it off just stops the
+   level using the whole width of the slider — nothing else changes. (These rules used to say body.vol-test.) */
+html body .track-vol-bar {
   overflow: visible; isolation: isolate;
   background: var(--vol-test-bg, var(--top-row-pressed-bg)) !important; /* full width of the vol bar, not just up to the fader, per direct request */
 }
-html body.vol-test .track-vol-bar .track-vol-scale { display: none !important; }
+html body .track-vol-bar .track-vol-scale { display: none !important; }
 html body.hide-vol-track .track-vol-bar .track-vol-scale { display: none !important; }
 html body.safe-gfx .transport .btn, html body.safe-gfx .transport .btn * { text-shadow: none !important; }
 html body.safe-gfx .transport .btn { filter: saturate(var(--top-row-saturation, 1)) !important; }
@@ -1028,6 +1031,10 @@ html body.safe-gfx .track-vol-bar .track-vol-tip { will-change: auto !important;
 html body.no-glow:not(#_g1):not(#_g2):not(#_g3) *, html body.no-glow:not(#_g1):not(#_g2):not(#_g3) *::before, html body.no-glow:not(#_g1):not(#_g2):not(#_g3) *::after,
 html body.safe-gfx:not(#_g1):not(#_g2):not(#_g3) *, html body.safe-gfx:not(#_g1):not(#_g2):not(#_g3) *::before, html body.safe-gfx:not(#_g1):not(#_g2):not(#_g3) *::after { text-shadow: none !important; box-shadow: none !important; }
 html body.no-glow:not(#_g1):not(#_g2):not(#_g3) svg, html body.no-glow:not(#_g1):not(#_g2):not(#_g3) #playBtnGlowWrap { filter: none !important; }
+/* GLOW PAUSE (performance test, per direct request): every glow is switched off while a new pattern or a new set of instruments
+   is being drawn in (body.glow-pause, ~2.6s — see _glowPause), then comes straight back. Same stripping as GLOWS OFF. */
+html body.glow-pause:not(#_g1):not(#_g2):not(#_g3) *, html body.glow-pause:not(#_g1):not(#_g2):not(#_g3) *::before, html body.glow-pause:not(#_g1):not(#_g2):not(#_g3) *::after { text-shadow: none !important; box-shadow: none !important; }
+html body.glow-pause:not(#_g1):not(#_g2):not(#_g3) svg, html body.glow-pause:not(#_g1):not(#_g2):not(#_g3) #playBtnGlowWrap { filter: none !important; }
 html body.no-glow:not(#_g1):not(#_g2):not(#_g3) .transport .btn { filter: saturate(var(--top-row-saturation, 1)) !important; }
 html body.no-glow:not(#_g1):not(#_g2):not(#_g3) .transport .btn #playBtnImg { filter: invert(var(--track-text-invert, 0)) !important; }
 html body.no-glow .transport .btn, html body.no-glow .transport .btn * { text-shadow: none !important; }
@@ -1046,15 +1053,18 @@ html body.vol-test-bg-3 { --vol-test-bg: var(--play-flash-dark, #2a1a0e); }
 html body.vol-test-bg-4 { --vol-test-bg: transparent; } /* TEST BG = CLEAR */
 html body.vol-test .track-vol-bar .track-vol-fill-solid,
 html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
-html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
-  width: 100% !important; z-index: 1;
+html body.vol-test .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { width: 100% !important; } /* the ONE thing WIDE METER does */
+html body .track-vol-bar .track-vol-fill-solid,
+html body .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
+html body .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
+  z-index: 1;
   box-shadow: 0 0 calc(11.2px * var(--fillglow, 1)) color-mix(in srgb, var(--play-flash-color, #f17d21) calc(min(100%, 100% * var(--fillglow, 1))), transparent) !important;
   filter: none !important;
 }
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
-html body.vol-test:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--play-flash-color, #f17d21) !important; animation: none !important; }
-html body.vol-test .track-vol-bar .track-vol-tip { z-index: 5; }
+html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
+html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
+html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--play-flash-color, #f17d21) !important; animation: none !important; }
+html body .track-vol-bar .track-vol-tip { z-index: 5; }
 /* VOL FILL GLOW (settings slider, 100% default, applies on release), per
    direct request — the vol fill glows in the PLAY FLASH colour in every
    mode now, not just TEST. Clipped to the bar so it can't spill into neighbouring rows. */
@@ -1085,7 +1095,7 @@ html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1;
 html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: 1; } /* fully opaque now, per direct request ("the fill never gets to fully white") — it had inherited TRACK BUTTON OPACITY's 75% when that was moved off the bar */
 html body:not(.seq-playing) .track-wrap .track-vol-bar .track-vol-fill-solid { opacity: 0.7 !important; } /* STOPPED: the resting peak-look fill at 70%, per direct request */
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
-html body.vol-test .track-vol-bar.muted { background: #ccc !important; }
+html body .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
    centred), per direct request — the black fader handle's height. */
 html body.simple-fader .track-vol-bar .track-vol-tip {
@@ -1376,6 +1386,11 @@ html body.auto-outline-btncol .auto-notes-lane.auto-notes-lane .step-cell.step-c
 html body.auto-outline-btncol.track-btn-lights .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--top-row-pressed-bg); } /* the + button's BACKGROUND in TRACK BUTTON LIGHTS (was its glyph colour), per direct request */
 .fx-btn .chk-glyph { display: inline-block; transform: scaleX(var(--chk-sx, 0.7)); transform-origin: center; white-space: nowrap; letter-spacing: inherit; margin: 0 -1em; } /* CHK in exactly FX's old width; negative margins so the unscaled box can't widen the button */
 html body .track-ctrl-row .shift-btn:not(.right) { display: none !important; } /* the per-track < OFFSET button is gone, per direct request — HOLD + DRAG on the notes slides the track now — and its space goes to the volume slider (flex: 1) */
+html body .step-lane .step-cell.step-cell.step-cell.slide-handle::after {
+  background: transparent !important; box-sizing: border-box !important;
+  border: 3px solid var(--track-color, var(--text)) !important; box-shadow: none !important; opacity: 1 !important;
+  scale: 1.3; z-index: 5; filter: none !important;
+}
 .step-lane.note-sliding { outline: 3px dashed color-mix(in srgb, var(--track-color, #888) 70%, transparent); outline-offset: -3px; } /* HOLD + DRAG slide: the lane shows it's grabbed */
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
@@ -2856,7 +2871,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 18:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 19:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5304,6 +5319,12 @@ async function loadSamples() {
   // actually sees the moment the overlay lifts, so it's the one that
   // needs to be the one that's skipped.
   window._wildColorsSkipNext = true;
+  // FIRST LOAD, one thing at a time, per direct request (it looked like it was choking): the loading screen fades first, THEN the
+  // first pattern draws in, THEN the song name flaps in — instead of all three at once.
+  if (!window._sessionRestored && !window._tapeAutoPlay) {
+    setTimeout(() => { window._deferNameFlapMs = 750; if (ctx) queueRand(); }, 380);
+    return;
+  }
   if (window._sessionRestored) { window._sessionRestored = false; return; } // a restored session stays exactly as it was — no new random pattern on top
   if (window._tapeAutoPlay) { // opened from a tape link: play the tape — no new random pattern on top of it
     window._tapeAutoPlay = null;
@@ -5713,6 +5734,10 @@ function _randoCapture() { // a new pattern may have rolled DRUM MUSIC RATIO / N
   window._randoGlobal.ratio = window._tonalPercBalance; if (!c.intRand) window._randoGlobal.intensity = _intensitySliderVal;
   try { _randoSyncSliders(); } catch (e) {}
 }
+function _glowPause(ms) {
+  document.body.classList.add('glow-pause');
+  clearTimeout(window._glowPauseT); window._glowPauseT = setTimeout(() => document.body.classList.remove('glow-pause'), ms || 2600);
+}
 function _randoShuffle(which) { _randoLocal(which); } // old name, kept for its callers
 // Everything a gesture does when it ISN'T a whole new pattern: notes and/or instruments and/or any of the extras, on the pattern
 // that's playing.
@@ -5723,6 +5748,7 @@ function _randoLocal(which) {
   // plan the audio a full second ahead for the length of the shuffle animation, same as a new pattern already does, so a stall
   // like that can't make the scheduler skip steps; and tag the window so a freeze in it is labelled in the report.
   window._schedBoostUntil = performance.now() + 3000;
+  try { _glowPause(); } catch (e) {} // no glows while the new instruments land (performance test, per direct request)
   window._visJob = 'instrument shuffle animation'; clearTimeout(window._visJobT); window._visJobT = setTimeout(() => { window._visJob = null; }, 2600);
   try { if (c.eightBit) setEightBitMix(Math.random() * 100); } catch (e) {}
   // REVERB / FX: new per-track allocations for the pattern that's playing — once the shuffled instruments have landed (the rules
@@ -13817,6 +13843,7 @@ function _startNoteSlide(tr, s) {
   gatherEngaged = true; // a hold is never a tap
   _slide = { tr, s0: s, off0: trackOffset[tr] || 0 };
   const lane = document.getElementById(`lane-${tr}`); if (lane) lane.classList.add('note-sliding');
+  _markSlideHandle(tr, s);
   try { previewNote(tr, true); } catch (e) {} // a little audible "got it"
 }
 function _moveNoteSlide(s) {
@@ -13826,11 +13853,20 @@ function _moveNoteSlide(s) {
   if (off === trackOffset[_slide.tr]) return;
   trackOffset[_slide.tr] = off;
   redrawTrackCells(_slide.tr, true); try { updateLegatoVisuals(); } catch (e) {}
+  _markSlideHandle(_slide.tr, s); // the grabbed note stays under the finger, so the handle is always the cell the finger is on
   markModified();
+}
+// DRAG HANDLE, per direct request: the note under your finger grows a little and turns into an outline (like the AUTO NOTES
+// markers) while you slide; back to normal the moment you let go.
+function _markSlideHandle(tr, s) {
+  document.querySelectorAll('.step-cell.slide-handle').forEach(c => c.classList.remove('slide-handle'));
+  if (tr == null || s == null) return;
+  const c = document.querySelector(`.step-cell[data-track="${tr}"][data-step="${s}"]`); if (c) c.classList.add('slide-handle');
 }
 function _endNoteSlide() {
   if (!_slide) return;
   const lane = document.getElementById(`lane-${_slide.tr}`); if (lane) lane.classList.remove('note-sliding');
+  _markSlideHandle(null);
   _slide = null;
 }
 function _startGatherHold(tr, heldGs) {
@@ -13984,7 +14020,7 @@ document.addEventListener('touchstart', e => {
   dragMoved = false;
   dragWrittenSteps = new Set();
   _stopGathering();
-  if (dragStartWasOn) {
+  if (dragStartWasOn || dragTrimOwnerGs >= 0) { // a held part of a LEGATO note grabs the track too, per direct request (a quick drag there still trims it)
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return; // real movement happened — this is a drag-write gesture, not a hold
@@ -14075,7 +14111,7 @@ document.addEventListener('mousedown', e => {
   dragMoved = false;
   dragWrittenSteps = new Set();
   _stopGathering();
-  if (dragStartWasOn) {
+  if (dragStartWasOn || dragTrimOwnerGs >= 0) {
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return;
@@ -16974,6 +17010,7 @@ function randAll(mode, opts) {
       } catch (e) {} }, 700);
     }
   }
+  try { _glowPause(); } catch (e) {} // no glows while the new pattern draws in (performance test, per direct request)
   window._visJob = 'new pattern animation'; clearTimeout(window._visJobT); window._visJobT = setTimeout(() => { window._visJob = null; }, 2600); // freeze label (see FREEZE LOG)
   window._lastPatternAt = performance.now();
   try { _snapCascadeGhosts(); } catch (e) {}
@@ -18221,7 +18258,13 @@ function randAll(mode, opts) {
   // randomizes colors, same as every other role, rather than on every
   // single RAND press regardless of WILD.
   // Update key/scale display
-  if (window._quietPlus) { const _nd = document.getElementById('nameDisplay'); if (_nd) { _flapRun++; _nd.textContent = _currentSpecies || ''; _nd.dataset.full = _currentSpecies || ''; } } else _setSongNameDisplay(_currentSpecies || '');
+  if (window._quietPlus) { const _nd = document.getElementById('nameDisplay'); if (_nd) { _flapRun++; _nd.textContent = _currentSpecies || ''; _nd.dataset.full = _currentSpecies || ''; } }
+  else if (window._deferNameFlapMs) { // FIRST LOAD, per direct request: the split-flap name waits until the pattern has drawn in, so the two aren't fighting for the phone
+    const _d = window._deferNameFlapMs; window._deferNameFlapMs = 0; const _name = _currentSpecies || '';
+    const _nd = document.getElementById('nameDisplay'); if (_nd) { _flapRun++; _nd.textContent = ''; _nd.dataset.full = _name; }
+    setTimeout(() => { if (_currentSpecies === _name) _setSongNameDisplay(_name); }, _d);
+  }
+  else _setSongNameDisplay(_currentSpecies || '');
   const kd = document.getElementById('keyDisplayValue');
   if (kd) { const kn = getKeyName(); kd.textContent = (kn || '').replace(/-/g, ' '); }
   // Randomise delay for all tracks. Every instrument now keeps at least a
@@ -23832,6 +23875,7 @@ async function _refreshAudioEngine() {
     try { if (_beatFx || _beatPump || (_beatReverbMix || 0) > 0) { _ensureBeatFxChain(); if (window._beatCrunchSend) window._beatCrunchSend.gain.value = _beatFx ? 0.5 : 0; if (window._beatReverbSend) window._beatReverbSend.gain.value = _beatReverbGainForMix(_beatReverbMix); } } catch (e) {}
     try { setGlobalDelayMix(window._globalDelayMix || 0); } catch (e) {}
     try { setEightBitMix(Math.round((window._eightBitMix || 0) * 100)); } catch (e) {}
+    try { if (_turboOn) _applyTurboState(); } catch (e) {} // BOOST carries over to the new engine (its +2dB and harder limiter) — the level no longer drops on a swap
     for (let tr = 0; tr < NUM_TRACKS; tr++) { try { _setTrackReverb(tr, !!trackDelay[tr]); } catch (e) {} try { updateTrackMute(tr); } catch (e) {} }
     try { _syncDrumReverbTaps(); } catch (e) {}
     if (ctx.state !== 'running') {
@@ -25629,6 +25673,14 @@ function _batterySaverLook(on) {
 let _turboOn = false;
 function toggleTurbo() {
   _turboOn = !_turboOn;
+  _applyTurboState();
+}
+// VOLUME JUMP FIX, per direct report ("the overall volume jumps slightly… after playing a while, maybe coming out of a menu"):
+// every few minutes — and on every double-click — the audio engine is swapped for a fresh one, usually on a plain tap such as
+// the one that closes a menu. The fresh engine always came up with BOOST's +2dB gone and the limiter at its start-up settings,
+// and turning BOOST off had been putting the limiter on DIFFERENT settings from start-up. Now there's one 'normal' limiter
+// setting, and BOOST's state is put back onto every new engine (see _refreshAudioEngine), so the level never moves on a swap.
+function _applyTurboState() {
   const btn = document.getElementById('turboBtn');
   if (window.masterLimiter) {
     if (_turboOn) {
@@ -25637,10 +25689,10 @@ function toggleTurbo() {
       window.masterLimiter.knee.value = 0;
       window.masterLimiter.attack.value = 0.0008;  // snappier catch
       window.masterLimiter.release.value = 0.035;  // faster recovery — more pump, hits harder
-    } else {
-      window.masterLimiter.threshold.value = -1;
-      window.masterLimiter.ratio.value = 20;
-      window.masterLimiter.knee.value = 0;
+    } else { // exactly the start-up limiter (see initAudio) — was −1 / 20:1 / knee 0, a different sound from a fresh start
+      window.masterLimiter.threshold.value = -3;
+      window.masterLimiter.ratio.value = 12;
+      window.masterLimiter.knee.value = 3;
       window.masterLimiter.attack.value = 0.0003;
       window.masterLimiter.release.value = 0.1;
     }
