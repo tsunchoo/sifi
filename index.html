@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 18:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1375,6 +1375,7 @@ html body.notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --
 html body.auto-outline-btncol .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--track-btn-blast-color, var(--playhead)); }
 html body.auto-outline-btncol.track-btn-lights .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--top-row-pressed-bg); } /* the + button's BACKGROUND in TRACK BUTTON LIGHTS (was its glyph colour), per direct request */
 .fx-btn .chk-glyph { display: inline-block; transform: scaleX(var(--chk-sx, 0.7)); transform-origin: center; white-space: nowrap; letter-spacing: inherit; margin: 0 -1em; } /* CHK in exactly FX's old width; negative margins so the unscaled box can't widen the button */
+.step-lane.note-sliding { outline: 1px dashed color-mix(in srgb, var(--track-color, #888) 70%, transparent); outline-offset: -1px; } /* HOLD + DRAG slide: the lane shows it's grabbed */
 .track-auto-rand { --track-color: var(--highlight2-color, #0078ff) !important; }
 /* Was: alternating HIGHLIGHT/HIGHLIGHT2 color-pulse while in auto mode —
    commented out per request. Icon now stays the same fixed HIGHLIGHT-3
@@ -2854,7 +2855,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 06:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 18:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -13807,6 +13808,30 @@ function _stopGathering() {
   if (gatherIntervalId) { clearInterval(gatherIntervalId); gatherIntervalId = null; }
   gatherTrackIdx = -1; gatherHeldStep = -1; gatherEngaged = false;
 }
+// HOLD + DRAG = SLIDE THE WHOLE TRACK, per direct request (replaces the old hold-to-gather): hold a note for 0.35s, then drag
+// left/right — every note on that track moves with the finger, step for step, wrapping round the bar. It works through the
+// track's own offset (the same thing its < button shifts), so notes keep their own pitches, accents and held lengths.
+let _slide = null;
+function _startNoteSlide(tr, s) {
+  gatherEngaged = true; // a hold is never a tap
+  _slide = { tr, s0: s, off0: trackOffset[tr] || 0 };
+  const lane = document.getElementById(`lane-${tr}`); if (lane) lane.classList.add('note-sliding');
+  try { previewNote(tr, true); } catch (e) {} // a little audible "got it"
+}
+function _moveNoteSlide(s) {
+  if (!_slide) return;
+  const d = s - _slide.s0;
+  const off = ((_slide.off0 + d) % NUM_STEPS + NUM_STEPS) % NUM_STEPS;
+  if (off === trackOffset[_slide.tr]) return;
+  trackOffset[_slide.tr] = off;
+  redrawTrackCells(_slide.tr, true); try { updateLegatoVisuals(); } catch (e) {}
+  markModified();
+}
+function _endNoteSlide() {
+  if (!_slide) return;
+  const lane = document.getElementById(`lane-${_slide.tr}`); if (lane) lane.classList.remove('note-sliding');
+  _slide = null;
+}
 function _startGatherHold(tr, heldGs) {
   gatherEngaged = true;
   gatherTrackIdx = tr; gatherHeldStep = heldGs;
@@ -13962,7 +13987,7 @@ document.addEventListener('touchstart', e => {
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return; // real movement happened — this is a drag-write gesture, not a hold
-      _startGatherHold(tr, gs);
+      _startNoteSlide(tr, s); // was _startGatherHold(tr, gs) — HOLD + DRAG now slides the whole track, per direct request
     }, 350);
   }
   e.preventDefault();
@@ -13976,6 +14001,7 @@ document.addEventListener('touchmove', e => {
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   if (tr !== dragWriteTrack) return;
+  if (_slide) { _moveNoteSlide(s); if (e.cancelable) e.preventDefault(); return; } // HOLD + DRAG: slide the track
   if (dragTrimOwnerGs >= 0) {
     dragMoved = true;
     const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
@@ -14027,6 +14053,7 @@ document.addEventListener('touchend', () => {
   // param) so the track being dragged on doesn't relocate under the finger.
   if (dragWriteTrack >= 0) _updateEmptyTrackVisuals();
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
+  _endNoteSlide();
   _stopGathering();
 });
 
@@ -14051,7 +14078,7 @@ document.addEventListener('mousedown', e => {
     gatherHoldTimer = setTimeout(() => {
       gatherHoldTimer = null;
       if (dragMoved) return;
-      _startGatherHold(tr, gs);
+      _startNoteSlide(tr, s); // was _startGatherHold(tr, gs)
     }, 350);
   }
 });
@@ -14062,6 +14089,7 @@ document.addEventListener('mousemove', e => {
   if (!cell) return;
   const tr = +cell.dataset.track, s = +cell.dataset.step;
   if (tr !== dragWriteTrack) return;
+  if (_slide) { _moveNoteSlide(s); if (e.cancelable) e.preventDefault(); return; } // HOLD + DRAG: slide the track
   if (dragTrimOwnerGs >= 0) {
     dragMoved = true;
     const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
@@ -14103,6 +14131,7 @@ document.addEventListener('mouseup', () => {
   }
   if (dragWriteTrack >= 0) _updateEmptyTrackVisuals();
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
+  _endNoteSlide();
   _stopGathering();
 });
 
@@ -14111,6 +14140,7 @@ document.addEventListener('mouseup', () => {
 // would keep pulling notes together with no way left to stop it.
 document.addEventListener('touchcancel', () => {
   dragWriteTrack = -1; dragStartStep = -1; dragStartCellEl = null; dragMoved = false; dragWrittenSteps.clear(); dragTrimOwnerGs = -1;
+  _endNoteSlide();
   _stopGathering();
 });
 
