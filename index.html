@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 05:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 05:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 05:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 05:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3722,6 +3722,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
 
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">SETTINGS</div>
+    <!-- SWEEP X-AXIS 8-BIT on/off, per direct request (the drums gate on the x-axis stays either way) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">SWEEP RIGHT = 8-BIT</div>
+      <label class="wild-toggle"><input type="checkbox" id="sweep8bitToggle" checked onchange="window._sweep8bitOn = this.checked; try { localStorage.setItem('sifiSweep8bit', this.checked ? '1' : '0'); } catch (e) {}"><span class="wild-toggle-slider"></span></label>
+    </div>
+    <script>try { if (localStorage.getItem('sifiSweep8bit') === '0') { window._sweep8bitOn = false; document.getElementById('sweep8bitToggle').checked = false; } } catch (e) {}</script>
 
     <!-- Song name on its own line, scale + tempo on the line below -->
     <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
@@ -24008,7 +24014,8 @@ async function hardResetAudioEngine() {
   function _sweepCrushSet(depth) {
     if (!swCrush || !ctx) return;
     const t = ctx.currentTime;
-    swCrush.dry.gain.setTargetAtTime(Math.cos(depth * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
+    const cd = window._sweep8bitOn === false ? 0 : depth; // SWEEP X 8-BIT toggle (top of SETTINGS) off: no 8-bit, just the drums gate
+    swCrush.dry.gain.setTargetAtTime(Math.cos(cd * Math.PI / 2), t, 0.02); // music: 8-bit crossfade only, no level change (per direct request)
     window._swDepthX = depth; _sweepCrushWet(); _sweepApplyOwnLevel();
     window._sweepGateX = depth; // drives the DRUMS gate too (see _beatChokeHit) — 8-bit and the drum chop come in together
     if (depth <= 0.01 && !_beatChoke) { const g = window._beatChokeGate; if (g && g.context === ctx) { try { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(1, t + 0.02); } catch (e) {} } } // dragged back to the left edge: drums fully open again
@@ -24016,7 +24023,7 @@ async function hardResetAudioEngine() {
   // the 8-bit side comes UP by 5dB at full right, plus another 3dB when it's also at full drag-down (the bottom-right corner), per direct request
   function _sweepCrushWet() {
     if (!swCrush || !ctx) return;
-    const x = window._swDepthX || 0, y = window._swDepthY || 0;
+    const x = window._sweep8bitOn === false ? 0 : (window._swDepthX || 0), y = window._swDepthY || 0;
     swCrush.wet.gain.setTargetAtTime(Math.sin(x * Math.PI / 2) * Math.pow(10, (5 * x + 3 * x * y) / 20), ctx.currentTime, 0.02);
   }
   function _sweepCrushRelease(t, dur) {
