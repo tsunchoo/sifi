@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 05:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-22 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2854,7 +2854,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 05:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 06:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5302,6 +5302,7 @@ async function loadSamples() {
   // actually sees the moment the overlay lifts, so it's the one that
   // needs to be the one that's skipped.
   window._wildColorsSkipNext = true;
+  if (window._sessionRestored) { window._sessionRestored = false; return; } // a restored session stays exactly as it was — no new random pattern on top
   if (window._tapeAutoPlay) { // opened from a tape link: play the tape — no new random pattern on top of it
     window._tapeAutoPlay = null;
     setTimeout(() => { try { if (ctx && !playing) togglePlay(); } catch (e) {} }, 150);
@@ -24755,7 +24756,7 @@ function _beatChokeHit(t) { // open for a blip on each drum hit (drums speak ins
   // through for 120ms at the left edge down to the FX's own 28ms at the right.
   if (!_beatChoke) {
     const x = Math.max(0, Math.min(1, window._sweepGateX || 0)); if (x <= 0.01) return;
-    const floor = 1 - x, w = 0.12 - 0.092 * x;
+    const floor = Math.pow(1 - x, 2), w = Math.max(0.0015, 0.12 * Math.pow(1 - x, 2.2)); // STRONGER, per direct request: the dip deepens fast and the let-through shrinks to ~1.5ms at full right — effectively silent (was 1−x / 120→28ms)
     try { g.gain.cancelScheduledValues(Math.max(0, t - 0.001)); g.gain.setValueAtTime(floor, Math.max(0, t - 0.001)); g.gain.linearRampToValueAtTime(1, t + 0.0015); g.gain.setValueAtTime(1, t + w); g.gain.linearRampToValueAtTime(floor, t + w + 0.004); } catch (e) {}
     return;
   }
@@ -25857,6 +25858,8 @@ function snapshotDisplay() {
   window._autosaveNow = save;
   function restore(d) {
     window._autosaveRestoring = true;
+    window._sessionRestored = true; // BUGFIX (per direct report: "session restored" did nothing): the first tap's sample load used to roll a NEW random pattern straight over the restored one — see the end of loadSamples
+    try { _pendingRandTimeouts.forEach(id => clearTimeout(id)); _pendingRandTimeouts = []; } catch (e) {} // the startup pattern's own delayed per-track work mustn't land on top of it either
     try {
       if (d.tapes && Array.isArray(d.tapes)) window._tapeDrawerItems = d.tapes.slice(-12);
       if (d.slots && typeof slots !== 'undefined') { for (let i = 0; i < slots.length; i++) slots[i] = d.slots[i] || null; }
