@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-22 22:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 04:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2873,7 +2873,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-22 22:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 04:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8055,7 +8055,7 @@ function togglePlay() {
 
     // Auto-start recording if armed
     if (!window._silentPlayToggle && _recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') { // PLAYDOE double-tap's quick stop/restart never starts…
-      _mediaRecorder.start();
+      _mediaRecorder.start(1000); // 1s slices, saved as they arrive (crash-safe — see _recSafePut)
       updateRecBtn();
     }
   } else {
@@ -16212,6 +16212,44 @@ function onRecClick() {
   toggleRecord();
 }
 
+// CRASH-SAFE REALTIME RECORDING, per direct report (a crash in the middle destroyed a take): every second of a realtime
+// recording is written to the phone's own storage (IndexedDB) as it's recorded. A take that finishes normally is wiped from
+// there; one that was cut off by a crash / reload is offered back on the next start — RECOVER RECORDING — up to the moment
+// it was cut.
+let _recDbP = null;
+function _recDb() {
+  if (_recDbP) return _recDbP;
+  _recDbP = new Promise((res, rej) => { try { const r = indexedDB.open('sifiRecSafe', 1); r.onupgradeneeded = () => { const db = r.result; if (!db.objectStoreNames.contains('chunks')) { const st = db.createObjectStore('chunks', { keyPath: ['rec', 'seq'] }); st.createIndex('rec', 'rec'); } }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); } catch (e) { rej(e); } });
+  _recDbP.catch(() => { _recDbP = null; });
+  return _recDbP;
+}
+function _recSafePut(rec, seq, blob, mime, name) { _recDb().then(db => { try { db.transaction('chunks', 'readwrite').objectStore('chunks').put({ rec, seq, blob, mime, name, t: Date.now() }); } catch (e) {} }).catch(() => {}); }
+function _recSafeClear(rec) { _recDb().then(db => { try { const st = db.transaction('chunks', 'readwrite').objectStore('chunks'); const q = st.index('rec').openKeyCursor(IDBKeyRange.only(rec)); q.onsuccess = () => { const c = q.result; if (c) { st.delete(c.primaryKey); c.continue(); } }; } catch (e) {} }).catch(() => {}); }
+function _recSafeAll() { return _recDb().then(db => new Promise(res => { try { const r = db.transaction('chunks').objectStore('chunks').getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => res([]); } catch (e) { res([]); } })).catch(() => []); }
+async function _recSafeOfferRecovery() {
+  const all = await _recSafeAll(); if (!all.length) return;
+  const recs = {}; all.forEach(c => { (recs[c.rec] = recs[c.rec] || []).push(c); });
+  const ids = Object.keys(recs).filter(id => !(_mediaRecorder && _recArmed)); if (!ids.length) return;
+  const bar = document.createElement('div'); bar.id = '_recRecoverBar';
+  bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:400;background:#111;color:#fff;padding:12px 14px;border-radius:8px;font-family:"DM Sans",sans-serif;font-weight:700;letter-spacing:1px;font-size:0.72rem;display:flex;align-items:center;gap:10px;box-shadow:0 4px 18px #0006;';
+  const secs = ids.reduce((n, id) => n + recs[id].length, 0);
+  bar.innerHTML = `<div style="flex:1;">A RECORDING WAS CUT OFF (${secs}s SAVED)</div><button id="_recRecoverGo" style="background:#fff;color:#111;border:none;padding:8px 10px;font-weight:700;letter-spacing:1px;font-family:inherit;font-size:0.7rem;">RECOVER</button><button id="_recRecoverNo" style="background:none;color:#fff;border:1px solid #fff6;padding:8px 10px;font-weight:700;letter-spacing:1px;font-family:inherit;font-size:0.7rem;">DISCARD</button>`;
+  document.body.appendChild(bar);
+  const done = () => { ids.forEach(_recSafeClear); try { bar.remove(); } catch (e) {} };
+  bar.querySelector('#_recRecoverNo').onclick = done;
+  bar.querySelector('#_recRecoverGo').onclick = async () => {
+    const files = ids.map(id => { const cs = recs[id].sort((a, b) => a.seq - b.seq); const mime = cs[0].mime || 'audio/mp4'; const blob = new Blob(cs.map(c => c.blob), { type: mime });
+      const ext = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'mp4' : 'webm'; return new File([blob], `${cs[0].name || 'Si-Fi Recording'} (recovered).${ext}`, { type: mime }); });
+    let ok = false; try { ok = await shareOrDownload(files); } catch (e) {}
+    if (ok) done(); // cancelled share sheet — keep it (and the bar) so it can be tried again
+  };
+}
+(function _recSafeWait() { // offered once the app is open (after TAP TO LOAD), so it's never hidden behind the loading screen
+  const lo = document.getElementById('loadingOverlay');
+  if (document.readyState === 'loading' || (lo && !lo.classList.contains('hidden'))) { setTimeout(_recSafeWait, 700); return; }
+  setTimeout(() => { try { _recSafeOfferRecovery(); } catch (e) {} }, 1200);
+})();
+
 function toggleRecord() {
   if (playing) playUiSound('play');
   if (!ctx) { alert('Start playback first'); return; }
@@ -16268,12 +16306,16 @@ function toggleRecord() {
       else if (MediaRecorder.isTypeSupported('audio/ogg')) _recMimeType = 'audio/ogg';
     }
     _mediaRecorder = _recMimeType ? new MediaRecorder(dest.stream, { mimeType: _recMimeType }) : new MediaRecorder(dest.stream);
-    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _recChunks.push(e.data); };
+    const _recId = 'rec' + Date.now();
+    const _recNameNow = (() => { try { const key = getKeyName(); const keyPart = key ? ' ' + key.replace(/-/g, ' ') : ''; return `${_currentSpecies}${keyPart} ${Math.round(bpm)}bpm`.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '); } catch (e) { return 'Si-Fi Recording'; } })();
+    let _recSeq = 0;
+    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) { _recChunks.push(e.data); _recSafePut(_recId, _recSeq++, e.data, _mediaRecorder.mimeType || _recMimeType || 'audio/mp4', _recNameNow); } };
     _mediaRecorder.onstop = async () => {
       try { window._eightBitDryGain.disconnect(dest); } catch(e) {}
       try { window._eightBitWetGain.disconnect(dest); } catch(e) {}
       updateRecBtn();
-      if (_recChunks.length === 0) return;
+      if (_recChunks.length === 0) { _recSafeClear(_recId); return; }
+      _recSafeClear(_recId); // finished normally — the crash-safe copy isn't needed any more
       _showBounceToast();
       try {
         const blob = new Blob(_recChunks, { type: _mediaRecorder.mimeType || 'audio/webm' });
@@ -16300,13 +16342,13 @@ function toggleRecord() {
     };
     _recArmed = true;
     if (playing && _mediaRecorder.state === 'inactive') {
-      _mediaRecorder.start();
+      _mediaRecorder.start(1000); // 1s slices, each saved to the phone as it arrives — see _recSafePut
     } else if (!playing) {
       // Start playback, then start recording after ctx is running
       togglePlay();
       setTimeout(() => {
         if (_recArmed && _mediaRecorder && _mediaRecorder.state === 'inactive') {
-          _mediaRecorder.start();
+          _mediaRecorder.start(1000);
           updateRecBtn();
         }
       }, 80);
@@ -18679,7 +18721,7 @@ function stopAllAutoRand() {
           (async () => {
             try { if (_spareP) await Promise.race([_spareP, new Promise(r => setTimeout(r, 200))]); } catch (e) {}
             await new Promise(r => setTimeout(r, 90)); // let the 70ms fade finish before the old engine is shut
-            if (_spareReady() && !_audioRefreshing) { try { await _refreshAudioEngine(); } catch (e) {} }
+            if (_spareReady() && !_audioRefreshing && !_recArmed) { try { await _refreshAudioEngine(); } catch (e) {} } // (not mid-RECORDING — the take is wired to this engine)
             if (window._playdoeRwTok !== _rwTok) return;
             if (ctx === _oldCtx && _oldPost) { try { _oldPost.gain.cancelScheduledValues(ctx.currentTime); _oldPost.gain.setValueAtTime(0, ctx.currentTime); _oldPost.gain.linearRampToValueAtTime(_oldPostVal, ctx.currentTime + 0.05); } catch (e) {} } // no swap possible: bring the (now quiet) old engine back up for the rewind
             playUiSound(_rwName, false, 0.7943); // −2dB vs RECALL
@@ -23999,7 +24041,7 @@ document.addEventListener('pointerdown', () => {
   try { const n = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: ctx.sampleRate }); n.resume(); window._spareCtx = n; } catch (e) { window._spareCtx = null; }
 }, { capture: true });
 function _initDone() { return !!(masterGain && window._postLimiterGain); }
-function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && (performance.now() - (window._lastPatternAt || 0)) > 6000 /* never piled on top of a new pattern / restart — it waits for a calm bar, per the WEIRD THING reports */ && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && ((performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS || ctx.currentTime > AUDIO_REFRESH_MS / 1000) && !window._oneShot; } // ctx.currentTime = the engine's real age, which for a swapped-in spare is older than the swap itself
+function _audioRefreshDue() { if (window._audioHealPending && !_audioRefreshing && ctx && !(ctx instanceof OfflineAudioContext)) return true; if (_recArmed) return false; /* REALTIME RECORDING: the recording is wired to THIS engine — swapping engines mid-take killed the take (per direct report). The swap waits until the recording ends. */ return AUDIO_REFRESH_ON && _spareReady() && !_audioRefreshing && playing && (performance.now() - (window._lastPatternAt || 0)) > 6000 /* never piled on top of a new pattern / restart — it waits for a calm bar, per the WEIRD THING reports */ && ctx && !(ctx instanceof OfflineAudioContext) && window._ctxBornAt && ((performance.now() - window._ctxBornAt) > AUDIO_REFRESH_MS || ctx.currentTime > AUDIO_REFRESH_MS / 1000) && !window._oneShot; } // ctx.currentTime = the engine's real age, which for a swapped-in spare is older than the swap itself
 async function _refreshAudioEngine() {
   if (_audioRefreshing || !ctx) return;
   _audioRefreshing = true;
