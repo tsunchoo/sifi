@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 06:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 19:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1341,13 +1341,22 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 @keyframes rand-pending-pulse { from { background: var(--playhead); } to { background: #7a1000; } }
 .rand-btn.rand-auto { background: var(--track-btn-blast-color, var(--playhead)) !important; color: var(--track-btn-blast-text, #fff); animation: engaged-btn-pulse-blast 0.6s ease-in-out infinite; }
 #randBtn.pulsing { display: flex; align-items: center; justify-content: center; }
+/* AUTO NOTES PULSE, per direct request: auto-generating tracks' note markers pulse on every quarter note (the BEAT COUNT
+   beat). Two identical keyframes, alternated per beat on the lane, so each beat restarts it. Uses the separate 'scale'
+   property so it stacks on top of whatever transform a marker style already has. */
+@keyframes auto-np-a { 0% { scale: 1.28; } 100% { scale: 1; } }
+@keyframes auto-np-b { 0% { scale: 1.28; } 100% { scale: 1; } }
+html body.auto-notes-pulse.seq-playing .auto-notes-lane.anp-a .step-cell:is(.on, .soft, .split32, .legato-start)::after { animation: auto-np-a calc(var(--ast-beat-dur, 0.5s) * 0.7) ease-out; }
+html body.auto-notes-pulse.seq-playing .auto-notes-lane.anp-b .step-cell:is(.on, .soft, .split32, .legato-start)::after { animation: auto-np-b calc(var(--ast-beat-dur, 0.5s) * 0.7) ease-out; }
+html body.battery-saver-mode .auto-notes-lane .step-cell::after { scale: none; }
+/* (every rule below is off under body.auto-notes-solid — the AUTO NOTES OUTLINED toggle in SETTINGS — so the markers are plain solid shapes) */
 /* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
    the temporary AUTO NOTE OUTLINE slider under MAIN VOL (--auto-outline-w). Drawn with a BORDER (not a fill) so rounded
    shapes and joined legato phrases outline properly; stacked classes so this beats every display mode's own marker fill. */
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.on::after,
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft::after,
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after,
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after {
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.on::after,
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft::after,
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after,
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after {
   background: transparent !important;
   box-sizing: border-box !important;
   border: var(--auto-outline-w, 3px) solid var(--auto-outline-col, var(--track-color, var(--text))) !important;
@@ -1355,36 +1364,36 @@ html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.
 }
 /* a legato phrase is one long outlined shape: the head is open on its right, middle tails only draw top + bottom,
    and the last tail closes the right end */
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: 0 !important; }
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: 0 !important; }
 /* SQUARES mode, per direct report: the legato head is its own (taller) square with the thinner tail bar running off its top,
    so an open right side left a gap in the outline under the bar — the head keeps its full outline there. */
-html body:not(.note-markers-circle) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: var(--auto-outline-w, 3px) !important; }
+html body:not(.auto-notes-solid):not(.note-markers-circle) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after { border-right-width: var(--auto-outline-w, 3px) !important; }
 /* ...and JOINED to its tail, per direct request: the head's right edge is only drawn BELOW the tail bar (a background line — the
    cell is a size container so 50cqh = the tail bar's height), and the first tail cell reaches left over the gap to the head's
    right edge, so square + bar read as one outline. (Squares, ruler off.) */
-html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start { container-type: size; }
-html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after {
+html body:not(.auto-notes-solid):not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start { container-type: size; }
+html body:not(.auto-notes-solid):not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start::after {
   border-right-width: 0 !important;
   background: linear-gradient(var(--auto-outline-col, var(--track-color, var(--text))), var(--auto-outline-col, var(--track-color, var(--text)))) right bottom / var(--auto-outline-w, 3px) calc(100% - 50cqh + var(--auto-outline-w, 3px)) no-repeat border-box !important;
 }
-html body:not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start + .step-cell.legato-tail::after { left: calc(-1 * var(--note-marker-square-inset, 12%)) !important; }
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after { border-left-width: 0 !important; border-right-width: 0 !important; }
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 3px) !important; }
+html body:not(.auto-notes-solid):not(.note-markers-circle):not(.time-ruler-on) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-start + .step-cell.legato-tail::after { left: calc(-1 * var(--note-marker-square-inset, 12%)) !important; }
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail::after { border-left-width: 0 !important; border-right-width: 0 !important; }
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-end::after { border-right-width: var(--auto-outline-w, 3px) !important; }
 /* PLAYHEAD: the outline flashes to the PLAY FLASH colour (white) and glows, still hollow */
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.playing:is(.on, .soft, .split32, .legato-tail)::after {
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.playing:is(.on, .soft, .split32, .legato-tail)::after {
   --auto-outline-col: var(--play-flash-color, #fff);
   opacity: 1 !important;
   filter: drop-shadow(0 0 calc(3px * var(--mglow, 1.5)) var(--play-flash-color, #fff)) drop-shadow(0 0 calc(7px * var(--mglow, 1.5)) color-mix(in srgb, var(--play-flash-color, #fff) 70%, transparent)) !important;
 }
 /* un-accented notes on AUTO NOTES tracks: same opacity as the accented ones, per direct request */
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
-html body .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: var(--note-marker-opacity, 1) !important; }
-html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
-html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732)) !important; }
-html body.notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
-html body.notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail:not(.playing)::after { opacity: 0.7 !important; }
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body:not(.auto-notes-solid) .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: var(--note-marker-opacity, 1) !important; }
+html body:not(.auto-notes-solid).note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body:not(.auto-notes-solid).note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail.legato-tail-soft:not(.playing)::after { opacity: calc(min(1, var(--note-marker-opacity, 1) * 1.2732)) !important; }
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.soft:not(.playing)::after,
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.legato-tail:not(.playing)::after { opacity: 0.7 !important; }
 /* CIRCLES mode 32nd = two dots, so outline the two dots (two rings), not the square box around them */
-html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after {
+html body:not(.auto-notes-solid).note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .step-cell.step-cell.split32::after {
   border: 0 !important;
   --r32: calc(25% - var(--note-marker-circle-inset, 12%) / 2);
   --c32: var(--auto-outline-col, var(--track-color, var(--text)));
@@ -1393,10 +1402,10 @@ html body.note-markers-circle .auto-notes-lane.auto-notes-lane.auto-notes-lane .
     radial-gradient(ellipse var(--r32) var(--r32) at 73% 50%, transparent calc(100% - var(--auto-outline-w, 3px)), var(--c32) calc(100% - var(--auto-outline-w, 3px)), var(--c32) 100%, transparent 100%) !important;
 }
 /* outline takes the same colour the solid marker would have had in that mode */
-html body.notes-grayscale .auto-notes-lane .step-cell.on:not(.playing) { --auto-outline-col: #555; }
-html body.notes-grayscale .auto-notes-lane .step-cell.soft:not(.playing),
-html body.notes-grayscale .auto-notes-lane .step-cell.legato-tail:not(.playing) { --auto-outline-col: #999; }
-html body.notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --auto-outline-col: #555; }
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane .step-cell.on:not(.playing) { --auto-outline-col: #555; }
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane .step-cell.soft:not(.playing),
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane .step-cell.legato-tail:not(.playing) { --auto-outline-col: #999; }
+html body:not(.auto-notes-solid).notes-grayscale .auto-notes-lane .step-cell.split32:not(.playing) { --auto-outline-col: #555; }
 /* OUTLINE = AUTO BUTTON COLOUR toggle (under the outline slider), per direct request: outlines take the auto-notes +
    button's colour at its most saturated — the hot glyph colour in TRACK BUTTON LIGHTS, otherwise the button's own fill */
 html body.auto-outline-btncol .auto-notes-lane.auto-notes-lane .step-cell.step-cell:not(.playing) { --auto-outline-col: var(--track-btn-blast-color, var(--playhead)); }
@@ -2630,7 +2639,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test-bg-4">
+<body class="auto-notes-pulse drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2888,7 +2897,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 06:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 19:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3765,6 +3774,15 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL GRADIENT</div>
       <label class="wild-toggle"><input type="checkbox" id="fillGradToggle" checked onchange="window._fillGrad = this.checked; _fillDirty()"><span class="wild-toggle-slider"></span></label>
+    </div>
+    <!-- AUTO NOTES markers, per direct request: pulse on every quarter note, and outlined (on) or plain solid shapes (off) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES PULSE</div>
+      <label class="wild-toggle"><input type="checkbox" id="autoNotesPulseToggle" checked onchange="document.body.classList.toggle('auto-notes-pulse', this.checked)"><span class="wild-toggle-slider"></span></label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES OUTLINED</div>
+      <label class="wild-toggle"><input type="checkbox" id="autoNotesOutlineToggle" checked onchange="document.body.classList.toggle('auto-notes-solid', !this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
     <!-- SWEEP X-AXIS 8-BIT on/off, per direct request (the drums gate on the x-axis stays either way) -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -22293,7 +22311,15 @@ function setMortarColour(which) { document.body.classList.toggle('mortar-line', 
 function setMasterBright(v) { v = Math.max(40, Math.min(160, +v || 100)); document.documentElement.style.setProperty('--master-bright', (v / 100).toFixed(2)); document.body.classList.toggle('master-bright', v !== 100); const r = document.getElementById('masterBrightVal'); if (r) r.textContent = v + '%'; }
 // Quarter-note pulse for the LOCK BUTTONS = NEW INST asterisks (see the ast-beat CSS) — called on every beat by _setBeatCount.
 let _astBeatFlip = false;
+let _anpFlip = false;
+function _pulseAutoNotes() {
+  if (!document.body.classList.contains('auto-notes-pulse') || document.body.classList.contains('battery-saver-mode')) return;
+  _anpFlip = !_anpFlip;
+  document.documentElement.style.setProperty('--ast-beat-dur', (60 / (bpm || 110)).toFixed(3) + 's');
+  document.querySelectorAll('.auto-notes-lane').forEach(l => { l.classList.toggle('anp-a', _anpFlip); l.classList.toggle('anp-b', !_anpFlip); });
+}
 function _pulseAsterisks() {
+  try { _pulseAutoNotes(); } catch (e) {}
   if (!document.body.classList.contains('lock-swap')) return;
   _astBeatFlip = !_astBeatFlip;
   document.documentElement.style.setProperty('--ast-beat-dur', (60 / (bpm || 110)).toFixed(3) + 's');
