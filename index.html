@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 20:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 21:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2905,7 +2905,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 20:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 21:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6401,7 +6401,7 @@ function duckPumpTracks(t) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackPump[tr] && trackPumpNodes[tr]) {
       const g = trackPumpNodes[tr].pumpGain.gain;
-      g.cancelScheduledValues(t); g.setValueAtTime(1, t);
+      _duckHold(g, t);
       g.linearRampToValueAtTime(0.35, t + 0.01);
       g.setTargetAtTime(1, t + 0.03, 0.12);
     }
@@ -7284,8 +7284,7 @@ function fireStepAudio(step, t) {
           if (val === 2 && window._duckGain) {
             const dg = window._duckGain;
             const duckDur = stepDuration() * 0.9;
-            dg.gain.cancelScheduledValues(t);
-            dg.gain.setValueAtTime(1, t);
+            _duckHold(dg.gain, t); // (held, not snapped back to 1 — see _duckHold)
             dg.gain.linearRampToValueAtTime(0.63, t + 0.008); // -4dB
             dg.gain.setValueAtTime(0.63, t + duckDur * 0.5);
             dg.gain.linearRampToValueAtTime(1, t + duckDur);
@@ -8443,13 +8442,15 @@ function playSparp(freq, durSec, isAccent, time, tr) {
 const _bassGlideState = {}; // tr -> lastFreq
 function playSynthBass(freq, durSec, isAccent, time, tr) {
   if (!ctx || !freq || freq < 10) return;
-  const vel = 1.0593 /* +0.5dB, every bass, per direct request */ * (isAccent ? 1.3438 : 0.9487); // +10dB total (was +9dB, +1dB more)
+  // CLIPPING FIX, per direct request: SYNTH BASS was the one bass wired straight to the track — no soft-clip safety net, no
+  // shared trim, and BLAST's pump chain skipped entirely — with accents peaking ~0.96 at the fader (measured). It now goes
+  // through getSynthConnectNode like every other voice, at HALF level into the soft-clip (peaks ~0.48, the clean side of its
+  // 0.6 knee); the track's source trim gives the 6dB back after it (getSourceTrimGain), so it's exactly as loud as before.
+  // (The +0.5dB every bass gets now comes from that trim too, not from here.)
+  const vel = 0.5 * (isAccent ? 1.3438 : 0.9487); // +10dB total (was +9dB, +1dB more)
   const startFreq = _bassGlideState[tr] || freq;
   _bassGlideState[tr] = freq;
-  let dest = (tr !== undefined && trackFxNodes[tr])
-    ? (trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) ? trackFxNodes[tr].fxSend : trackFxNodes[tr].dryGain)
-    : (trackGainNodes[tr] || masterGain);
-  if (ctx && _duckEligible(tr)) dest = getSidechainDuckGain(tr, dest);
+  const dest = getSynthConnectNode(tr);
 
   // FATTER, per direct request: two saws detuned ±9 cents (a slow chorus-y width instead of one thin saw), a sine at the note
   // itself to fill the fundamental, the octave-down sub as before, and a slightly wider, less peaky filter.
@@ -12049,7 +12050,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS gets it in its voice — it doesn't come through here) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
+  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -12079,12 +12080,20 @@ function getSidechainDuckGain(tr, dest) {
   }
   return nodes.gain;
 }
+// SIDECHAIN CLICK/CLIP FIX, per direct request: every duck used to restart with cancelScheduledValues(t) + setValueAtTime(1, t)
+// — so a hit landing while the last duck was still recovering (gain at, say, 0.4) SNAPPED the gain straight back up to full for
+// that instant, a hard step on a loud signal (bass, pads, the whole mix on the master duck) heard as a click / clip, many times
+// a bar in busy patterns, with or without FX/BLAST. Now the gain is HELD wherever it is at that moment and ramps down from
+// there — never a jump up. (Old behaviour kept only for browsers without cancelAndHoldAtTime.)
+function _duckHold(param, t) {
+  if (typeof param.cancelAndHoldAtTime === 'function') { try { param.cancelAndHoldAtTime(t); return; } catch (e) {} }
+  param.cancelScheduledValues(t); param.setValueAtTime(1, t);
+}
 function duckSidechainTracks(t) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (_duckEligible(tr) && _sidechainDuckGains[tr]) {
       const g = _sidechainDuckGains[tr].gain.gain;
-      g.cancelScheduledValues(t);
-      g.setValueAtTime(1, t);
+      _duckHold(g, t);
       g.linearRampToValueAtTime(0.1, t + 0.008); // heavy duck — most of the signal drops out
       g.setTargetAtTime(1, t + 0.03, 0.16); // recovers over the following stretch
     }
@@ -12098,13 +12107,12 @@ function duckSidechainTracks(t) {
 function duckEchoTrack(t) {
   if (!_sidechainDuckGains[0]) return; // TEXTURE/DRONE hasn't played a note yet this session — nothing to duck
   const g = _sidechainDuckGains[0].gain.gain;
-  g.cancelScheduledValues(t);
+  _duckHold(g, t);
   if (trackInstruments[0] === 'drone') {
     // STRINGS — heavily gated, but not so hard it clips/clicks at the bottom
     // of the dip. Slightly shallower floor and a touch more time on both
     // the attack and release than the original, still snappy and obviously
     // rhythmic, just not harsh.
-    g.setValueAtTime(1, t);
     g.linearRampToValueAtTime(0.18, t + 0.015); // -15dB (was -22dB @ 8ms)
     g.setTargetAtTime(1, t + 0.045, 0.09);
     // Also kick every currently-sounding DRONE note's filter — a quick jump
@@ -12135,7 +12143,6 @@ function duckEchoTrack(t) {
       });
     }
   } else {
-    g.setValueAtTime(1, t);
     g.linearRampToValueAtTime(0.35, t + 0.01); // -9dB — noticeable pump without wiping it out
     g.setTargetAtTime(1, t + 0.04, 0.12);
   }
@@ -12145,7 +12152,7 @@ function fireBeatKick(t, velMult) {
   if (_renderTapBeat) _flashDrumsText();
   if (window._duckGain) {
     const dg = window._duckGain.gain;
-    dg.cancelScheduledValues(t); dg.setValueAtTime(1, t);
+    _duckHold(dg, t);
     dg.linearRampToValueAtTime(0.5, t + 0.005);
     dg.setTargetAtTime(1, t + 0.020, 0.08);
   }
@@ -18230,6 +18237,7 @@ function randAll(mode, opts) {
         trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * (1.25 + Math.random() * 0.10)));
         if (trackInstruments[_tr] === 'guiro') trackVolume[_tr] = volPosToGain(volGainToPos(trackVolume[_tr]) * 0.5); // MARACAS: fader at HALF its usual default position, per direct request
         if (_BASS_KEYS_FOR_TRIM.has(trackInstruments[_tr])) trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * 1.10)); // every BASS: fader 10% further up its travel, per direct request
+        if (['congHi', 'congLo', 'bongHi', 'bongLo'].includes(trackInstruments[_tr])) trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * 1.08)); // every CONGA / BONGO: fader 8% further up its travel, per direct request
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
@@ -22148,10 +22156,10 @@ const _RAINBOW_CYCLE = [ // WIDE METER OFF in every display mode (and off at sta
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, tipHl: true, wide: false, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-name': true, 'tip-from-top': true }, sliders: {"bgLightSlider": "9", "satCeilingSlider": "100", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "14", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'knight', name: 'CLUB' } /* background lightness 9%, per direct request; was PENELOPE, before that DASHBOARD, before that KNIGHT FLYER — renamed per direct request */, // mode 4 is now "KNIGHT FLYER" (from the display snapshot, replacing the old mode 4, per direct request) — the old mode 4 on black, FADER TIP = PLAY COLOUR with TIP GLOW 225%, saturation ceiling 100, its colour scheme, and the same inverted logo/tape + light header text as NIGHT CITY
   { wide: false, perf: true,  ruler: false, bg0: true, jt: true, classes: { 'mortar-extra': false, 'lock-swap': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "bgSatSlider": "0", "bgLightSlider": "95", "masterBrightSlider": "105", "emptyMarkerSizeCircleSlider": "16", "emptyMarkerOpacityCircleSlider": "100"}, name: 'WASHOUT' }, // mode 6 "SPACETIME", per direct request + background saturation 0% / lightness 100%, MASTER 130%, LOCK BUTTONS = NEW INST off, FAILSAFE HIGHLIGHTS off, per direct request — NEW, per direct request — copy of the mode before it with JUST TRACK on and the time ruler off
   { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: false, glowTip: false, classes: { 'mortar-extra': false, 'night-invert': true, 'tape-from-fill': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "tipGlowSlider": "225", "bgHueSlider": "249", "bgSatSlider": "41", "bgLightSlider": "20", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerSizeCircleSlider": "15", "emptyMarkerOpacityCircleSlider": "75"}, palette: 'aubergine', name: 'NYC' }, // mode 7 "AUBERGINE", from the display snapshot, per direct request — replaces GROOVY: dark purple background (#241e48), PLAY FLASH FROM TOP ROW, FADER TIP = PLAY COLOUR, WIDE METER, the snapshot's note-marker sizes and colour scheme, dark-mode header, tape coloured from the vol fill
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'mortar-extra': false, 'notes-grayscale': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: true, wide: false, classes: { 'mortar-extra': false, 'notes-grayscale': true, 'failsafe-hl': false }, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "volFillHeightSlider": "100"}, palette: 'cartoon', name: 'EMILY' }, // mode 11 "CARTOON", from the display snapshot, per direct request (+ NOTE MARKERS GRAYSCALE) — mode 3 with JUST TRACK off (fill 60%), WIDE METER off, FADER TIP = PLAY COLOUR on, its own note-marker sizes and colour scheme
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: false, classes: { 'mortar-extra': false, 'failsafe-hl': false, 'notes-grayscale': true, 'night-invert': true, 'tape-from-fill': true } /* 'tape-two-tone' removed — tape window left alone for now, per direct request */, sliders: {"satCeilingSlider": "20", "noteMarkerCircleSizeSlider": "49", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "noteMarkerSizeRatioCircleSlider": "101", "bgHueSlider": "212", "bgSatSlider": "65", "bgLightSlider": "13", "tipGlowSlider": "225", "emptyMarkerSizeCircleSlider": "8", "emptyMarkerOpacityCircleSlider": "100"}, palette: 'twilight', name: 'TWILIGHT' }, // mode 11 "TWILIGHT", from the display snapshot, per direct request — replaces NIGHT CITY: CARTOON (grey note markers, same marker sizes) on a deep navy background (#102c4c) with its own colour scheme. Then, per direct request, made a proper DARK MODE: inverted logo/header text + tinted glowing tape (night-invert, two-tone window like NIGHT CITY had), and the vol fill done the KNIGHT FLYER way — WIDE METER on (the full-bar fill that reaches pure PLAY FLASH white, glowing) and no GLOW ON FADER TIP ONLY (that left a glowing tip sitting on a non-glowing fill — the odd edge), TIP GLOW 225%
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: true, glowTip: false, wide: false, safeGfx: true, markers: 'square', rulerThick: 2, classes: { 'mortar-extra': true, 'fill-decay-bg': true, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'marker-left-justify-squares': false, 'mortar': true, 'mortar-extra-plus': true, 'vol-banger': true, 'mond-sat-markers': true }, sliders: {"timeRulerOpacitySlider": "50", "squareMarkerSizeSlider": "100", "noteMarkerSizeRatioSquareSlider": "151", "emptyMarkerSizeSquareSlider": "10", "emptyMarkerOpacitySquareSlider": "90", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "volFillHeightSlider": "60", "satCeilingSlider": "20"}, palette: 'bigschool', name: 'MOND' }, // mode 10 "MOND", from the display snapshot, per direct request — replaces SAFE GFX (keeps SAFE GFX on): big SQUARE note markers, 4px TIME RULER, pale rose background, its own colour scheme
-  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': false, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "15"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
+  { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': false, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'track-text-pulse-a': true, 'track-text-pulse-solid': false }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "15", "fillGlowSlider": "0"}, palette: 'baseline', name: 'BASELINE' }, // mode 11 "BASELINE", from the display snapshot, per direct request — replaces BIGGY: clear 6px MORTAR, SOLID track names, GLOW ON FADER TIP ONLY, no WIDE METER / lights / NEW INST / FAILSAFE, its colour scheme
   // LATE removed, per direct request — was: { perf: true,  ruler: false, bg0: false, rowBg: 20, jt: false, flashTop: true, tipHl: true, wide: true, glowTip: false, safeGfx: false, markers: 'square', classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": true, "hide-vol-track": true, "track-pulse-a": true, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": true, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "189", "bgSatSlider": "20", "bgLightSlider": "20", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "60", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "8", "topColorHueSlider": "309", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "60", "noteMarkerSizeRatioCircleSlider": "200", "emptyMarkerOpacityCircleSlider": "75", "emptyMarkerSizeCircleSlider": "15", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'late', name: 'LATE' }, // "LATE", from the display snapshot, per direct request
   { perf: true,  ruler: false, bg0: false, rowBg: 0, jt: false, flashTop: false, tipHl: true, wide: false, glowTip: false, safeGfx: false, markers: 'circle', namesUniform: true, classes: {"drums-pulse": true, "mortar": true, "mortar-clear": true, "mortar-line": false, "mortar-extra": false, "mortar-extra-plus": false, "simple-fader": true, "vol-bg-transparent": true, "track-row-bg": true, "drums-flash-hl": false, "hide-vol-track": true, "track-pulse-a": false, "vol-banger": true, "lock-swap": true, "track-btn-lights": true, "track-btn-lights-pulse": true, "track-text-pulse-solid": true, "track-text-pulse-a": false, "night-invert": true, "failsafe-hl": false, "tape-from-fill": true, "tape-from-name": false, "tip-from-top": false, "notes-grayscale": false, "fill-decay-bg": false, "hide-tape": false, "live-layout": false, "low-contrast-rows": false, "track-pulse-solid": true, "vol-test-bg-4": true}, sliders: {"satCeilingSlider": "20", "bgHueSlider": "214", "bgSatSlider": "31", "bgLightSlider": "13", "masterBrightSlider": "100", "mortarHeightSlider": "6", "topGlowSlider": "150", "trackGlowSlider": "50", "markerGlowSlider": "150", "fillGlowSlider": "150", "tipGlowSlider": "225", "volFillHeightSlider": "100", "volTipHeightSlider": "100", "simpleFaderWidthSlider": "16", "topColorHueSlider": "202", "flashSatSlider": "100", "lockBtnDarknessSlider": "20", "squareMarkerSizeSlider": "52", "noteMarkerSizeRatioSquareSlider": "81", "emptyMarkerOpacitySquareSlider": "35", "emptyMarkerSizeSquareSlider": "95", "noteMarkerCircleSizeSlider": "49", "noteMarkerSizeRatioCircleSlider": "101", "emptyMarkerOpacityCircleSlider": "100", "emptyMarkerSizeCircleSlider": "8", "trackRowBgDarkenSlider": "100", "trackBtnShadeSlider": "0"}, palette: 'console', name: 'CONSOLE' }, // "CONSOLE", from the display snapshot, per direct request
   { perf: true,  ruler: false, bg0: true, jt: false, tipHl: false, glowTip: true, wide: false, markers: 'circle', namesUniform: false, classes: { 'mortar': true, 'mortar-clear': true, 'mortar-line': false, 'mortar-extra': false, 'mortar-extra-plus': false, 'lock-swap': true, 'failsafe-hl': false, 'track-btn-lights': false, 'track-btn-lights-pulse': false, 'hide-tape': true, 'live-layout': true }, sliders: {"satCeilingSlider": "20", "mortarHeightSlider": "6", "trackRowBgDarkenSlider": "0", "volFillHeightSlider": "60", "noteMarkerCircleSizeSlider": "60", "squareMarkerSizeSlider": "95", "noteMarkerSizeRatioSquareSlider": "0", "noteMarkerSizeRatioCircleSlider": "200"}, palette: 'baseline', wild: false, batterySaver: true, count: true, liveOnly: true, name: 'LIVE' }, // mode 9 "LIVE", per direct request — BASELINE plus: tape graphics hidden, big key/tempo/count layout, WILD off, and BATTERY SAVER on — which itself covers glow off, all track-button / name / asterisk pulsing off and reverb off (those used to be set here as well; the duplicates were removed, per direct request)
@@ -22472,6 +22480,7 @@ function _applyRainbowState(m) {
   const jtOn = (m.jt !== undefined) ? m.jt : !m.bg0;
   setJustTrack(jtOn);
   const jt = document.getElementById('justTrackToggle'); if (jt) jt.checked = jtOn;
+  if (m.sliders && m.sliders.volFillHeightSlider !== undefined && !jtOn) setVolFillHeightPct(m.sliders.volFillHeightSlider); // JUST TRACK off snaps the fill height back to its 60% default — a mode that sets its own (EMILY 100%) wins
   const b = document.body.classList;
   if (m.tipHl !== undefined) { // true = force on, false = force off (MOND), undefined = leave / restore
     if (window._tipHlBeforeMode === undefined) window._tipHlBeforeMode = b.contains('fader-tip-hl');
@@ -23271,7 +23280,7 @@ function fullReset() {
 
   // Per-track state back to first-load defaults
   const defaultInstruments = [(Math.random() < 0.5 ? 'drone' : 'amlgm'), 'sleg', 'sparkle', 'sbass3', 'congHi', 'congLo']; // DRONE/TEXTURE share slot 0, 50/50
-  const defaultVolumes = [0.0501, 0.505, 0.8, 0.8, 0.8, 0.8];
+  const defaultVolumes = [0.0501, 0.505, 0.8, 0.8, 0.8, 0.8].map((v, i) => ['congHi', 'congLo', 'bongHi', 'bongLo'].includes(defaultInstruments[i]) ? volPosToGain(Math.min(1, volGainToPos(v) * 1.08)) : v); // CONGA / BONGO defaults +8% up the fader too
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     grid[tr].fill(0);
     trackOffset[tr] = 0;
@@ -25570,7 +25579,7 @@ function _beatTakeoverRoles(type) {
 function _beatNeedsTakeover(type) {
   const r = _beatTakeoverRoles(type); if (!r) return false;
   const prev = window._beatForceTakeover; window._beatForceTakeover = false;
-  let t; try { t = _beatPickTargets(r[0], new Set(), r[1]); } finally { window._beatForceTakeover = prev; }
+  let t; try { window._beatPickDryRun = true; t = _beatPickTargets(r[0], new Set(), r[1]); } finally { window._beatForceTakeover = prev; window._beatPickDryRun = false; }
   if (!Object.values(t).some(v => v === undefined)) return false;
   // only worth asking if YES could actually free something up
   const used = Object.values(t).filter(v => v != null);
@@ -25593,8 +25602,7 @@ function _beatTakeoverDialog(type, onYes) {
   row.appendChild(no); row.appendChild(yes); d.appendChild(t); d.appendChild(row);
   document.body.appendChild(d);
 }
-// For each role key: an unlocked track already holding it → if unmuted, the role is covered (null = leave alone); if muted, it's
-// that role's target. Otherwise the next free muted track (non-essential instruments first). Returns {key: tr|null|undefined}.
+// For each role key: an unlocked track already holding it (muted or not) is that role's target — re-populated with the beat's notes. Otherwise the next free muted track (non-essential instruments first). Returns {key: tr|null|undefined}.
 function _beatPickTargets(keys, essentialKeys, altKeys) {
   const res = {}, used = [];
   keys.forEach(key => {
@@ -25602,7 +25610,9 @@ function _beatPickTargets(keys, essentialKeys, altKeys) {
     const has = (k, tr) => alts.includes(k) && !trackSweep[tr] && !used.includes(tr);
     let ex = trackInstruments.findIndex((k, tr) => has(k, tr) && !trackMuted[tr]); // an unmuted copy wins (role covered, untouched)
     if (ex === -1) ex = trackInstruments.findIndex((k, tr) => has(k, tr));
-    if (ex !== -1) { used.push(ex); res[key] = trackMuted[ex] ? ex : null; }
+    // RE-POPULATE, per direct request: a track that already has this instrument used to be left alone (keeping its old notes) —
+    // it's now the target too, so the beat's own notes come in on it like on any other track (old legato / auto / CHK cleared).
+    if (ex !== -1) { used.push(ex); res[key] = ex; if (!window._beatPickDryRun) _beatClearForTakeover(ex); }
   });
   keys.forEach(key => {
     if (key in res) return;
