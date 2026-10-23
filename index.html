@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 19:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 19:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2897,7 +2897,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 19:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 19:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6209,8 +6209,8 @@ function buildFxChain(trackGain) {
   // pad the dry blend is 0 under FX, so the tap is the whole FX output either way.
   const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
   const echoGain = ctx.createGain(); echoGain.gain.value = 0;
-  envGain.connect(echoDelay); dryGain.connect(echoDelay); echoDelay.connect(echoGain); echoGain.connect(trackGain);
-  return { dryGain, fxSend, gateGain, preGain, postGain, ws, envGain, echoDelay, echoGain };
+  echoDelay.connect(echoGain); echoGain.connect(trackGain); // CHEAPER, per direct request: the tap INTO the delay is only connected while the FX stop is on (see _syncFxEcho) — so on every other track the delay has no input and sits idle instead of processing silence
+  return { dryGain, fxSend, gateGain, preGain, postGain, ws, envGain, echoDelay, echoGain, echoConn: false };
 }
 
 // Fires once per note on tracks with FX engaged — quick (3ms) ramped attack
@@ -6253,12 +6253,14 @@ const FX_ECHO_LEVEL = 0.5;
 function _fxEchoOn(tr) { const f = trackFx[tr]; return !!(f && (f.x > 0 || f.y > 0) && !trackPump[tr]); }
 function _syncFxEcho(tr) {
   const n = trackFxNodes[tr]; if (!n || !n.echoGain || !ctx) return;
-  const now = ctx.currentTime, on = _fxEchoOn(tr);
-  n.echoDelay.delayTime.setTargetAtTime(Math.min(1.9, stepDuration()), now, 0.02);
-  n.echoGain.gain.cancelScheduledValues(now); n.echoGain.gain.setTargetAtTime(on ? FX_ECHO_LEVEL : 0, now, 0.01);
+  const on = _fxEchoOn(tr);
+  if (on && !n.echoConn) { try { n.envGain.connect(n.echoDelay); n.echoConn = true; } catch (e) {} } // only the FX'd output (on FX the voices all go through it)
+  else if (!on && n.echoConn) { try { n.envGain.disconnect(n.echoDelay); } catch (e) {} n.echoConn = false; }
+  n.echoDelay.delayTime.value = Math.min(1.9, stepDuration()); // plain values, no smoothing ramps (cheaper; a tempo change just jumps)
+  n.echoGain.gain.value = FX_ECHO_LEVEL; // the input tap does the switching now
 }
 // the echo follows tempo changes (TEMPO, nudges, tape tempos) — a cheap check, only touches tracks with FX on
-setInterval(() => { if (!ctx) return; const sd = Math.min(1.9, stepDuration()); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoDelay && _fxEchoOn(t) && Math.abs(n.echoDelay.delayTime.value - sd) > 0.0005) n.echoDelay.delayTime.setTargetAtTime(sd, ctx.currentTime, 0.02); } }, 250);
+setInterval(() => { if (!ctx) return; const sd = Math.min(1.9, stepDuration()); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoConn && Math.abs(n.echoDelay.delayTime.value - sd) > 0.001) n.echoDelay.delayTime.value = sd; } }, 500);
 function _syncFxBtn(tr) {
   const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
   if (b.textContent !== 'FX') b.textContent = 'FX'; // the glyph is always FX now, per direct request — only the colours change (off / CHK / CHK+BLAST)
@@ -25163,7 +25165,8 @@ function _ensureBeatFxChain() {
   // after the FX crunch; silent unless DRUMS is on the FX stop (see _syncBeatEcho).
   const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
   const echoGain = ctx.createGain(); echoGain.gain.value = 0;
-  dryGain.connect(echoDelay); postGain.connect(echoDelay); echoDelay.connect(echoGain); echoGain.connect(masterGain);
+  echoDelay.connect(echoGain); echoGain.connect(masterGain); echoGain.gain.value = FX_ECHO_LEVEL; // inputs only connected while DRUMS is on FX (cheaper, see _syncBeatEcho)
+  window._beatEchoTaps = [dryGain, postGain]; window._beatEchoConn = false;
   window._beatDryGain = dryGain; window._beatCrunchSend = crunchSend; window._beatReverbSend = reverbSend;
   window._beatEchoDelay = echoDelay; window._beatEchoGain = echoGain;
   try { _syncBeatEcho(); } catch (e) {}
@@ -25256,11 +25259,12 @@ function setBeatReverbMix(v) {
 function _beatEchoOn() { return !!(_beatFx && !_beatPump); } // DRUMS' FX stop = the old drums FX (crunch) + the 16th-note echo
 function _syncBeatEcho() {
   if (!ctx || !window._beatEchoGain || window._beatEchoGain.context !== ctx) return;
-  const now = ctx.currentTime;
-  window._beatEchoDelay.delayTime.setTargetAtTime(Math.min(1.9, stepDuration()), now, 0.02);
-  window._beatEchoGain.gain.cancelScheduledValues(now); window._beatEchoGain.gain.setTargetAtTime(_beatEchoOn() ? FX_ECHO_LEVEL : 0, now, 0.01);
+  const on = _beatEchoOn(), d = window._beatEchoDelay;
+  if (on && !window._beatEchoConn) { (window._beatEchoTaps || []).forEach(n => { try { n.connect(d); } catch (e) {} }); window._beatEchoConn = true; }
+  else if (!on && window._beatEchoConn) { (window._beatEchoTaps || []).forEach(n => { try { n.disconnect(d); } catch (e) {} }); window._beatEchoConn = false; }
+  d.delayTime.value = Math.min(1.9, stepDuration());
 }
-setInterval(() => { try { if (ctx && window._beatEchoDelay && _beatEchoOn() && Math.abs(window._beatEchoDelay.delayTime.value - Math.min(1.9, stepDuration())) > 0.0005) _syncBeatEcho(); } catch (e) {} }, 250); // follows tempo
+setInterval(() => { try { if (ctx && window._beatEchoConn && Math.abs(window._beatEchoDelay.delayTime.value - Math.min(1.9, stepDuration())) > 0.001) window._beatEchoDelay.delayTime.value = Math.min(1.9, stepDuration()); } catch (e) {} }, 500); // follows tempo
 function beatCtrlCycleFx() {
   _ensureBeatFxChain();
   // off -> CHK -> BLAST (exactly the old FX+BLAST — CHK switched OFF there, per direct report that it sounded enveloped) -> FX
