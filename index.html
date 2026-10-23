@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 05:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 05:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1203,6 +1203,7 @@ body:not(.rand-btn-ff):not(.rand-btn-asterisk) #randBtn > .glyph { position: rel
 .fx-btn.on { background: var(--track-btn-on-color, #f17d21); color: var(--track-btn-on-text, #fff); }
 .fx-btn.blast-on { background: var(--track-btn-blast-color, var(--playhead)); color: var(--track-btn-blast-text, #fff); }
 /* FX (the old crunch + a 16th-note echo) — the button's 4th stop: same look as CHK but in its own colour (the 2nd highlight) */
+.fill-low-opt.sel, .fill-high-opt.sel { border-color: #111 !important; box-shadow: 0 0 0 2px #f5f0e8 inset; }
 .fx-btn.fx-echo { --track-btn-on-color: var(--highlight2-color, #0078ff); --track-btn-on-text: var(--highlight2-text, #fff); --lit-glyph: var(--highlight2-color, #0078ff); }
 .track-ctrl-icon-btn.sweep-on { background: var(--playhead); color: var(--track-btn-on-text, #fff); }
 .track-ctrl-icon-btn.solo-on { background: #ffe400; } /* solid, not pulsing — was var(--track-btn-on-color, #FFA700) with animation: engaged-btn-pulse 0.6s ease-in-out infinite, per direct request */
@@ -2888,7 +2889,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 05:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 05:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3763,26 +3764,26 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     </div>
     <script>try { if (localStorage.getItem('sifiSweep8bit') === '0') { window._sweep8bitOn = false; document.getElementById('sweep8bitToggle').checked = false; } } catch (e) {}</script>
 
-    <!-- VOLUME FILL colours, per direct request: the fill fades from BASE (left) to LOUD (its tip) by the track's real level.
-         Plain hue/light sliders, not the native colour picker (that can reload the home-screen app on iOS — see #topColorHueSlider). -->
-    <div style="display:flex;flex-direction:column;gap:2px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FILL BASE COLOUR <span id="fillBaseSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;"></span></div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">AUTO<label class="wild-toggle"><input type="checkbox" id="fillBaseAutoToggle" checked onchange="_setFillBaseAuto(this.checked)"><span class="wild-toggle-slider"></span></label></label>
+    <!-- VOLUME FILL colours, per direct request: LOW = one of three colours from the current palette (they follow the display
+         mode / WILD), HIGH = white or a picked colour. Plain hue/light sliders for the pick, not the native colour picker (that
+         can reload the home-screen app on iOS — see #topColorHueSlider). -->
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL LOW COLOUR</div>
+      <div style="display:flex;gap:8px;">
+        <button class="fill-low-opt" data-v="--play-flash-color" onclick="_setFillLow(this.dataset.v)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:var(--play-flash-color,#fff);"></button>
+        <button class="fill-low-opt" data-v="--highlight2-color" onclick="_setFillLow(this.dataset.v)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:var(--highlight2-color,#0078ff);"></button>
+        <button class="fill-low-opt" data-v="--top-row-highlight-color" onclick="_setFillLow(this.dataset.v)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:var(--top-row-highlight-color,#888);"></button>
       </div>
-      <div id="fillBaseSliders" style="display:flex;gap:10px;">
-        <input type="range" id="fillBaseHue" min="0" max="360" value="40" class="master-vol-slider fill-hue-slider" oninput="_fillPickInput('base')" onchange="_fillPickInput('base')" style="width:100%;">
-        <input type="range" id="fillBaseLight" min="0" max="100" value="50" class="master-vol-slider" oninput="_fillPickInput('base')" onchange="_fillPickInput('base')" style="width:100%;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;margin-top:6px;">VOL FILL HIGH COLOUR <span id="fillLoudSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;background:#fff;"></span></div>
+      <div style="display:flex;gap:8px;">
+        <button id="fillHighWhiteBtn" class="fill-high-opt" onclick="_setFillLoudCustom(false)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#fff;color:#111;">WHITE</button>
+        <button id="fillHighPickBtn" class="fill-high-opt" onclick="_setFillLoudCustom(true)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#ddd;color:#111;">PICK COLOUR</button>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FILL LOUD COLOUR <span id="fillLoudSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;background:#fff;"></span></div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">CUSTOM<label class="wild-toggle"><input type="checkbox" id="fillLoudCustomToggle" onchange="_setFillLoudCustom(this.checked)"><span class="wild-toggle-slider"></span></label></label>
+      <div id="fillLoudSliders" style="display:none;flex-direction:column;gap:0;">
+        <input type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
+        <input type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
+        <div style="font-size:0.55rem;color:#777;letter-spacing:0.5px;text-transform:uppercase;">TOP = COLOUR · BOTTOM = DARK → LIGHT</div>
       </div>
-      <div id="fillLoudSliders" style="display:none;gap:10px;">
-        <input type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider fill-hue-slider" oninput="_fillPickInput('loud')" onchange="_fillPickInput('loud')" style="width:100%;">
-        <input type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput('loud')" onchange="_fillPickInput('loud')" style="width:100%;">
-      </div>
-      <div style="font-size:0.55rem;color:#777;letter-spacing:0.5px;text-transform:uppercase;">LEFT SLIDER = HUE · RIGHT SLIDER = DARK → LIGHT</div>
     </div>
 
     <!-- Song name on its own line, scale + tempo on the line below -->
@@ -12768,23 +12769,23 @@ const VW_LO_DB = -50, VW_HI_DB = -12;
 const _vbWhite = new Array(NUM_TRACKS).fill(0);
 // FILL colours (SETTINGS): BASE = the PLAY FLASH colour unless picked; LOUD = white unless CUSTOM is on. The tip colour is
 // mixed here in JS (no CSS color-mix — that didn't render on the phone) and handed to each bar as --vtip.
-window._fillBaseHex = null; window._fillLoudHex = null;
+window._fillLowVar = '--play-flash-color'; window._fillLoudHex = null; // LOW = which palette colour (live); HIGH = null (white) or a picked hex
 let _fillBaseRgb = [255, 255, 255], _fillBaseReadT = 0;
 function _hexRgb(h) { const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(h || ''); return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null; }
 function _cssRgb(c) { const h = _hexRgb(c); if (h) return h; const m = (c || '').match(/[\d.]+/g); return m && m.length >= 3 ? [+m[0], +m[1], +m[2]] : null; }
 function _fillBaseNow() {
-  if (window._fillBaseHex) return _hexRgb(window._fillBaseHex) || _fillBaseRgb;
   const t = performance.now();
-  if (t - _fillBaseReadT > 400) { _fillBaseReadT = t; const c = _cssRgb(_rootCS().getPropertyValue('--play-flash-color').trim()); if (c) _fillBaseRgb = c; }
+  if (t - _fillBaseReadT > 400) { _fillBaseReadT = t; const c = _cssRgb(_rootCS().getPropertyValue(window._fillLowVar || '--play-flash-color').trim()); if (c) _fillBaseRgb = c; }
   return _fillBaseRgb;
 }
 function _fillSyncRoot() {
   const b = _fillBaseNow(), r = document.documentElement.style;
   r.setProperty('--vbase', `rgb(${b[0]},${b[1]},${b[2]})`);
-  const bs = document.getElementById('fillBaseSwatch'); if (bs) bs.style.background = `rgb(${b[0]},${b[1]},${b[2]})`;
   const ls = document.getElementById('fillLoudSwatch'); if (ls) ls.style.background = window._fillLoudHex || '#ffffff';
+  document.querySelectorAll('.fill-low-opt').forEach(el => el.classList.toggle('sel', el.dataset.v === window._fillLowVar));
+  { const w = document.getElementById('fillHighWhiteBtn'), p = document.getElementById('fillHighPickBtn'); if (w) w.classList.toggle('sel', !window._fillLoudHex); if (p) p.classList.toggle('sel', !!window._fillLoudHex); }
 }
-setInterval(() => { if (!window._fillBaseHex) _fillSyncRoot(); }, 500); // follows PLAY FLASH changes (modes, WILD, the picker)
+setInterval(() => { _fillSyncRoot(); }, 500); // the LOW colour follows the palette (modes, WILD, colour changes)
 function _fillTip(amt) {
   const b = _fillBaseNow(), l = _hexRgb(window._fillLoudHex) || [255, 255, 255];
   return `rgb(${Math.round(b[0] + (l[0] - b[0]) * amt)},${Math.round(b[1] + (l[1] - b[1]) * amt)},${Math.round(b[2] + (l[2] - b[2]) * amt)})`;
@@ -12801,19 +12802,17 @@ function _fillSegGradient(n, amt) {
   }
   return `linear-gradient(to right, ${st.join(', ')})`;
 }
-function _fillPickInput(which) {
-  const H = +document.getElementById(which === 'base' ? 'fillBaseHue' : 'fillLoudHue').value;
-  const L = +document.getElementById(which === 'base' ? 'fillBaseLight' : 'fillLoudLight').value / 100;
-  const hex = _hslToHex(H, L <= 0.02 || L >= 0.98 ? 0 : 0.9, L);
-  if (which === 'base') { window._fillBaseHex = hex; const t = document.getElementById('fillBaseAutoToggle'); if (t) t.checked = false; }
-  else { window._fillLoudHex = hex; const t = document.getElementById('fillLoudCustomToggle'); if (t && !t.checked) { t.checked = true; _setFillLoudCustom(true); } }
+function _fillPickInput() {
+  const H = +document.getElementById('fillLoudHue').value, L = +document.getElementById('fillLoudLight').value / 100;
+  window._fillLoudHex = _hslToHex(H, L <= 0.02 || L >= 0.98 ? 0 : 0.9, L);
+  const w = document.getElementById('fillLoudSliders'); if (w) w.style.display = 'flex';
   _fillSyncRoot();
 }
-function _setFillBaseAuto(on) { if (on) window._fillBaseHex = null; else _fillPickInput('base'); _fillReadT0(); _fillSyncRoot(); }
+function _setFillLow(v) { window._fillLowVar = v; _fillBaseReadT = 0; _fillSyncRoot(); }
 function _fillReadT0() { _fillBaseReadT = 0; }
 function _setFillLoudCustom(on) {
   const w = document.getElementById('fillLoudSliders'); if (w) w.style.display = on ? 'flex' : 'none';
-  if (on) { if (!window._fillLoudHex) _fillPickInput('loud'); } else window._fillLoudHex = null;
+  if (on) { if (!window._fillLoudHex) _fillPickInput(); } else window._fillLoudHex = null;
   _fillSyncRoot();
 }
 let _vbLastT = 0;
@@ -22550,7 +22549,7 @@ function _resetToBootState() {
     else if (el.type === 'radio') { if (bs.inputs[k] && !el.checked) { el.checked = true; fire(el); } }
     else if (el.type === 'range' || el.type === 'number' || el.type === 'color') { if (el.value !== bs.inputs[k]) { el.value = bs.inputs[k]; fire(el); } }
   });
-  try { window._fillBaseHex = null; window._fillLoudHex = null; const fl = document.getElementById('fillLoudSliders'); if (fl) fl.style.display = 'none'; { const a = document.getElementById('fillBaseAutoToggle'); if (a) a.checked = true; const c = document.getElementById('fillLoudCustomToggle'); if (c) c.checked = false; } _fillReadT0(); _fillSyncRoot(); } catch (e) {} // FILL colours back to PLAY FLASH -> white
+  try { window._fillLowVar = '--play-flash-color'; window._fillLoudHex = null; const fl = document.getElementById('fillLoudSliders'); if (fl) fl.style.display = 'none'; _fillReadT0(); _fillSyncRoot(); } catch (e) {} // FILL colours back to PLAY FLASH -> white
   const want = new Set(bs.classes.filter(c => !_RESET_LIVE_CLASSES.has(c)));
   [...document.body.classList].forEach(c => { if (!_RESET_LIVE_CLASSES.has(c) && !want.has(c)) document.body.classList.remove(c); });
   want.forEach(c => document.body.classList.add(c));
@@ -26133,7 +26132,10 @@ function snapshotDisplay() {
     rainbowMode: (window._rainbowIdx !== undefined ? window._rainbowIdx + 1 : null),
     bodyClasses: document.body.className.split(/\s+/).filter(c => c && !transient.test(c) && (c !== 'no-glow' || _glowOffReal)),
     cssVariables: vars,
-    controls
+    controls,
+    // VOL FILL colours (SETTINGS), per direct request — which palette colour LOW uses (and what it is right now), and HIGH
+    volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--play-flash-color', lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillLoudHex || 'white', segments: 10 }; } catch (e) { return null; } })(),
+    displayModeName: (() => { try { const m = _RAINBOW_CYCLE[window._rainbowIdx]; return m ? m.name : null; } catch (e) { return null; } })()
   };
   const text = JSON.stringify(snap, null, 2);
   try {
