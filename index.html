@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 05:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 06:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1065,17 +1065,16 @@ html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--vbase, var(--play-flash-color, #f17d21)) !important; background-image: linear-gradient(to right, var(--vbase, var(--play-flash-color, #f17d21)) 0%, var(--vbase, var(--play-flash-color, #f17d21)) 15%, var(--vtip, var(--vbase, var(--play-flash-color, #f17d21))) 100%) !important; animation: none !important; } /* BASE -> LOUD by the real level (--vtip, mixed in JS) — see _fillTip */ /* GRADIENT to white at the tip, by the track's real level (--vw), per direct request */
 html body .track-vol-bar .track-vol-tip { z-index: 5; }
-/* 10-SEGMENT METER, per direct request (was a smooth gradient): the level lights whole segments, each a fixed tenth of the way
-   to the fader; colours step from FILL BASE to the loudness colour at the top lit one. --vbq (lit tenths) and --vgrad (the
-   segment colours) come from _volBangerLoop. The fill is still scaled from the left (cheap), and its image is sized back up by
-   the same amount so the segments stay put instead of squashing. */
+/* 10-SEGMENT METER, per direct request: the SET volume fill div (left edge to the fader) is always cut into ten equal segments;
+   the level lights whole segments, unlit ones are clear. Colours step from LOW to the loudness colour at the top lit one.
+   --vgrad (built by _fillSegGradient from _volBangerLoop) paints them — no scaling, so the segments never change size. */
 html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
-  transform: scaleX(var(--vbq, 0)) !important;
+  transform: none !important; /* the fill div stays its set size (the fader position); the level only lights its segments */
   background: transparent !important;
   background-image: var(--vgrad, none) !important;
-  background-size: calc(100% / max(var(--vbq, 1), 0.1)) 100% !important;
+  background-size: 100% 100% !important;
   background-repeat: no-repeat !important; background-position: left center !important;
   box-shadow: none !important; /* the old glow box sat round the whole bar, gaps and all — each segment carries its own glow instead */
   filter: drop-shadow(0 0 calc(3px * var(--fillglow, 1)) var(--vbase, var(--play-flash-color, #f17d21))) !important;
@@ -2889,7 +2888,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 05:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 06:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -26134,7 +26133,7 @@ function snapshotDisplay() {
     cssVariables: vars,
     controls,
     // VOL FILL colours (SETTINGS), per direct request — which palette colour LOW uses (and what it is right now), and HIGH
-    volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--play-flash-color', lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillLoudHex || 'white', segments: 10 }; } catch (e) { return null; } })(),
+    volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--play-flash-color', lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillLoudHex || 'white' }; } catch (e) { return null; } })(),
     displayModeName: (() => { try { const m = _RAINBOW_CYCLE[window._rainbowIdx]; return m ? m.name : null; } catch (e) { return null; } })()
   };
   const text = JSON.stringify(snap, null, 2);
