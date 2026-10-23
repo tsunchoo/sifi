@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 04:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 05:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1065,6 +1065,21 @@ html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--vbase, var(--play-flash-color, #f17d21)) !important; background-image: linear-gradient(to right, var(--vbase, var(--play-flash-color, #f17d21)) 0%, var(--vbase, var(--play-flash-color, #f17d21)) 15%, var(--vtip, var(--vbase, var(--play-flash-color, #f17d21))) 100%) !important; animation: none !important; } /* BASE -> LOUD by the real level (--vtip, mixed in JS) — see _fillTip */ /* GRADIENT to white at the tip, by the track's real level (--vw), per direct request */
 html body .track-vol-bar .track-vol-tip { z-index: 5; }
+/* 10-SEGMENT METER, per direct request (was a smooth gradient): the level lights whole segments, each a fixed tenth of the way
+   to the fader; colours step from FILL BASE to the loudness colour at the top lit one. --vbq (lit tenths) and --vgrad (the
+   segment colours) come from _volBangerLoop. The fill is still scaled from the left (cheap), and its image is sized back up by
+   the same amount so the segments stay put instead of squashing. */
+html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
+html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
+html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay {
+  transform: scaleX(var(--vbq, 0)) !important;
+  background: transparent !important;
+  background-image: var(--vgrad, none) !important;
+  background-size: calc(100% / max(var(--vbq, 1), 0.1)) 100% !important;
+  background-repeat: no-repeat !important; background-position: left center !important;
+  box-shadow: none !important; /* the old glow box sat round the whole bar, gaps and all — each segment carries its own glow instead */
+  filter: drop-shadow(0 0 calc(3px * var(--fillglow, 1)) var(--vbase, var(--play-flash-color, #f17d21))) !important;
+}
 /* VOL FILL GLOW (settings slider, 100% default, applies on release), per
    direct request — the vol fill glows in the PLAY FLASH colour in every
    mode now, not just TEST. Clipped to the bar so it can't spill into neighbouring rows. */
@@ -2873,7 +2888,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 04:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 05:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3753,7 +3768,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:2px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FILL BASE COLOUR <span id="fillBaseSwatch" style="display:inline-block;width:28px;height:18px;border:1px solid #0003;vertical-align:middle;margin-left:6px;"></span></div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">= PLAY FLASH<label class="wild-toggle"><input type="checkbox" id="fillBaseAutoToggle" checked onchange="_setFillBaseAuto(this.checked)"><span class="wild-toggle-slider"></span></label></label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#111;">AUTO<label class="wild-toggle"><input type="checkbox" id="fillBaseAutoToggle" checked onchange="_setFillBaseAuto(this.checked)"><span class="wild-toggle-slider"></span></label></label>
       </div>
       <div id="fillBaseSliders" style="display:flex;gap:10px;">
         <input type="range" id="fillBaseHue" min="0" max="360" value="40" class="master-vol-slider fill-hue-slider" oninput="_fillPickInput('base')" onchange="_fillPickInput('base')" style="width:100%;">
@@ -12774,6 +12789,18 @@ function _fillTip(amt) {
   const b = _fillBaseNow(), l = _hexRgb(window._fillLoudHex) || [255, 255, 255];
   return `rgb(${Math.round(b[0] + (l[0] - b[0]) * amt)},${Math.round(b[1] + (l[1] - b[1]) * amt)},${Math.round(b[2] + (l[2] - b[2]) * amt)})`;
 }
+// The 10 segments: colour steps from BASE (first) to the loudness colour (top lit one); 1.5% gaps between them.
+function _fillSegGradient(n, amt) {
+  if (!n) return 'none';
+  const b = _fillBaseNow(), l = _hexRgb(window._fillLoudHex) || [255, 255, 255];
+  const tip = [0, 1, 2].map(i => b[i] + (l[i] - b[i]) * amt);
+  const st = [];
+  for (let k = 0; k < n; k++) {
+    const t = n > 1 ? k / (n - 1) : 1, c = `rgb(${[0, 1, 2].map(i => Math.round(b[i] + (tip[i] - b[i]) * t)).join(',')})`;
+    st.push(`${c} ${k * 10}%`, `${c} ${(k + 1) * 10 - 1.5}%`, `transparent ${(k + 1) * 10 - 1.5}%`, `transparent ${(k + 1) * 10}%`);
+  }
+  return `linear-gradient(to right, ${st.join(', ')})`;
+}
 function _fillPickInput(which) {
   const H = +document.getElementById(which === 'base' ? 'fillBaseHue' : 'fillLoudHue').value;
   const L = +document.getElementById(which === 'base' ? 'fillBaseLight' : 'fillLoudLight').value / 100;
@@ -12887,7 +12914,10 @@ function _volBangerLoop(now) {
     if (vbar) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
       if (!(typeof playing !== 'undefined' && playing)) _vbWhite[tr] *= 0.8; // stopped: the white tip fades away
-      { const w = _vbWhite[tr] < 0.01 ? 0 : _vbWhite[tr]; vbar.style.setProperty('--vw', w.toFixed(2)); vbar.style.setProperty('--vtip', _fillTip(Math.pow(w, 0.6))); } // a curve, so ordinary hits clearly show it; only loud ones reach the full LOUD colour
+      { const w = _vbWhite[tr] < 0.01 ? 0 : _vbWhite[tr]; const amt = Math.round(Math.pow(w, 0.6) * 20) / 20; // a curve, so ordinary hits clearly show it; only loud ones reach the full LOUD colour
+        const n = _vbLevels[tr] < 0.005 ? 0 : Math.min(10, Math.ceil(_vbLevels[tr] * 10 - 1e-6)); // lit segments
+        const key = n + '|' + amt + '|' + _fillBaseNow().join(',') + '|' + (window._fillLoudHex || '');
+        if (vbar._vgKey !== key) { vbar._vgKey = key; vbar.style.setProperty('--vbq', (n / 10).toFixed(1)); vbar.style.setProperty('--vgrad', _fillSegGradient(n, amt)); } }
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
     }
   }
@@ -25079,7 +25109,14 @@ function _ensureBeatFxChain() {
   beatGain.connect(crunchSend); crunchSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(masterGain);
   beatGain.connect(reverbHP1); reverbHP1.connect(reverbHP2); reverbHP2.connect(reverbSend);
   reverbSend.connect(window._reverbSendBus);
+  // FX ECHO (DRUMS' FX stop, per direct request — same as the tracks'): the drums again one 16th later at half level, taken
+  // after the FX crunch; silent unless DRUMS is on the FX stop (see _syncBeatEcho).
+  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
+  const echoGain = ctx.createGain(); echoGain.gain.value = 0;
+  dryGain.connect(echoDelay); postGain.connect(echoDelay); echoDelay.connect(echoGain); echoGain.connect(masterGain);
   window._beatDryGain = dryGain; window._beatCrunchSend = crunchSend; window._beatReverbSend = reverbSend;
+  window._beatEchoDelay = echoDelay; window._beatEchoGain = echoGain;
+  try { _syncBeatEcho(); } catch (e) {}
 }
 
 function updateBeatCtrlRow() {
@@ -25088,7 +25125,8 @@ function updateBeatCtrlRow() {
   // '<' deliberately has no persistent 'on' state here — it doesn't stay
   // engaged, so it only gets the momentary flash in beatCtrlShift() below.
   const fBtn = document.getElementById('beatCtrlFx');
-  if (fBtn) { fBtn.classList.toggle('on', _beatChoke); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red
+  if (fBtn) { const _e = _beatEchoOn(); fBtn.classList.toggle('on', _beatChoke || _e); fBtn.classList.toggle('fx-echo', _e); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red, FX in its own colour (as on the tracks)
+  try { _syncBeatEcho(); } catch (e) {}
   const rBtn = document.getElementById('beatCtrlRand');
   if (rBtn) { rBtn.classList.toggle('rand-auto', _beatAutoRandActive); rBtn.textContent = _beatAutoRandActive ? 'A' : 'N'; }
   const bb = document.getElementById('beatBtn');
@@ -25165,11 +25203,21 @@ function setBeatReverbMix(v) {
 }
 
 // FX — 3-state cycle: off -> crunch on -> crunch+blast -> off, same as a track's FX button
+function _beatEchoOn() { return !!(_beatFx && !_beatPump); } // DRUMS' FX stop = the old drums FX (crunch) + the 16th-note echo
+function _syncBeatEcho() {
+  if (!ctx || !window._beatEchoGain || window._beatEchoGain.context !== ctx) return;
+  const now = ctx.currentTime;
+  window._beatEchoDelay.delayTime.setTargetAtTime(Math.min(1.9, stepDuration()), now, 0.02);
+  window._beatEchoGain.gain.cancelScheduledValues(now); window._beatEchoGain.gain.setTargetAtTime(_beatEchoOn() ? FX_ECHO_LEVEL : 0, now, 0.01);
+}
+setInterval(() => { try { if (ctx && window._beatEchoDelay && _beatEchoOn() && Math.abs(window._beatEchoDelay.delayTime.value - Math.min(1.9, stepDuration())) > 0.0005) _syncBeatEcho(); } catch (e) {} }, 250); // follows tempo
 function beatCtrlCycleFx() {
   _ensureBeatFxChain();
-  // off -> CHK -> BLAST (exactly the old FX+BLAST — CHK switched OFF there, per direct report that it sounded enveloped) -> off
-  if (!_beatChoke && !_beatPump) { _setBeatChoke(true); _beatFx = false; }
-  else if (!_beatPump) { _setBeatChoke(false); _beatPump = true; _beatFx = true; }
+  // off -> CHK -> BLAST (exactly the old FX+BLAST — CHK switched OFF there, per direct report that it sounded enveloped) -> FX
+  // (the old drums FX + a 16th-note echo, same as the track buttons' 4th stop, per direct request) -> off
+  if (!_beatChoke && !_beatPump && !_beatFx) { _setBeatChoke(true); _beatFx = false; }
+  else if (_beatChoke) { _setBeatChoke(false); _beatPump = true; _beatFx = true; }
+  else if (_beatPump) { _setBeatChoke(false); _beatPump = false; _beatFx = true; }
   else { _setBeatChoke(false); _beatFx = false; _beatPump = false; }
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
   _applyBeatVolWithDuck();
@@ -25181,9 +25229,9 @@ function beatCtrlCycleFx() {
 // below, which needs to land on a specific randomly-picked state in one go.
 function _setBeatFxState(state) {
   _ensureBeatFxChain();
-  _setBeatChoke(state === 1); // 1 = CHK, 2 = BLAST (the old FX+BLAST, no CHK)
+  _setBeatChoke(state === 1); // 1 = CHK, 2 = BLAST (the old FX+BLAST, no CHK), 3 = FX (crunch + echo)
   _beatFx = state >= 2;
-  _beatPump = state >= 2;
+  _beatPump = state === 2;
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setTargetAtTime(_beatFx ? 0.5 : 0, ctx.currentTime, 0.02);
   _applyBeatVolWithDuck();
   updateBeatCtrlRow();
@@ -25193,7 +25241,7 @@ function _setBeatFxState(state) {
 // by hand) and, per direct request, also rerolls REVERB ON BEAT alongside
 // it — same slider/logic _randomizeReverbSettings() already uses for that.
 function _randomizeDrumFxSettings() {
-  _setBeatFxState(Math.floor(Math.random() * 3));
+  _setBeatFxState(Math.floor(Math.random() * 4)); // FX (crunch + echo) in this quota too
   const _newBeatReverbMix = Math.random();
   setBeatReverbMix(_newBeatReverbMix);
   const brmb2 = document.getElementById('beatReverbMixBar'); if (brmb2) brmb2.value = Math.round(_newBeatReverbMix * 100);
