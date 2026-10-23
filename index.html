@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 21:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 21:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2905,7 +2905,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 21:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 21:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9893,17 +9893,26 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
   const prevVoice = _plunkActiveVoice[tr];
   if (prevVoice && prevVoice.endTime > time) {
     try {
-      prevVoice.ampEnv.gain.cancelScheduledValues(time);
-      prevVoice.ampEnv.gain.setValueAtTime(prevVoice.ampEnv.gain.value, time);
-      prevVoice.ampEnv.gain.linearRampToValueAtTime(0.0001, time + 0.006);
-      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.008); } catch(e) {} });
+      // CLIPPING FIX (same bug JAMES / PULSE / DOUBLE BASS had), per direct report: the old steal read ampEnv.gain.value — the
+      // level NOW, not at `time` (up to 1s later with the lookahead) — and jumped to it: a spike on every overlapping note.
+      // The outgoing voice now fades on its own output node (flat 1 there), 6ms to zero.
+      const of = prevVoice.outFade;
+      if (of) {
+        if (typeof of.gain.cancelAndHoldAtTime === 'function') of.gain.cancelAndHoldAtTime(time); else { of.gain.cancelScheduledValues(time); of.gain.setValueAtTime(1, time); }
+        of.gain.linearRampToValueAtTime(0, time + 0.006);
+      }
+      prevVoice.oscs.forEach(o => { try { o.stop(time + 0.012); } catch(e) {} });
     } catch(e) {}
   }
-  const dest = getSynthConnectNode(tr);
+  const outFade = ctx.createGain(); outFade.connect(getSynthConnectNode(tr));
+  const dest = outFade;
   const _blastAtten = trackPump[tr] ? 0.2661 : 1; // -11.5dB when BLAST is on this track (another -1.5dB, per direct request; was -10dB)
   const _fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const _fxOrBlastAtten = (_fxOn || trackPump[tr]) ? 0.8 : 1; // -20% per direct request, whenever FX or FX BLAST is engaged on this track — stacks with _blastAtten above when BLAST specifically is on
-  const vel = (isAccent ? 1.601 : 1.155) * _blastAtten * _fxOrBlastAtten; // +3dB on top (was too quiet without FX)
+  // ...and its accents hit the safety soft-clip at ~1.6 (it's after a tanh shaper, so the voice is near full-scale already) —
+  // squashed flat by the clip on every accent. Now at 0.35 of that into the clip (peaks ~0.56, its clean side); the track trim
+  // gives back +6dB after it (getSourceTrimGain), landing about where the clip's ceiling used to hold it — same loudness, no crunch.
+  const vel = 0.35 * (isAccent ? 1.601 : 1.155) * _blastAtten * _fxOrBlastAtten; // +3dB on top (was too quiet without FX)
   _plunkGlide[tr] = freq;
 
   // Distorted sawtooth through a tight bandpass — nasal, aggressive
@@ -9937,8 +9946,9 @@ function playPlunkBass(freq, durSec, isAccent, time, tr) {
   mix.connect(bp); bp.connect(ws); ws.connect(ampEnv); ampEnv.connect(dest);
   const stopAtPlunk = time + sustainEnd + tail + 0.05;
   [osc1, osc2].forEach(o => { o.start(time); o.stop(stopAtPlunk); });
-  osc1.onended = () => { try { mix.disconnect(); bp.disconnect(); ws.disconnect(); ampEnv.disconnect(); } catch(e) {} };
-  _plunkActiveVoice[tr] = { ampEnv, oscs: [osc1, osc2], endTime: stopAtPlunk };
+  outFade.gain.setValueAtTime(1, time); outFade.gain.setValueAtTime(1, stopAtPlunk - 0.012); outFade.gain.linearRampToValueAtTime(0, stopAtPlunk - 0.002);
+  osc1.onended = () => { try { mix.disconnect(); bp.disconnect(); ws.disconnect(); ampEnv.disconnect(); setTimeout(() => { try { outFade.disconnect(); } catch (e) {} }, 300); } catch(e) {} };
+  _plunkActiveVoice[tr] = { ampEnv, outFade, oscs: [osc1, osc2], endTime: stopAtPlunk };
 }
 
 // ── Double Bass: acoustic upright — triangle+sub fundamental, a noise pluck
@@ -12050,7 +12060,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
+  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2 /* PUNK BASS: the same — see playPlunkBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -12086,7 +12096,11 @@ function getSidechainDuckGain(tr, dest) {
 // a bar in busy patterns, with or without FX/BLAST. Now the gain is HELD wherever it is at that moment and ramps down from
 // there — never a jump up. (Old behaviour kept only for browsers without cancelAndHoldAtTime.)
 function _duckHold(param, t) {
-  if (typeof param.cancelAndHoldAtTime === 'function') { try { param.cancelAndHoldAtTime(t); return; } catch (e) {} }
+  // ...but it must still come back UP to full for each new hit (the duck's whole shape — a hit lands at full level, then dips —
+  // and in busy patterns, hits every 16th, a duck that only ever dipped from where it was never recovered: the ducked tracks,
+  // basses ducking themselves included, sat at ~10% — PUNK BASS measured 0.12 instead of ~1). So: held where it is, then a
+  // quick 4ms rise back to full — a smooth swell instead of the old instant jump — then the duck's own dip.
+  if (typeof param.cancelAndHoldAtTime === 'function') { try { param.cancelAndHoldAtTime(t); param.linearRampToValueAtTime(1, t + 0.004); return; } catch (e) {} }
   param.cancelScheduledValues(t); param.setValueAtTime(1, t);
 }
 function duckSidechainTracks(t) {
