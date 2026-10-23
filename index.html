@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-23 06:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-23 06:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1065,8 +1065,8 @@ html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
 html body:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-decay { background: var(--vbase, var(--play-flash-color, #f17d21)) !important; background-image: linear-gradient(to right, var(--vbase, var(--play-flash-color, #f17d21)) 0%, var(--vbase, var(--play-flash-color, #f17d21)) 15%, var(--vtip, var(--vbase, var(--play-flash-color, #f17d21))) 100%) !important; animation: none !important; } /* BASE -> LOUD by the real level (--vtip, mixed in JS) — see _fillTip */ /* GRADIENT to white at the tip, by the track's real level (--vw), per direct request */
 html body .track-vol-bar .track-vol-tip { z-index: 5; }
-/* 10-SEGMENT METER, per direct request: the SET volume fill div (left edge to the fader) is always cut into ten equal segments;
-   the level lights whole segments, unlit ones are clear. Colours step from LOW to the loudness colour at the top lit one.
+/* 10-SEGMENT METER, per direct request: the whole VOL SLIDER (the full bar, not the fill — whatever the fader / level) is cut
+   into ten equal, fixed segments; the level lights whole segments from the left, unlit ones are clear. Colours step from LOW to the loudness colour at the top lit one.
    --vgrad (built by _fillSegGradient from _volBangerLoop) paints them — no scaling, so the segments never change size. */
 html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid,
 html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.flash-pulse-hit,
@@ -1074,7 +1074,7 @@ html body.vol-banger:not(.fill-decay-bg) .track-vol-bar .track-vol-fill-solid.fl
   transform: none !important; /* the fill div stays its set size (the fader position); the level only lights its segments */
   background: transparent !important;
   background-image: var(--vgrad, none) !important;
-  background-size: 100% 100% !important;
+  background-size: var(--vbarw, 100%) 100% !important; /* the segment pattern is laid out over the WHOLE vol slider's width */
   background-repeat: no-repeat !important; background-position: left center !important;
   box-shadow: none !important; /* the old glow box sat round the whole bar, gaps and all — each segment carries its own glow instead */
   filter: drop-shadow(0 0 calc(3px * var(--fillglow, 1)) var(--vbase, var(--play-flash-color, #f17d21))) !important;
@@ -2888,7 +2888,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 06:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-23 06:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -12913,9 +12913,12 @@ function _volBangerLoop(now) {
       vbar.style.setProperty('--vb', _vbLevels[tr].toFixed(3));
       if (!(typeof playing !== 'undefined' && playing)) _vbWhite[tr] *= 0.8; // stopped: the white tip fades away
       { const w = _vbWhite[tr] < 0.01 ? 0 : _vbWhite[tr]; const amt = Math.round(Math.pow(w, 0.6) * 20) / 20; // a curve, so ordinary hits clearly show it; only loud ones reach the full LOUD colour
-        const n = _vbLevels[tr] < 0.005 ? 0 : Math.min(10, Math.ceil(_vbLevels[tr] * 10 - 1e-6)); // lit segments
-        const key = n + '|' + amt + '|' + _fillBaseNow().join(',') + '|' + (window._fillLoudHex || '');
-        if (vbar._vgKey !== key) { vbar._vgKey = key; vbar.style.setProperty('--vbq', (n / 10).toFixed(1)); vbar.style.setProperty('--vgrad', _fillSegGradient(n, amt)); } }
+        // SEGMENTS are tenths of the WHOLE vol slider: the fill reaches level x fader position of the bar's width
+        const t = performance.now(); if (!vbar._bwT || t - vbar._bwT > 1000) { vbar._bwT = t; vbar._bw = vbar.clientWidth || 0; vbar.style.setProperty('--vbarw', vbar._bw + 'px'); }
+        const fp = document.body.classList.contains('vol-test') ? 1 : Math.max(0, Math.min(1, (parseFloat(vbar.style.getPropertyValue('--fill-pct')) || 0) / 100));
+        const n = _vbLevels[tr] < 0.005 ? 0 : Math.max(1, Math.min(10, Math.ceil(_vbLevels[tr] * fp * 10 - 1e-6))); // lit segments
+        const key = n + '|' + amt + '|' + _fillBaseNow().join(',') + '|' + (window._fillLoudHex || '') + '|' + vbar._bw;
+        if (vbar._vgKey !== key) { vbar._vgKey = key; vbar.style.setProperty('--vgrad', _fillSegGradient(n, amt)); } }
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
     }
   }
