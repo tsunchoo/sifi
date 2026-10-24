@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 21:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 22:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2937,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 21:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 22:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7529,9 +7529,8 @@ function fireStepAudio(step, t) {
           doKick  = (bstep === 0 || bstep === 8);
           doSnare = (bstep === 4);
         } else if (_beatType === 'soca') {
-          // SOCA, per direct request (screengrab): kick in a double tresillo — 1, 1a, 2&, 3, 3a, 4& (16th steps 0 3 6 8 11 14) — and
-          // snare on 2& and 4e (steps 6 13 — the first moved from 1&, per direct request); only the kicks on 1 and 3 are downbeats, the rest below
-          doKick  = (bstep === 0 || bstep === 8);
+          doKick  = (bstep === 0);
+          doHat   = (bstep === 0 || bstep === 4 || bstep === 8 || bstep === 12); // SOCA rewritten from a new screengrab, per direct request — see the off-beat half below
         } else if (_beatType === 'charlie') {
           // CHARLIE, per direct request (screengrab): kick on 1 (the 1&, 2&, 3&, 4& kicks handled below), snare on 2+4 — the kick
           // on 3 (the bar's 4th kick) deleted, per direct request
@@ -7634,8 +7633,10 @@ function fireStepAudio(step, t) {
         if (bstep === 14) fireBeatKick(t);  // step 15 (4&) — was step 12
         if (bstep === 11) playSnare(t);     // step 12 — was step 14
       } else if (_beatType === 'soca') {
-        if (bstep === 3 || bstep === 6 || bstep === 11 || bstep === 14) fireBeatKick(t); // SOCA's off-beat kicks
-        if (bstep === 6 || bstep === 13) playSnare(t);                                   // SOCA's snares (2& — moved a quarter note later from 1&, per direct request — and 4e)
+        // SOCA, per direct request (new screengrab): hats 0 3 4 8 11 12, snare 6 14, kick 0 3 9 11 (16th steps, 0-based)
+        if (bstep === 3 || bstep === 9 || bstep === 11) fireBeatKick(t); // off-beat kicks (the kick on 0 is the downbeat above)
+        if (bstep === 6 || bstep === 14) playSnare(t);
+        if (bstep === 3 || bstep === 11) playSynthHihat(false, t, -1);   // off-beat hats (0 4 8 12 are the downbeats above)
       } else if (_beatType === 'charlie') {
         if (bstep === 2 || bstep === 10) fireBeatKick(t); // CHARLIE: a kick on every "&" — 16th steps 2 6 10 14
         if (bstep === 6 || bstep === 14) fireBeatKick(t, 0.5); // ...the 3rd and the last kick of the bar at HALF velocity, per direct request
