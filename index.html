@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 18:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 18:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -700,11 +700,11 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
 }
 .beat-type-menu.visible { display: flex; }
 .beat-type-menu-inner {
-  background: #f5f0e8; padding: 24px 24px 44px; /* +20px at the bottom in all (two +10px requests) */
+  background: #f5f0e8; padding: 24px 24px 10px; /* 10px under the last row (JAZZ), per direct request (was 44px) */
   min-width: min(340px, 90vw);
   display: flex; flex-direction: column; gap: 0;
   box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-  transform: translateY(60px);
+  transform: translateY(clamp(0px, calc((100svh - 660px) / 2 - 8px), 60px)); /* the old 60px drop, but never so far the bottom row (JAZZ) runs off the screen, per direct request */
 }
 .beat-ctrl-row { display: flex; gap: 6px; width: 100%; }
 .beat-ctrl-row .track-ctrl-icon-btn { width: auto; flex: 1; height: 40px; }
@@ -721,6 +721,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
   -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
   touch-action: manipulation;
 }
+.beat-type-blank { background: #555; min-height: 100%; pointer-events: none; } /* the grid's empty filler button — inert */
 .beat-type-item.current, .beat-type-item.drag-hover { background: #111; color: #adff00; }
 #beatBtn.menu-open { background: var(--top-row-pressed-bg) !important; }
 #beatBtn.menu-open:active { opacity: 1; } /* same reasoning as the other two black-on-hold fixes above */
@@ -2932,7 +2933,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 18:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 18:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3082,15 +3083,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="beatTypeMenu" class="beat-type-menu">
   <div class="beat-type-menu-inner">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:11px;">DRUMS</div><!-- 5px less under the title, per direct request -->
-    <div style="display:block;width:100%;margin-bottom:22px;position:relative;z-index:2;">
-      <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;">DRUMS VOL</div>
-      <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="margin-top:24px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
+    <div style="display:block;width:100%;margin-bottom:14px;position:relative;z-index:2;"><!-- DRUMS VOL label removed and less space round the slider, per direct request -->
+      <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="margin-top:14px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
     </div>
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
       <button class="shift-btn" id="beatCtrlShift"><span class="beat-offset-glyph">&lt;</span></button>
       <button class="track-ctrl-icon-btn fx-btn" id="beatCtrlFx">FX</button>
-      <button class="track-ctrl-icon-btn rand-btn" id="beatCtrlRand">N</button>
+      <button class="track-ctrl-icon-btn rand-btn" id="beatCtrlRand">A</button>
     </div>
     <div class="beat-type-menu-grid">
       <div class="beat-type-item" data-beat="disco">DISCO</div>
@@ -3110,6 +3110,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div class="beat-type-item" data-beat="boogie">SHUFFLE</div>
       <div class="beat-type-item" data-beat="bossa">BOSSA</div>
       <div class="beat-type-item" data-beat="jazz">JAZZ</div>
+      <div class="beat-type-item" data-beat="soca">SOCA</div><!-- takes the blank filler's place -->
     </div>
   </div>
 </div>
@@ -7509,6 +7510,10 @@ function fireStepAudio(step, t) {
           // Kick on 1+3 (2& handled below), snare on 2 (3& handled below)
           doKick  = (bstep === 0 || bstep === 8);
           doSnare = (bstep === 4);
+        } else if (_beatType === 'soca') {
+          // SOCA, per direct request (screengrab): kick in a double tresillo — 1, 1a, 2&, 3, 3a, 4& (16th steps 0 3 6 8 11 14) — and
+          // snare on 1& and 4e (steps 2 13); only the kicks on 1 and 3 are downbeats, the rest are handled below
+          doKick  = (bstep === 0 || bstep === 8);
         } else if (_beatType === 'charlie') {
           // CHARLIE, per direct request (screengrab): kick on 1 (the 1&, 2&, 3&, 4& kicks handled below), snare on 2+4 — the kick
           // on 3 (the bar's 4th kick) deleted, per direct request
@@ -7610,6 +7615,9 @@ function fireStepAudio(step, t) {
         if (bstep === 6) fireBeatKick(t);   // step 7  (2&)
         if (bstep === 14) fireBeatKick(t);  // step 15 (4&) — was step 12
         if (bstep === 11) playSnare(t);     // step 12 — was step 14
+      } else if (_beatType === 'soca') {
+        if (bstep === 3 || bstep === 6 || bstep === 11 || bstep === 14) fireBeatKick(t); // SOCA's off-beat kicks
+        if (bstep === 2 || bstep === 13) playSnare(t);                                   // SOCA's snares (1&, 4e)
       } else if (_beatType === 'charlie') {
         if (bstep === 2 || bstep === 10) fireBeatKick(t); // CHARLIE: a kick on every "&" — 16th steps 2 6 10 14
         if (bstep === 6 || bstep === 14) fireBeatKick(t, 0.5); // ...the 3rd and the last kick of the bar at HALF velocity, per direct request
@@ -17346,6 +17354,7 @@ function _snapCascadeGhosts() {
   window._cascadeGhostSnap = out;
 }
 function randAll(mode, opts) {
+  window._allocHistory = []; // a new pattern: the song-name FX/REVERB swipe history belongs to the old one
   { // RANDO BUTTON REVERB / FX rows OFF: every track keeps the R / FX it had before this new pattern
     const keepR = !!window._randoKeepRev, keepF = !!window._randoKeepFx; window._randoKeepRev = window._randoKeepFx = false;
     if (keepR || keepF) {
@@ -17478,7 +17487,7 @@ function randAll(mode, opts) {
   // FX+BLAST) and REVERB ON BEAT, same idea as RANDOMIZE 8-BIT MIX above.
   if (window._randomizeDrumFx) _randomizeDrumFxSettings();
   if (!_beatTypeLocked && window._randomizeBeatType !== false) { // RANDOMIZE BEAT TYPE (RANDOMIZE MENU toggle, on by default)
-    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
+    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'soca', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
     // really only right at a tempo RAND itself would have picked for
     // them — with TEMPO LOCK on, RAND can't also adjust tempo to suit
@@ -19170,6 +19179,7 @@ function _ensurePatternReverb() {
   const rmv = document.getElementById('reverbMixVal'); if (rmv) rmv.textContent = '35';
 }
 function restoreState(snap, opts) {
+  window._allocHistory = []; // a new pattern: the song-name FX/REVERB swipe history belongs to the old one
   opts = opts || {};
   try { _randInstTimers.forEach(clearTimeout); _randInstTimers = []; } catch (e) {} // staggered instrument swaps still waiting must not land on top of a restored pattern
   _clearAllSolo(); // a restored pattern (RECALL, save slots, LOAD TAPE) replaces every track — same reasoning as randAll()
@@ -23352,9 +23362,14 @@ function setTonalPercBalance(v) {
   const nb = document.getElementById('nameBar');
   if (!nb) return;
   let _lastTapTime = 0; // double-tap-to-save timing — the hold-for-STAR-MAP is gone, per direct request
-  nb.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+  let _sx = null, _sy = null;
+  nb.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; _sx = t.clientX; _sy = t.clientY; }, { passive: false });
   nb.addEventListener('touchend', e => {
     e.preventDefault();
+    // SWIPE RIGHT = redistribute FX / REVERB (one more each time, up to 6); SWIPE LEFT = put the previous ones back
+    const t = e.changedTouches && e.changedTouches[0];
+    if (t && _sx !== null) { const dx = t.clientX - _sx, dy = t.clientY - _sy; _sx = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { _lastTapTime = 0; if (dx > 0) _allocSwipeNew(); else _allocSwipeBack(); return; } }
     // Double-tap-to-save (touchstart's preventDefault stops the browser synthesising a dblclick, so it's raw touchend timing)
     const now = Date.now();
     if (now - _lastTapTime < 350) { _lastTapTime = 0; _songNameSave(); }
@@ -23366,7 +23381,68 @@ function setTonalPercBalance(v) {
     e.preventDefault();
     _songNameSave();
   });
+  // desktop mouse fallback for the swipes
+  let _mx = null, _my = null;
+  nb.addEventListener('mousedown', e => { _mx = e.clientX; _my = e.clientY; });
+  nb.addEventListener('mouseup', e => { if (_mx === null) return; const dx = e.clientX - _mx, dy = e.clientY - _my; _mx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { if (dx > 0) _allocSwipeNew(); else _allocSwipeBack(); } });
 })();
+// FX / REVERB REDISTRIBUTE, per direct request — SWIPE RIGHT on the song name: the current pattern's FX-button stops (CHK / BLAST /
+// FX) and R (reverb) designations are dealt out afresh across its tracks (unlocked tracks with notes), with ONE MORE designation
+// than it had each time, up to 6 in all. The ones that land flash in the PLAY FLASH colour as they come in, like new notes.
+// SWIPE LEFT puts the previous designations back (each swipe right is remembered), flashing the same way.
+window._allocHistory = [];
+function _allocSnap() { const o = []; for (let tr = 0; tr < NUM_TRACKS; tr++) o.push({ chk: !!trackChink[tr], pump: !!trackPump[tr], fx: !!(trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0)), rev: !!trackDelay[tr] }); return o; }
+function _allocFxState(a) { return a.chk ? 'chk' : a.pump ? 'blast' : a.fx ? 'fx' : 'off'; }
+function _allocApply(snap) {
+  const changed = [];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const a = snap[tr], cur = _allocSnap()[tr], st = _allocFxState(a);
+    if (_allocFxState(cur) !== st) {
+      if (st === 'chk') { trackPump[tr] = false; trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); _setChink(tr, true); }
+      else { if (trackChink[tr]) _setChink(tr, false); trackPump[tr] = st === 'blast'; trackFx[tr] = (st === 'blast' || st === 'fx') ? { x: 0.5, y: 0.5 } : { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); }
+      if (st !== 'off') changed.push(`fxbtn-${tr}`);
+    }
+    if (cur.rev !== a.rev) { _setTrackReverb(tr, a.rev); if (a.rev) changed.push(`delaybtn-${tr}`); }
+  }
+  _queueFxBtnSync(); markModified();
+  changed.forEach((id, i) => setTimeout(() => _allocFlash(id), i * 70)); // they come in one after another
+}
+function _allocFlash(id) {
+  const b = document.getElementById(id); if (!b) return;
+  if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+  const ov = document.createElement('span');
+  ov.style.cssText = 'position:absolute;inset:0;background:var(--play-flash-color,#fff);pointer-events:none;z-index:5;box-shadow:0 0 10px var(--play-flash-color,#fff);border-radius:inherit;';
+  b.appendChild(ov);
+  const an = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: Math.max(450, stepDuration() * 4 * 1000 * 0.9), easing: 'ease-out', fill: 'forwards' });
+  an.onfinish = () => ov.remove(); setTimeout(() => ov.remove(), 3000);
+}
+function _allocSwipeNew() {
+  const before = _allocSnap();
+  const elig = []; for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && grid[tr].some(v => v > 0)) elig.push(tr);
+  if (!elig.length) return;
+  const count = before.reduce((n, a) => n + (_allocFxState(a) !== 'off' ? 1 : 0) + (a.rev ? 1 : 0), 0);
+  const target = Math.min(6, count + 1, elig.length * 2);
+  // every possible (track, kind) slot, shuffled; the first `target` win. FX kind picked per track: CHK where CHK is allowed, else
+  // BLAST / FX at random (never on MAGIC, which keeps its FX off). Reverb never when BATTERY SAVER refuses it.
+  const slots = [];
+  elig.forEach(tr => { if (trackInstruments[tr] !== 'magic') slots.push([tr, 'fx']); if (!window._batterySaverOn) slots.push([tr, 'rev']); });
+  for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
+  const next = before.map((a, tr) => elig.includes(tr) ? { chk: false, pump: false, fx: false, rev: false } : Object.assign({}, a));
+  slots.slice(0, target).forEach(([tr, kind]) => {
+    if (kind === 'rev') { next[tr].rev = true; return; }
+    const chkOk = _chinkRandOk(tr) && !_NO_RAND_CHK.has(trackInstruments[tr]);
+    const kinds = chkOk ? ['chk', 'blast', 'fx'] : ['blast', 'fx'];
+    const k = kinds[Math.floor(Math.random() * kinds.length)];
+    next[tr].chk = k === 'chk'; next[tr].pump = k === 'blast'; next[tr].fx = k === 'blast' || k === 'fx';
+  });
+  window._allocHistory.push(before); if (window._allocHistory.length > 20) window._allocHistory.shift();
+  _allocApply(next);
+}
+function _allocSwipeBack() {
+  const prev = window._allocHistory.pop(); if (!prev) { try { _showNotice('NOTHING TO GO BACK TO'); } catch (e) {} return; }
+  _allocApply(prev);
+}
 
 
 // Full in-memory reset — puts everything back to exactly how it looked the
@@ -25349,7 +25425,7 @@ function updateBeatCtrlRow() {
   if (fBtn) { const _e = _beatEchoOn(); fBtn.classList.toggle('on', _beatChoke || _e); fBtn.classList.toggle('fx-echo', _e); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red, FX in its own colour (as on the tracks)
   try { _syncBeatEcho(); } catch (e) {}
   const rBtn = document.getElementById('beatCtrlRand');
-  if (rBtn) { rBtn.classList.toggle('rand-auto', _beatAutoRandActive); rBtn.textContent = _beatAutoRandActive ? 'A' : 'N'; }
+  if (rBtn) { rBtn.classList.toggle('rand-auto', _beatAutoRandActive); rBtn.textContent = 'A'; } // always 'A' now (lit when AUTO is on), per direct request
   const bb = document.getElementById('beatBtn');
   if (bb) bb.classList.toggle('beat-auto-active', _beatAutoRandActive);
   const bbText = document.getElementById('beatBtnText');
@@ -25473,7 +25549,7 @@ function _randomizeDrumFxSettings() {
 // R (rand) — single tap picks a new BEAT type once; double tap toggles an
 // auto mode that picks a new one every 4 bars, same shape as the per-track
 // randomize button and the top-row RAND AUTO loop.
-const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie'];
+const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie'];
 function randomizeBeatType() {
   // SHUFFLE (boogie) has a particular swing/timing feel that's really
   // only right at a tempo RAND itself would have picked for it — with
@@ -25511,7 +25587,11 @@ function onBeatCtrlRandTap() {
     _beatAutoRandBarCount = 0;
     const _bbOff = document.getElementById('beatBtn'); if (_bbOff) _bbOff.classList.remove('beat-auto-active');
   } else {
-    randomizeBeatType(); // plain tap — entering auto mode is a hold now, handled in beatMenuHighlightUnder
+    // A (was N), per direct request: a single tap now puts the drums straight into AUTO (a new beat type every 4 bars) — the
+    // same as the old hold did — instead of picking one new beat once. Another tap turns it off.
+    _beatAutoRandActive = true;
+    _beatAutoRandBarCount = 0;
+    if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
   }
   updateBeatCtrlRow();
 }
