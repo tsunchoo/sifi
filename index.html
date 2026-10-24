@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 01:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 01:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2906,7 +2906,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 01:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 01:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3818,7 +3818,8 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <button id="fillHighWhiteBtn" class="fill-high-opt" onclick="_setFillLoudCustom(false)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#fff;color:#111;">WHITE</button>
         <button id="fillHighPickBtn" class="fill-high-opt" onclick="_setFillLoudCustom(true)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#ddd;color:#111;">PICK COLOUR</button>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input type="checkbox" id="fillHighTapeToggle" onchange="window._fillHighTape = this.checked; _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TAPE GRAPHIC</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input type="checkbox" id="fillHighTapeToggle" onchange="window._fillHighTape = this.checked; if (this.checked) { window._fillHighStop = false; const o = document.getElementById('fillHighStopToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TAPE GRAPHIC</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input type="checkbox" id="fillHighStopToggle" onchange="window._fillHighStop = this.checked; if (this.checked) { window._fillHighTape = false; const o = document.getElementById('fillHighTapeToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TOP ROW HIGHLIGHT (STOP GLYPH)</label>
       <div id="fillLoudSliders" style="display:none;flex-direction:column;gap:0;">
         <input type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
         <input type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
@@ -12896,13 +12897,19 @@ function _fillSyncRoot() {
   const b = window._fillHighOnly ? _fillHighNow() : _fillBaseNow(), r = document.documentElement.style; // (the fill's glow takes the colour it's showing)
   r.setProperty('--vbase', `rgb(${b[0]},${b[1]},${b[2]})`);
   const ls = document.getElementById('fillLoudSwatch'); if (ls) { const h = _fillHighNow(); ls.style.background = `rgb(${h[0]},${h[1]},${h[2]})`; }
-  document.querySelectorAll('.fill-high-opt').forEach(el => { el.style.opacity = window._fillHighTape ? '0.4' : ''; }); // WHITE / PICK are overridden while TAPE is ticked
+  document.querySelectorAll('.fill-high-opt').forEach(el => { el.style.opacity = (window._fillHighTape || window._fillHighStop) ? '0.4' : ''; }); // WHITE / PICK are overridden while TAPE is ticked
   document.querySelectorAll('.fill-low-opt').forEach(el => el.classList.toggle('sel', el.dataset.v === window._fillLowVar));
   { const w = document.getElementById('fillHighWhiteBtn'), p = document.getElementById('fillHighPickBtn'); if (w) w.classList.toggle('sel', !window._fillLoudHex); if (p) p.classList.toggle('sel', !!window._fillLoudHex); }
 }
 setInterval(() => { _fillSyncRoot(); }, 500); // the LOW colour follows the palette (modes, WILD, colour changes)
-function _fillHighNow() { // HIGH: the tape graphic's colour (checkbox), else the picked colour, else white
+let _fillStopRgb = null, _fillStopT = 0;
+function _fillHighNow() { // HIGH: the tape graphic's colour / the top-row highlight (checkboxes), else the picked colour, else white
   if (window._fillHighTape) { const t = _hexRgb(window._tapeColNow); if (t) return t; }
+  if (window._fillHighStop) { // the STOP glyph's colour while playing (#playBtnMask: --play-hl, else the pressed top-row text colour), per direct request
+    const now = performance.now();
+    if (!_fillStopRgb || now - _fillStopT > 400) { _fillStopT = now; const cs = _rootCS(); const c = _cssRgb((cs.getPropertyValue('--play-hl') || '').trim() || (cs.getPropertyValue('--top-row-pressed-text-color') || '').trim()); if (c) _fillStopRgb = c; }
+    if (_fillStopRgb) return _fillStopRgb;
+  }
   return _hexRgb(window._fillLoudHex) || [255, 255, 255];
 }
 function _fillTip(amt) {
@@ -13050,7 +13057,7 @@ function _volBangerLoop(now) {
         const fp = document.body.classList.contains('vol-test') ? 1 : Math.max(0, Math.min(1, (parseFloat(vbar.style.getPropertyValue('--fill-pct')) || 0) / 100));
         const n = _vbLevels[tr] < 0.005 ? 0 : Math.max(1, Math.min(10, Math.ceil(_vbLevels[tr] * fp * 10 - 1e-6))); // lit segments
         const r = _vbLevels[tr] < 0.005 ? 0 : Math.round(_vbLevels[tr] * fp * 200) / 200; // continuous reach (not SEGMENTED)
-        const key = ('c' + r) + '|' + (window._fillGrad !== false) + '|' + amt + '|' + _fillBaseNow().join(',') + '|' + (window._fillLoudHex || '') + '|' + (window._fillHighTape ? window._tapeColNow : '') + '|' + !!window._fillSwap + '|' + !!window._fillHighOnly + '|' + vbar._bw;
+        const key = ('c' + r) + '|' + (window._fillGrad !== false) + '|' + amt + '|' + _fillBaseNow().join(',') + '|' + (window._fillLoudHex || '') + '|' + (window._fillHighTape ? window._tapeColNow : '') + '|' + (window._fillHighStop ? (_fillStopRgb || []).join(',') : '') + '|' + !!window._fillSwap + '|' + !!window._fillHighOnly + '|' + vbar._bw;
         if (vbar._vgKey !== key) { vbar._vgKey = key; vbar.style.setProperty('--vgrad', _fillSegGradient(n, amt, r)); } }
       vbar.classList.toggle('vb-silent', _vbLevels[tr] < 0.005);
     }
@@ -22549,15 +22556,15 @@ function _applyRainbowState(m) {
   if (m.palette) _applyDisplayPalette(m.palette);
   // VOL FILL colours per mode (m.fill = { low: palette var, high: 'white' | 'tape' | hex, grad }), remembered / restored like the rest
   try {
-    const cur = () => ({ low: window._fillLowVar, loud: window._fillLoudHex, tape: !!window._fillHighTape, grad: window._fillGrad !== false, swap: !!window._fillSwap, highOnly: !!window._fillHighOnly });
-    const put = f => { window._fillLowVar = f.low || '--neutral-top'; window._fillLoudHex = f.loud || null; window._fillHighTape = !!f.tape; window._fillGrad = f.grad !== false; window._fillSwap = !!f.swap; { const st = document.getElementById('fillSwapToggle'); if (st) st.checked = window._fillSwap; } window._fillHighOnly = !!f.highOnly; { const ho = document.getElementById('fillHighOnlyToggle'); if (ho) ho.checked = window._fillHighOnly; }
+    const cur = () => ({ low: window._fillLowVar, loud: window._fillLoudHex, tape: !!window._fillHighTape, stop: !!window._fillHighStop, grad: window._fillGrad !== false, swap: !!window._fillSwap, highOnly: !!window._fillHighOnly });
+    const put = f => { window._fillLowVar = f.low || '--neutral-top'; window._fillLoudHex = f.loud || null; window._fillHighTape = !!f.tape; window._fillHighStop = !!f.stop; { const so = document.getElementById('fillHighStopToggle'); if (so) so.checked = window._fillHighStop; } window._fillGrad = f.grad !== false; window._fillSwap = !!f.swap; { const st = document.getElementById('fillSwapToggle'); if (st) st.checked = window._fillSwap; } window._fillHighOnly = !!f.highOnly; { const ho = document.getElementById('fillHighOnlyToggle'); if (ho) ho.checked = window._fillHighOnly; }
       const gt = document.getElementById('fillGradToggle'); if (gt) gt.checked = window._fillGrad; const tt = document.getElementById('fillHighTapeToggle'); if (tt) tt.checked = window._fillHighTape;
       const sl = document.getElementById('fillLoudSliders'); if (sl) sl.style.display = window._fillLoudHex ? 'flex' : 'none';
       if (typeof _fillReadT0 === 'function') _fillReadT0(); if (typeof _fillSyncRoot === 'function') _fillSyncRoot(); if (typeof _fillDirty === 'function') _fillDirty(); };
     if (m.fill) { if (window._fillBeforeMode === undefined) window._fillBeforeMode = cur();
       const base = Object.assign({}, window._fillBeforeMode), f = m.fill; // a mode only changes the fill settings it names (LIVE: just the gradient), the rest stay as they were
       if (f.low !== undefined) base.low = f.low;
-      if (f.high !== undefined) { base.loud = (f.high && f.high[0] === '#') ? f.high : null; base.tape = f.high === 'tape'; }
+      if (f.high !== undefined) { base.loud = (f.high && f.high[0] === '#') ? f.high : null; base.tape = f.high === 'tape'; base.stop = f.high === 'stop'; }
       if (f.grad !== undefined) base.grad = f.grad;
       if (f.swap !== undefined) base.swap = f.swap;
       if (f.highOnly !== undefined) base.highOnly = f.highOnly;
@@ -22727,7 +22734,7 @@ function _resetToBootState() {
     else if (el.type === 'radio') { if (bs.inputs[k] && !el.checked) { el.checked = true; fire(el); } }
     else if (el.type === 'range' || el.type === 'number' || el.type === 'color') { if (el.value !== bs.inputs[k]) { el.value = bs.inputs[k]; fire(el); } }
   });
-  try { window._fillLowVar = '--neutral-top'; window._fillGrad = true; window._fillLoudHex = null; window._fillHighTape = false; window._fillSwap = false; window._fillHighOnly = false; const fl = document.getElementById('fillLoudSliders'); if (fl) fl.style.display = 'none'; _fillReadT0(); _fillSyncRoot(); } catch (e) {} // FILL colours back to PLAY FLASH -> white
+  try { window._fillLowVar = '--neutral-top'; window._fillGrad = true; window._fillLoudHex = null; window._fillHighTape = false; window._fillHighStop = false; window._fillSwap = false; window._fillHighOnly = false; const fl = document.getElementById('fillLoudSliders'); if (fl) fl.style.display = 'none'; _fillReadT0(); _fillSyncRoot(); } catch (e) {} // FILL colours back to PLAY FLASH -> white
   const want = new Set(bs.classes.filter(c => !_RESET_LIVE_CLASSES.has(c)));
   [...document.body.classList].forEach(c => { if (!_RESET_LIVE_CLASSES.has(c) && !want.has(c)) document.body.classList.remove(c); });
   want.forEach(c => document.body.classList.add(c));
@@ -26315,7 +26322,7 @@ function snapshotDisplay() {
     cssVariables: vars,
     controls,
     // VOL FILL colours (SETTINGS), per direct request — which palette colour LOW uses (and what it is right now), and HIGH
-    volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--neutral-top', swapped: !!window._fillSwap, highOnly: !!window._fillHighOnly, gradient: window._fillGrad !== false, lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillHighTape ? 'tape' : (window._fillLoudHex || 'white'), highColourNow: (() => { const h = _fillHighNow(); return '#' + h.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); })() }; } catch (e) { return null; } })(),
+    volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--neutral-top', swapped: !!window._fillSwap, highOnly: !!window._fillHighOnly, gradient: window._fillGrad !== false, lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillHighTape ? 'tape' : window._fillHighStop ? 'stop' : (window._fillLoudHex || 'white'), highColourNow: (() => { const h = _fillHighNow(); return '#' + h.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); })() }; } catch (e) { return null; } })(),
     displayModeName: (() => { try { const m = _RAINBOW_CYCLE[window._rainbowIdx]; return m ? m.name : null; } catch (e) { return null; } })()
   };
   const text = JSON.stringify(snap, null, 2);
