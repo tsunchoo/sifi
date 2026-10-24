@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 19:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 20:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2933,7 +2933,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 19:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 20:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7518,7 +7518,7 @@ function fireStepAudio(step, t) {
           doSnare = (bstep === 4);
         } else if (_beatType === 'soca') {
           // SOCA, per direct request (screengrab): kick in a double tresillo — 1, 1a, 2&, 3, 3a, 4& (16th steps 0 3 6 8 11 14) — and
-          // snare on 1& and 4e (steps 2 13); only the kicks on 1 and 3 are downbeats, the rest are handled below
+          // snare on 2& and 4e (steps 6 13 — the first moved from 1&, per direct request); only the kicks on 1 and 3 are downbeats, the rest below
           doKick  = (bstep === 0 || bstep === 8);
         } else if (_beatType === 'charlie') {
           // CHARLIE, per direct request (screengrab): kick on 1 (the 1&, 2&, 3&, 4& kicks handled below), snare on 2+4 — the kick
@@ -7623,7 +7623,7 @@ function fireStepAudio(step, t) {
         if (bstep === 11) playSnare(t);     // step 12 — was step 14
       } else if (_beatType === 'soca') {
         if (bstep === 3 || bstep === 6 || bstep === 11 || bstep === 14) fireBeatKick(t); // SOCA's off-beat kicks
-        if (bstep === 2 || bstep === 13) playSnare(t);                                   // SOCA's snares (1&, 4e)
+        if (bstep === 6 || bstep === 13) playSnare(t);                                   // SOCA's snares (2& — moved a quarter note later from 1&, per direct request — and 4e)
       } else if (_beatType === 'charlie') {
         if (bstep === 2 || bstep === 10) fireBeatKick(t); // CHARLIE: a kick on every "&" — 16th steps 2 6 10 14
         if (bstep === 6 || bstep === 14) fireBeatKick(t, 0.5); // ...the 3rd and the last kick of the bar at HALF velocity, per direct request
@@ -23424,17 +23424,17 @@ function _allocFlash(id) {
   const an = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: Math.max(450, stepDuration() * 4 * 1000 * 0.9), easing: 'ease-out', fill: 'forwards' });
   an.onfinish = () => ov.remove(); setTimeout(() => ov.remove(), 3000);
 }
-// SWIPE ACKNOWLEDGED, per direct request: a soft band of extra lightness sweeps across the song name in the swipe's direction,
-// fading in and out — only lightness (white at low alpha), so the bar's own colour stays what it is.
+// SWIPE ACKNOWLEDGED, per direct request: a soft DARKER band sweeps across the song name in the swipe's direction, fading in
+// and out — only lightness (black at low alpha), so the bar's own colour stays what it is.
 function _nameSwipeFx(dir) {
   const nb = document.getElementById('nameBar'); if (!nb || typeof Element.prototype.animate !== 'function') return;
   if (getComputedStyle(nb).position === 'static') nb.style.position = 'relative';
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;';
   const band = document.createElement('div');
-  band.style.cssText = 'position:absolute;top:0;bottom:0;left:0;width:60%;background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.55), rgba(255,255,255,0));';
+  band.style.cssText = 'position:absolute;top:0;bottom:0;left:0;width:120%;background:linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.4), rgba(0,0,0,0));'; // a LOW-light now (darker), twice as wide, per direct request
   wrap.appendChild(band); nb.appendChild(wrap);
-  const from = dir > 0 ? '-70%' : '170%', to = dir > 0 ? '170%' : '-70%';
+  const from = dir > 0 ? '-100%' : '84%', to = dir > 0 ? '84%' : '-100%'; // (percent of the band, which is 1.2x the bar: fully off one side to fully off the other)
   const a = band.animate([{ transform: `translateX(${from})`, opacity: 0 }, { opacity: 1, offset: 0.35 }, { opacity: 1, offset: 0.65 }, { transform: `translateX(${to})`, opacity: 0 }], { duration: 520, easing: 'cubic-bezier(0.3, 0.6, 0.3, 1)' });
   a.onfinish = () => wrap.remove(); setTimeout(() => wrap.remove(), 1200);
 }
