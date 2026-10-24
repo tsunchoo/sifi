@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 21:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 21:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2577,6 +2577,8 @@ body.note-markers-circle .step-cell.split32::after {
 }
 /* legato: glow only on the playing cell — never lingers on cells the playhead has left (glow itself kept, per direct request) */
 html body .step-cell.step-cell.step-cell.legato-tail:not(.playing)::after, html body .step-cell.step-cell.step-cell.legato-start:not(.playing)::after { box-shadow: none !important; }
+/* LOCKED TRACK: its other buttons read as unavailable until unlocked, per direct request */
+html body .track-ctrl-row:has(.lock-btn.sweep-on) > button:not(.lock-btn) { opacity: 0.35 !important; filter: grayscale(1) !important; }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
 :root { --play-flash-color: #ffffff; --tglow: 0.5; --fillglow: 0; --rglow: 1.5; } /* VOL FILL GLOW default 0%, per direct request (a display mode can set its own — CLUB 300%) */ /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
@@ -2935,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 21:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 21:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5821,6 +5823,13 @@ window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; // DRUM MUS
 function _randoIsFull(c) { return !!(c && c.notes && c.shuffle); } // a whole new pattern (randAll)
 window._randoLast = null;
 // DOUBLE CLICK on >>: the whole screen except the >> button drops to grayscale for a flash (~0.12s), then eases back.
+// DOUBLE CLICK on >> always frees every track first: locked → unlocked, muted → unmuted, per direct request
+function _dblUnlockUnmuteAll() {
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr]) { try { _toggleTrackLock(tr); } catch (e) { trackSweep[tr] = false; } }
+    if (trackMuted[tr]) { trackMuted[tr] = false; try { updateTrackMute(tr); } catch (e) {} }
+  }
+}
 function _dblGrayFlash() {
   // PERF (WEIRD THING reports): filtering every element on the screen made the phone redraw everything twice right as the new
   // pattern was being built. Now it's ONE layer on top that blends whatever's under it to grey ('saturation' blend with a grey
@@ -18887,6 +18896,7 @@ function stopAllAutoRand() {
     if (_autoOffTapT && performance.now() - _autoOffTapT < 400) {
       _autoOffTapT = 0;
       try { _dblGrayFlash(); } catch (e) {}
+      try { _dblUnlockUnmuteAll(); } catch (e) {}
       btn.style.background = ''; btn.style.color = ''; btn.style.transform = ''; btn.style.transition = '';
       btn.classList.remove('btn-flash-blue', 'rand-pending-fast');
       _pressPulse('randBtn');
@@ -18919,6 +18929,7 @@ function stopAllAutoRand() {
       if (_playdoeTapTimer) {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
         try { _dblGrayFlash(); } catch (e) {} // everything but >> flashes grayscale, per direct request
+        try { _dblUnlockUnmuteAll(); } catch (e) {}
         // RANDO BUTTON: DOUBLE CLICK set to SHUFFLE INSTRUMENTS — a short asterisk turn and the swap, no new pattern
         const _dk = window._dblKey || 'dbl'; // DOUBLE CLICK, or SHAKE (its own column) — see _randDoubleTap
         if (!_randoIsFull(window._randoCfg[_dk])) { // not a whole new pattern: notes / instruments / extras on the current one
@@ -23427,6 +23438,7 @@ function _allocFxState(a) { return a.chk ? 'chk' : a.pump ? 'blast' : a.fx ? 'fx
 function _allocApply(snap) {
   const changed = [];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr]) continue; // LOCKED: its FX / reverb never change from a song-name swipe (either way), per direct request
     const a = snap[tr], cur = _allocSnap()[tr], st = _allocFxState(a);
     if (_allocFxState(cur) !== st) {
       if (st === 'chk') { trackPump[tr] = false; trackFx[tr] = { x: 0, y: 0 }; if (ctx) setFxActive(tr, trackFx[tr]); _setChink(tr, true); }
@@ -23466,7 +23478,7 @@ function _allocSwipeNew() {
   const before = _allocSnap();
   const elig = []; for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && grid[tr].some(v => v > 0)) elig.push(tr);
   if (!elig.length) return;
-  const count = before.reduce((n, a) => n + (_allocFxState(a) !== 'off' ? 1 : 0) + (a.rev ? 1 : 0), 0);
+  const count = before.reduce((n, a, tr) => n + (elig.includes(tr) ? (_allocFxState(a) !== 'off' ? 1 : 0) + (a.rev ? 1 : 0) : 0), 0); // LOCKED tracks' FX / reverb aren't counted in the quota, per direct request
   const target = Math.min(6, count + 1, elig.length * 2);
   // every possible (track, kind) slot, shuffled; the first `target` win. FX kind picked per track: CHK where CHK is allowed, else
   // BLAST / FX at random (never on MAGIC, which keeps its FX off). Reverb never when BATTERY SAVER refuses it.
@@ -23821,6 +23833,19 @@ function fullReset() {
     _swallowUntil = Date.now() + 600; closeMenu();
   }, true);
 })();
+// LOCKED TRACK = every track button unavailable (except the lock itself) until it's unlocked, per direct request. The name
+// button still takes the unlock swipe (handled on document touchstart/touchmove above), but not taps / holds / clicks.
+(function () {
+  const blocked = e => {
+    const b = e.target && e.target.closest && e.target.closest('.track-ctrl-row button');
+    if (!b || b.classList.contains('lock-btn')) return;
+    const row = b.closest('.track-ctrl-row'); const tr = row ? parseInt(row.id.replace('ctrlrow-', ''), 10) : NaN;
+    if (isNaN(tr) || !trackSweep[tr]) return;
+    if (b.classList.contains('track-name-btn') && (e.type === 'touchstart' || e.type === 'touchmove' || e.type === 'touchend')) return; // swipe-to-unlock lives here (its tap/hold are already refused there)
+    e.stopPropagation(); e.stopImmediatePropagation(); if (e.cancelable && e.type !== 'touchstart') e.preventDefault();
+  };
+  ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend'].forEach(t => document.addEventListener(t, blocked, { capture: true, passive: false }));
+})();
 // Drag across multiple track names to mute/unmute them all to match
 // whatever the first one toggled to — rather than tapping each one
 // individually. (L/lock buttons already get this for free via the existing
@@ -23843,6 +23868,7 @@ function fullReset() {
     _nameHoldTr = +nameEl.dataset.tr;
     _isDragging = false;
     _swipeStartX = touch.clientX; _swipeStartY = touch.clientY; _swipeHandled = false;
+    if (trackSweep[_nameHoldTr]) { _nameHoldTimer = null; _dragActive = true; _dragVisited = new Set(); return; } // LOCKED: no tap-mute, no picker, no mute-drag — only the unlock swipe, per direct request
     _nameHoldTimer = setTimeout(() => {
       _nameHoldTimer = null;
       if (!_isDragging) {
@@ -23892,6 +23918,7 @@ function fullReset() {
       // double-tap almost always has a little jitter, so it kept getting
       // classified as a drag before this ever got a chance to check).
       if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (trackSweep[_nameHoldTr]) return; // locked track: only the swipe above
       // Genuine movement past the jitter threshold — this is a drag, not
       // a stationary hold. Cancel the picker timer and commit to the
       // mute-drag behavior instead.
@@ -23912,6 +23939,7 @@ function fullReset() {
     const tr = +btn.dataset.tr;
     if (_dragVisited.has(tr)) return;
     _dragVisited.add(tr);
+    if (trackSweep[tr]) return; // locked tracks can't be muted by a drag either
     trackMuted[tr] = _dragTargetState;
     _syncSoloOnUnmute(tr);
     updateTrackMute(tr);
@@ -25679,7 +25707,7 @@ function onBeatCtrlRandTap() {
     _beatBulldozerDialog(bull => {
       window._beatBulldozer = !!bull;
       _beatAutoRandActive = true;
-      _beatAutoRandBarCount = 0;
+      _beatAutoRandBarCount = 3; // a new beat straight away — it lands on the very next '1' (the bar-start hook fires at 4), per direct request
       if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
       updateBeatCtrlRow();
       try { _showNotice(bull ? 'DRUMS AUTO · BULLDOZER' : 'DRUMS AUTO ON'); } catch (e) {}
