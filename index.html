@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 20:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 21:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2575,6 +2575,8 @@ body.note-markers-circle .step-cell.split32::after {
   box-shadow: 0 0 calc(6.9px * var(--mglow, 1.5)) color-mix(in srgb, var(--play-flash-color, #f17d21) calc(min(100%, 100% * var(--mglow, 1.5))), transparent), 0 0 calc(18px * var(--mglow, 1.5)) color-mix(in srgb, var(--play-flash-color, #f17d21) calc(min(100%, 70% * var(--mglow, 1.5))), transparent) !important; /* same glow as the engaged top-row buttons (TOP ROW GLOW scales it), per direct request */
   filter: none !important; /* BUGFIX: was saturate(20), which shoved any non-yellow PLAY FLASH colour way off its hue (orange came out postbox red), per direct report — 'none' still overrides grayscale/brightness filters from the other modes, so the note now shows exactly the picked colour */
 }
+/* legato: glow only on the playing cell — never lingers on cells the playhead has left (glow itself kept, per direct request) */
+html body .step-cell.step-cell.step-cell.legato-tail:not(.playing)::after, html body .step-cell.step-cell.step-cell.legato-start:not(.playing)::after { box-shadow: none !important; }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
 :root { --play-flash-color: #ffffff; --tglow: 0.5; --fillglow: 0; --rglow: 1.5; } /* VOL FILL GLOW default 0%, per direct request (a display mode can set its own — CLUB 300%) */ /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
@@ -2933,7 +2935,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 20:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 21:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6409,7 +6411,8 @@ function getPumpChain(tr, dest) {
   nodes.comp.ratio.value = isPad ? 4 : 8;
   nodes.comp.attack.value = 0.003;
   nodes.comp.release.value = isPad ? 0.15 : 0.35;
-  nodes.crunch.curve = makeDistCurve(isPad ? 0.12 : 0.35);
+  const _punkBlast = trackInstruments[tr] === 'sbass4'; // PUNK BASS: the full 0.35 drive squared it off into something that read as clipping — gentler drive, per direct report
+  nodes.crunch.curve = makeDistCurve(isPad ? 0.12 : _punkBlast ? 0.1 : 0.35);
   // PUNK BASS loses a lot of its bottom end under BLAST — the compressor
   // (8:1) and distortion curve together emphasize the new harmonics they
   // add, which makes the actual fundamental feel thin even though it's
@@ -6426,7 +6429,7 @@ function getPumpChain(tr, dest) {
   // an additional universal cut on top of those, not a replacement).
   const _blastMinusOneDb = 0.8913;
   const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, per direct request
-  nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim; // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
+  nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim * (_punkBlast ? 1.11 /* same loudness as before */ : 1); // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
     try { nodes.pbassDryBlend.disconnect(); } catch(e) {}
@@ -9375,6 +9378,14 @@ function randomizeBassTrack(tr, level) {
   // 10-note scale, the upper octave's indices (5-9) are only ever reached
   // by a narrow handful of step positions, so in practice it almost never
   // actually got there.
+  // ZINGS: use two octaves — 35% of notes jump up an octave (decided once here), per direct request
+  if (key === 'dronePlus' && trackBassScale[tr]) {
+    const scale = trackBassScale[tr];
+    if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] > 0 && Math.random() < 0.35) trackPitchOverride[tr][s] = scale[s % scale.length] * 2;
+    }
+  }
   if (key === 'underpass' && trackBassScale[tr]) {
     const scale = trackBassScale[tr];
     if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
@@ -20176,6 +20187,14 @@ function randomizeTrack(tr) {
   // 10-note scale, the upper octave's indices (5-9) are only ever reached
   // by a narrow handful of step positions, so in practice it almost never
   // actually got there.
+  // ZINGS: use two octaves — 35% of notes jump up an octave (decided once here), per direct request
+  if (key === 'dronePlus' && trackBassScale[tr]) {
+    const scale = trackBassScale[tr];
+    if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
+    for (let s = 0; s < NUM_STEPS; s++) {
+      if (grid[tr][s] > 0 && Math.random() < 0.35) trackPitchOverride[tr][s] = scale[s % scale.length] * 2;
+    }
+  }
   if (key === 'underpass' && trackBassScale[tr]) {
     const scale = trackBassScale[tr];
     if (!trackPitchOverride[tr]) trackPitchOverride[tr] = {};
@@ -25488,7 +25507,7 @@ const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 's
 // track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
 // whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
 window._musicBus = 1;
-function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus; } catch (e) { return 1; } }
+function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.9441 /* basses -0.5dB */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
 function _syncMusicBus() {
   const gs = window._musicBusGains; if (!gs || !ctx) return;
   for (let tr = 0; tr < gs.length; tr++) { const g = gs[tr]; if (!g || g.context !== ctx) continue; const v = _musicBusFor(tr); if (Math.abs(g.gain.value - v) > 0.002) g.gain.setTargetAtTime(v, ctx.currentTime, 0.03); }
