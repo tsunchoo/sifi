@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 22:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 23:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2937,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 22:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3861,6 +3861,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
 
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">SETTINGS</div>
+    <!-- ECHO DELAY, per direct request: pushes the FX echo later — from one 16th after the hit (0) up to 1000ms later -->
+    <div style="display:flex;flex-direction:column;gap:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO DELAY</div>
+        <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">+0 MS</div>
+      </div>
+      <input type="range" id="fxEchoExtraSlider" min="0" max="1000" step="10" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
+    </div>
     <!-- everything that was above the song name (VOL FILL look/colours, AUTO NOTES FLASH LENGTH, SWEEP RIGHT = 8-BIT) moved to DEV, next to VOLUME SLIDER, per direct request -->
     <!-- Song name on its own line, scale + tempo on the line below -->
     <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
@@ -6262,6 +6270,16 @@ function makeDistCurve(drive) {
   return c;
 }
 
+// FX ECHO TIME: one 16th after the hit, plus the ECHO DELAY slider at the top of SETTINGS (0-1000ms later), per direct request
+window._fxEchoExtra = 0;
+function _fxEchoTime() { return Math.min(1.9, stepDuration() + (window._fxEchoExtra || 0)); }
+function _setFxEchoExtra(ms) {
+  window._fxEchoExtra = Math.max(0, Math.min(1000, +ms || 0)) / 1000;
+  const v = document.getElementById('fxEchoExtraVal'); if (v) v.textContent = '+' + Math.round(window._fxEchoExtra * 1000) + ' MS';
+  if (!ctx) return; const d = _fxEchoTime();
+  try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoDelay) n.echoDelay.delayTime.value = d; } } catch (e) {}
+  try { if (window._beatEchoDelay) window._beatEchoDelay.delayTime.value = d; } catch (e) {}
+}
 function buildFxChain(trackGain) {
   const dryGain = ctx.createGain(); dryGain.gain.value = 1; dryGain.connect(trackGain);
   const fxSend  = ctx.createGain(); fxSend.gain.value = 0;
@@ -6278,7 +6296,7 @@ function buildFxChain(trackGain) {
   fxSend.connect(preGain); preGain.connect(ws); ws.connect(postGain); postGain.connect(envGain); envGain.connect(trackGain);
   // FX ECHO: the FX'd sound again a 16th later at half level (silent unless the FX stop is on — see _syncFxEcho). On a bass /
   // pad the dry blend is 0 under FX, so the tap is the whole FX output either way.
-  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
+  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = _fxEchoTime();
   const echoGain = ctx.createGain(); echoGain.gain.value = 0;
   echoDelay.connect(echoGain); echoGain.connect(trackGain); // CHEAPER, per direct request: the tap INTO the delay is only connected while the FX stop is on (see _syncFxEcho) — so on every other track the delay has no input and sits idle instead of processing silence
   return { dryGain, fxSend, gateGain, preGain, postGain, ws, envGain, echoDelay, echoGain, echoConn: false };
@@ -6327,11 +6345,11 @@ function _syncFxEcho(tr) {
   const on = _fxEchoOn(tr);
   if (on && !n.echoConn) { try { n.envGain.connect(n.echoDelay); n.echoConn = true; } catch (e) {} } // only the FX'd output (on FX the voices all go through it)
   else if (!on && n.echoConn) { try { n.envGain.disconnect(n.echoDelay); } catch (e) {} n.echoConn = false; }
-  n.echoDelay.delayTime.value = Math.min(1.9, stepDuration()); // plain values, no smoothing ramps (cheaper; a tempo change just jumps)
+  n.echoDelay.delayTime.value = _fxEchoTime(); // plain values, no smoothing ramps (cheaper; a tempo change just jumps)
   n.echoGain.gain.value = FX_ECHO_LEVEL; // the input tap does the switching now
 }
 // the echo follows tempo changes (TEMPO, nudges, tape tempos) — a cheap check, only touches tracks with FX on
-setInterval(() => { if (!ctx) return; const sd = Math.min(1.9, stepDuration()); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoConn && Math.abs(n.echoDelay.delayTime.value - sd) > 0.001) n.echoDelay.delayTime.value = sd; } }, 500);
+setInterval(() => { if (!ctx) return; const sd = _fxEchoTime(); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoConn && Math.abs(n.echoDelay.delayTime.value - sd) > 0.001) n.echoDelay.delayTime.value = sd; } }, 500);
 function _syncFxBtn(tr) {
   const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
   if (b.textContent !== 'FX') b.textContent = 'FX'; // the glyph is always FX now, per direct request — only the colours change (off / CHK / CHK+BLAST)
@@ -10192,7 +10210,7 @@ function playPulseBass(freq, durSec, isAccent, time, tr) {
   const dest = getSynthConnectNode(tr);
   const fxOn = tr !== undefined && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0);
   const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.5309 : 1; // -5.5dB under BLAST (another -1.5dB per direct request; was 0.6309) — BLAST specifically (not just FX) on this track
-  const vel = 0.5 /* half level into the soft-clip (peaks ~0.5, clean side of its 0.6 knee); the track's source trim gives it back after — see getSourceTrimGain */ * (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten * 0.7079 * (fxOn ? 0.7943 : 1) * ((fxOn || (tr !== undefined && trackPump[tr])) ? 1.122 : 1); // with FX on: another −2dB, per direct request (2026-10-11, was −3.5dB); then +1dB with ANY FX on (FX or BLAST), per direct request; // −3dB overall, per direct request (2026-10-09); before that: +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
+  const vel = 0.5 /* half level into the soft-clip (peaks ~0.5, clean side of its 0.6 knee); the track's source trim gives it back after — see getSourceTrimGain */ * (isAccent ? (fxOn ? 0.4543 : 0.5718) : (fxOn ? 0.3156 : 0.3972)) * blastAtten * 0.7943 /* PULSE BASS −2dB overall, per direct request */ * 0.7079 * (fxOn ? 0.7943 : 1) * ((fxOn || (tr !== undefined && trackPump[tr])) ? 1.122 : 1); // with FX on: another −2dB, per direct request (2026-10-11, was −3.5dB); then +1dB with ANY FX on (FX or BLAST), per direct request; // −3dB overall, per direct request (2026-10-09); before that: +3dB more, per direct request (was 0.3216/0.4048/0.2234/0.2812, itself +1dB)
   // Sustain now tracks the note's actual assigned length — so an 8th note
   // genuinely sounds fuller/longer than a 16th — with only a short tail
   // added on top. The old version capped the WHOLE envelope at ~0.2s
@@ -23518,6 +23536,7 @@ function _allocSwipeBack() {
 // and leave the page blank, so the reset gesture must never depend on one.
 function fullReset() {
   if (playing) togglePlay();
+  try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
   // RAND/AUTO that fired just before the reset — otherwise they land a
   // moment AFTER it and re-mute/re-level tracks the reset just defaulted.
@@ -25491,7 +25510,7 @@ function _ensureBeatFxChain() {
   reverbSend.connect(window._reverbSendBus);
   // FX ECHO (DRUMS' FX stop, per direct request — same as the tracks'): the drums again one 16th later at half level, taken
   // after the FX crunch; silent unless DRUMS is on the FX stop (see _syncBeatEcho).
-  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = Math.min(1.9, stepDuration());
+  const echoDelay = ctx.createDelay(2); echoDelay.delayTime.value = _fxEchoTime();
   const echoGain = ctx.createGain(); echoGain.gain.value = 0;
   echoDelay.connect(echoGain); echoGain.connect(masterGain); echoGain.gain.value = FX_ECHO_LEVEL; // inputs only connected while DRUMS is on FX (cheaper, see _syncBeatEcho)
   window._beatEchoTaps = [dryGain, postGain]; window._beatEchoConn = false;
@@ -25605,9 +25624,9 @@ function _syncBeatEcho() {
   const on = _beatEchoOn(), d = window._beatEchoDelay;
   if (on && !window._beatEchoConn) { (window._beatEchoTaps || []).forEach(n => { try { n.connect(d); } catch (e) {} }); window._beatEchoConn = true; }
   else if (!on && window._beatEchoConn) { (window._beatEchoTaps || []).forEach(n => { try { n.disconnect(d); } catch (e) {} }); window._beatEchoConn = false; }
-  d.delayTime.value = Math.min(1.9, stepDuration());
+  d.delayTime.value = _fxEchoTime();
 }
-setInterval(() => { try { if (ctx && window._beatEchoConn && Math.abs(window._beatEchoDelay.delayTime.value - Math.min(1.9, stepDuration())) > 0.001) window._beatEchoDelay.delayTime.value = Math.min(1.9, stepDuration()); } catch (e) {} }, 500); // follows tempo
+setInterval(() => { try { if (ctx && window._beatEchoConn && Math.abs(window._beatEchoDelay.delayTime.value - _fxEchoTime()) > 0.001) window._beatEchoDelay.delayTime.value = _fxEchoTime(); } catch (e) {} }, 500); // follows tempo
 function beatCtrlCycleFx() {
   _ensureBeatFxChain();
   // off -> CHK -> BLAST (exactly the old FX+BLAST — CHK switched OFF there, per direct report that it sounded enveloped) -> FX
