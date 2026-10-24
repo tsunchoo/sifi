@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 23:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 00:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2937,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 00:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3429,9 +3429,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES FLASH LENGTH</div>
-        <div id="autoNotesFlashLenVal" style="font-size:0.85rem;font-weight:700;color:#111;">1x</div>
+        <div id="autoNotesFlashLenVal" style="font-size:0.85rem;font-weight:700;color:#111;">3.25x</div>
       </div>
-      <input type="range" id="autoNotesFlashLenSlider" min="1" max="4" step="0.25" value="1" class="master-vol-slider" oninput="_setAutoNotesFlashLen(this.value)" onchange="_setAutoNotesFlashLen(this.value)" style="width:100%;">
+      <input type="range" id="autoNotesFlashLenSlider" min="1" max="4" step="0.25" value="3.25" class="master-vol-slider" oninput="_setAutoNotesFlashLen(this.value)" onchange="_setAutoNotesFlashLen(this.value)" style="width:100%;">
     </div>
     <!-- SWEEP X-AXIS 8-BIT on/off, per direct request (the drums gate on the x-axis stays either way) -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -7946,7 +7946,7 @@ function _placeBeatCount() {
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
 let _anbFlip = false;
-window._anbLen = 1;
+window._anbLen = 3.25; // default 3.25x, per direct request
 function _setAutoNotesFlashLen(v) { v = Math.max(1, Math.min(4, +v || 1)); window._anbLen = v; const r = document.getElementById('autoNotesFlashLenVal'); if (r) r.textContent = v + 'x'; }
 function updatePlayhead(step) {
   if ((((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS) === 0) { // AUTO NOTES BAR FLASH (see the auto-bar CSS), per direct request
@@ -12802,10 +12802,21 @@ function commitBeatMenuSelection(item) {
   const HOLD_MS = 500;
   const MOVE_OPEN_PX = 12;
   let holdTimer = null, startX = 0, startY = 0, dragCancelled = false, holdDone = false;
-  const _holdOpen = () => {
+  // GESTURES, per direct request (again): TOUCH + SWIPE DOWN opens the DRUMS menu (the same touch can carry on onto a beat to
+  // pick it); PRESS-AND-HOLD switches DRUMS AUTO on (BULLDOZER question first, DRUMS switched on too) — or off if it's running.
+  // Plain tap still toggles DRUMS.
+  const SWIPE_OPEN_PX = 24;
+  const _openFromSwipe = () => {
     holdDone = true;
     try { playUiSound('tinyclick'); } catch (err) {}
     openBeatMenu();
+  };
+  const _holdOpen = () => {
+    holdDone = true;
+    btn.classList.remove('menu-open');
+    try { playUiSound('tinyclick'); } catch (err) {}
+    if (_beatAutoRandActive) { _beatAutoOff(); return; }
+    _beatBulldozerDialog(bull => { _beatAutoStart(bull); if (!beatPlaying && !_beatPending) toggleBeat(); });
   };
 
   btn.addEventListener('touchstart', e => {
@@ -12821,7 +12832,10 @@ function commitBeatMenuSelection(item) {
   btn.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (!_beatMenuOpen) {
-      // Moving before the hold completes just cancels it (and the tap) — only a genuine press-and-hold opens the menu.
+      if (holdDone) return; // the hold already switched AUTO — nothing more for this touch
+      const dy = t.clientY - startY, dx = t.clientX - startX;
+      if (dy > SWIPE_OPEN_PX && dy > Math.abs(dx) * 1.2) { clearTimeout(holdTimer); dragCancelled = false; btn.classList.add('menu-open'); _openFromSwipe(); return; } // swipe DOWN → the menu
+      // Any other movement cancels the hold (and the tap)
       if (Math.abs(t.clientY - startY) > MOVE_OPEN_PX || Math.abs(t.clientX - startX) > MOVE_OPEN_PX) {
         clearTimeout(holdTimer);
         if (!dragCancelled) { dragCancelled = true; btn.classList.remove('menu-open'); }
@@ -23571,6 +23585,7 @@ function fullReset() {
   if (playing) togglePlay();
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
   try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 85; setMusicBus(85); } catch (e) {}
+  try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
   // RAND/AUTO that fired just before the reset — otherwise they land a
   // moment AFTER it and re-mute/re-level tracks the reset just defaulted.
@@ -25767,17 +25782,29 @@ function onBeatCtrlRandTap() {
   } else {
     // A (was N), per direct request: a single tap now puts the drums straight into AUTO (a new beat type every 4 bars) — the
     // same as the old hold did — instead of picking one new beat once. Another tap turns it off.
-    _beatBulldozerDialog(bull => {
+    _beatBulldozerDialog(_beatAutoStart);
+    return;
+  }
+  updateBeatCtrlRow();
+}
+// DRUMS AUTO on (after the BULLDOZER question) — from the DRUMS menu's A button or a press-and-hold on DRUMS
+function _beatAutoStart(bull) {
+  {
+    {
       window._beatBulldozer = !!bull;
       _beatAutoRandActive = true;
       _beatAutoRandBarCount = 3; // a new beat straight away — it lands on the very next '1' (the bar-start hook fires at 4), per direct request
       if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
       updateBeatCtrlRow();
       try { _showNotice(bull ? 'DRUMS AUTO · BULLDOZER' : 'DRUMS AUTO ON'); } catch (e) {}
-    });
-    return;
+    }
   }
+}
+function _beatAutoOff() {
+  _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
+  const b = document.getElementById('beatBtn'); if (b) b.classList.remove('beat-auto-active');
   updateBeatCtrlRow();
+  try { _showNotice('DRUMS AUTO OFF'); } catch (e) {}
 }
 
 // BEAT-OWNED TRACKS, per direct request — DISCO / JAZZ / MOZAMBIQUE / BOSSA / SAMBA
