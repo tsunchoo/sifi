@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 23:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 23:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2937,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -26494,10 +26494,12 @@ let _reelHoldTimer = null;
   // direct request. (SETTINGS keeps deferring only its sliders.)
   const lookMenu = document.getElementById('devMenuOverlay');
   const DEFER_TYPES = new Set(['checkbox', 'radio', 'color']);
+  const LIVE_IDS = new Set(['masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
   const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
     if (flushing || window._bypassMenuDefer || !el || !inMenu(el)) return; // (the full RESET applies its control changes straight away)
+    if (LIVE_IDS.has(el.id)) return; // sound sliders apply LIVE while you drag, per direct report (MAIN VOL / 8-BIT MIX weren't audibly changing)
     if (el.type !== 'range') {
       if (!DEFER_TYPES.has(el.type) || !lookMenu || !lookMenu.contains(el)) return;
       e.stopImmediatePropagation(); e.stopPropagation();
