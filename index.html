@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 17:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 17:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1111,7 +1111,12 @@ html body.fader-tip-hl .track-vol-bar .track-vol-tip { background: var(--fader-h
    instead, so the handle is the same solid colour on every track. */
 html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) { opacity: 1; } /* solid handle in every tip colour mode, not just the play-colour one */
 html body .track-wrap:not(.track-empty) .track-vol-bar:not(.muted) .track-vol-fill-solid { opacity: 1; } /* fully opaque now, per direct request ("the fill never gets to fully white") — it had inherited TRACK BUTTON OPACITY's 75% when that was moved off the bar */
-html body:not(.seq-playing) .track-wrap .track-vol-bar .track-vol-fill-solid { opacity: 0.7 !important; } /* STOPPED: the resting peak-look fill at 70%, per direct request */
+/* STOPPED = GRAYSCALE, per direct request: the whole app (header, top row, name bar, tracks) drains to grey while playback is
+   stopped and the colour comes back on PLAY. Filtered per section, not on <body>, so the menus / overlays (fixed-position,
+   outside these) keep their colours and positions. */
+html body > header, html body > .transport, html body > #nameBar, html body > #seqWrap, html body > .footer { transition: filter 0.35s ease-out; }
+html body:not(.seq-playing) > header, html body:not(.seq-playing) > .transport, html body:not(.seq-playing) > #nameBar, html body:not(.seq-playing) > #seqWrap, html body:not(.seq-playing) > .footer { filter: grayscale(1); }
+/* (STOPPED fill at 70% opacity removed, per direct request — the fill keeps its normal opacity when stopped) */
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
 html body .track-vol-bar.muted { background: #ccc !important; }
 /* VOL FADER HEIGHT (DEV slider, 10-100% of the volume bar, vertically
@@ -1345,36 +1350,25 @@ body.no-fx-reverb-pulse .fx-btn.on, body.no-fx-reverb-pulse .fx-btn.blast-on, bo
 @keyframes rand-pending-pulse { from { background: var(--playhead); } to { background: #7a1000; } }
 .rand-btn.rand-auto { background: var(--track-btn-blast-color, var(--playhead)) !important; color: var(--track-btn-blast-text, #fff); animation: engaged-btn-pulse-blast 0.6s ease-in-out infinite; }
 #randBtn.pulsing { display: flex; align-items: center; justify-content: center; }
-/* AUTO NOTES WOBBLE, per direct request (was a beat pulse): auto-generating tracks' note markers sway side to side while playing,
-   the same motion as the tape window (tape-wobble: ±0.5px over 1.4s) — the SETTINGS slider sets how far, 100% = 4x the tape's
-   (±2px), 0% = still. Uses the separate 'translate' property so it stacks on any transform a marker style already has; every
-   cell of a lane moves together, so legato bars stay joined. */
-@keyframes auto-notes-wobble { 0%, 100% { translate: 0 0; } 25% { translate: calc(-1 * var(--anw, 1px)) 0; } 75% { translate: var(--anw, 1px) 0; } }
-html body.auto-notes-wobble.seq-playing .auto-notes-lane .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-notes-wobble 1.4s ease-in-out infinite; }
+/* (AUTO NOTES WOBBLE removed, per direct request) */
 html body.battery-saver-mode .auto-notes-lane .step-cell::after { translate: none; }
 /* AUTO NOTES BAR FLASH, per direct request: every note on an auto-notes lane flashes the PLAY FLASH colour (the playhead's
    highlight — white by default) once at the start of each bar, then fades back. Two identical keyframes, alternated per bar on
    the lane, so each bar restarts it; listed after the wobble so the wobble keeps running underneath. */
-@keyframes auto-bar-a { from { background-color: var(--play-flash-color, #fff); box-shadow: 0 0 calc(6px * var(--mglow, 1.5)) var(--play-flash-color, #fff); } }
-@keyframes auto-bar-b { from { background-color: var(--play-flash-color, #fff); box-shadow: 0 0 calc(6px * var(--mglow, 1.5)) var(--play-flash-color, #fff); } }
+@keyframes auto-bar-a { from { background-color: var(--play-flash-color, #fff); box-shadow: 0 0 calc(6px * var(--mglow, 1.5)) var(--play-flash-color, #fff); opacity: 1; } }
+@keyframes auto-bar-b { from { background-color: var(--play-flash-color, #fff); box-shadow: 0 0 calc(6px * var(--mglow, 1.5)) var(--play-flash-color, #fff); opacity: 1; } } /* opacity 1 at the flash: every note flashes at FULL strength, whatever its own opacity (soft notes etc.), per direct report */
 html body.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-a var(--anb-dur, 0.5s) ease-out; }
 html body.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-b var(--anb-dur, 0.5s) ease-out; }
-html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar-a var(--anb-dur, 0.5s) ease-out; }
-html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar-b var(--anb-dur, 0.5s) ease-out; }
 /* ...32nd notes are drawn as a picture (two dots / two bars), not a fill, so flashing the fill lit up the whole square behind
    them (per direct report) — they swap their own dots / bars to the flash colour for the first third of the flash instead. */
-@keyframes auto-bar32c-a { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
-@keyframes auto-bar32s-a { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
-@keyframes auto-bar32c-b { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
-@keyframes auto-bar32s-b { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
+@keyframes auto-bar32c-a { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
+@keyframes auto-bar32s-a { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
+@keyframes auto-bar32c-b { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
+@keyframes auto-bar32s-b { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
 html body.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32s-a var(--anb-dur, 0.5s) linear; }
-html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32s-a var(--anb-dur, 0.5s) linear; }
 html body.note-markers-circle.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32c-a var(--anb-dur, 0.5s) linear; }
-html body.note-markers-circle.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32c-a var(--anb-dur, 0.5s) linear; }
 html body.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32s-b var(--anb-dur, 0.5s) linear; }
-html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32s-b var(--anb-dur, 0.5s) linear; }
 html body.note-markers-circle.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32c-b var(--anb-dur, 0.5s) linear; }
-html body.note-markers-circle.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32c-b var(--anb-dur, 0.5s) linear; }
 html body.battery-saver-mode .auto-notes-lane .step-cell::after { animation: none !important; }
 /* (OUTLINED auto notes removed, per direct request: body.auto-notes-solid is ALWAYS set now, so none of the rules below apply — kept only for reference) */
 /* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
@@ -2666,7 +2660,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <link rel="icon" type="image/png" href="favicon.png?v=20260725">
   <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20260725">
 </head>
-<body class="auto-notes-solid auto-notes-wobble drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test-bg-4">
+<body class="auto-notes-solid drums-pulse rand-btn-ff lock-swap failsafe-hl mortar mortar-clear simple-fader vol-bg-transparent track-row-bg note-markers-circle track-btn-lights track-btn-lights-pulse drums-flash-hl hide-vol-track vol-test-bg-4">
 <script>
 /* CRASH REPORTER (black box), per direct request — iOS kills a tab that
    uses too much memory with no warning and no JS event, then silently
@@ -2930,7 +2924,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 17:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 17:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3811,14 +3805,14 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL HIGH COLOUR ONLY</div>
       <label class="wild-toggle"><input type="checkbox" id="fillHighOnlyToggle" onchange="window._fillHighOnly = this.checked; _fillSyncRoot(); _fillDirty()"><span class="wild-toggle-slider"></span></label>
     </div>
-    <!-- AUTO NOTES WOBBLE, per direct request (replaces the old PULSE + rate and the OUTLINED switch — auto notes are plain solid
-         markers now): they sway side to side like the tape window does while playing. 100% = 4x the tape window's sway. -->
+    <!-- AUTO NOTES FLASH LENGTH, per direct request (the WOBBLE and its slider were removed): how long the new-bar flash on
+         auto-notes tracks takes to fade — 1x (as it was, ~a beat) up to 4x. -->
     <div style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES WOBBLE</div>
-        <div id="autoNotesWobbleVal" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES FLASH LENGTH</div>
+        <div id="autoNotesFlashLenVal" style="font-size:0.85rem;font-weight:700;color:#111;">1x</div>
       </div>
-      <input type="range" id="autoNotesWobbleSlider" min="0" max="100" step="5" value="50" class="master-vol-slider" oninput="_setAutoNotesWobble(this.value)" onchange="_setAutoNotesWobble(this.value)" style="width:100%;">
+      <input type="range" id="autoNotesFlashLenSlider" min="1" max="4" step="0.25" value="1" class="master-vol-slider" oninput="_setAutoNotesFlashLen(this.value)" onchange="_setAutoNotesFlashLen(this.value)" style="width:100%;">
     </div>
     <!-- SWEEP X-AXIS 8-BIT on/off, per direct request (the drums gate on the x-axis stays either way) -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -7859,9 +7853,11 @@ function _placeBeatCount() {
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start, { once: true });
 })();
 let _anbFlip = false;
+window._anbLen = 1;
+function _setAutoNotesFlashLen(v) { v = Math.max(1, Math.min(4, +v || 1)); window._anbLen = v; const r = document.getElementById('autoNotesFlashLenVal'); if (r) r.textContent = v + 'x'; }
 function updatePlayhead(step) {
   if ((((step % NUM_STEPS) + NUM_STEPS) % NUM_STEPS) === 0) { // AUTO NOTES BAR FLASH (see the auto-bar CSS), per direct request
-    try { _anbFlip = !_anbFlip; document.documentElement.style.setProperty('--anb-dur', (stepDuration() * 4 * 0.9).toFixed(3) + 's');
+    try { _anbFlip = !_anbFlip; document.documentElement.style.setProperty('--anb-dur', (stepDuration() * 4 * 0.9 * (window._anbLen || 1)).toFixed(3) + 's');
       document.querySelectorAll('.auto-notes-lane').forEach(l => { l.classList.toggle('anb-a', _anbFlip); l.classList.toggle('anb-b', !_anbFlip); }); } catch (e) {}
   }
   // 1-2-3-4 COUNT, PERFORMANCE MODE: held back by the speaker's own output delay (outputLatency + baseLatency, as the phone reports
