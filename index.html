@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 23:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 23:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2937,7 +2937,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 23:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3087,9 +3087,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="beatTypeMenu" class="beat-type-menu">
   <div class="beat-type-menu-inner">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:11px;">DRUMS</div><!-- 5px less under the title, per direct request -->
-    <div style="display:block;width:100%;margin-bottom:14px;position:relative;z-index:2;"><!-- DRUMS VOL label removed and less space round the slider, per direct request -->
-      <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="margin-top:14px;width:100%;flex:none;display:block;touch-action:manipulation;position:relative;z-index:2;" oninput="setBeatVol(this.value/100)">
-    </div>
+    <!-- DRUMS VOL slider moved to SETTINGS as DRUMS BUS (under MUSIC BUS), per direct request -->
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
       <button class="shift-btn" id="beatCtrlShift"><span class="beat-offset-glyph">&lt;</span></button>
@@ -3907,8 +3905,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <!-- MUSIC BUS, per direct request: the overall level of everything that isn't DRUMS or PERCUSSION (every melody / bass / pad
            track, their reverb included) — the drums menu, kit and percussion tracks are untouched. -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div></div>
-        <input type="range" id="musicBusBar" min="0" max="100" value="100" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">85%</div></div>
+        <input type="range" id="musicBusBar" min="0" max="100" value="85" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
+      </div>
+      <!-- DRUMS BUS (was the DRUMS menu's volume slider), per direct request -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">57%</div></div>
+        <input type="range" id="beatVolBar" min="0" max="100" value="57" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -5888,7 +5891,19 @@ function _randoLocal(which) {
   // WEIRD THING report (1.27s FREEZE ~1.8s after a single-click shuffle, no slow JS job named → the page's drawing, not the code):
   // plan the audio a full second ahead for the length of the shuffle animation, same as a new pattern already does, so a stall
   // like that can't make the scheduler skip steps; and tag the window so a freeze in it is labelled in the report.
-  window._schedBoostUntil = performance.now() + 3000;
+  // ON THE 1: how long until the scheduler plans the next bar's first step (its lookahead before the bar line, plus a margin)
+  let _landInMs = 0;
+  try {
+    if (c.shuffle && playing && ctx && !(ctx instanceof OfflineAudioContext)) {
+      const sd = stepDuration(), nextIdx = (currentStep + 1) % NUM_STEPS;
+      const T = nextStepTime + ((NUM_STEPS - nextIdx) % NUM_STEPS) * sd; // the next '1' on the audio clock
+      const la = Math.max(LOOKAHEAD, (window._schedStats && window._schedStats.la) || LOOKAHEAD);
+      _landInMs = (T - la - 0.15 - ctx.currentTime) * 1000;
+    }
+  } catch (e) { _landInMs = 0; }
+  const _shOpts = { plainName: which !== 'dbl', landInMs: _landInMs > 0 ? _landInMs : 0 };
+  // the full-second plan-ahead is raised once the new instruments are IN (raising it now would plan the '1' with the old ones)
+  if (!_shOpts.landInMs) window._schedBoostUntil = performance.now() + 3000;
   try { _glowPause(); } catch (e) {} // no glows while the new instruments land (performance test, per direct request)
   window._visJob = 'instrument shuffle animation'; clearTimeout(window._visJobT); window._visJobT = setTimeout(() => { window._visJob = null; }, 2600);
   try { if (c.eightBit) setEightBitMix(Math.random() * 100); } catch (e) {}
@@ -5915,7 +5930,7 @@ function _randoLocal(which) {
   try { if (c.tempo && !_tempoLocked && typeof _tapeSetBpm === 'function') { _tapeSetBpm(Math.floor(Math.random() * 66) + 70); const bd = document.getElementById('bpmDisplay'); if (bd) bd.textContent = bpm; const tb = document.getElementById('tempoBar'); if (tb) tb.value = bpm; } } catch (e) {}
   // NOTES: new random notes on every unlocked track that has some (its own + re-roll, so it keeps its instrument and key)
   if (c.notes) { try { for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackSweep[tr] || !grid[tr].some(v => v > 0)) continue; _untagBeatOwned && _untagBeatOwned(tr); randomizeTrack(tr); redrawTrackCells(tr, true); } markModified(); } catch (e) { console.error('new notes failed', e); } }
-  if (c.shuffle) { try { randomizeCurrentInstruments({ plainName: which !== 'dbl' }); /* single click AND shake: the name just flashes white */ } catch (e) { console.error('shuffle instruments failed', e); } } // single click: the name just flashes white (no split-flap)
+  if (c.shuffle) { try { randomizeCurrentInstruments(_shOpts); /* single click AND shake: the name just flashes white */ if (_shOpts.landInMs) { if (_shOpts.aligned) setTimeout(() => { window._schedBoostUntil = performance.now() + 3000; }, (_shOpts.lastLandMs || 0) + 30); else window._schedBoostUntil = performance.now() + 3000; } } catch (e) { console.error('shuffle instruments failed', e); } } // single click: the name just flashes white (no split-flap)
   else if ((c.reverb || c.beatFx)) { clearTimeout(window._randoAllocT); try { _rerollAllocations(!!c.beatFx, !!c.reverb); } catch (e) {} } // nothing to wait for
 }
 // Re-rolls the per-track FX (FX/BLAST) and/or REVERB (R) allocations on the current pattern — same per-instrument chances a new
@@ -6110,7 +6125,7 @@ function randomizeCurrentInstruments(opts) {
   const deck = [...trackInstruments];
   const clashes = (k, tr) => deck.some((other, t) => t !== tr && other && (other === k || oneOf.some(set => set.has(k) && set.has(other))));
   const mutedBefore = [...trackMuted];
-  let changed = 0;
+  let changed = 0; const _swaps = [];
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     if (trackSweep[tr]) continue; // locked
     const cur = trackInstruments[tr];
@@ -6127,19 +6142,36 @@ function randomizeCurrentInstruments(opts) {
     // CASCADE top to bottom (track 1 → 6), per direct request: each changing track starts its name shuffle one stagger step
     // after the one above, shuffles for the full NAME_SHUFFLE_MS, then lands — so the shuffle rolls down the tracks.
     const _pool = INSTRUMENT_KEYS.filter(x => groupOf(x) === grp && INSTRUMENTS[x] && x !== 'toms');
-    const _shBox = {}; const _startDelay = changed * RANDINST_STAGGER_MS;
+    _swaps.push({ _tr, k, _muted, _pool });
+    changed++;
+  }
+  // ON THE 1, per direct request: while playing, the swaps are timed so the LAST one lands just before the scheduler plans the
+  // next bar's first step (opts.landInMs) — the name shuffles start straight away and simply run longer when there's time, so the
+  // new instruments are heard from the '1' instead of a little after it. Not enough time → as before (straight in, staggered).
+  let _stag = RANDINST_STAGGER_MS, _land = i => i * RANDINST_STAGGER_MS + NAME_SHUFFLE_MS;
+  const L = opts && opts.landInMs, n = _swaps.length;
+  if (L && n) {
+    const full = (n - 1) * RANDINST_STAGGER_MS + NAME_SHUFFLE_MS, min = (n - 1) * 40 + 200;
+    if (L >= full) _land = i => L - (n - 1 - i) * RANDINST_STAGGER_MS;
+    else if (L >= min) { _stag = n > 1 ? Math.min(RANDINST_STAGGER_MS, (L - 200) / (n - 1)) : 0; const nm = L - (n - 1) * _stag; _land = i => i * _stag + nm; }
+    else if (opts) opts.aligned = false;
+    if (opts && opts.aligned !== false) opts.aligned = true;
+  }
+  let _lastLand = 0;
+  _swaps.forEach(({ _tr, k, _muted, _pool }, i) => {
+    const _shBox = {}; const _startDelay = i * _stag, _landAt = Math.max(_startDelay + 120, _land(i)); _lastLand = Math.max(_lastLand, _landAt);
     _randInstTimers.push(setTimeout(() => { _shBox.sh = _startNameShuffle(_tr, _pool); }, _startDelay));
     _randInstTimers.push(setTimeout(() => {
       const _sh = _shBox.sh;
       try { clearInterval(_sh && _sh.iv); selectSound(_tr, k); if (_muted) { trackMuted[_tr] = true; updateTrackMute(_tr); } redrawTrackCells(_tr, true); } catch (e) { console.error('instrument swap failed', e); }
       _endNameShuffle(_sh);
-    }, _startDelay + NAME_SHUFFLE_MS));
-    changed++;
-  }
+    }, _landAt));
+  });
+  if (opts) opts.lastLandMs = _lastLand;
   if (changed) { try { _currentSpecies = _songNameNextNumeral(_currentSpecies); if (opts && opts.plainName) _flashSongName(_currentSpecies); else _setSongNameDisplay(_currentSpecies); } catch (e) {} } // NAME → NAME II → NAME III …, per direct request
   // colour theme is LEFT ALONE now, per direct request — only the instruments change
   // each track repaints as its own swap lands (see above); markModified once the last one is in
-  _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, NAME_SHUFFLE_MS + Math.max(0, changed - 1) * RANDINST_STAGGER_MS + 20));
+  _randInstTimers.push(setTimeout(() => { try { markModified(); } catch (e) {} }, _lastLand + 20));
   return changed;
 }
 // LOCK BUTTONS = NEW SOUND (LOOK AND FEEL toggle under PERFORMANCE MODE), per direct request — the track's lock button shows the
@@ -20584,6 +20616,7 @@ function _updateSongNameFromSettings(v) {
   markModified();
 }
 function showSettings() {
+  try { const b = document.getElementById('beatVolBar'); if (b) b.value = Math.round(_beatVolRaw * 100); const r = document.getElementById('beatVolBusVal'); if (r) r.textContent = Math.round(_beatVolRaw * 100) + '%'; } catch (e) {}
   try { _syncCountLatencyUI(); } catch (e) {}
   const el = document.getElementById('settingsOverlay');
   if (el) { el.style.display = 'flex'; el.style.alignItems = 'center'; el.style.justifyContent = 'center'; }
@@ -23537,6 +23570,7 @@ function _allocSwipeBack() {
 function fullReset() {
   if (playing) togglePlay();
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
+  try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 85; setMusicBus(85); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
   // RAND/AUTO that fired just before the reset — otherwise they land a
   // moment AFTER it and re-mute/re-level tracks the reset just defaulted.
@@ -25441,6 +25475,7 @@ function _applyBeatVolWithDuck() {
 function setBeatVol(v) {
   _beatVolRaw = v;
   _applyBeatVolWithDuck();
+  try { const r = document.getElementById('beatVolBusVal'); if (r) r.textContent = Math.round(v * 100) + '%'; const b = document.getElementById('beatVolBar'); if (b && document.activeElement !== b && Math.abs(b.value - v * 100) > 0.5) b.value = Math.round(v * 100); } catch (e) {}
 }
 
 // ── BEAT control row: L / < / R / FX / R(rand) — mirrors the per-track
@@ -25566,7 +25601,7 @@ const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 's
 // MUSIC BUS (SETTINGS, under MAIN VOL), per direct request: one level for every track that isn't drums / percussion. A gain per
 // track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
 // whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
-window._musicBus = 1;
+window._musicBus = 0.85; // default 85%, per direct request
 function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.9441 /* basses -0.5dB */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
 function _syncMusicBus() {
   const gs = window._musicBusGains; if (!gs || !ctx) return;
