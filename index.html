@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 00:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 01:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2581,6 +2581,10 @@ body.note-markers-circle .step-cell.split32::after {
 html body .step-cell.step-cell.step-cell.legato-tail:not(.playing)::after, html body .step-cell.step-cell.step-cell.legato-start:not(.playing)::after { box-shadow: none !important; }
 /* LOCKED TRACK: its other buttons read as unavailable until unlocked, per direct request */
 html body .track-ctrl-row:has(.lock-btn.sweep-on) > button:not(.lock-btn) { opacity: 0.35 !important; filter: grayscale(1) !important; }
+/* ...and they don't react at all (no press pulse / glyph pop), and the VOL slider can't be dragged, per direct request. The name keeps
+   its touches for the swipe-to-unlock (its taps and holds are refused in JS). */
+html body .track-ctrl-row:has(.lock-btn.sweep-on) > button:not(.lock-btn):not(.track-name-btn), html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { pointer-events: none !important; }
+html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { opacity: 0.6; }
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
 :root { --play-flash-color: #ffffff; --tglow: 0.5; --fillglow: 0; --rglow: 1.5; } /* VOL FILL GLOW default 0%, per direct request (a display mode can set its own — CLUB 300%) */ /* TOP ROW GLOW hardcoded 150%, per direct request */ /* TRACK BUTTON GLOW + VOL FILL GLOW default 50%, per direct request */
 
@@ -2939,7 +2943,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 00:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 01:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3914,6 +3918,11 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">39%</div></div>
         <input type="range" id="beatVolBar" min="0" max="100" value="39" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
+      </div>
+      <!-- 8-BIT DRUMS, per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
+        <label class="wild-toggle"><input type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -6548,6 +6557,33 @@ function getAmalgamLimiter(tr, dest) {
   }
   return nodes.comp;
 }
+// 8-BIT DRUMS (SETTINGS toggle), per direct request: every drum / percussion sound goes through an 8-bit crusher FIRST — before
+// its track's FX, reverb, buses, everything. One crusher per drum track (and one for the DRUMS beat), built only while the
+// option is on (each is an audio-thread worklet — see the CRASH HUNT note on 8-BIT MIX); until a crusher is ready the sound
+// just goes straight through as normal.
+window._drums8bit = false;
+const _drum8 = {}; // key ('b' = DRUMS beat, or the track number) -> { node, dest, ready }
+function _drum8In(key, dest) {
+  if (!window._drums8bit || !ctx || ctx instanceof OfflineAudioContext || !dest) return dest;
+  let e = _drum8[key];
+  if (e && e.ctx !== ctx) { try { e.node && e.node.disconnect(); } catch (er) {} e = _drum8[key] = null; }
+  if (!e) {
+    e = _drum8[key] = { ctx, node: null, dest: null };
+    const c = ctx;
+    _ensureEightBitWorkletModule(c).then(() => { if (_drum8[key] === e && c === ctx) e.node = new AudioWorkletNode(c, 'eight-bit-processor', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2] }); })
+      .catch(() => { if (_drum8[key] === e && c === ctx) e.node = _buildEightBitNodeScriptProcessorFallback(c); });
+  }
+  if (!e.node) return dest;
+  if (e.dest !== dest) { try { e.node.disconnect(); } catch (er) {} e.node.connect(dest); e.dest = dest; }
+  return e.node;
+}
+function _beatSrcDest() { const d = window._beatGain || masterGain; return _drum8In('b', d); }
+function setDrums8bit(on) {
+  window._drums8bit = !!on;
+  const cb = document.getElementById('drums8bitToggle'); if (cb) cb.checked = !!on;
+  if (!on) Object.keys(_drum8).forEach(k => { const e = _drum8[k]; try { e && e.node && e.node.disconnect(); } catch (er) {} delete _drum8[k]; }); // off = no crushers left running
+  else if (ctx) { try { _drum8In('b', window._beatGain || masterGain); for (let t = 0; t < NUM_TRACKS; t++) if (_isDrumTrack(t)) _drum8In(t, masterGain); } catch (er) {} } // warm them up so the very next hits are already crushed
+}
 function getSynthConnectNode(tr) {
   const raw = _rawSynthConnectNode(tr);
   let node = raw;
@@ -6560,6 +6596,7 @@ function getSynthConnectNode(tr) {
   if (ctx && tr !== undefined) {
     node = getSourceSoftClip(tr, node);
   }
+  if (window._drums8bit && ctx && tr !== undefined && tr >= 0 && _isDrumTrack(tr)) node = _drum8In(tr, node); // 8-BIT DRUMS: crushed first
   return node;
 }
 // A gentle, transparent-until-needed soft-clip safety net — applied
@@ -6701,6 +6738,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (tr !== undefined && trackPump[tr] && ctx) pDest = getPumpChain(tr, pDest);
   if (ctx && _duckEligible(tr)) pDest = getSidechainDuckGain(tr, pDest);
   if (ctx && tr !== undefined) pDest = getSourceTrimGain(tr, pDest);
+  if (window._drums8bit && ctx && tr !== undefined && tr >= 0 && _isDrumTrack(tr)) pDest = _drum8In(tr, pDest); // 8-BIT DRUMS: crushed first
   src.connect(instrumentGain); instrumentGain.connect(pDest);
   if (key === 'ssnare') _addSnareClick(time, pDest, isAccent ? 0.1 : 0.07); // a little sidestick-style click
   // Reverb no longer taps in here — see toggleTrackDelay/connectToDelay
@@ -8434,7 +8472,7 @@ function playSynthHihat(isAccent, time, tr, volMult) {
   if (!ctx) return;
   if (tr === -1 ? !_renderTapBeat : (_renderTapTracks && !_renderTapTracks.has(tr))) return;
   if (tr === -1) _flashDrumsText(); // BEAT-engine hihat only — a real track using this same synth sound (tr !== -1) isn't a DRUMS hit
-  const dest = (tr === -1) ? (window._beatGain || masterGain) : getSynthConnectNode(tr);
+  const dest = (tr === -1) ? _beatSrcDest() : getSynthConnectNode(tr);
   const dur = isAccent ? 0.12 : 0.06, vol = (isAccent ? 0.1968 : 0.1238) * (volMult !== undefined ? volMult : 1); // -3dB more (was -2dB). volMult (new, optional, default 1) — lets a caller reduce this specific hit when it's about to land on top of another voice at the same instant, e.g. SAMBA's hihat/snare overlap
   const buf = _noiseBuf(Math.ceil(ctx.sampleRate * dur), 0); // shared/cached noise (see _noiseBuf)
   const src = ctx.createBufferSource(), g = ctx.createGain();
@@ -12356,7 +12394,7 @@ function playKick(t, velMult) {
   if (!_renderTapBeat) return;
   // Matches playSynthKick — same character, slightly louder for the beat,
   // tightened up for a drier hit (shorter pitch ramp and decay, less boom)
-  const beatDest = window._beatGain || masterGain;
+  const beatDest = _beatSrcDest();
   const _pushAtten = (_beatType === 'push') ? 0.5623 : 1; // -5dB, PUSH only
   const _jazzAtten = (_beatType === 'jazz') ? 0.1995 : 1; // -14dB — JAZZ's "feathered" kick, felt more than heard
   const _velAtten = (velMult !== undefined ? velMult : 1) * _kickBassDuckMult(t); // per-hit velocity (and -3dB under a bass note on the one — see _markKickBassDuck), e.g. HALFTIME's second kick at 75%
@@ -12388,7 +12426,7 @@ function _addSnareClick(t, dest, vol) {
 }
 function fireBeatSidestick(t) {
   if (!ctx || !_renderTapBeat) return;
-  const dest = window._beatGain || masterGain;
+  const dest = _beatSrcDest();
   const vol = 0.15; // -2.5dB (was 0.2; -1.5dB then another -1dB), per direct request — dialed back before that too (earlier boosts overshot)
 
   // A genuinely dry click — very short and pitched higher than the crack
@@ -12450,7 +12488,7 @@ function playBeatSidestick(t) {
   src.buffer = buf;
   const g = ctx.createGain();
   g.gain.value = 0.6;
-  const snDest = window._beatGain || masterGain;
+  const snDest = _beatSrcDest();
   src.connect(g); g.connect(snDest);
   src.start(t);
   src.onended = () => { try { g.disconnect(); } catch (e) {} };
@@ -12468,7 +12506,7 @@ function playSnare(t) {
   const body = ctx.createOscillator(), bodyGain = ctx.createGain();
   body.frequency.setValueAtTime(220, t); body.frequency.exponentialRampToValueAtTime(80, t + 0.08);
   bodyGain.gain.setValueAtTime(0.3304, t); bodyGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1); // -0.5dB (was 0.350), per direct request
-  const snDest = window._beatGain || masterGain;
+  const snDest = _beatSrcDest();
   body.connect(bodyGain); bodyGain.connect(snDest); body.start(t); body.stop(t + 0.1);
   body.onended = () => { try { bodyGain.disconnect(); } catch(e) {} };
   src.buffer = buf; src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(snDest);
@@ -12513,7 +12551,7 @@ function playDmxSnare(t) {
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900; // brighter/snappier focus than the standard snare's 500Hz
   const presence = ctx.createBiquadFilter(); presence.type = 'peaking'; presence.frequency.value = 3200; presence.Q.value = 1.4; presence.gain.value = 6; // the snappy top-end crack
   const g = ctx.createGain();
-  const snDest = window._beatGain || masterGain;
+  const snDest = _beatSrcDest();
 
   // Short, punchy body tone — tighter and a touch higher than the standard
   // snare's, for a more clipped, "digital" thump rather than a rounder,
@@ -12559,7 +12597,7 @@ function playBeatSidestickSample(t) {
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(0.2109, t + 0.003); // -2.5dB (was 0.2812; -1.5dB then another -1dB), per direct request
   src.connect(g);
-  g.connect(window._beatGain || masterGain);
+  g.connect(_beatSrcDest());
   src.start(t);
   src.onended = () => { try { src.disconnect(); g.disconnect(); } catch(e) {} };
   // SAMBA's own built-in snare voice never got the same headroom-clearing
@@ -12585,7 +12623,7 @@ function playBeatSnareSample(t) {
   g.gain.setValueAtTime(0, t);
   g.gain.linearRampToValueAtTime(0.2655, t + 0.003); // -0.5dB (was 0.2812), per direct request — was the same level as playBeatSidestickSample, so SAMBA's own alternation between the two doesn't jump in volume — short fade-in, same reasoning as that function
   src.connect(g);
-  g.connect(window._beatGain || masterGain);
+  g.connect(_beatSrcDest());
   src.start(t);
   src.onended = () => { try { src.disconnect(); g.disconnect(); } catch(e) {} };
   duckPumpTracks(t);
@@ -12615,7 +12653,7 @@ function playDmxSnareLow(t) {
   const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 350; // much lower than the bright version's 900Hz — lets the body through
   const presence = ctx.createBiquadFilter(); presence.type = 'peaking'; presence.frequency.value = 1500; presence.Q.value = 1.2; presence.gain.value = 4; // darker, less prominent crack than the bright version's 3200Hz/+6dB
   const g = ctx.createGain();
-  const snDest = window._beatGain || masterGain;
+  const snDest = _beatSrcDest();
 
   // Substantially lower body pitch than the bright version (150→65Hz vs
   // 280→120Hz) — this is the main source of the "lower toned" character.
@@ -14053,7 +14091,7 @@ function attachVolBarEvents(bar, tr) {
     const r = bar.getBoundingClientRect();
     return r.left + volGainToPos(trackVolume[tr]) * r.width; // no visible tip — the fill's edge is the fader
   }
-  function tryGrab(clientX) { const tx = tipX(); if (Math.abs(clientX - tx) > GRAB_PX) return false; grabOff = clientX - tx; dragging = true; return true; }
+  function tryGrab(clientX) { if (trackSweep[tr]) return false; /* LOCKED: the fader can't be dragged, per direct request */ const tx = tipX(); if (Math.abs(clientX - tx) > GRAB_PX) return false; grabOff = clientX - tx; dragging = true; return true; }
   bar.addEventListener('mousedown', e => { e.preventDefault(); tryGrab(e.clientX); });
   window.addEventListener('mousemove', e => { if (dragging) setVol(e.clientX - grabOff); });
   window.addEventListener('mouseup', () => { dragging = false; });
@@ -23598,6 +23636,7 @@ function fullReset() {
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
   try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 85; setMusicBus(85); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
+  try { setDrums8bit(false); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
   // RAND/AUTO that fired just before the reset — otherwise they land a
   // moment AFTER it and re-mute/re-level tracks the reset just defaulted.
@@ -23926,7 +23965,7 @@ function fullReset() {
 // button still takes the unlock swipe (handled on document touchstart/touchmove above), but not taps / holds / clicks.
 (function () {
   const blocked = e => {
-    const b = e.target && e.target.closest && e.target.closest('.track-ctrl-row button');
+    const b = e.target && e.target.closest && (e.target.closest('.track-ctrl-row button') || e.target.closest('.track-ctrl-row .track-vol-bar'));
     if (!b || b.classList.contains('lock-btn')) return;
     const row = b.closest('.track-ctrl-row'); const tr = row ? parseInt(row.id.replace('ctrlrow-', ''), 10) : NaN;
     if (isNaN(tr) || !trackSweep[tr]) return;
