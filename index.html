@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 18:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 19:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2933,7 +2933,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 18:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 19:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3887,6 +3887,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MAIN VOL</div>
         <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
+      </div>
+      <!-- MUSIC BUS, per direct request: the overall level of everything that isn't DRUMS or PERCUSSION (every melody / bass / pad
+           track, their reverb included) — the drums menu, kit and percussion tracks are untouched. -->
+      <div style="display:flex;flex-direction:column;gap:15px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div></div>
+        <input type="range" id="musicBusBar" min="0" max="100" value="100" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -7061,7 +7067,7 @@ function scheduler() {
         _beatAutoRandBarCount++;
         if (_beatAutoRandBarCount >= 4) {
           _beatAutoRandBarCount = 0;
-          randomizeBeatType();
+          randomizeBeatType({ auto: true });
         }
       }
       // RAND button auto-mode (press and hold): regenerate every
@@ -13357,6 +13363,7 @@ function setTrackNameColor(tr, key) {
 }
 
 function selectSound(tr, k) {
+  setTimeout(() => { try { _syncMusicBus(); } catch (e) {} }, 0); // the track may have just moved between MUSIC and DRUMS
   setTimeout(() => { try { _syncDrumReverbTaps(); } catch (e) {} }, 0); // drum / perc tracks follow REVERB ON BEAT
   const prevKey = trackInstruments[tr];
   _trackInstrumentTouched[tr] = true; // deliberately picked, even before any notes exist — see _updateEmptyTrackVisuals
@@ -16690,7 +16697,7 @@ function _buildBounceGraph(targetCtx) {
   for (let i = 0; i < NUM_TRACKS; i++) {
     const g = targetCtx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
     const ef = targetCtx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
-    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; g.connect(cg); cg.connect(ef); } trackEnvFilters[i] = ef; // CHOKE gate too. caller connects ef -> masterGain for whichever track(s) it wants live
+    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; const mb = targetCtx.createGain(); mb.gain.value = _musicBusFor(i); (window._musicBusGains = window._musicBusGains || [])[i] = mb; g.connect(mb); mb.connect(cg); cg.connect(ef); } // MUSIC BUS between the fader and the CHOKE gate (bounce/stems too) trackEnvFilters[i] = ef; // CHOKE gate too. caller connects ef -> masterGain for whichever track(s) it wants live
     trackFxNodes[i] = buildFxChain(g);
     if (trackInstruments[i] === 'ngate') initNoiseGate(i);
     if (trackFx[i] && (trackFx[i].x > 0 || trackFx[i].y > 0)) setFxActive(i, trackFx[i]);
@@ -23417,7 +23424,22 @@ function _allocFlash(id) {
   const an = ov.animate([{ opacity: 1 }, { opacity: 0 }], { duration: Math.max(450, stepDuration() * 4 * 1000 * 0.9), easing: 'ease-out', fill: 'forwards' });
   an.onfinish = () => ov.remove(); setTimeout(() => ov.remove(), 3000);
 }
+// SWIPE ACKNOWLEDGED, per direct request: a soft band of extra lightness sweeps across the song name in the swipe's direction,
+// fading in and out — only lightness (white at low alpha), so the bar's own colour stays what it is.
+function _nameSwipeFx(dir) {
+  const nb = document.getElementById('nameBar'); if (!nb || typeof Element.prototype.animate !== 'function') return;
+  if (getComputedStyle(nb).position === 'static') nb.style.position = 'relative';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;';
+  const band = document.createElement('div');
+  band.style.cssText = 'position:absolute;top:0;bottom:0;left:0;width:60%;background:linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.55), rgba(255,255,255,0));';
+  wrap.appendChild(band); nb.appendChild(wrap);
+  const from = dir > 0 ? '-70%' : '170%', to = dir > 0 ? '170%' : '-70%';
+  const a = band.animate([{ transform: `translateX(${from})`, opacity: 0 }, { opacity: 1, offset: 0.35 }, { opacity: 1, offset: 0.65 }, { transform: `translateX(${to})`, opacity: 0 }], { duration: 520, easing: 'cubic-bezier(0.3, 0.6, 0.3, 1)' });
+  a.onfinish = () => wrap.remove(); setTimeout(() => wrap.remove(), 1200);
+}
 function _allocSwipeNew() {
+  try { _nameSwipeFx(1); } catch (e) {}
   const before = _allocSnap();
   const elig = []; for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && grid[tr].some(v => v > 0)) elig.push(tr);
   if (!elig.length) return;
@@ -23440,6 +23462,7 @@ function _allocSwipeNew() {
   _allocApply(next);
 }
 function _allocSwipeBack() {
+  try { _nameSwipeFx(-1); } catch (e) {}
   const prev = window._allocHistory.pop(); if (!prev) { try { _showNotice('NOTHING TO GO BACK TO'); } catch (e) {} return; }
   _allocApply(prev);
 }
@@ -23541,7 +23564,7 @@ function fullReset() {
   const _bpmSliderEl = document.getElementById('bpmSlider'); if (_bpmSliderEl) _bpmSliderEl.value = bpm;
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
   _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false; _setBeatChoke(false);
-  _beatAutoRandActive = false; _beatAutoRandBarCount = 0;
+  _beatAutoRandActive = false; _beatAutoRandBarCount = 0; window._beatBulldozer = false;
   _beatVolRaw = 0.5711; _applyBeatVolWithDuck(); // +3dB default
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setValueAtTime(_beatReverbGainForMix(_beatReverbMix), ctx.currentTime); // on by default now, not silenced
@@ -24304,7 +24327,8 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
       const revTap = ctx.createGain(); revTap.gain.value = 1; window._trackMasterRevTap = window._trackMasterRevTap || []; window._trackMasterRevTap[i] = revTap;
       const revTapD = ctx.createGain(); revTapD.gain.value = 0; window._trackDrumRevTap = window._trackDrumRevTap || []; window._trackDrumRevTap[i] = revTapD;
       const cg = ctx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; // CHOKE gate (open = normal)
-      g.connect(cg); cg.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); pan.connect(revTapD); revTapD.connect(window._drumMasterRevSend); trackEnvFilters[i] = ef;
+      const mb = ctx.createGain(); mb.gain.value = _musicBusFor(i); (window._musicBusGains = window._musicBusGains || [])[i] = mb; // MUSIC BUS (see _syncMusicBus)
+      g.connect(mb); mb.connect(cg); cg.connect(ef); ef.connect(pan); pan.connect(masterGain); pan.connect(revTap); revTap.connect(window._masterReverbSend); pan.connect(revTapD); revTapD.connect(window._drumMasterRevSend); trackEnvFilters[i] = ef;
       trackFxNodes[i] = buildFxChain(g);
       if (trackInstruments[i] === 'ngate') initNoiseGate(i);
       // Reflect any FX state already set in the data model (e.g. Track 1's
@@ -25460,6 +25484,21 @@ function beatCtrlShift() {
 // DRUM = anything in the KIT or PERC sections of the instrument menu — which also covers every track a beat
 // type adds itself (JAZZ ride/sidestick/snare, MOZAMBIQUE ride/sidestick/toms, DISCO hihat), all kit sounds.
 const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 'shihat']);
+// MUSIC BUS (SETTINGS, under MAIN VOL), per direct request: one level for every track that isn't drums / percussion. A gain per
+// track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
+// whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
+window._musicBus = 1;
+function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus; } catch (e) { return 1; } }
+function _syncMusicBus() {
+  const gs = window._musicBusGains; if (!gs || !ctx) return;
+  for (let tr = 0; tr < gs.length; tr++) { const g = gs[tr]; if (!g || g.context !== ctx) continue; const v = _musicBusFor(tr); if (Math.abs(g.gain.value - v) > 0.002) g.gain.setTargetAtTime(v, ctx.currentTime, 0.03); }
+}
+function setMusicBus(v) {
+  v = Math.max(0, Math.min(100, +v || 0)); window._musicBus = v / 100;
+  const r = document.getElementById('musicBusVal'); if (r) r.textContent = Math.round(v) + '%';
+  _syncMusicBus();
+}
+setInterval(_syncMusicBus, 500);
 function _isDrumTrack(tr) {
   const k = trackInstruments[tr], g = k && INSTRUMENTS[k] && INSTRUMENTS[k].group;
   return g === 'kit' || g === 'perc' || _BEAT_ADDED_DRUM_KEYS.has(k);
@@ -25550,7 +25589,7 @@ function _randomizeDrumFxSettings() {
 // auto mode that picks a new one every 4 bars, same shape as the per-track
 // randomize button and the top-row RAND AUTO loop.
 const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie'];
-function randomizeBeatType() {
+function randomizeBeatType(opts) {
   // SHUFFLE (boogie) has a particular swing/timing feel that's really
   // only right at a tempo RAND itself would have picked for it — with
   // TEMPO LOCK on, this can't also adjust tempo to suit it, so it
@@ -25563,8 +25602,33 @@ function randomizeBeatType() {
   // never into halftime, and never out of it if already there.
   if (_tempoLocked) pool = (_beatType === 'halftime') ? ['halftime'] : pool.filter(t => t !== 'halftime');
   const pick = pool[Math.floor(Math.random() * pool.length)];
-  setBeatType(pick, true);
+  if (opts && opts.auto) {
+    // DRUMS AUTO: never stops to ask (it used to pop the EXTRA TRACKS dialog every 4 bars). BULLDOZER MODE on = the beat's extra
+    // tracks / instruments take over whatever tracks they need (drums first, then percussion, then non-bass non-lead tonal);
+    // off = they only go on free (muted) tracks, as before.
+    _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick';
+    setBeatType(pick, true, window._beatBulldozer ? 'yes' : 'rolled');
+  } else setBeatType(pick, true);
   refreshBeatMenuHighlight();
+}
+// BULLDOZER MODE question, per direct request — asked each time DRUMS AUTO is switched on from the A button.
+function _beatBulldozerDialog(onPick) {
+  let d = document.getElementById('beatBulldozerDialog'); if (d) d.remove();
+  d = document.createElement('div'); d.id = 'beatBulldozerDialog';
+  d.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:600;background:#f5f0e8;padding:20px 24px;width:min(310px,84vw);box-sizing:border-box;display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,0.45);font-family:"DM Sans",sans-serif;transition:opacity 0.2s;';
+  const t = document.createElement('div'); t.textContent = 'DRUMS AUTO — BULLDOZER MODE?';
+  t.style.cssText = 'font-size:0.85rem;font-weight:700;letter-spacing:1.5px;color:#111;text-align:center;line-height:1.35;';
+  const sub = document.createElement('div'); sub.textContent = 'LET EACH NEW BEAT TAKE OVER TRACKS FOR ITS EXTRA INSTRUMENTS';
+  sub.style.cssText = 'font-size:0.6rem;font-weight:700;letter-spacing:1px;color:#777;text-align:center;line-height:1.4;';
+  const row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;width:100%;';
+  const mk = (label, dark) => { const b = document.createElement('button'); b.textContent = label; b.style.cssText = `flex:1;padding:10px 0;border:2px solid #111;background:${dark ? '#111' : 'transparent'};color:${dark ? '#f5f0e8' : '#111'};font-family:inherit;font-weight:700;font-size:0.7rem;letter-spacing:1.5px;cursor:pointer;`; return b; };
+  const no = mk('NO', false), yes = mk('BULLDOZER', true);
+  const close = () => { d.style.opacity = '0'; setTimeout(() => d.remove(), 220); };
+  no.addEventListener('click', e => { e.stopPropagation(); close(); onPick(false); });
+  yes.addEventListener('click', e => { e.stopPropagation(); close(); onPick(true); });
+  ['touchstart', 'touchend', 'pointerdown'].forEach(ty => d.addEventListener(ty, e => e.stopPropagation(), { passive: true })); // taps here never reach the DRUMS menu underneath
+  row.appendChild(no); row.appendChild(yes); d.appendChild(t); d.appendChild(sub); d.appendChild(row);
+  document.body.appendChild(d);
 }
 function onBeatCtrlRandTap() {
   const _rBtn = document.getElementById('beatCtrlRand');
@@ -25589,9 +25653,15 @@ function onBeatCtrlRandTap() {
   } else {
     // A (was N), per direct request: a single tap now puts the drums straight into AUTO (a new beat type every 4 bars) — the
     // same as the old hold did — instead of picking one new beat once. Another tap turns it off.
-    _beatAutoRandActive = true;
-    _beatAutoRandBarCount = 0;
-    if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
+    _beatBulldozerDialog(bull => {
+      window._beatBulldozer = !!bull;
+      _beatAutoRandActive = true;
+      _beatAutoRandBarCount = 0;
+      if (!_tempoLocked) { _tempoLocked = true; _syncTempoLockUI(); }
+      updateBeatCtrlRow();
+      try { _showNotice(bull ? 'DRUMS AUTO · BULLDOZER' : 'DRUMS AUTO ON'); } catch (e) {}
+    });
+    return;
   }
   updateBeatCtrlRow();
 }
