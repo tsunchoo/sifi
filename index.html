@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 01:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 01:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2943,7 +2943,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 01:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 01:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -12840,24 +12840,15 @@ function commitBeatMenuSelection(item) {
   // menu (the drag-down version didn't work well), and the same touch can
   // then drag onto a beat to pick it. DRUMS AUTO is no longer on this
   // button at all (per direct request). Plain tap still toggles DRUMS.
-  const HOLD_MS = 500;
+  const HOLD_MS = 700; // longer hold, per direct request (was 500)
   const MOVE_OPEN_PX = 12;
   let holdTimer = null, startX = 0, startY = 0, dragCancelled = false, holdDone = false;
-  // GESTURES, per direct request (again): TOUCH + SWIPE DOWN opens the DRUMS menu (the same touch can carry on onto a beat to
-  // pick it); PRESS-AND-HOLD switches DRUMS AUTO on (BULLDOZER question first, DRUMS switched on too) — or off if it's running.
-  // Plain tap still toggles DRUMS.
-  const SWIPE_OPEN_PX = 24;
-  const _openFromSwipe = () => {
+  // GESTURES, per direct request (back again): a LONGER press-and-hold opens the DRUMS menu (the same touch can then drag onto a
+  // beat to pick it); DRUMS AUTO lives only on the menu's A button now. Plain tap still toggles DRUMS.
+  const _holdOpen = () => {
     holdDone = true;
     try { playUiSound('tinyclick'); } catch (err) {}
     openBeatMenu();
-  };
-  const _holdOpen = () => {
-    holdDone = true;
-    btn.classList.remove('menu-open');
-    try { playUiSound('tinyclick'); } catch (err) {}
-    if (_beatAutoRandActive) { _beatAutoOff(); return; }
-    _beatBulldozerDialog(bull => { _beatAutoStart(bull); if (!beatPlaying && !_beatPending) toggleBeat(); });
   };
 
   btn.addEventListener('touchstart', e => {
@@ -12873,10 +12864,7 @@ function commitBeatMenuSelection(item) {
   btn.addEventListener('touchmove', e => {
     const t = e.touches[0];
     if (!_beatMenuOpen) {
-      if (holdDone) return; // the hold already switched AUTO — nothing more for this touch
-      const dy = t.clientY - startY, dx = t.clientX - startX;
-      if (dy > SWIPE_OPEN_PX && dy > Math.abs(dx) * 1.2) { clearTimeout(holdTimer); dragCancelled = false; btn.classList.add('menu-open'); _openFromSwipe(); return; } // swipe DOWN → the menu
-      // Any other movement cancels the hold (and the tap)
+      // Moving before the hold completes just cancels it (and the tap) — only a genuine press-and-hold opens the menu.
       if (Math.abs(t.clientY - startY) > MOVE_OPEN_PX || Math.abs(t.clientX - startX) > MOVE_OPEN_PX) {
         clearTimeout(holdTimer);
         if (!dragCancelled) { dragCancelled = true; btn.classList.remove('menu-open'); }
