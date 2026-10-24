@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-24 01:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-24 16:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1361,6 +1361,20 @@ html body.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32,
 html body.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-b var(--anb-dur, 0.5s) ease-out; }
 html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar-a var(--anb-dur, 0.5s) ease-out; }
 html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar-b var(--anb-dur, 0.5s) ease-out; }
+/* ...32nd notes are drawn as a picture (two dots / two bars), not a fill, so flashing the fill lit up the whole square behind
+   them (per direct report) — they swap their own dots / bars to the flash colour for the first third of the flash instead. */
+@keyframes auto-bar32c-a { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
+@keyframes auto-bar32s-a { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
+@keyframes auto-bar32c-b { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
+@keyframes auto-bar32s-b { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
+html body.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32s-a var(--anb-dur, 0.5s) linear; }
+html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32s-a var(--anb-dur, 0.5s) linear; }
+html body.note-markers-circle.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32c-a var(--anb-dur, 0.5s) linear; }
+html body.note-markers-circle.auto-notes-wobble.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32c-a var(--anb-dur, 0.5s) linear; }
+html body.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32s-b var(--anb-dur, 0.5s) linear; }
+html body.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32s-b var(--anb-dur, 0.5s) linear; }
+html body.note-markers-circle.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32c-b var(--anb-dur, 0.5s) linear; }
+html body.note-markers-circle.auto-notes-wobble.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-notes-wobble 1.4s ease-in-out infinite, auto-bar32c-b var(--anb-dur, 0.5s) linear; }
 html body.battery-saver-mode .auto-notes-lane .step-cell::after { animation: none !important; }
 /* (OUTLINED auto notes removed, per direct request: body.auto-notes-solid is ALWAYS set now, so none of the rules below apply — kept only for reference) */
 /* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
@@ -2916,7 +2930,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 01:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-24 16:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
