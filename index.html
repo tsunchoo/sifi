@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 00:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 00:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1366,14 +1366,16 @@ html body.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32,
 html body.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-b var(--anb-dur, 0.5s) ease-out; }
 /* ...32nd notes are drawn as a picture (two dots / two bars), not a fill, so flashing the fill lit up the whole square behind
    them (per direct report) — they swap their own dots / bars to the flash colour for the first third of the flash instead. */
-@keyframes auto-bar32c-a { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
-@keyframes auto-bar32s-a { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
-@keyframes auto-bar32c-b { 0%, 33% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--play-flash-color, #fff) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--play-flash-color, #fff) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--track-color, var(--text)) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--track-color, var(--text)) 100%, transparent 100%); } }
-@keyframes auto-bar32s-b { 0%, 33% { background-image: repeating-linear-gradient(to right, var(--play-flash-color, #fff) 0%, var(--play-flash-color, #fff) 45%, transparent 45%, transparent 55%, var(--play-flash-color, #fff) 55%, var(--play-flash-color, #fff) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 34%, 100% { background-image: repeating-linear-gradient(to right, var(--track-color, var(--text)) 0%, var(--track-color, var(--text)) 45%, transparent 45%, transparent 55%, var(--track-color, var(--text)) 55%, var(--track-color, var(--text)) 100%); } }
-html body.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32s-a var(--anb-dur, 0.5s) linear; }
-html body.note-markers-circle.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32c-a var(--anb-dur, 0.5s) linear; }
-html body.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32s-b var(--anb-dur, 0.5s) linear; }
-html body.note-markers-circle.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32c-b var(--anb-dur, 0.5s) linear; }
+/* FADE like every other note, per direct report (they used to jump straight back): the dots / bars are drawn in --a32c, a registered colour that animates smoothly from the flash colour to the note's own */
+@property --a32c { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@keyframes auto-bar32c-a { 0% { --a32c: var(--play-flash-color, #fff); background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--a32c) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--a32c) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 100% { --a32c: var(--track-color, var(--text)); background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--a32c) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--a32c) 100%, transparent 100%); filter: drop-shadow(0 0 0 transparent); } }
+@keyframes auto-bar32s-a { 0% { --a32c: var(--play-flash-color, #fff); background-image: repeating-linear-gradient(to right, var(--a32c) 0%, var(--a32c) 45%, transparent 45%, transparent 55%, var(--a32c) 55%, var(--a32c) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 100% { --a32c: var(--track-color, var(--text)); background-image: repeating-linear-gradient(to right, var(--a32c) 0%, var(--a32c) 45%, transparent 45%, transparent 55%, var(--a32c) 55%, var(--a32c) 100%); filter: drop-shadow(0 0 0 transparent); } }
+@keyframes auto-bar32c-b { 0% { --a32c: var(--play-flash-color, #fff); background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--a32c) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--a32c) 100%, transparent 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 100% { --a32c: var(--track-color, var(--text)); background-image: radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 27% 50%, var(--a32c) 100%, transparent 100%), radial-gradient(ellipse calc(25% - var(--note-marker-circle-inset, 12%) / 2) calc(25% - var(--note-marker-circle-inset, 12%) / 2) at 73% 50%, var(--a32c) 100%, transparent 100%); filter: drop-shadow(0 0 0 transparent); } }
+@keyframes auto-bar32s-b { 0% { --a32c: var(--play-flash-color, #fff); background-image: repeating-linear-gradient(to right, var(--a32c) 0%, var(--a32c) 45%, transparent 45%, transparent 55%, var(--a32c) 55%, var(--a32c) 100%); filter: drop-shadow(0 0 4px var(--play-flash-color, #fff)); opacity: 1; } 100% { --a32c: var(--track-color, var(--text)); background-image: repeating-linear-gradient(to right, var(--a32c) 0%, var(--a32c) 45%, transparent 45%, transparent 55%, var(--a32c) 55%, var(--a32c) 100%); filter: drop-shadow(0 0 0 transparent); } }
+html body.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32s-a var(--anb-dur, 0.5s) ease-out; }
+html body.note-markers-circle.seq-playing .auto-notes-lane.anb-a .step-cell.split32::after { animation: auto-bar32c-a var(--anb-dur, 0.5s) ease-out; }
+html body.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32s-b var(--anb-dur, 0.5s) ease-out; }
+html body.note-markers-circle.seq-playing .auto-notes-lane.anb-b .step-cell.split32::after { animation: auto-bar32c-b var(--anb-dur, 0.5s) ease-out; }
 html body.battery-saver-mode .auto-notes-lane .step-cell::after { animation: none !important; }
 /* (OUTLINED auto notes removed, per direct request: body.auto-notes-solid is ALWAYS set now, so none of the rules below apply — kept only for reference) */
 /* AUTO NOTES tracks draw their note markers as outlines instead of solid shapes, per direct request; thickness comes from
@@ -2937,7 +2939,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 00:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 00:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6679,6 +6681,7 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (!buf) return;
 
   const src = ctx.createBufferSource(); src.buffer = buf;
+  if (key === 'guiro') { const A = window._maracaAlt = window._maracaAlt || {}; A[tr] = !A[tr]; if (!A[tr]) src.playbackRate.value = 0.9439; } // MARACAS: every other hit is a second, slightly LOWER version (one semitone down), so repeats never sound identical, per direct request
   const instrumentGain = ctx.createGain();
   const _isCongaBongoKey = (key === 'congHi' || key === 'congLo' || key === 'bongHi' || key === 'bongLo');
   const _congaBongoFxOnlyBoost = (_isCongaBongoKey && trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0) && !trackPump[tr]) ? 1.2589 : 1; // +2dB, specifically when FX is on but NOT BLAST, per direct request
@@ -13456,6 +13459,7 @@ function setTrackNameColor(tr, key) {
 }
 
 function selectSound(tr, k) {
+  try { if (window._clapCycle && trackInstruments[tr] !== k) delete window._clapCycle[tr]; } catch (e) {} // a fresh HANDCLAP starts its + cycle on 2 & 4 again
   setTimeout(() => { try { _syncMusicBus(); } catch (e) {} }, 0); // the track may have just moved between MUSIC and DRUMS
   setTimeout(() => { try { _syncDrumReverbTaps(); } catch (e) {} }, 0); // drum / perc tracks follow REVERB ON BEAT
   const prevKey = trackInstruments[tr];
@@ -19800,8 +19804,16 @@ function placeNotes(tr, noteCount, accentRatio, level) {
   // beats 2+4, or one of two syncopated off-beat variants for variety.
   if (key === 'clap') {
     for (let s = 0; s < NUM_STEPS; s++) grid[tr][s] = 0;
-    const patternRoll = Math.random();
-    if ((window._isAutoBarRand || autoShiftStops[tr]) && Math.random() < 0.5) { // AUTO notes: half the time a totally organic pattern instead, per direct request
+    let patternRoll = Math.random();
+    // + PRESSES alternate, per direct request: regular (the first one is always 2 & 4) → organic → regular → organic … (AUTO stays 50/50)
+    const _auto = !!(window._isAutoBarRand || autoShiftStops[tr]);
+    let _organic = _auto && Math.random() < 0.5;
+    if (!_auto && window._plusTapTr === tr) { // a + press on this track (RAND / new patterns keep the old regular-only rolls)
+      window._clapCycle = window._clapCycle || {}; const n = window._clapCycle[tr] = (window._clapCycle[tr] || 0) + 1;
+      _organic = n % 2 === 0;
+      if (n === 1) patternRoll = 0; // 2 & 4
+    }
+    if (_organic) { // a totally organic pattern
       const n = 2 + Math.floor(Math.random() * 4); // 2-5 claps anywhere (bar the downbeat), mixed accents
       for (let i = 0; i < 40 && grid[tr].filter(v => v > 0).length < n; i++) { const s = 1 + Math.floor(Math.random() * (NUM_STEPS - 1)); if (!grid[tr][s]) grid[tr][s] = Math.random() < 0.55 ? 2 : 1; }
     }
@@ -20493,7 +20505,7 @@ function wireRandomizeButton(btn, tr) {
     // specific to deliberately pressing this button repeatedly.
     if (!window._nButtonClickCount) window._nButtonClickCount = {};
     window._nButtonClickCount[tr] = (window._nButtonClickCount[tr] || 0) + 1;
-    doRand();
+    window._plusTapTr = tr; try { doRand(); } finally { window._plusTapTr = null; }
     btn.style.background = document.body.classList.contains('track-btn-lights') ? 'var(--top-row-pressed-bg)' : 'var(--track-btn-on-color, #0081FE)'; // same as the FX button's engaged background, per direct request (was _highlight2Color())
     // (glyph colour flash now handled by the white .glyph-pop fade, per direct request)
     setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 300);
