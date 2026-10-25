@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 01:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 02:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2582,6 +2582,7 @@ body.note-markers-circle .step-cell.split32::after {
 html body .step-cell.step-cell.step-cell.legato-tail:not(.playing)::after, html body .step-cell.step-cell.step-cell.legato-start:not(.playing)::after { box-shadow: none !important; }
 /* LOCKED TRACK: its other buttons read as unavailable until unlocked, per direct request */
 html body .track-ctrl-row:has(.lock-btn.sweep-on) > button:not(.lock-btn) { opacity: 0.35 !important; filter: grayscale(1) !important; }
+html body.lock-swap .track-ctrl-row:has(.lock-btn.sweep-on) > button.lock-btn { opacity: 0.35 !important; filter: grayscale(1) !important; pointer-events: none !important; } /* NEW INST mode: the asterisk is unavailable on a locked track too */
 /* ...and they don't react at all (no press pulse / glyph pop), and the VOL slider can't be dragged, per direct request. The name keeps
    its touches for the swipe-to-unlock (its taps and holds are refused in JS). */
 html body .track-ctrl-row:has(.lock-btn.sweep-on) > button:not(.lock-btn):not(.track-name-btn), html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { pointer-events: none !important; }
@@ -2944,7 +2945,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 01:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 02:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3120,6 +3121,11 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div class="beat-type-item" data-beat="bossa">BOSSA</div>
       <div class="beat-type-item" data-beat="jazz">JAZZ</div>
       <div class="beat-type-item" data-beat="soca">SOCA</div><!-- takes the blank filler's place -->
+    </div>
+    <!-- 8-BIT DRUMS (moved here from SETTINGS), per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
+    <div id="drums8bitRow" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
+      <label class="wild-toggle"><input type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
   </div>
 </div>
@@ -3919,11 +3925,6 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">39%</div></div>
         <input type="range" id="beatVolBar" min="0" max="100" value="39" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
-      </div>
-      <!-- 8-BIT DRUMS, per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
-        <label class="wild-toggle"><input type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -13657,6 +13658,7 @@ function buildUI() {
     sweepBtnL.addEventListener('mouseup', (e) => {
       if (e.isTrusted && Date.now() - _lastRealTouchTimeGlobal < 500) return; // ignore genuine synthetic mouseup following a real touch, but let the drag system's own dispatched (untrusted) event through
       if (document.body.classList.contains('lock-swap')) { // LOCK BUTTONS = NEW SOUND mode: the button picks a new instrument from the same group instead of locking
+        if (trackSweep[tr]) return; // LOCKED: no instrument shuffles either, per direct request
         // DOUBLE-TAP, per direct request: a second tap within 350ms picks from ANY group instead (the first tap's same-group swap is simply replaced)
         const now = Date.now(), dbl = now - (sweepBtnL._lastSwapTap || 0) < 350;
         sweepBtnL._lastSwapTap = dbl ? 0 : now;
@@ -14208,7 +14210,7 @@ function previewNote(tr, isAccent) {
 // below, all three of which cycle a step's value the same way.
 const _SPLIT32_EXCLUDED_KEYS = new Set(['skick', 'tamb', 'clap', 'sstring', 'sleg', 'drone', 'dronePlus', 'sflute', 'magic', 'sbass', 'sbass3', 'sbass4', 'dbass', 'pbass', 'sludge']); // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 function _stepCycleMax(tr) { return _SPLIT32_EXCLUDED_KEYS.has(trackInstruments[tr]) ? 3 : 4; }
-function tapStep(tr, s, cell) {
+function tapStep(tr, s, cell) { if (trackSweep[tr]) return; // LOCKED: no note edits on this track, per direct request
   const gs = (s - trackOffset[tr] + NUM_STEPS) % NUM_STEPS;
   grid[tr][gs] = (grid[tr][gs] + 1) % _stepCycleMax(tr);
   const val = grid[tr][gs];
@@ -14442,7 +14444,7 @@ function _applyDragStep(tr, s, cellEl, erase, isFirst) {
 document.addEventListener('touchstart', e => {
   const cell = e.target.closest('.step-cell');
   if (!cell) return;
-  const tr = +cell.dataset.track, s = +cell.dataset.step;
+  const tr = +cell.dataset.track, s = +cell.dataset.step; if (trackSweep[tr]) return; // LOCKED: no note edits on this track, per direct request
   // EMPTY track (no notes anywhere on it, whatever instrument it happens to
   // be silently carrying) — open the sound picker instead of writing a note
   // with a hidden instrument the person never actually chose. See
@@ -14544,7 +14546,7 @@ document.addEventListener('touchend', () => {
 document.addEventListener('mousedown', e => {
   const cell = e.target.closest('.step-cell');
   if (!cell) return;
-  const tr = +cell.dataset.track, s = +cell.dataset.step;
+  const tr = +cell.dataset.track, s = +cell.dataset.step; if (trackSweep[tr]) return; // LOCKED: no note edits on this track, per direct request
   if (!grid[tr].some(v => v > 0) && !_trackInstrumentTouched[tr]) { // EMPTY track with no instrument chosen yet — see the matching touchstart guard above
     _pendingEmptyTrackTap = { tr, s, cellEl: cell };
     openSoundPicker(tr);
@@ -23957,7 +23959,7 @@ function fullReset() {
 (function () {
   const blocked = e => {
     const b = e.target && e.target.closest && (e.target.closest('.track-ctrl-row button') || e.target.closest('.track-ctrl-row .track-vol-bar'));
-    if (!b || b.classList.contains('lock-btn')) return;
+    if (!b || (b.classList.contains('lock-btn') && !document.body.classList.contains('lock-swap'))) return; // in NEW INST mode the lock button is the asterisk — blocked too
     const row = b.closest('.track-ctrl-row'); const tr = row ? parseInt(row.id.replace('ctrlrow-', ''), 10) : NaN;
     if (isNaN(tr) || !trackSweep[tr]) return;
     if (b.classList.contains('track-name-btn') && (e.type === 'touchstart' || e.type === 'touchmove' || e.type === 'touchend')) return; // swipe-to-unlock lives here (its tap/hold are already refused there)
@@ -24017,7 +24019,8 @@ function fullReset() {
         _swipeHandled = true;
         _dragActive = false;
         if (_nameHoldTimer) { clearTimeout(_nameHoldTimer); _nameHoldTimer = null; }
-        if (dx > 0 && !document.body.classList.contains('lock-swap')) {
+        if (dx > 0 && !document.body.classList.contains('lock-swap') && trackSweep[_nameHoldTr]) { /* LOCKED: the NEW INSTRUMENT swipe does nothing, per direct request */ }
+        else if (dx > 0 && !document.body.classList.contains('lock-swap')) {
           // LOCK BUTTONS = NEW INST OFF (the button locks), per direct request: a right swipe does the NEW INSTRUMENT action instead —
           // exactly a tap on the track's asterisk button in NEW INST mode (two quick swipes = any group, like its double-tap)
           const lb = document.getElementById(`swpbtn-${_nameHoldTr}`);
@@ -25659,7 +25662,7 @@ const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 's
 // track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
 // whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
 window._musicBus = 0.85; // default 85%, per direct request
-function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.9441 /* basses -0.5dB */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
+function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.8913 /* basses -1dB (−0.5dB, then another −0.5dB per direct request) */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
 function _syncMusicBus() {
   const gs = window._musicBusGains; if (!gs || !ctx) return;
   for (let tr = 0; tr < gs.length; tr++) { const g = gs[tr]; if (!g || g.context !== ctx) continue; const v = _musicBusFor(tr); if (Math.abs(g.gain.value - v) > 0.002) g.gain.setTargetAtTime(v, ctx.currentTime, 0.03); }
