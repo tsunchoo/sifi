@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 02:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-25 02:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1364,6 +1364,10 @@ html body.battery-saver-mode .auto-notes-lane .step-cell::after { translate: non
 @keyframes auto-bar-b { from { background-color: var(--play-flash-color, #fff); box-shadow: 0 0 calc(6px * var(--mglow, 1.5)) var(--play-flash-color, #fff); opacity: 1; } } /* opacity 1 at the flash: every note flashes at FULL strength, whatever its own opacity (soft notes etc.), per direct report */
 html body.seq-playing .auto-notes-lane.anb-a .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-a var(--anb-dur, 0.5s) ease-out; }
 html body.seq-playing .auto-notes-lane.anb-b .step-cell:is(.on, .soft, .split32, .legato-start, .legato-tail)::after { animation: auto-bar-b var(--anb-dur, 0.5s) ease-out; }
+/* LEGATO notes the playhead is on / just passed: their pop (an !important animation) used to REPLACE the new-bar flash, so legato
+   phrases near the bar line never lit up, per direct report — now they run both at once (flash = colour, pop = size) */
+html body.seq-playing .auto-notes-lane.anb-a .step-cell.step-cell.step-cell:is(.legato-start, .legato-tail).popping::after { animation: auto-bar-a var(--anb-dur, 0.5s) ease-out, step-cell-pop-legato 288ms ease-out !important; transform-origin: 50% 50%; }
+html body.seq-playing .auto-notes-lane.anb-b .step-cell.step-cell.step-cell:is(.legato-start, .legato-tail).popping::after { animation: auto-bar-b var(--anb-dur, 0.5s) ease-out, step-cell-pop-legato 288ms ease-out !important; transform-origin: 50% 50%; }
 /* ...32nd notes are drawn as a picture (two dots / two bars), not a fill, so flashing the fill lit up the whole square behind
    them (per direct report) — they swap their own dots / bars to the flash colour for the first third of the flash instead. */
 /* FADE like every other note, per direct reports: 32nd glyphs are pictures (gradients), which browsers can't fade between — so the
@@ -2945,7 +2949,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 02:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 02:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -23962,7 +23966,8 @@ function fullReset() {
     if (!b || (b.classList.contains('lock-btn') && !document.body.classList.contains('lock-swap'))) return; // in NEW INST mode the lock button is the asterisk — blocked too
     const row = b.closest('.track-ctrl-row'); const tr = row ? parseInt(row.id.replace('ctrlrow-', ''), 10) : NaN;
     if (isNaN(tr) || !trackSweep[tr]) return;
-    if (b.classList.contains('track-name-btn') && (e.type === 'touchstart' || e.type === 'touchmove' || e.type === 'touchend')) return; // swipe-to-unlock lives here (its tap/hold are already refused there)
+    if (b.classList.contains('track-name-btn') && (e.type === 'touchstart' || e.type === 'touchmove' || e.type === 'touchend')) return;
+    if (b.classList.contains('track-name-btn') && trackMuted[tr] && e.type !== 'contextmenu' && !(e.type === 'click' && Date.now() - (window._lastRealTouchTimeGlobal || _lastRealTouchTimeGlobal || 0) < 600)) return; // LOCKED + MUTED: a click may still unmute it (desktop) // swipe-to-unlock lives here (its tap/hold are already refused there)
     e.stopPropagation(); e.stopImmediatePropagation(); if (e.cancelable && e.type !== 'touchstart') e.preventDefault();
   };
   ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend'].forEach(t => document.addEventListener(t, blocked, { capture: true, passive: false }));
@@ -23989,7 +23994,8 @@ function fullReset() {
     _nameHoldTr = +nameEl.dataset.tr;
     _isDragging = false;
     _swipeStartX = touch.clientX; _swipeStartY = touch.clientY; _swipeHandled = false;
-    if (trackSweep[_nameHoldTr]) { _nameHoldTimer = null; _dragActive = true; _dragVisited = new Set(); return; } // LOCKED: no tap-mute, no picker, no mute-drag — only the unlock swipe, per direct request
+    window._lockedUnmuteTap = false;
+    if (trackSweep[_nameHoldTr]) { _nameHoldTimer = null; _dragActive = true; _dragVisited = new Set(); window._lockedUnmuteTap = !!trackMuted[_nameHoldTr]; return; } // LOCKED + MUTED: a plain tap may still UNMUTE it (never mute), per direct report — otherwise it could get stuck silent // LOCKED: no tap-mute, no picker, no mute-drag — only the unlock swipe, per direct request
     _nameHoldTimer = setTimeout(() => {
       _nameHoldTimer = null;
       if (!_isDragging) {
@@ -24026,7 +24032,7 @@ function fullReset() {
           const lb = document.getElementById(`swpbtn-${_nameHoldTr}`);
           if (lb) { document.body.classList.add('lock-swap'); try { lb.dispatchEvent(new MouseEvent('mouseup', { bubbles: false })); } finally { document.body.classList.remove('lock-swap'); } }
         }
-        else if (dx > 0 && !trackMuted[_nameHoldTr]) _toggleTrackLock(_nameHoldTr); // a MUTED track can't be locked OR unlocked by a swipe, per direct request // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
+        else if (dx > 0 && (!trackMuted[_nameHoldTr] || trackSweep[_nameHoldTr])) _toggleTrackLock(_nameHoldTr); /* a muted track can't be LOCKED by a swipe, but a locked one can always be UNLOCKED */ // a MUTED track can't be locked OR unlocked by a swipe, per direct request // left-to-right LOCKS / UNLOCKS the track, per direct request; the old slot / RECALL swipes were removed (never worked)
         return;
       }
       // Mostly-horizontal movement that hasn't reached the swipe distance yet: wait for it rather than committing to a mute-drag
@@ -24069,6 +24075,8 @@ function fullReset() {
   }, { passive: true });
 
   const endDrag = () => {
+    if (window._lockedUnmuteTap && !_isDragging && !_swipeHandled && trackSweep[_nameHoldTr] && trackMuted[_nameHoldTr]) { trackMuted[_nameHoldTr] = false; _syncSoloOnUnmute(_nameHoldTr); updateTrackMute(_nameHoldTr); markModified(); }
+    window._lockedUnmuteTap = false;
     if (!_isDragging && _nameHoldTimer) {
       // Genuine quick tap, no drag — toggle just this one track.
       clearTimeout(_nameHoldTimer); _nameHoldTimer = null;
