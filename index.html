@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 01:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 01:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2959,7 +2959,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 01:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 01:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3894,6 +3894,15 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
         <span style="color:#555;">COLOUR</span><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="name" checked onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">NAME</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="flash" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="toprow" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">TOP ROW</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="tape" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">TAPE</label>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">OPACITY</div>
+        <div id="nameEqOpVal" style="font-size:0.75rem;font-weight:700;color:#111;">28%</div>
+      </div>
+      <input type="range" id="nameEqOpSlider" min="0" max="100" step="1" value="28" class="master-vol-slider" oninput="setNameEqOpacity(this.value)" onchange="setNameEqOpacity(this.value)" style="width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">GLOW</div>
+        <label class="wild-toggle"><input type="checkbox" id="nameEqGlowToggle" onchange="setNameEqGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
       <script>try { const v = localStorage.getItem('sifiNameEq'); if (v) document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; }); } catch (e) {} try { const c2 = localStorage.getItem('sifiNameEqCol'); if (c2) document.querySelectorAll('input[name="nameEqColor"]').forEach(r => { r.checked = r.value === c2; }); } catch (e) {}</script>
     </div>
@@ -23669,6 +23678,11 @@ let _nameEqAn = null, _nameEqBins = null, _nameEqLv = new Array(10).fill(0), _na
 window._nameEqColor = 'name';
 try { const v = localStorage.getItem('sifiNameEqCol'); if (v) window._nameEqColor = v; } catch (e) {}
 function setNameEqColor(v) { window._nameEqColor = v; document.querySelectorAll('input[name="nameEqColor"]').forEach(r => { r.checked = r.value === v; }); try { localStorage.setItem('sifiNameEqCol', v); } catch (e) {} }
+window._nameEqOpacity = 28; window._nameEqGlow = false;
+try { const o = localStorage.getItem('sifiNameEqOp'); if (o !== null) window._nameEqOpacity = +o; window._nameEqGlow = localStorage.getItem('sifiNameEqGlow') === '1'; } catch (e) {}
+function setNameEqOpacity(v) { v = Math.max(0, Math.min(100, +v || 0)); window._nameEqOpacity = v; const cv = document.getElementById('nameEq'); if (cv) cv.style.opacity = (v / 100).toFixed(2); const r = document.getElementById('nameEqOpVal'); if (r) r.textContent = Math.round(v) + '%'; const sl = document.getElementById('nameEqOpSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiNameEqOp', String(v)); } catch (e) {} }
+function setNameEqGlow(on) { window._nameEqGlow = !!on; const cb = document.getElementById('nameEqGlowToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiNameEqGlow', on ? '1' : '0'); } catch (e) {} }
+{ const _neInit = () => { try { setNameEqOpacity(window._nameEqOpacity); setNameEqGlow(window._nameEqGlow); } catch (e) {} }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _neInit); else setTimeout(_neInit, 0); }
 function setNameEqStyle(v) {
   window._nameEqStyle = v;
   document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; });
@@ -23726,7 +23740,7 @@ function _nameEqTick(now) {
     else if (cm === 'tape') col = window._tapeColNow;
   } catch (e) {}
   if (!col) { const nd = document.getElementById('nameDisplay'); col = (nd && getComputedStyle(nd).color) || '#000'; }
-  c.fillStyle = col; c.strokeStyle = col; c.globalAlpha = 1; // drawn solid; the canvas itself is faded (CSS opacity) so touching shapes never double up into seams
+  c.fillStyle = col; c.strokeStyle = col; c.globalAlpha = 1; c.shadowColor = col; c.shadowBlur = window._nameEqGlow ? 10 * dpr : 0; // GLOW option // drawn solid; the canvas itself is faded (CSS opacity) so touching shapes never double up into seams
   const slot = W / 10, pad = 2 * dpr, usable = H - pad * 2;
   if (style === 'bars') {
     // full width, edge to edge like LINE, per direct request
@@ -23745,7 +23759,7 @@ function _nameEqTick(now) {
     const th = 8 * dpr, span = H - th - pad * 2;
     c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - th - _nameEqLv[b] * span; const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.rect(x0, Math.round(y), x1 - x0 + 1, th); } c.fill();
   }
-  c.globalAlpha = 1;
+  c.globalAlpha = 1; c.shadowBlur = 0;
 }
 requestAnimationFrame(_nameEqTick);
 // Full in-memory reset — puts everything back to exactly how it looked the
@@ -26703,7 +26717,7 @@ let _reelHoldTimer = null;
   // direct request. (SETTINGS keeps deferring only its sliders.)
   const lookMenu = document.getElementById('devMenuOverlay');
   const DEFER_TYPES = new Set(['checkbox', 'radio', 'color']);
-  const LIVE_IDS = new Set(['masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
+  const LIVE_IDS = new Set(['nameEqOpSlider', 'masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
   const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
