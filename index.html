@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 05:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 05:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2960,7 +2960,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 05:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 05:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -23898,11 +23898,16 @@ function _nameEqTick(now) {
       const SEG = 6, gap = 2 * dpr, sh = (usable - gap * (SEG - 1)) / SEG, hg = Math.max(1, Math.round(dpr));
       for (let b = 0; b < 10; b++) { const lit = Math.round(LV[b] * SEG); const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot) - (b < 9 ? hg : 0);
         for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 1 : 0.25; c.fillRect(x0, Math.round(H - pad - (k + 1) * sh - k * gap), x1 - x0, Math.round(sh)); } }
-    } else if (style === 'vert') { // VERT, per direct request: LINE turned on its side — each band is a long thin VERTICAL dash (8px wide, as tall
-      // as LINE's dashes are wide) riding up and down to its level
-      // half as wide (4px) and twice as many (20), per direct request — each dash as tall as its (now half-width) slot is wide
-      const s20 = W / 20, lw = 4 * dpr, len = Math.min(Math.round(s20), H - pad * 2 - dpr), span = H - pad * 2 - len;
-      c.beginPath(); for (let b = 0; b < 20; b++) { const y = H - pad - len - LV20[b] * span; const cx = Math.round(b * s20 + s20 / 2 - lw / 2); c.rect(cx, Math.round(y), lw, len); } c.fill();
+    } else if (style === 'vert') { // VERT, per direct request: thin bars standing on the bottom like BARS — 20 of them, 4px wide —
+      // the bar is the VOL FILL LOW colour, with its top 10px in the VOL FILL HIGH colour (both REC red while recording)
+      const s20 = W / 20, lw = 4 * dpr, cap = 10 * dpr;
+      const rec = typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active');
+      const lo = rec ? [255, 42, 42] : _fillBaseNow(), hi = rec ? [255, 42, 42] : _fillHighNow();
+      const tops = [];
+      c.fillStyle = `rgb(${lo[0]},${lo[1]},${lo[2]})`; c.beginPath();
+      for (let b = 0; b < 20; b++) { const h = Math.max(dpr, Math.round(LV20[b] * usable)), top = H - pad - h, cx = Math.round(b * s20 + s20 / 2 - lw / 2); tops.push([cx, top, Math.min(h, cap)]); if (h > cap) c.rect(cx, top + cap, lw, h - cap); }
+      c.fill();
+      c.fillStyle = `rgb(${hi[0]},${hi[1]},${hi[2]})`; c.beginPath(); tops.forEach(([cx, top, ch]) => c.rect(cx, top, lw, ch)); c.fill();
     } else { // 'peaks': a flat ~8px block at each band's level, edge to edge — every block butts against its neighbours, full width
       const th = 8 * dpr, span = H - th - pad * 2;
       c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - th - LV[b] * span; const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.rect(x0, Math.round(y), x1 - x0 + 1, th); } c.fill();
@@ -23925,6 +23930,7 @@ function _nameEqColours() {
   const cs = _rootCS(), out = [];
   const rec = typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active');
   if (rec) return [[255, 42, 42]];
+  if (window._nameEqStyle === 'vert') return [_fillBaseNow(), _fillHighNow()]; // VERT always draws in the two VOL FILL colours
   const cm = window._nameEqColor || 'flash';
   if (cm === 'vlow') out.push(_fillBaseNow()); else if (cm === 'vhigh' || cm === 'vfill') out.push(_fillHighNow());
   else { const c = _cssRgb(cs.getPropertyValue(cm === 'toprow' ? '--top-row-highlight-color' : '--play-flash-color').trim()); if (c) out.push(c); }
@@ -23935,7 +23941,8 @@ setInterval(() => {
   if ((window._nameEqStyle || 'off') === 'off') { if (nd._eqTxt) { nd.style.removeProperty('color'); nd._eqTxt = null; } return; }
   let best = -1; try { _nameEqColours().forEach(([r, g, b]) => { const L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; if (L > best) best = L; }); } catch (e) {}
   if (best < 0) return;
-  const txt = best > 0.55 ? '#111111' : '#ffffff';
+  let txt = best > 0.55 ? '#111111' : '#ffffff';
+  if (document.body.classList.contains('bg-dark')) txt = best > 0.55 ? '#585858' : '#ffffff'; // DARK display modes: pushed 30% lighter, per direct request (#111 → #585858; white stays white)
   if (nd._eqTxt !== txt) { nd.style.setProperty('color', txt, 'important'); nd._eqTxt = txt; }
 }, 400);
 // Full in-memory reset — puts everything back to exactly how it looked the
