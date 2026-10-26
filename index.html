@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-25 20:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 01:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -779,6 +779,10 @@ html body .step-cell.cascade-hidden::after { visibility: hidden !important; } /*
 /* >> button: half the press-pulse (0.925 instead of 0.85) and half the new-pattern glyph pulse (1.225 instead of 1.45), per direct request */
 @keyframes press-pulse-half { 0% { transform: scale(1); } 40% { transform: scale(0.925); } 100% { transform: scale(1); } }
 html body .transport #randBtn.press-pulse { animation: press-pulse-half 0.5s ease-out; }
+/* >> GLITCHY PULSE, per direct report ("two things fighting"): the generic .btn:active squeeze (0.88, eased) and the press-pulse both
+   scaled the button at once, so it jumped between them — the pulse alone does the squeeze now. (A double tap no longer restarts
+   the pulse half way through either — see _pressPulse.) */
+html body .transport #randBtn:active { transform: none; }
 /* MARKER STYLE header icon — sits to the right of the reverb room icon
    (swapped positions with the rainbow COLOR MENU icon per direct request),
    top row color, sized like an accented note marker. Shows the shape
@@ -2955,7 +2959,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-25 20:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 01:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3140,7 +3144,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   </div>
 </div>
 
-<div id="nameBar" style="width:100vw;max-width:100vw;display:flex;justify-content:center;align-items:center;padding:6px 8px;min-height:46.08px;margin-bottom:0;font-family:'DM Sans',sans-serif;font-size:1.1875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;background:#aa64a6;cursor:pointer;user-select:none;-webkit-user-select:none;"><span id="nameDisplay" style="text-align:center;"></span></div>
+<div id="nameBar" style="position:relative;width:100vw;max-width:100vw;display:flex;justify-content:center;align-items:center;padding:6px 8px;min-height:46.08px;margin-bottom:0;font-family:'DM Sans',sans-serif;font-size:1.1875rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;background:#aa64a6;cursor:pointer;user-select:none;-webkit-user-select:none;"><canvas id="nameEq" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;display:block;"></canvas><span id="nameDisplay" style="text-align:center;position:relative;z-index:1;"></span></div>
 
 
 
@@ -3430,6 +3434,17 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
         </label>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">Fader tip glow colour: opposite of the tip when FADER TIP = PLAY COLOUR is on, otherwise the PLAY FLASH colour. Track button glows need TRACK BUTTON LIGHTS (DEV › TRACK BUTTONS).</div>
+      </div>
+      <!-- SONG NAME EQ, per direct request: a 10-band graphic EQ of the output, behind the song name -->
+      <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
+        <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">SONG NAME EQ</div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="off" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">OFF</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="bars" checked onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">BARS</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="leds" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">LEDS</label>
+          <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="peaks" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">PEAKS</label>
+        </div>
+        <script>try { const v = localStorage.getItem('sifiNameEq'); if (v) document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; }); } catch (e) {}</script>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">VOLUME FILL (moved from SETTINGS)</div>
@@ -6517,7 +6532,7 @@ function getPumpChain(tr, dest) {
   // function's own ad-hoc BLAST attenuation (which stays as-is, this is
   // an additional universal cut on top of those, not a replacement).
   const _blastMinusOneDb = 0.8913;
-  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : (trackInstruments[tr] === 'ride') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, RIDE + BLAST −3dB, per direct request
+  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'guiro') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, RIDE + BLAST −3dB, MARACAS + BLAST −3dB, per direct request
   nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim * (_punkBlast ? ({ sbass: 1.12, sbass3: 1.255, sbass4: 1.245, dbass: 1.48, pbass: 1.24, sludge: 1.185 }[trackInstruments[tr]] || 1.11) /* each bass measured to land at the same loudness as before */ : 1); // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
@@ -6755,8 +6770,19 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (key === 'ssnare') _addSnareClick(time, pDest, isAccent ? 0.1 : 0.07); // a little sidestick-style click
   // Reverb no longer taps in here — see toggleTrackDelay/connectToDelay
   // for the persistent post-FX send off trackGainNodes[tr] instead.
+  // END FADE, per direct report (SIDESTICK popping at the end of its sample): a sample that stops on a non-zero value clicks —
+  // every sample now fades to silence over its last 6ms (the real tail is long gone by then, so nothing audible is lost).
+  try {
+    const _rate = src.playbackRate.value || 1, _end = time + buf.duration / _rate;
+    if (buf.duration / _rate > 0.02) {
+      const endFade = ctx.createGain();
+      src.disconnect(); src.connect(endFade); endFade.connect(instrumentGain);
+      endFade.gain.setValueAtTime(1, _end - 0.006); endFade.gain.linearRampToValueAtTime(0, _end);
+      src._endFade = endFade;
+    }
+  } catch (e) {}
   src.start(time);
-  src.onended = () => { try { src.disconnect(); instrumentGain.disconnect(); } catch(e) {} };
+  src.onended = () => { try { src.disconnect(); instrumentGain.disconnect(); src._endFade && src._endFade.disconnect(); } catch(e) {} };
 }
 
 const NUM_TRACKS = 6, NUM_STEPS = 16, VOL_NODES_COUNT = 10;
@@ -7132,8 +7158,7 @@ function scheduler() {
     if (step === 8 && _autoRandLoopActive) {
       const rb8 = document.getElementById('randBtn');
       if (rb8) {
-        rb8.style.animationDuration = ((60 / bpm) * 2) + 's';
-        rb8.classList.remove('rand-color-pulse'); void rb8.offsetWidth; rb8.classList.add('rand-color-pulse');
+        rb8.style.animationDuration = ''; // (the rand-color-pulse it timed is retired — its inline duration was stretching every OTHER >> animation, the press pulse included, while AUTO ran)
       }
     }
     // BEAT's own auto-random-beat-type mode uses a genuinely continuous,
@@ -12883,15 +12908,16 @@ function commitBeatMenuSelection(item) {
       }
       return;
     }
-    e.preventDefault();
-    beatMenuHighlightUnder(t.clientX, t.clientY);
+    e.preventDefault(); // menu open: this touch no longer picks anything (see touchend) — no drag-highlight either, per direct request
   }, { passive: false });
 
   btn.addEventListener('touchend', e => {
     clearTimeout(holdTimer);
     const t = e.changedTouches[0];
     if (_beatMenuOpen) {
-      const item = beatMenuHighlightUnder(t.clientX, t.clientY);
+      // The RELEASE of the hold that opened the menu never picks anything, per direct request — the menu just stays open for
+      // ordinary taps. (It used to commit whatever beat / button happened to be under the finger.)
+      const item = null;
       if (item) {
         commitBeatMenuSelection(item);
         if (item.classList.contains('beat-type-item')) {
@@ -13010,6 +13036,7 @@ function commitBeatMenuSelection(item) {
 function _pressPulse(id) {
   const b = document.getElementById(id);
   if (!b) return;
+  if (id === 'randBtn') { const now = performance.now(); if (now - (b._ppAt || 0) < 400) return; b._ppAt = now; } // >>: a 2nd tap mid-pulse doesn't snap it back and restart
   b.classList.remove('press-pulse'); void b.offsetWidth; b.classList.add('press-pulse');
 }
 
@@ -23630,12 +23657,79 @@ function _allocSwipeBack() {
 }
 
 
+
+// SONG NAME EQ, per direct request: a basic 10-band graphic EQ of the OUTGOING signal (after the limiter), drawn across the whole
+// song-name bar behind the name, bass on the left → highs on the right. One colour only (the name's own text colour, faded), so it
+// works on any background and in black & white. Three looks — BARS, LEDS (stacked blocks) and PEAKS (a dash per band, joined) —
+// or OFF, in LOOK AND FEEL > DEV. Kept cheap: one small FFT, ~30 frames a second, only while playing.
+window._nameEqStyle = 'bars';
+const _NAME_EQ_BANDS = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+let _nameEqAn = null, _nameEqBins = null, _nameEqLv = new Array(10).fill(0), _nameEqLast = 0, _nameEqDrawnIdle = false;
+function setNameEqStyle(v) {
+  window._nameEqStyle = v;
+  document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; });
+  _nameEqDrawnIdle = false;
+  try { localStorage.setItem('sifiNameEq', v); } catch (e) {}
+}
+try { const v = localStorage.getItem('sifiNameEq'); if (v) window._nameEqStyle = v; } catch (e) {}
+function _nameEqTick(now) {
+  requestAnimationFrame(_nameEqTick);
+  const cv = document.getElementById('nameEq'); if (!cv) return;
+  const style = window._nameEqStyle;
+  const live = style !== 'off' && playing && ctx && window._postLimiterGain && !document.hidden;
+  if (!live) {
+    if (!_nameEqDrawnIdle) { const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); _nameEqLv.fill(0); _nameEqDrawnIdle = true; }
+    return;
+  }
+  if (now - _nameEqLast < 33) return; // ~30fps is plenty
+  _nameEqLast = now; _nameEqDrawnIdle = false;
+  // analyser on the final output — rebuilt if the audio engine was swapped
+  if (!_nameEqAn || _nameEqAn.context !== ctx) {
+    try { _nameEqAn = ctx.createAnalyser(); _nameEqAn.fftSize = 2048; _nameEqAn.smoothingTimeConstant = 0.6; _nameEqAn.minDecibels = -90; _nameEqAn.maxDecibels = -20; window._postLimiterGain.connect(_nameEqAn); _nameEqBins = new Uint8Array(_nameEqAn.frequencyBinCount); } catch (e) { _nameEqAn = null; return; }
+  }
+  _nameEqAn.getByteFrequencyData(_nameEqBins);
+  const hzPerBin = ctx.sampleRate / _nameEqAn.fftSize, n = _nameEqBins.length;
+  for (let b = 0; b < 10; b++) {
+    const f = _NAME_EQ_BANDS[b], lo = Math.max(1, Math.floor(f / 1.414 / hzPerBin)), hi = Math.min(n - 1, Math.max(lo, Math.ceil(f * 1.414 / hzPerBin)));
+    let m = 0; for (let i = lo; i <= hi; i++) if (_nameEqBins[i] > m) m = _nameEqBins[i];
+    const v = m ? Math.min(1, m / 255 + b * 0.03) : 0, prev = _nameEqLv[b]; // +~2dB per band tilt, like a real analyser, so the highs read instead of always sitting near the floor
+    _nameEqLv[b] = v > prev ? v : prev * 0.82 + v * 0.18; // fast up, eased fall
+  }
+  // size the canvas to the bar (device pixels, capped at 2x)
+  const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
+  if (!W || !H) return;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
+  const nd = document.getElementById('nameDisplay');
+  const col = (nd && getComputedStyle(nd).color) || '#000';
+  c.fillStyle = col; c.strokeStyle = col; c.globalAlpha = 0.28;
+  const slot = W / 10, pad = 2 * dpr, usable = H - pad * 2;
+  if (style === 'bars') {
+    const bw = slot * 0.55;
+    for (let b = 0; b < 10; b++) { const h = Math.max(dpr, _nameEqLv[b] * usable); c.fillRect(b * slot + (slot - bw) / 2, H - pad - h, bw, h); }
+  } else if (style === 'leds') {
+    const SEG = 6, gap = 2 * dpr, sh = (usable - gap * (SEG - 1)) / SEG, bw = Math.min(slot * 0.55, sh * 2.2);
+    for (let b = 0; b < 10; b++) { const lit = Math.round(_nameEqLv[b] * SEG); const x = b * slot + (slot - bw) / 2;
+      for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 0.3 : 0.07; c.fillRect(x, H - pad - (k + 1) * sh - k * gap, bw, sh); } }
+  } else { // 'peaks': a short dash at each band's level, joined by a thin line
+    const dw = slot * 0.4, th = Math.max(2, 3 * dpr), pts = [];
+    for (let b = 0; b < 10; b++) { const y = H - pad - _nameEqLv[b] * usable; const cx = b * slot + slot / 2; pts.push([cx, y]); c.fillRect(cx - dw / 2, y - th / 2, dw, th); }
+    c.globalAlpha = 0.16; c.lineWidth = Math.max(1, dpr); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x, y) : c.moveTo(x, y)); c.stroke();
+  }
+  c.globalAlpha = 1;
+}
+requestAnimationFrame(_nameEqTick);
 // Full in-memory reset — puts everything back to exactly how it looked the
 // moment loading finished, without ever touching the network or reloading
 // the page. This matters: a real reload/fetch can fail with no connection
 // and leave the page blank, so the reset gesture must never depend on one.
 function fullReset() {
   if (playing) togglePlay();
+  // VISUAL CLEAN-UP, per direct report (a one-off screenshot after a double-click reset: giant blurred markers stuck at the end of
+  // every row): a new-pattern cascade still mid-flight left its ghost copies and glowing columns behind. Cancel it and clear every
+  // leftover playhead / pop / cascade state from the grid — now, and once more after anything already queued has run.
+  const _gridClean = () => { try { _cascadeTimers.forEach(clearTimeout); _cascadeTimers = []; } catch (e) {} document.querySelectorAll('.cascade-ghost').forEach(g => g.remove()); document.querySelectorAll('.step-cell.playing, .step-cell.popping, .step-cell.cascade-glow, .step-cell.cascade-hidden').forEach(c => c.classList.remove('playing', 'popping', 'cascade-glow', 'cascade-hidden')); };
+  _gridClean(); setTimeout(() => { if (!playing) _gridClean(); }, 1500);
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
   try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 85; setMusicBus(85); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
