@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 07:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 07:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 07:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 07:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3924,6 +3924,11 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="nameEqFlashGlowToggle" onchange="setNameEqFlashGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
       <script>try { let v = localStorage.getItem('sifiNameEq'); if (v === 'circles') v = 'vert'; if (v) document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; }); } catch (e) {} try { const c2 = localStorage.getItem('sifiNameEqCol'); if (c2 && c2 !== 'name' && c2 !== 'tape') { const c3 = c2 === 'vfill' ? 'vhigh' : c2; document.querySelectorAll('input[name="nameEqColor"]').forEach(r => { r.checked = r.value === c3; }); } } catch (e) {}</script>
+    </div>
+    <!-- TAPE = LOGO COLOUR, per direct request -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">TAPE MATCHES LOGO COLOUR</div>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="tapeFromLogoToggle" onchange="setTapeFromLogo(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
     <!-- ECHO DELAY, per direct request: pushes the FX echo later — from one 16th after the hit (0) up to 1000ms later -->
     <div style="display:flex;flex-direction:column;gap:0;">
@@ -6639,6 +6644,8 @@ function _drum8In(key, dest) {
   return e.node;
 }
 function _beatSrcDest() { const d = window._beatGain || masterGain; if (window._drums8bit) window._beatHitFlag = true; /* (with 8-BIT DRUMS the hits connect to the crusher, not the bus — still a drum hit for DRUMS CHK) */ return _drum8In('b', d); }
+function setTapeFromLogo(on) { document.body.classList.toggle('tape-from-logo', !!on); const cb = document.getElementById('tapeFromLogoToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiTapeLogo', on ? '1' : '0'); } catch (e) {} try { _syncTapeTint(); } catch (e) {} }
+try { if (localStorage.getItem('sifiTapeLogo') === '1') { const _tl = () => setTapeFromLogo(true); if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _tl); else setTimeout(_tl, 0); } } catch (e) {}
 function setDrums8bit(on) {
   window._drums8bit = !!on;
   const cb = document.getElementById('drums8bitToggle'); if (cb) cb.checked = !!on;
@@ -22815,7 +22822,10 @@ function _syncTapeTint() {
   let hex = (_rs.getPropertyValue('--top-row-pressed-text-color') || '').trim(); // default: the ENGAGED top-row highlight (pressed/active button glyph colour), not the resting --top-row-highlight-color — per direct request
   // Per-mode tape colour source, per direct request: KNIGHT FLYER = the song-name bar's background, GROOVY + TWILIGHT = the vol fill colour
   // (the WIDE METER fill is the PLAY FLASH colour). The name bar's own inline colour is read, not its computed one, so its 0.5s highlight flash is ignored.
-  if (document.body.classList.contains('tape-from-name')) { const nb = document.getElementById('nameBar'); const h = nb && _cssColToHex(nb.style.backgroundColor || nb.style.background); if (h) hex = h; }
+  // TAPE = LOGO COLOUR (SETTINGS toggle), per direct request: the logo's own resting colour (the top-row text colour in dark modes;
+  // the logo's animated colour-cycle while playing is ignored — re-tinting the tape every frame would be far too heavy)
+  if (document.body.classList.contains('tape-from-logo')) { const h = _cssColToHex((_rs.getPropertyValue('--top-row-text-color') || '').trim()); if (h) hex = h; }
+  else if (document.body.classList.contains('tape-from-name')) { const nb = document.getElementById('nameBar'); const h = nb && _cssColToHex(nb.style.backgroundColor || nb.style.background); if (h) hex = h; }
   else if (document.body.classList.contains('tape-from-fill')) { const h = _cssColToHex((_rs.getPropertyValue('--play-flash-color') || '').trim()); if (h) hex = h; }
   window._tapeColNow = (on && hex) ? hex : '#111111'; // the tape graphic's colour right now (tinted in dark modes, plain black linework otherwise) — VOL FILL HIGH = TAPE uses it
   const glowOn = on && !document.body.classList.contains('no-glow') && !document.body.classList.contains('safe-gfx');
