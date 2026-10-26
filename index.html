@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 04:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 04:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2960,7 +2960,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 04:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 04:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -4216,7 +4216,7 @@ const INSTRUMENTS = {
   magic:  { name: 'MAGIC',        soft: null, accent: null, group: 'tonal' },
   sparkle:{ name: 'DENIECE',     soft: null, accent: null, group: 'tonal' },
   rhodes: { name: 'ARP',       soft: null, accent: null, group: 'tonal' },
-  denial: { name: 'BUCK',        soft: null, accent: null, group: 'tonal' },
+  denial: { name: 'KATHEDRA',    soft: null, accent: null, group: 'tonal' }, // KATHEDRA took BUCK's slot (same key), per direct request — see playKathedra
   stab:   { name: 'RYTM GTR',     soft: null, accent: null, group: 'tonal' },
   chug:   { name: 'CHUG',        soft: null, accent: null, group: 'tonal' },
   sstring:{ name: 'CYBER PAD',   soft: null, accent: null, group: 'tonal' },
@@ -6165,7 +6165,7 @@ function randomizeCurrentInstruments(opts) {
   // slot gives that slot its own distinct color too.
   _recallSnapB = snapshotState();
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
-  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
+  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone','denial'].includes(k); // (+ KATHEDRA)
   const groupOf = k => {
     const g = INSTRUMENTS[k] && INSTRUMENTS[k].group;
     if (g === 'kit') return 'kit';
@@ -6242,7 +6242,7 @@ function setLockSwap(on) { document.body.classList.toggle('lock-swap', !!on); co
 function swapTrackInstrumentInGroup(tr, anyGroup, avoidKey) { // anyGroup (double-tap): pick from EVERY instrument, whatever its group — drums <-> percussion <-> tonal
   const cur = trackInstruments[tr]; if (!cur || !INSTRUMENTS[cur]) return false;
   const isBass = k => ['sbass','sbass3','sbass4','dbass','pbass','sludge'].includes(k);
-  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone'].includes(k);
+  const isPad = k => ['fflute','blunt','sstring','sleg','opening','drone','denial'].includes(k); // (+ KATHEDRA)
   // Tonal non-bass instruments split three ways for the asterisk: PADS, LEAD (one-voice instruments — see _LEAD_MONO) and COMP
   // (chords / stacked / layered voices). A single tap only ever swaps within the track's own group.
   const isLead = k => _LEAD_MONO.has(k); // one-voice instruments only now — see _LEAD_MONO
@@ -6995,7 +6995,7 @@ function _clearChink(onlyUnlocked) { // a new / recalled pattern starts with CHO
 // CHOKE adapts to the instrument, per direct request: slow-attack voices get extra open time so the choke lands after
 // the sound has actually spoken, instead of cutting it off mid-swell. Attack times read straight from each voice's own
 // envelope code (time to full level); anything not listed is fast (drums/percussion ≈0, plucked/struck tonal ≈5ms).
-const _CHOKE_ATTACK = { damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, ballsac: 0.52 /* the LONGEST FX window there is — the same as SYNTH LEG's (0.4 + the pads' 0.12), per direct request */, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
+const _CHOKE_ATTACK = { denial: 0.09 /* KATHEDRA's swell */, damask: 0.09, yamask: 0.08, clar: 0.12, dulc: 0.15, boog: 0.07, tralaarp: 0.012, ballsac: 0.52 /* the LONGEST FX window there is — the same as SYNTH LEG's (0.4 + the pads' 0.12), per direct request */, jcmgtr: 0.006, rhodes2: 0.008, satk: 0.006, sstring: 0.3, sleg: 0.4, fflute: 0.18, blunt: 0.3, magic: 0.15, drone: 0.2, dronePlus: 0.2, amlgm: 0.1, opening: 0.05 };
 function _chokeAttack(tr) {
   const k = trackInstruments[tr];
   if (k in _CHOKE_ATTACK) return _CHOKE_ATTACK[k] + (_CHOKE_PADS.has(k) ? _CHOKE_PAD_EXTRA : 0);
@@ -7529,7 +7529,7 @@ function fireStepAudio(step, t) {
           if (key === 'stab')    playStab(freq, dur, val === 2, t, tr);
           if (key === 'chug')    playChug(freq, dur, val === 2, t, tr);
           if (key === 'bashp')   playBashPiano(freq, dur, val === 2, t, tr);
-          if (key === 'denial')  playBuck(freq, dur, val === 2, t, tr);
+          if (key === 'denial')  playKathedra(freq, dur, val === 2, t, tr);
           if (key === 'jcmgtr')  playJcmGuitar(freq, dur, val === 2, t, tr);
           if (key === 'sstring') playStringSynth(freq, dur, val === 2, t, tr);
           if (key === 'sleg')    playSynthLeg(freq, dur, val === 2, t, tr);
@@ -7625,7 +7625,7 @@ function fireStepAudio(step, t) {
             if (key === 'stab')    playStab(freq2, dur2, false, t2, tr);
             if (key === 'chug')    playChug(freq2, dur2, false, t2, tr);
             if (key === 'bashp')   playBashPiano(freq2, dur2, false, t2, tr);
-            if (key === 'denial')  playBuck(freq2, dur2, false, t2, tr);
+            if (key === 'denial')  playKathedra(freq2, dur2, false, t2, tr);
             if (key === 'jcmgtr')  playJcmGuitar(freq2, dur2, false, t2, tr);
             if (key === 'sstring') playStringSynth(freq2, dur2, false, t2, tr);
             if (key === 'sleg')    playSynthLeg(freq2, dur2, false, t2, tr);
@@ -8879,7 +8879,7 @@ let globalScaleRoot = null;
 // in the heavy crash test) — at most HEAVY_TONAL_MAX of these per pattern.
 // The remaining tonal slots go to lighter plucked/keys/lead instruments, so
 // an all-music pattern still has 6 music tracks but can't overload iOS audio.
-const HEAVY_TONAL_KEYS = new Set(['fflute','blunt','sstring','sleg','opening','tralaarp', 'ballsac','drone','dronePlus','magic','sparkle','clar','rhodes2','underpass','sflute','boog']);
+const HEAVY_TONAL_KEYS = new Set(['denial', 'fflute','blunt','sstring','sleg','opening','tralaarp', 'ballsac','drone','dronePlus','magic','sparkle','clar','rhodes2','underpass','sflute','boog']);
 const HEAVY_TONAL_MAX = 2;
 const TONAL_KEYS = new Set(['sbass','sbass3','sbass4','dbass','pbass','sludge','stab','chug','bashp','denial','jcmgtr','sprkls','clar','sstring','sleg','sparkle','rhodes','rhodes2','sflute','spiano','satk','boog','fflute','blunt','damask','yamask','dulc','opening','tralaarp', 'ballsac','drone','dronePlus','magic','amlgm','underpass']);
 
@@ -9121,7 +9121,7 @@ function randomizeBassTrack(tr, level) {
     tralaarp:[[1,2,0.60],[2,3,0.70],[2,3,0.80]],
     ballsac: [[1,2,0.60],[2,3,0.70],[2,3,0.80]],   // BALLSAC — GESKINS' phrasing   // TRALAARP — same sparse, sustained phrasing as OPENING
     jcmgtr:  [[1,3,0.20],[2,4,0.35],[3,6,0.50]],   // JINX — back to a calmer, more natural density (was pushed busier to [3,6]/[5,9]/[8,13] at one point)
-    denial:  [[1,3,0.15],[2,4,0.30],[3,5,0.40]],  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
+    denial:  [[2,3,0.25],[2,4,0.30],[3,5,0.40]], // KATHEDRA — a few long notes per bar  // BUCK — cut way down from the generic default (was [2,5,0.35],[5,8,0.55],[8,13,0.70]) — that got dense enough at high intensity (up to 13/16 steps, 70% accented) to read as constant/regular even though it's organic placement, especially with BUCK's own trill+sparkle-trail synth already ringing out a good while per hit. Sparse now, matching DAMASK/YAMASK's own character — each hit doesn't need density to be interesting.
     sparkle: [[2,5,0.35],[5,8,0.55],[8,13,0.70]],  // DENIECE — explicit now (BUCK above no longer shares this table — cut sparser separately after it was reading as too constant/regular)
   };
   const levelTable = noteTables[key] || [
@@ -9142,7 +9142,7 @@ function randomizeBassTrack(tr, level) {
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
   if (key === 'dronePlus') noteCount = Math.min(NUM_STEPS, Math.max(noteCount + 1, Math.round(noteCount * 1.2))); // ZINGS 20% more notes, per direct request (always at least +1)
   if (key === 'dulc') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BROOTH — 4 more notes on its quota, per direct request
-  if (key === 'denial') noteCount = Math.min(NUM_STEPS, noteCount + 4); // BUCK — 4 bonus notes on top of its own (now much sparser) quota, per direct request
+  // (BUCK's +4 bonus notes removed — KATHEDRA is a drone: few notes, held long)
   if (BASS_LEGATO_KEYS.has(key) || key === 'tralaarp' || key === 'ballsac') noteCount = Math.min(NUM_STEPS, noteCount + 3); // GESKINS (key 'tralaarp') gets the same +3 bonus notes, per direct request // all basses (SYNTH/JAMES/PUNK/DOUBLE/PULSE/SLUDGE) — +3 bonus notes across the board, per direct request
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
 
@@ -9203,6 +9203,14 @@ function randomizeBassTrack(tr, level) {
         }
       }
     }
+  }
+
+  // KATHEDRA: LEGATO PHRASES, per direct request — almost every note holds right up to the next one (wrapping round the bar),
+  // so the pattern plays as one long drone that moves between its notes
+  if (key === 'denial') {
+    const onsets = []; for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
+    if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    onsets.forEach((q, i) => { const next = i + 1 < onsets.length ? onsets[i + 1] : onsets[0] + NUM_STEPS; const gap = next - q; if (gap > 1 && Math.random() < 0.85) trackLegatoLen[tr][q] = gap; });
   }
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
@@ -9408,7 +9416,7 @@ function randomizeBassTrack(tr, level) {
   // as the BASS instruments above — more/longer phrases at low INTENSITY,
   // tapering to short, mostly-unconnected notes at high INTENSITY — per
   // direct request ("just like we did to BASS instruments").
-  const _padLegatoKeysNow = new Set(['sstring', 'sleg', 'drone', 'amlgm', 'denial', 'boog']);
+  const _padLegatoKeysNow = new Set(['sstring', 'sleg', 'drone', 'amlgm', 'boog']); // (KATHEDRA has its own hold-to-the-next-note pass)
   if (_padLegatoKeysNow.has(key) && trackBassScale[tr]) {
     if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
     for (let s = 0; s < NUM_STEPS; s++) {
@@ -10580,6 +10588,51 @@ function playBuck(freq, durSec, isAccent, time, tr) {
   }
 }
 
+
+// ── KATHEDRA (BUCK's old slot, key 'denial'), per direct request: a huge, wide, ANGULAR drone for legato phrases. Two layers:
+// the ROOT (a pair of sawtooths detuned apart and spread hard left / right, plus a square an octave down for weight) and the
+// OCTAVE (a sawtooth + square pair an octave up, spread the other way). For the whole length of the note the two layers PULSE
+// against each other in 8th notes, locked to the tempo — the root swells while the octave ducks, then the other way round —
+// with soft 25ms crossfades so it rocks rather than chops. A slow-opening lowpass gives each note a cathedral-organ swell.
+function playKathedra(freq, durSec, isAccent, time, tr) {
+  if (!ctx || !freq) return;
+  const dest = getSynthConnectNode(tr);
+  const blastAtten = (tr !== undefined && trackPump[tr]) ? 0.7499 : 1;
+  const vel = (isAccent ? 1.12 : 1) * 0.5 * 0.8 /* -2dB to sit with the pads */ * blastAtten; // half level into the soft-clip, like the other big voices
+  const hold = Math.max(durSec || 0, stepDuration() * 2), rel = 0.55, att = 0.09;
+  const end = time + hold + rel, stopAt = end + 0.05;
+  const out = ctx.createGain(); out.gain.setValueAtTime(0, time); out.gain.linearRampToValueAtTime(vel, time + att);
+  out.gain.setValueAtTime(vel, time + hold); out.gain.linearRampToValueAtTime(0, end);
+  const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.4;
+  lp.frequency.setValueAtTime(Math.min(16000, freq * 3), time); lp.frequency.linearRampToValueAtTime(Math.min(16000, freq * 9), time + Math.min(hold, 1.2)); // the swell
+  lp.connect(out); out.connect(dest);
+  const layer = (amp) => { const g = ctx.createGain(); g.gain.value = amp; g.connect(lp); return g; };
+  const rootG = layer(1), octG = layer(0.55);
+  const oscs = [];
+  const voice = (type, f, det, pan, amp, into) => {
+    const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = det;
+    const g = ctx.createGain(); g.gain.value = amp;
+    let p = null;
+    if (ctx.createStereoPanner) { p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(into); } else g.connect(into);
+    o.connect(g); o.start(time); o.stop(stopAt); oscs.push(o);
+    o.onended = () => { try { o.disconnect(); g.disconnect(); p && p.disconnect(); } catch (e) {} };
+  };
+  voice('sawtooth', freq, -11, -0.85, 0.22, rootG);
+  voice('sawtooth', freq, 11, 0.85, 0.22, rootG);
+  voice('square', freq / 2, 0, 0, 0.16, rootG);
+  voice('sawtooth', freq * 2, 6, 0.6, 0.14, octG);
+  voice('square', freq * 2, -6, -0.6, 0.09, octG);
+  // the 8th-note octave pulse, for the note's whole length
+  const p8 = stepDuration() * 2, xf = 0.025;
+  let k = 0;
+  for (let t = time + p8; t < end && k < 256; t += p8, k++) {
+    const up = (k % 2 === 0); // octave forward on the off-8ths
+    rootG.gain.setValueAtTime(up ? 1 : 0.62, t); rootG.gain.linearRampToValueAtTime(up ? 0.62 : 1, t + xf);
+    octG.gain.setValueAtTime(up ? 0.55 : 1, t); octG.gain.linearRampToValueAtTime(up ? 1 : 0.55, t + xf);
+  }
+  const o0 = oscs[0], prevEnd = o0.onended;
+  o0.onended = () => { try { prevEnd && prevEnd(); rootG.disconnect(); octG.disconnect(); lp.disconnect(); out.disconnect(); } catch (e) {} };
+}
 // ── Stab: short sharp synth chord stab, fast tail ──
 function playStab(freq, durSec, isAccent, time, tr) {
   // Rhythm guitar: short muted strum — sawtooth stack through fast LP sweep + mild crunch
@@ -12312,7 +12365,7 @@ function markStepAsSplit32(tr, stepNow) {
 // synth-based instrument picks it up automatically without each one having
 // to wrap its own output — only the sample-based (WAV) percussion voices in
 // playBuffer need their own explicit call, since they route separately.
-const LEAD_INSTRUMENT_KEYS = new Set(['jcmgtr', 'clar', 'boog', 'sparkle', 'rhodes', 'rhodes2', 'denial', 'damask', 'yamask', 'dulc']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK, DAMASK, YAMASK, BOOBOO
+const LEAD_INSTRUMENT_KEYS = new Set(['jcmgtr', 'clar', 'boog', 'sparkle', 'rhodes', 'rhodes2', 'damask', 'yamask', 'dulc']); // (KATHEDRA, in BUCK's old slot, is a drone — not a lead) // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK, DAMASK, YAMASK, BOOBOO
 // Basses were getting lost in the mix — rather than boosting them (which
 // just risks clipping/distortion), every OTHER instrument gets a small
 // -1dB trim applied right at its own output, before any FX/delay/pump
@@ -14243,7 +14296,7 @@ function previewNote(tr, isAccent) {
     else if (key === 'stab')    playStab(freq, dur, isAccent, t, tr);
     else if (key === 'chug')    playChug(freq, dur, isAccent, t, tr);
     else if (key === 'bashp')   playBashPiano(freq, dur, isAccent, t, tr);
-    else if (key === 'denial')  playBuck(freq, dur, isAccent, t, tr);
+    else if (key === 'denial')  playKathedra(freq, dur, isAccent, t, tr);
     else if (key === 'jcmgtr')  playJcmGuitar(freq, dur, isAccent, t, tr);
     else if (key === 'sstring') playStringSynth(freq, dur, isAccent, t, tr);
     else if (key === 'sleg')    playSynthLeg(freq, dur, isAccent, t, tr);
@@ -14439,7 +14492,7 @@ const BASS_LEGATO_CAP_STEPS = 8;
 // instruments".
 const PAD_LEGATO_KEYS = new Set(['sstring', 'sleg', 'drone', 'damask', 'yamask', 'amlgm', 'denial', 'boog']);
 function _legatoCapForKey(key) {
-  return (key === 'dronePlus') ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key) || key === 'tralaarp' || key === 'ballsac') /* TRALAARP: longer legato, per direct request */ ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
+  return (key === 'dronePlus' || key === 'denial' /* KATHEDRA: a drone — notes can hold across the whole bar */) ? NUM_STEPS : (BASS_LEGATO_KEYS.has(key) || PAD_LEGATO_KEYS.has(key) || key === 'tralaarp' || key === 'ballsac') /* TRALAARP: longer legato, per direct request */ ? BASS_LEGATO_CAP_STEPS : LEGATO_CAP_STEPS; // sflute (CLUNG) added alongside dronePlus, per direct request to match STRINGS+'s criteria
 }
 
 // How long a note at ownerGs would sustain if it just ran until the next
@@ -18215,7 +18268,7 @@ function randAll(mode, opts) {
   const tonalNonBassKeys = new Set([...TONAL_KEYS].filter(k => !bassKeys2.has(k)));
 
   // Rank each instrument: 0=hihat, 1=perc, 2=tonal lead, 2.5=tonal mid, 3.5=kick, 4=bass
-  const leadTonalKeys = new Set(['jcmgtr','clar','boog','sparkle','rhodes','rhodes2','denial']); // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK
+  const leadTonalKeys = new Set(['jcmgtr','clar','boog','sparkle','rhodes','rhodes2']); /* KATHEDRA (BUCK's old slot) isn't a lead */ // JINX, JENNY, DREAM PIANO, DENIECE, SPACE KOTO, DX PIANO, BUCK
   function trackRank(k) {
     if (hihatKeys.has(k)) return 0;
     if (bassKeys2.has(k)) return 4;
@@ -20159,6 +20212,14 @@ function randomizeTrack(tr) {
   // extra up front compensates for that guaranteed loss.
   if (key === 'skick') noteCount = Math.min(NUM_STEPS, noteCount + 2);
   placeNotes(tr, noteCount, accentRatio, Math.min(level, 2));
+
+  // KATHEDRA: LEGATO PHRASES, per direct request — almost every note holds right up to the next one (wrapping round the bar),
+  // so the pattern plays as one long drone that moves between its notes
+  if (key === 'denial') {
+    const onsets = []; for (let s = 0; s < NUM_STEPS; s++) if (grid[tr][s] > 0) onsets.push(s);
+    if (!trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    onsets.forEach((q, i) => { const next = i + 1 < onsets.length ? onsets[i + 1] : onsets[0] + NUM_STEPS; const gap = next - q; if (gap > 1 && Math.random() < 0.85) trackLegatoLen[tr][q] = gap; });
+  }
 
   // Rhythm guitar: all downbeats, all upbeats, or random pattern
   // (CHUG also gets a 4th mode — a dense straight-8th hi-hat-style feel.)
@@ -23696,10 +23757,17 @@ function _allocSwipeNew() {
   window._allocHistory.push(before); if (window._allocHistory.length > 20) window._allocHistory.shift();
   _allocApply(next);
 }
-function _allocSwipeBack() {
+function _allocSwipeBack() { // SWIPE LEFT, per direct request: takes ONE effect (an FX-button stop or an R reverb) off the pattern each time — unlocked tracks only — until none are left
   try { _nameSwipeFx(-1); } catch (e) {}
-  const prev = window._allocHistory.pop(); if (!prev) { try { _showNotice('NOTHING TO GO BACK TO'); } catch (e) {} return; }
-  _allocApply(prev);
+  const cur = _allocSnap(), slots = [];
+  for (let tr = 0; tr < NUM_TRACKS; tr++) { if (trackSweep[tr]) continue; if (_allocFxState(cur[tr]) !== 'off') slots.push([tr, 'fx']); if (cur[tr].rev) slots.push([tr, 'rev']); }
+  if (!slots.length) { try { _showNotice('ALL EFFECTS REMOVED'); } catch (e) {} return; }
+  const [tr, kind] = slots[Math.floor(Math.random() * slots.length)];
+  const next = cur.map(a => Object.assign({}, a));
+  if (kind === 'fx') { next[tr].chk = false; next[tr].pump = false; next[tr].fx = false; } else next[tr].rev = false;
+  window._allocHistory.push(cur); if (window._allocHistory.length > 20) window._allocHistory.shift();
+  _allocApply(next);
+  try { _allocFlash(kind === 'fx' ? `fxbtn-${tr}` : `delaybtn-${tr}`); } catch (e) {} // the button that lost its effect flashes as it goes
 }
 
 
