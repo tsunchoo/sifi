@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 08:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 08:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 08:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 08:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -7530,7 +7530,7 @@ function fireStepAudio(step, t) {
             dur = Math.max(0.01, dur * (1 - trackFx[tr].x) + 0.01 * trackFx[tr].x);
           }
           if (sfxOn) triggerFxEnvelope(tr, t);
-          if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge') duckSidechainTracks(t);
+          if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge') duckSidechainTracks(t, true);
           if (_renderThisTrack) {
           if (key === 'sbass')   playSynthBass(freq, dur, val === 2, t, tr);
           if (key === 'sludge')  playSludgeBass(freq, dur, val === 2, t, tr);
@@ -7627,7 +7627,7 @@ function fireStepAudio(step, t) {
             const freq2 = (trackPitchOverride[tr] && trackPitchOverride[tr][gs] !== undefined) ? trackPitchOverride[tr][gs] : scale2[noteIdx2];
             const dur2 = stepDuration() * 0.5;
             if (trackFx[tr] && (trackFx[tr].x > 0 || trackFx[tr].y > 0)) triggerFxEnvelope(tr, t2);
-            if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge') duckSidechainTracks(t2);
+            if (key === 'sbass' || key === 'sbass3' || key === 'sbass4' || key === 'dbass' || key === 'pbass' || key === 'sludge') duckSidechainTracks(t2, true);
             if (key === 'sbass')   playSynthBass(freq2, dur2, false, t2, tr);
             if (key === 'sludge')  playSludgeBass(freq2, dur2, false, t2, tr);
             if (key === 'sbass3')  playMotownBass(freq2, dur2, false, t2, tr);
@@ -12452,8 +12452,9 @@ function _duckHold(param, t, shape) {
   try { param.cancelScheduledValues(t); param.setValueAtTime(v, t); param.linearRampToValueAtTime(1, t + 0.004); } catch (e) {}
   param._dk = Object.assign({ t0: t }, shape || { floor: 0.1, rs: 0.03, tau: 0.16 });
 }
-function duckSidechainTracks(t) {
+function duckSidechainTracks(t, fromBass) {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (fromBass && _isDrumTrack(tr)) continue; // a BASS note no longer ducks the drum / percussion tracks, per direct report (it was gutting a SNARE track's body every time the bass played) — the kick's duck still does
     if (_duckEligible(tr) && _sidechainDuckGains[tr]) {
       const g = _sidechainDuckGains[tr].gain.gain;
       _duckHold(g, t, { floor: 0.1, rs: 0.03, tau: 0.16 });
