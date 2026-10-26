@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 05:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 05:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2960,7 +2960,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 05:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 05:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -23744,7 +23744,8 @@ function _nameSwipeFx(dir) {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:3;';
   const band = document.createElement('div');
-  band.style.cssText = 'position:absolute;top:0;bottom:0;left:0;width:120%;background:linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.4), rgba(0,0,0,0));'; // a LOW-light now (darker), twice as wide, per direct request
+  const _lt = document.body.classList.contains('bg-dark') ? '255,255,255' : '0,0,0'; // a LIGHT band in dark display modes, a dark one in light modes, per direct request
+  band.style.cssText = `position:absolute;top:0;bottom:0;left:0;width:120%;background:linear-gradient(to right, rgba(${_lt},0), rgba(${_lt},0.4), rgba(${_lt},0));`; // a LOW-light now (darker), twice as wide, per direct request
   wrap.appendChild(band); nb.appendChild(wrap);
   const from = dir > 0 ? '-100%' : '84%', to = dir > 0 ? '84%' : '-100%'; // (percent of the band, which is 1.2x the bar: fully off one side to fully off the other)
   const a = band.animate([{ transform: `translateX(${from})`, opacity: 0 }, { opacity: 1, offset: 0.35 }, { opacity: 1, offset: 0.65 }, { transform: `translateX(${to})`, opacity: 0 }], { duration: 520, easing: 'cubic-bezier(0.3, 0.6, 0.3, 1)' });
@@ -23752,6 +23753,8 @@ function _nameSwipeFx(dir) {
 }
 function _allocSwipeNew() {
   try { _nameSwipeFx(1); } catch (e) {}
+  // ...and the EQ METER moves on to its next style (BARS → LEDS → LINE → VERT → BARS), per direct request — unless it's OFF
+  try { const order = ['bars', 'leds', 'peaks', 'vert'], i = order.indexOf(window._nameEqStyle); if (i >= 0) setNameEqStyle(order[(i + 1) % order.length]); } catch (e) {}
   const before = _allocSnap();
   const elig = []; for (let tr = 0; tr < NUM_TRACKS; tr++) if (!trackSweep[tr] && grid[tr].some(v => v > 0)) elig.push(tr);
   if (!elig.length) return;
@@ -23852,6 +23855,15 @@ function _nameEqTick(now) {
     const v = Math.max(0, Math.min(1, (db + 54 + (b - 5) * 1.5) / 42)), prev = _nameEqLv[b]; // a gentle +1.5dB/band display tilt around 1k (music naturally thins out up top)
     _nameEqLv[b] = v > prev ? v : prev * 0.8 + v * 0.2; // fast up, eased fall
   }
+  if (style === 'vert') { // VERT: twice as many — 20 half-octave bands (31Hz … 22kHz), per direct request
+    for (let b = 0; b < 20; b++) {
+      const f = 31.25 * Math.pow(2, b / 2), lo = Math.max(1, Math.round(f / 1.189 / hzPerBin)), hi = Math.min(n - 1, Math.max(lo, Math.round(f * 1.189 / hzPerBin) - 1));
+      let pw = 0; for (let i = lo; i <= hi; i++) { const d = _nameEqBins[i]; if (d > -200) pw += Math.pow(10, d / 10); }
+      const db = pw > 0 ? 10 * Math.log10(pw) : -200;
+      const v = Math.max(0, Math.min(1, (db + 57 + (b / 2 - 5) * 1.5) / 42)), prev = _nameEqLv20[b]; // half-octaves hold half the energy: +3dB
+      _nameEqLv20[b] = v > prev ? v : prev * 0.8 + v * 0.2;
+    }
+  }
   // size the canvas to the bar (device pixels, capped at 2x)
   const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
   if (!W || !H) return;
@@ -23888,8 +23900,9 @@ function _nameEqTick(now) {
         for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 1 : 0.25; c.fillRect(x0, Math.round(H - pad - (k + 1) * sh - k * gap), x1 - x0, Math.round(sh)); } }
     } else if (style === 'vert') { // VERT, per direct request: LINE turned on its side — each band is a long thin VERTICAL dash (8px wide, as tall
       // as LINE's dashes are wide) riding up and down to its level
-      const lw = 8 * dpr, len = Math.min(Math.round(slot), H - pad * 2 - dpr), span = H - pad * 2 - len;
-      c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - len - LV[b] * span; const cx = Math.round(b * slot + slot / 2 - lw / 2); c.rect(cx, Math.round(y), lw, len); } c.fill();
+      // half as wide (4px) and twice as many (20), per direct request — each dash as tall as its (now half-width) slot is wide
+      const s20 = W / 20, lw = 4 * dpr, len = Math.min(Math.round(s20), H - pad * 2 - dpr), span = H - pad * 2 - len;
+      c.beginPath(); for (let b = 0; b < 20; b++) { const y = H - pad - len - LV20[b] * span; const cx = Math.round(b * s20 + s20 / 2 - lw / 2); c.rect(cx, Math.round(y), lw, len); } c.fill();
     } else { // 'peaks': a flat ~8px block at each band's level, edge to edge — every block butts against its neighbours, full width
       const th = 8 * dpr, span = H - th - pad * 2;
       c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - th - LV[b] * span; const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.rect(x0, Math.round(y), x1 - x0 + 1, th); } c.fill();
