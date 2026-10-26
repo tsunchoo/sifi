@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 01:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 03:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2959,7 +2959,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 01:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 03:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3900,6 +3900,16 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div id="nameEqOpVal" style="font-size:0.75rem;font-weight:700;color:#111;">28%</div>
       </div>
       <input type="range" id="nameEqOpSlider" min="0" max="100" step="1" value="28" class="master-vol-slider" oninput="setNameEqOpacity(this.value)" onchange="setNameEqOpacity(this.value)" style="width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">RANGE (EXAGGERATE)</div>
+        <div id="nameEqRangeVal" style="font-size:0.75rem;font-weight:700;color:#111;">1.0x</div>
+      </div>
+      <input type="range" id="nameEqRangeSlider" min="1" max="3" step="0.1" value="1" class="master-vol-slider" oninput="setNameEqRange(this.value)" onchange="setNameEqRange(this.value)" style="width:100%;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">DOT SIZE (DOTS STYLE)</div>
+        <div id="nameEqDotVal" style="font-size:0.75rem;font-weight:700;color:#111;">1x</div>
+      </div>
+      <input type="range" id="nameEqDotSlider" min="1" max="10" step="0.5" value="1" class="master-vol-slider" oninput="setNameEqDotScale(this.value)" onchange="setNameEqDotScale(this.value)" style="width:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">GLOW</div>
         <label class="wild-toggle"><input type="checkbox" id="nameEqGlowToggle" onchange="setNameEqGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
@@ -3914,9 +3924,9 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO DELAY</div>
-        <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">+0 MS</div>
+        <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">16TH</div>
       </div>
-      <input type="range" id="fxEchoExtraSlider" min="0" max="1000" step="10" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
+      <input type="range" id="fxEchoExtraSlider" min="0" max="800" step="25" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
     </div>
     <!-- everything that was above the song name (VOL FILL look/colours, AUTO NOTES FLASH LENGTH, SWEEP RIGHT = 8-BIT) moved to DEV, next to VOLUME SLIDER, per direct request -->
     <!-- Song name on its own line, scale + tempo on the line below -->
@@ -6353,15 +6363,21 @@ function makeDistCurve(drive) {
   return c;
 }
 
-// FX ECHO TIME: one 16th after the hit, plus the ECHO DELAY slider at the top of SETTINGS (0-1000ms later), per direct request
-window._fxEchoExtra = 0;
-function _fxEchoTime() { return Math.min(1.9, stepDuration() + (window._fxEchoExtra || 0)); }
-function _setFxEchoExtra(ms) {
-  window._fxEchoExtra = Math.max(0, Math.min(1000, +ms || 0)) / 1000;
-  const v = document.getElementById('fxEchoExtraVal'); if (v) v.textContent = '+' + Math.round(window._fxEchoExtra * 1000) + ' MS';
+// FX ECHO TIME — always worked out from a 16th note of the pattern that's PLAYING (its current tempo), per direct request: one
+// 16th after the hit, plus the FX ECHO DELAY slider, which is now in 16ths too (0 to 8 more, in quarter-16th steps) so the echo
+// stays locked to the groove at any tempo. Re-applied to every echo the moment FX is picked (by hand or by any randomization),
+// on every bar line (catches a new pattern's new tempo) and on any tempo change.
+window._fxEchoExtra = 0; // in 16ths
+function _fxEchoTime() { return Math.min(1.9, stepDuration() * (1 + (window._fxEchoExtra || 0))); }
+function _syncAllEchoTimes() {
   if (!ctx) return; const d = _fxEchoTime();
-  try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoDelay) n.echoDelay.delayTime.value = d; } } catch (e) {}
-  try { if (window._beatEchoDelay) window._beatEchoDelay.delayTime.value = d; } catch (e) {}
+  try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoDelay && Math.abs(n.echoDelay.delayTime.value - d) > 0.0005) n.echoDelay.delayTime.value = d; } } catch (e) {}
+  try { if (window._beatEchoDelay && window._beatEchoDelay.context === ctx && Math.abs(window._beatEchoDelay.delayTime.value - d) > 0.0005) window._beatEchoDelay.delayTime.value = d; } catch (e) {}
+}
+function _setFxEchoExtra(v) {
+  window._fxEchoExtra = Math.max(0, Math.min(8, (+v || 0) / 100)); // slider 0-800 = 0-8 sixteenths
+  const r = document.getElementById('fxEchoExtraVal'); if (r) r.textContent = window._fxEchoExtra ? '+' + (+window._fxEchoExtra.toFixed(2)) + ' × 16TH' : '16TH';
+  _syncAllEchoTimes();
 }
 function buildFxChain(trackGain) {
   const dryGain = ctx.createGain(); dryGain.gain.value = 1; dryGain.connect(trackGain);
@@ -6469,7 +6485,7 @@ function setFxActive(tr, fxVal) {
   _queueFxBtnSync();
   if (!trackFxNodes[tr]) return;
   const on = !!(fxVal && (fxVal.x > 0 || fxVal.y > 0)); // FX on its own sounds again (FX stop = crunch + echo), per direct request
-  try { _syncFxEcho(tr); } catch (e) {}
+  try { _syncFxEcho(tr); } catch (e) {} // (sets this track's echo to a 16th of the CURRENT tempo, every time FX is picked)
   const { dryGain, fxSend, preGain } = trackFxNodes[tr];
   const now = ctx.currentTime;
   // Basses keep the fully-wet routing exactly as it was before the 80/20
@@ -7639,7 +7655,7 @@ function fireStepAudio(step, t) {
       }
     }
     // Metronome: fire on every beat when all tracks silent and beat not engaged
-    if (step === 0) { try { _syncDrumReverbTaps(); } catch (e) {} } // instruments can change from many places (RAND, swaps) — re-check drum reverb taps once a bar
+    if (step === 0) { try { _syncDrumReverbTaps(); } catch (e) {} try { _syncAllEchoTimes(); } catch (e) {} } // + every FX echo re-locked to this bar's 16th // instruments can change from many places (RAND, swaps) — re-check drum reverb taps once a bar
     // COUNT CLICK, per direct request: the same woodblock click on every beat while the COUNT is in its 2nd-tap (pulse) state, at CLICK LEVEL
     if (step % 4 === 0 && window._countClickOn) playMetronome(t, step === 0, window._clickLevel === undefined ? 1 : window._clickLevel);
     else if (step % 4 === 0 && !beatPlaying) {
@@ -12315,7 +12331,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2 /* PUNK BASS: the same — see playPlunkBass */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
+  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2.5179 /* PUNK BASS: the same — see playPlunkBass — plus +2dB, per direct request (added after the soft-clip, so it can't push the voice into it) */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -12767,6 +12783,18 @@ function _tapeCenterPass() {
 }
 [0, 100, 400, 1000, 2000].forEach(ms => setTimeout(_tapeCenterPass, ms));
 window.addEventListener('orientationchange', () => setTimeout(_tapeCenterPass, 450));
+// ROTATING THE PHONE MUST NOT PAUSE THE AUDIO, per direct report. Turning to landscape swaps the whole page for the 'rotate back'
+// cover (and back again), a full rebuild of the screen that can freeze the page for longer than the sound planned ahead — the
+// music stopped until it caught up. Now, the moment a rotation starts: plan a full second of audio ahead (the same cushion a
+// display-mode change gets), and if iOS suspended the audio engine during the turn, wake it straight back up (a few times,
+// as the turn settles).
+function _rotateCushion() {
+  try { _audioCushion(); } catch (e) {}
+  [0, 120, 400, 900, 1600].forEach(ms => setTimeout(() => { try { if (playing && ctx && ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {}); const ka = document.getElementById('_bgKeepAlive'); if (playing && ka && ka.paused) ka.play().catch(() => {}); } catch (e) {} }, ms));
+}
+window.addEventListener('orientationchange', _rotateCushion);
+try { if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', _rotateCushion); } catch (e) {}
+try { const _rotMQ = window.matchMedia('(orientation: landscape)'); (_rotMQ.addEventListener ? _rotMQ.addEventListener('change', _rotateCushion) : _rotMQ.addListener(_rotateCushion)); } catch (e) {}
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(() => setTimeout(_tapeCenterPass, 50));
 }
@@ -21965,6 +21993,7 @@ function _tapeDrawerStopOneShot() {
 // opened) instead of its own; unticking puts the playing tape back on its own saved tempo.
 window._tapeForceTempo = false; window._tapeMainBpm = null;
 function _tapeSetBpm(v) {
+  setTimeout(() => { try { _syncAllEchoTimes(); } catch (e) {} }, 0); // FX echoes follow the new tempo's 16th straight away
   if (!v || v === bpm) return;
   const oldEff = bpm + _tempoNudge; bpm = v;
   try { _tempoLiveRetime(oldEff, bpm + _tempoNudge); } catch (e) {}
@@ -23679,6 +23708,7 @@ window._nameEqStyle = 'bars';
 const _NAME_EQ_BANDS = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 let _nameEqLv20 = new Array(20).fill(0);
 let _nameEqAn = null, _nameEqBins = null, _nameEqLv = new Array(10).fill(0), _nameEqLast = 0, _nameEqDrawnIdle = false;
+window._nameEqLvRaw = _nameEqLv; window._nameEqLv20Raw = _nameEqLv20; // (the same arrays — RANGE reads them through these)
 window._nameEqColor = 'flash'; // default PLAY FLASH — the NAME option is gone (it matched the bar and vanished), per direct request
 try { const v = localStorage.getItem('sifiNameEqCol'); if (v && v !== 'name') window._nameEqColor = v; } catch (e) {}
 function setNameEqColor(v) { window._nameEqColor = v; document.querySelectorAll('input[name="nameEqColor"]').forEach(r => { r.checked = r.value === v; }); try { localStorage.setItem('sifiNameEqCol', v); } catch (e) {} }
@@ -23688,8 +23718,14 @@ function setNameEqOpacity(v) { v = Math.max(0, Math.min(100, +v || 0)); window._
 window._nameEqFlashGlow = false;
 try { window._nameEqFlashGlow = localStorage.getItem('sifiNameEqFGlow') === '1'; } catch (e) {}
 function setNameEqFlashGlow(on) { window._nameEqFlashGlow = !!on; const cb = document.getElementById('nameEqFlashGlowToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiNameEqFGlow', on ? '1' : '0'); } catch (e) {} }
+window._nameEqDotScale = 1;
+try { const d = localStorage.getItem('sifiNameEqDot'); if (d !== null) window._nameEqDotScale = +d || 1; } catch (e) {}
+function setNameEqDotScale(v) { v = Math.max(1, Math.min(10, +v || 1)); window._nameEqDotScale = v; const r = document.getElementById('nameEqDotVal'); if (r) r.textContent = v + 'x'; const sl = document.getElementById('nameEqDotSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiNameEqDot', String(v)); } catch (e) {} }
+window._nameEqRange = 1;
+try { const g = localStorage.getItem('sifiNameEqRange'); if (g !== null) window._nameEqRange = +g || 1; } catch (e) {}
+function setNameEqRange(v) { v = Math.max(1, Math.min(3, +v || 1)); window._nameEqRange = v; const r = document.getElementById('nameEqRangeVal'); if (r) r.textContent = v.toFixed(1) + 'x'; const sl = document.getElementById('nameEqRangeSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiNameEqRange', String(v)); } catch (e) {} }
 function setNameEqGlow(on) { window._nameEqGlow = !!on; const cb = document.getElementById('nameEqGlowToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiNameEqGlow', on ? '1' : '0'); } catch (e) {} }
-{ const _neInit = () => { try { setNameEqOpacity(window._nameEqOpacity); setNameEqGlow(window._nameEqGlow); setNameEqFlashGlow(window._nameEqFlashGlow); } catch (e) {} }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _neInit); else setTimeout(_neInit, 0); }
+{ const _neInit = () => { try { setNameEqOpacity(window._nameEqOpacity); setNameEqRange(window._nameEqRange); setNameEqDotScale(window._nameEqDotScale); setNameEqGlow(window._nameEqGlow); setNameEqFlashGlow(window._nameEqFlashGlow); } catch (e) {} }; if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _neInit); else setTimeout(_neInit, 0); }
 function setNameEqStyle(v) {
   window._nameEqStyle = v;
   document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; });
@@ -23747,32 +23783,39 @@ function _nameEqTick(now) {
     else if (cm === 'tape') col = window._tapeColNow;
     if (!col) col = _rootCS().getPropertyValue('--play-flash-color').trim();
   } catch (e) {}
+  // RECORDING (realtime), per direct request: the EQ METER turns the REC button's red while a realtime take is rolling
+  try { if (typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active')) col = '#ff2a2a'; } catch (e) {}
   if (!col) { const nd = document.getElementById('nameDisplay'); col = (nd && getComputedStyle(nd).color) || '#000'; }
   c.fillStyle = col; c.strokeStyle = col; c.globalAlpha = 1; c.shadowColor = col; c.shadowBlur = window._nameEqGlow ? 10 * dpr : 0; // GLOW option // drawn solid; the canvas itself is faded (CSS opacity) so touching shapes never double up into seams
+  // RANGE (SETTINGS slider, 1-3x), per direct request: exaggerates the movement — every band's level is multiplied, so the meters
+  // reach further up the bar (anything past the top just sits at the top)
+  const _rg = window._nameEqRange || 1;
+  const LV = _rg === 1 ? window._nameEqLvRaw : window._nameEqLvRaw.map(v => Math.min(1, v * _rg));
+  const LV20 = _rg === 1 ? window._nameEqLv20Raw : window._nameEqLv20Raw.map(v => Math.min(1, v * _rg));
   const _draw = () => {
   const slot = W / 10, pad = 2 * dpr, usable = H - pad * 2;
     if (style === 'bars') {
       // full width, edge to edge like LINE, per direct request
-      for (let b = 0; b < 10; b++) { const h = Math.max(dpr, Math.round(_nameEqLv[b] * usable)); const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.fillRect(x0, H - pad - h, x1 - x0, h); }
+      for (let b = 0; b < 10; b++) { const h = Math.max(dpr, Math.round(LV[b] * usable)); const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.fillRect(x0, H - pad - h, x1 - x0, h); }
     } else if (style === 'leds') {
       // full width like LINE, per direct request: each band's blocks span its whole slot (a hairline gap between bands so the LEDs still read)
       const SEG = 6, gap = 2 * dpr, sh = (usable - gap * (SEG - 1)) / SEG, hg = Math.max(1, Math.round(dpr));
-      for (let b = 0; b < 10; b++) { const lit = Math.round(_nameEqLv[b] * SEG); const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot) - (b < 9 ? hg : 0);
+      for (let b = 0; b < 10; b++) { const lit = Math.round(LV[b] * SEG); const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot) - (b < 9 ? hg : 0);
         for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 1 : 0.25; c.fillRect(x0, Math.round(H - pad - (k + 1) * sh - k * gap), x1 - x0, Math.round(sh)); } }
     } else if (style === 'circles') { // a circle per band at its level — the same size as a SOFT note marker
       const now2 = performance.now();
       if (!window._nameEqDotR || now2 - (window._nameEqDotAt || 0) > 2000) { window._nameEqDotAt = now2; try { const sc = document.querySelector('.step-cell.soft') || document.querySelector('.step-cell'); const w = sc ? parseFloat(getComputedStyle(sc, '::after').width) : 12; window._nameEqDotR = Math.max(3, (isFinite(w) ? w : 12) / 2); } catch (e) { window._nameEqDotR = 6; } }
-      const r = window._nameEqDotR * dpr, span = H - 2 * r - pad * 2;
-      const slot20 = W / 20; c.beginPath(); for (let b = 0; b < 20; b++) { const cy = H - pad - r - _nameEqLv20[b] * span, cx = b * slot20 + slot20 / 2; c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI * 2); } c.fill();
+      const r = window._nameEqDotR * dpr * (window._nameEqDotScale || 1), span0 = H - 2 * r - pad * 2; const span = span0 >= H * 0.4 ? span0 : H - pad * 2; const base = span0 >= H * 0.4 ? H - pad - r : H - pad; // DOT SIZE slider (1-10x); big dots ride the full height and get clipped by the bar
+      const slot20 = W / 20; c.beginPath(); for (let b = 0; b < 20; b++) { const cy = base - LV20[b] * span, cx = b * slot20 + slot20 / 2; c.moveTo(cx + r, cy); c.arc(cx, cy, r, 0, Math.PI * 2); } c.fill();
     } else { // 'peaks': a flat ~8px block at each band's level, edge to edge — every block butts against its neighbours, full width
       const th = 8 * dpr, span = H - th - pad * 2;
-      c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - th - _nameEqLv[b] * span; const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.rect(x0, Math.round(y), x1 - x0 + 1, th); } c.fill();
+      c.beginPath(); for (let b = 0; b < 10; b++) { const y = H - pad - th - LV[b] * span; const x0 = Math.round(b * slot), x1 = Math.round((b + 1) * slot); c.rect(x0, Math.round(y), x1 - x0 + 1, th); } c.fill();
     }
   };
   // PLAY FLASH GLOW (toggle), per direct request: the same two-layer glow a play-flashed note marker gets (a tight 6.9px halo plus a
   // wide 18px one at 70%, both scaled by MARKER GLOW, in the PLAY FLASH colour) — canvas only does one shadow per pass, so two passes
   if (window._nameEqFlashGlow) {
-    const mg = parseFloat(_rootCS().getPropertyValue('--mglow')) || 1.5, fc = _rootCS().getPropertyValue('--play-flash-color').trim() || '#fff';
+    const mg = parseFloat(_rootCS().getPropertyValue('--mglow')) || 1.5, fc = col; // glow in the EQ's own fill colour, per direct request (the notes' glow SHAPE, not its colour)
     c.shadowColor = fc; c.shadowBlur = 18 * mg * dpr; c.save(); c.globalAlpha = 0.7; const ga = c.globalAlpha; _draw(); c.restore();
     c.shadowColor = fc; c.shadowBlur = 6.9 * mg * dpr; c.globalAlpha = 1; _draw();
   } else _draw();
@@ -26734,7 +26777,7 @@ let _reelHoldTimer = null;
   // direct request. (SETTINGS keeps deferring only its sliders.)
   const lookMenu = document.getElementById('devMenuOverlay');
   const DEFER_TYPES = new Set(['checkbox', 'radio', 'color']);
-  const LIVE_IDS = new Set(['nameEqOpSlider', 'masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
+  const LIVE_IDS = new Set(['nameEqRangeSlider', 'nameEqOpSlider', 'nameEqDotSlider', 'masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
   const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
@@ -26865,6 +26908,8 @@ function snapshotDisplay() {
     controls,
     // VOL FILL colours (SETTINGS), per direct request — which palette colour LOW uses (and what it is right now), and HIGH
     volFill: (() => { try { const b = _fillBaseNow(); return { lowColour: window._fillLowVar || '--neutral-top', swapped: !!window._fillSwap, highOnly: !!window._fillHighOnly, gradient: window._fillGrad !== false, lowColourNow: '#' + b.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''), highColour: window._fillHighTape ? 'tape' : window._fillHighStop ? 'stop' : (window._fillLoudHex || 'white'), highColourNow: (() => { const h = _fillHighNow(); return '#' + h.slice(0, 3).map(v => Math.round(v).toString(16).padStart(2, '0')).join(''); })() }; } catch (e) { return null; } })(),
+    // EQ METER (SETTINGS > SONG NAME EQ), per direct request
+    eqMeter: { style: window._nameEqStyle, colour: window._nameEqColor, opacity: window._nameEqOpacity, range: window._nameEqRange, dotSize: window._nameEqDotScale, glow: !!window._nameEqGlow, playFlashGlow: !!window._nameEqFlashGlow },
     displayModeName: (() => { try { const m = _RAINBOW_CYCLE[window._rainbowIdx]; return m ? m.name : null; } catch (e) { return null; } })()
   };
   const text = JSON.stringify(snap, null, 2);
