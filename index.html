@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-26 06:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-26 07:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1124,6 +1124,10 @@ html body:not(.seq-playing) > header, html body:not(.seq-playing) > .transport, 
 /* ...EXCEPT the >> button while a DOUBLE-CLICK new pattern loads (body.np-loading, during its brief stop), per direct request —
    everything else grey, >> in colour, as it used to be. */
 html body.np-loading:not(.seq-playing) > .transport { filter: none; }
+/* FIRST LOAD, per direct request: while the app is just sitting there after loading (before the first PLAY), PLAY is the only
+   thing in colour */
+html body.first-idle:not(.seq-playing) > .transport { filter: none; }
+html body.first-idle:not(.seq-playing) > .transport > *:not(#playBtn) { filter: grayscale(1) !important; }
 html body.np-loading:not(.seq-playing) > .transport > *:not(#randBtn) { filter: grayscale(1) !important; }
 /* (STOPPED fill at 70% opacity removed, per direct request — the fill keeps its normal opacity when stopped) */
 html body.fader-tip-hl .track-vol-bar.muted .track-vol-tip { opacity: 0.4; }
@@ -2961,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 06:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-26 07:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3065,7 +3069,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
             <button id="exportTapeBtn" class="rec-mode-btn" onclick="hideRecordMenu(); exportTape();">SAVE TAPE</button>
             <button id="shareTapeLinkBtn" class="rec-mode-btn" onclick="shareTapeLink()">SEND TAPE LINK</button>
             <button id="importTapeBtn" class="rec-mode-btn" onclick="document.getElementById('tapeFileInput').click()">LOAD TAPE</button>
-            <input type="file" id="tapeFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" style="display:none;" onchange="importTapeFile(this.files[0])">
+            <input autocomplete="off" type="file" id="tapeFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" style="display:none;" onchange="importTapeFile(this.files[0])">
           </div>
         </div>
 
@@ -3078,10 +3082,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="buttonSoundsToMixToggle" checked onchange="setButtonSoundsToMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">BUTTONS SOUNDS TO MIX
+          <input autocomplete="off" type="checkbox" id="buttonSoundsToMixToggle" checked onchange="setButtonSoundsToMix(this.checked)" style="width:14px;height:14px;cursor:pointer;">BUTTONS SOUNDS TO MIX
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="noButtonSoundsToggle" onchange="setNoButtonSounds(this.checked)" style="width:14px;height:14px;cursor:pointer;">NO BUTTON SOUNDS
+          <input autocomplete="off" type="checkbox" id="noButtonSoundsToggle" onchange="setNoButtonSounds(this.checked)" style="width:14px;height:14px;cursor:pointer;">NO BUTTON SOUNDS
         </label>
   </div>
 </div>
@@ -3093,15 +3097,15 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:24px;">
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>REVERB MIX (OVERALL)</span><span id="reverbMixVal" style="color:#111;">0</span></span>
-        <input type="range" id="delayMixBar" min="0" max="100" value="0" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
+        <input autocomplete="off" type="range" id="delayMixBar" min="0" max="100" value="0" class="master-vol-slider" style="width:100%;" oninput="setGlobalDelayMix(this.value/100); document.getElementById('reverbMixVal').textContent=this.value">
       </label>
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>REVERB SIZE</span><span id="reverbIntensityVal" style="color:#111;">51</span></span>
-        <input type="range" id="reverbIntensityBar" min="0" max="100" value="51" class="master-vol-slider" style="width:100%;" oninput="setReverbIntensity(this.value/100); document.getElementById('reverbIntensityVal').textContent=this.value">
+        <input autocomplete="off" type="range" id="reverbIntensityBar" min="0" max="100" value="51" class="master-vol-slider" style="width:100%;" oninput="setReverbIntensity(this.value/100); document.getElementById('reverbIntensityVal').textContent=this.value">
       </label>
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>REVERB ON BEAT</span><span id="beatReverbMixVal" style="color:#111;">24</span></span>
-        <input type="range" id="beatReverbMixBar" min="0" max="100" value="24" class="master-vol-slider" style="width:100%;" oninput="setBeatReverbMix(this.value/100); document.getElementById('beatReverbMixVal').textContent=this.value">
+        <input autocomplete="off" type="range" id="beatReverbMixBar" min="0" max="100" value="24" class="master-vol-slider" style="width:100%;" oninput="setBeatReverbMix(this.value/100); document.getElementById('beatReverbMixVal').textContent=this.value">
       </label>
     </div>
     <!-- RANDOMIZE REVERB WITH + toggle moved to the RANDOMIZE MENU (drag down from +), per direct request -->
@@ -3141,7 +3145,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <!-- 8-BIT DRUMS (moved here from SETTINGS), per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
     <div id="drums8bitRow" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
-      <label class="wild-toggle"><input type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
   </div>
 </div>
@@ -3169,7 +3173,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO DOUBLE-CLICK EVERY</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
+        <input autocomplete="off" type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3178,19 +3182,19 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div></div>
         <div id="autoRandPeriodReadout" style="font-size:0.6rem;font-family:monospace;color:#333;">4 BARS</div>
       </div>
-      <input type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
+      <input autocomplete="off" type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BUTTON GLYPH: &gt;&gt; (OFF = +)</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="randBtnFfToggle" checked onchange="setRandBtnFf(this.checked); try { _randoBuildUI(); } catch (e) {}">
+        <input autocomplete="off" type="checkbox" id="randBtnFfToggle" checked onchange="setRandBtnFf(this.checked); try { _randoBuildUI(); } catch (e) {}">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SHAKE PHONE (SHAKE COLUMN)</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="shakeToggle" onchange="_setShake(this.checked)">
+        <input autocomplete="off" type="checkbox" id="shakeToggle" onchange="_setShake(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3199,7 +3203,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SHAKE SENSITIVITY</div>
         <div id="shakeSensVal" style="font-size:0.85rem;font-weight:700;color:#111;">5</div>
       </div>
-      <input type="range" id="shakeSensSlider" min="1" max="10" step="1" value="5" oninput="_setShakeSens(this.value)" style="width:100%;margin-bottom:10px;"><!-- 10px under the last RANDO BUTTON setting, per direct request -->
+      <input autocomplete="off" type="range" id="shakeSensSlider" min="1" max="10" step="1" value="5" oninput="_setShakeSens(this.value)" style="width:100%;margin-bottom:10px;"><!-- 10px under the last RANDO BUTTON setting, per direct request -->
     </div>
     <script>try { const sl = document.getElementById('shakeSensSlider'); const v = parseFloat(localStorage.getItem('sifiShakeSens')); if (v >= 1 && v <= 10) { sl.value = v; document.getElementById('shakeSensVal').textContent = String(v); } } catch (e) {}</script>
   </div>
@@ -3212,7 +3216,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">WILD MODE</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="wildColorsToggle" checked>
+        <input autocomplete="off" type="checkbox" id="wildColorsToggle" checked>
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3220,7 +3224,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:none;align-items:center;justify-content:space-between;"><!-- hidden: replaced by RANDO BUTTON > SHUFFLE INSTRUMENTS per column -->
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAYDOE</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="playdoeToggle" checked onchange="window._playdoeOn = this.checked">
+        <input autocomplete="off" type="checkbox" id="playdoeToggle" checked onchange="window._playdoeOn = this.checked">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3228,7 +3232,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">CIRCLE MARKERS</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="markerStyleToggle" checked onchange="setNoteMarkersCircle(this.checked)">
+        <input autocomplete="off" type="checkbox" id="markerStyleToggle" checked onchange="setNoteMarkersCircle(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3236,21 +3240,21 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:none;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PERFORMANCE MODE</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="performanceModeToggle" onchange="setPerformanceMode(this.checked)">
+        <input autocomplete="off" type="checkbox" id="performanceModeToggle" onchange="setPerformanceMode(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">LOCK BUTTONS = NEW INST</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="lockSwapToggle" checked onchange="setLockSwap(this.checked)">
+        <input autocomplete="off" type="checkbox" id="lockSwapToggle" checked onchange="setLockSwap(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FAILSAFE HIGHLIGHTS</div>
       <label class="wild-toggle">
-        <input type="checkbox" id="failsafeHlToggle" checked onchange="document.body.classList.toggle('failsafe-hl', this.checked)">
+        <input autocomplete="off" type="checkbox" id="failsafeHlToggle" checked onchange="document.body.classList.toggle('failsafe-hl', this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
@@ -3261,7 +3265,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SATURATION CEILING</div>
         <div id="satCeilingVal" style="font-size:0.6rem;font-family:monospace;color:#333;">40%</div>
       </div>
-      <input type="range" id="satCeilingSlider" min="0" max="100" value="40" oninput="_previewSatCeilingReadout(this.value)" onchange="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
+      <input autocomplete="off" type="range" id="satCeilingSlider" min="0" max="100" value="40" oninput="_previewSatCeilingReadout(this.value)" onchange="setColorSaturationCeiling(this.value)" class="master-vol-slider" style="width:100%;">
     </div>
     <!-- BACKGROUND moved here, below SATURATION CEILING, per direct request (MORTAR now in DEV) -->
 
@@ -3269,7 +3273,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">BACKGROUND</div>
         <label style="display:flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;margin-left:auto;margin-right:10px;">
-          <input type="checkbox" id="bgLockToggle" onchange="window._bgLocked = this.checked" style="width:14px;height:14px;cursor:pointer;">LOCK
+          <input autocomplete="off" type="checkbox" id="bgLockToggle" onchange="window._bgLocked = this.checked" style="width:14px;height:14px;cursor:pointer;">LOCK
         </label>
         <div id="bgCtlSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.2);background:var(--bg);"></div>
       </div>
@@ -3278,21 +3282,21 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">HUE</div>
           <div id="bgHueVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0°</div>
         </div>
-        <input type="range" id="bgHueSlider" min="0" max="360" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="bgHueSlider" min="0" max="360" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">SATURATION</div>
           <div id="bgSatVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
         </div>
-        <input type="range" id="bgSatSlider" min="0" max="100" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="bgSatSlider" min="0" max="100" step="1" value="0" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">LIGHTNESS</div>
           <div id="bgLightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">77%</div>
         </div>
-        <input type="range" id="bgLightSlider" min="0" max="100" step="1" value="77" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="bgLightSlider" min="0" max="100" step="1" value="77" oninput="_bgCtlPreview()" onchange="_bgCtlApply()" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- MASTER, per direct request: brightness of everything on screen except the background -->
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -3300,7 +3304,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">MASTER <span style="font-weight:400;color:#666;">(everything but the background)</span></div>
           <div id="masterBrightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
-        <input type="range" id="masterBrightSlider" min="40" max="160" step="1" value="100" oninput="setMasterBright(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="masterBrightSlider" min="40" max="160" step="1" value="100" oninput="setMasterBright(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- MARKER STYLE row removed from here per direct request — now a
@@ -3336,10 +3340,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">DIAGNOSTICS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
+          <input autocomplete="off" type="checkbox" id="safeGfxToggle" onchange="setSafeGfx(this.checked)" style="width:14px;height:14px;cursor:pointer;">SAFE GFX (CRASH TEST)
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="quietPlusToggle" onchange="window._quietPlus = this.checked; window._crashCrumb && window._crashCrumb('QUIET + ' + (this.checked ? 'on' : 'off'));" style="width:14px;height:14px;cursor:pointer;">QUIET + (CRASH TEST)
+          <input autocomplete="off" type="checkbox" id="quietPlusToggle" onchange="window._quietPlus = this.checked; window._crashCrumb && window._crashCrumb('QUIET + ' + (this.checked ? 'on' : 'off'));" style="width:14px;height:14px;cursor:pointer;">QUIET + (CRASH TEST)
         </label>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">QUIET + = a new pattern changes the music only: no new colour scheme (WILD), no name scroll-in, no + flash. If crashes after + stop with this on, the visuals are the cause.</div>
         <button onclick="snapshotDisplay()" style="padding:8px 10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:#111;color:#f17d21;border:none;cursor:pointer;align-self:flex-start;">SNAPSHOT DISPLAY</button>
@@ -3352,7 +3356,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">MORTAR</div>
         <label class="wild-toggle">
-          <input type="checkbox" id="mortarToggle" checked onchange="setMortar(this.checked)">
+          <input autocomplete="off" type="checkbox" id="mortarToggle" checked onchange="setMortar(this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
@@ -3361,27 +3365,27 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">HEIGHT</div>
           <div id="mortarHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">6px</div>
         </div>
-        <input type="range" id="mortarHeightSlider" min="4" max="20" step="1" value="6" oninput="setMortarHeight(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="mortarHeightSlider" min="4" max="20" step="1" value="6" oninput="setMortarHeight(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">COLOUR</div>
         <div style="display:flex;gap:12px;">
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="name" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="line" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">BOTTOM LINE</label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input type="radio" name="mortarColour" value="clear" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input autocomplete="off" type="radio" name="mortarColour" value="name" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">SONG NAME</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input autocomplete="off" type="radio" name="mortarColour" value="line" onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">BOTTOM LINE</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.6rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;"><input autocomplete="off" type="radio" name="mortarColour" value="clear" checked onchange="setMortarColour(this.value)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
         </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">EXTRA <span style="font-weight:400;color:#666;">(note lanes in the mortar colour, edge to edge)</span></div>
         <label class="wild-toggle">
-          <input type="checkbox" id="mortarExtraToggle" onchange="document.body.classList.toggle('mortar-extra', this.checked)">
+          <input autocomplete="off" type="checkbox" id="mortarExtraToggle" onchange="document.body.classList.toggle('mortar-extra', this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">EXTRA PLUS <span style="font-weight:400;color:#666;">(the button / vol-slider row band, edge to edge)</span></div>
         <label class="wild-toggle">
-          <input type="checkbox" id="mortarExtraPlusToggle" checked onchange="document.body.classList.toggle('mortar-extra-plus', this.checked)">
+          <input autocomplete="off" type="checkbox" id="mortarExtraPlusToggle" checked onchange="document.body.classList.toggle('mortar-extra-plus', this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
@@ -3390,7 +3394,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:1.5px;color:#111;">GLOW</div>
           <label style="display:flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;color:#111;cursor:pointer;">
-            <input type="checkbox" id="glowsOnToggle" checked onchange="document.body.classList.toggle('no-glow', !this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOWS ON
+            <input autocomplete="off" type="checkbox" id="glowsOnToggle" checked onchange="document.body.classList.toggle('no-glow', !this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOWS ON
           </label>
         </div>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">Each slider sets size and strength together (100% = standard). SAFE GFX (DIAGNOSTICS, above) also switches every glow off while it's ticked.</div>
@@ -3399,41 +3403,41 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">TOP ROW BUTTONS</div>
             <div id="topGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">150%</div>
           </div>
-          <input type="range" id="topGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('topGlowVal').textContent=this.value+'%'" onchange="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="topGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('topGlowVal').textContent=this.value+'%'" onchange="setTopGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">TRACK BUTTONS (LIT)</div>
             <div id="trackGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">50%</div>
           </div>
-          <input type="range" id="trackGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="trackGlowSlider" min="0" max="300" step="5" value="50" oninput="document.getElementById('trackGlowVal').textContent=this.value+'%'" onchange="setTrackGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">NOTE MARKERS (PLAYHEAD)</div>
             <div id="markerGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">150%</div>
           </div>
-          <input type="range" id="markerGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('markerGlowVal').textContent=this.value+'%'" onchange="setMarkerGlow(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="markerGlowSlider" min="0" max="300" step="5" value="150" oninput="document.getElementById('markerGlowVal').textContent=this.value+'%'" onchange="setMarkerGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">VOL FILL</div>
             <div id="fillGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">0%</div>
           </div>
-          <input type="range" id="fillGlowSlider" min="0" max="300" step="5" value="0" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="fillGlowSlider" min="0" max="300" step="5" value="0" oninput="document.getElementById('fillGlowVal').textContent=this.value+'%'" onchange="setFillGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#333;">VOL FADER TIP (× VOL FILL)</div>
             <div id="tipGlowVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
           </div>
-          <input type="range" id="tipGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('tipGlowVal').textContent=this.value+'%'" onchange="setTipGlow(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="tipGlowSlider" min="0" max="300" step="5" value="100" oninput="document.getElementById('tipGlowVal').textContent=this.value+'%'" onchange="setTipGlow(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="glowTipOnlyToggle" onchange="document.body.classList.toggle('glow-tip-only', this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOW ON FADER TIP ONLY (NOT FILL)
+          <input autocomplete="off" type="checkbox" id="glowTipOnlyToggle" onchange="document.body.classList.toggle('glow-tip-only', this.checked)" style="width:14px;height:14px;cursor:pointer;">GLOW ON FADER TIP ONLY (NOT FILL)
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
+          <input autocomplete="off" type="checkbox" id="faderTipHlToggle" onchange="document.body.classList.toggle('fader-tip-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">FADER TIP = PLAY COLOUR
         </label>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">Fader tip glow colour: opposite of the tip when FADER TIP = PLAY COLOUR is on, otherwise the PLAY FLASH colour. Track button glows need TRACK BUTTON LIGHTS (DEV › TRACK BUTTONS).</div>
       </div>
@@ -3443,15 +3447,15 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
          colour). (The 10-segment meter and its SEGMENTED toggle were removed, per direct request.) -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL GRADIENT</div>
-      <label class="wild-toggle"><input type="checkbox" id="fillGradToggle" checked onchange="window._fillGrad = this.checked; _fillDirty()"><span class="wild-toggle-slider"></span></label>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="fillGradToggle" checked onchange="window._fillGrad = this.checked; _fillDirty()"><span class="wild-toggle-slider"></span></label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL SWAP COLOURS</div>
-      <label class="wild-toggle"><input type="checkbox" id="fillSwapToggle" onchange="window._fillSwap = this.checked; _fillDirty()"><span class="wild-toggle-slider"></span></label>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="fillSwapToggle" onchange="window._fillSwap = this.checked; _fillDirty()"><span class="wild-toggle-slider"></span></label>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">VOL FILL HIGH COLOUR ONLY</div>
-      <label class="wild-toggle"><input type="checkbox" id="fillHighOnlyToggle" onchange="window._fillHighOnly = this.checked; _fillSyncRoot(); _fillDirty()"><span class="wild-toggle-slider"></span></label>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="fillHighOnlyToggle" onchange="window._fillHighOnly = this.checked; _fillSyncRoot(); _fillDirty()"><span class="wild-toggle-slider"></span></label>
     </div>
     <!-- AUTO NOTES FLASH LENGTH, per direct request (the WOBBLE and its slider were removed): how long the new-bar flash on
          auto-notes tracks takes to fade — 1x (as it was, ~a beat) up to 4x. -->
@@ -3460,12 +3464,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">AUTO NOTES FLASH LENGTH</div>
         <div id="autoNotesFlashLenVal" style="font-size:0.85rem;font-weight:700;color:#111;">3.25x</div>
       </div>
-      <input type="range" id="autoNotesFlashLenSlider" min="1" max="4" step="0.25" value="3.25" class="master-vol-slider" oninput="_setAutoNotesFlashLen(this.value)" onchange="_setAutoNotesFlashLen(this.value)" style="width:100%;">
+      <input autocomplete="off" type="range" id="autoNotesFlashLenSlider" min="1" max="4" step="0.25" value="3.25" class="master-vol-slider" oninput="_setAutoNotesFlashLen(this.value)" onchange="_setAutoNotesFlashLen(this.value)" style="width:100%;">
     </div>
     <!-- SWEEP X-AXIS 8-BIT on/off, per direct request (the drums gate on the x-axis stays either way) -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">SWEEP RIGHT = 8-BIT</div>
-      <label class="wild-toggle"><input type="checkbox" id="sweep8bitToggle" checked onchange="window._sweep8bitOn = this.checked; try { localStorage.setItem('sifiSweep8bit', this.checked ? '1' : '0'); } catch (e) {}"><span class="wild-toggle-slider"></span></label>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="sweep8bitToggle" checked onchange="window._sweep8bitOn = this.checked; try { localStorage.setItem('sifiSweep8bit', this.checked ? '1' : '0'); } catch (e) {}"><span class="wild-toggle-slider"></span></label>
     </div>
     <script>try { if (localStorage.getItem('sifiSweep8bit') === '0') { window._sweep8bitOn = false; document.getElementById('sweep8bitToggle').checked = false; } } catch (e) {}</script>
 
@@ -3484,11 +3488,11 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <button id="fillHighWhiteBtn" class="fill-high-opt" onclick="_setFillLoudCustom(false)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#fff;color:#111;">WHITE</button>
         <button id="fillHighPickBtn" class="fill-high-opt" onclick="_setFillLoudCustom(true)" style="flex:1;height:30px;border:2px solid transparent;font-family:inherit;font-weight:700;font-size:0.6rem;letter-spacing:1px;cursor:pointer;background:#ddd;color:#111;">PICK COLOUR</button>
       </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input type="checkbox" id="fillHighTapeToggle" onchange="window._fillHighTape = this.checked; if (this.checked) { window._fillHighStop = false; const o = document.getElementById('fillHighStopToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TAPE GRAPHIC</label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input type="checkbox" id="fillHighStopToggle" onchange="window._fillHighStop = this.checked; if (this.checked) { window._fillHighTape = false; const o = document.getElementById('fillHighTapeToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TOP ROW HIGHLIGHT (STOP GLYPH)</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input autocomplete="off" type="checkbox" id="fillHighTapeToggle" onchange="window._fillHighTape = this.checked; if (this.checked) { window._fillHighStop = false; const o = document.getElementById('fillHighStopToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TAPE GRAPHIC</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#111;cursor:pointer;"><input autocomplete="off" type="checkbox" id="fillHighStopToggle" onchange="window._fillHighStop = this.checked; if (this.checked) { window._fillHighTape = false; const o = document.getElementById('fillHighTapeToggle'); if (o) o.checked = false; } _fillSyncRoot(); _fillDirty()" style="width:14px;height:14px;cursor:pointer;">SAME AS THE TOP ROW HIGHLIGHT (STOP GLYPH)</label>
       <div id="fillLoudSliders" style="display:none;flex-direction:column;gap:0;">
-        <input type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
-        <input type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
+        <input autocomplete="off" type="range" id="fillLoudHue" min="0" max="360" value="190" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
+        <input autocomplete="off" type="range" id="fillLoudLight" min="0" max="100" value="60" class="master-vol-slider" oninput="_fillPickInput()" onchange="_fillPickInput()" style="width:100%;">
         <div style="font-size:0.55rem;color:#777;letter-spacing:0.5px;text-transform:uppercase;">TOP = COLOUR · BOTTOM = DARK → LIGHT</div>
       </div>
     </div>
@@ -3498,27 +3502,27 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">VOLUME SLIDER — STYLE</div>
         <div style="font-size:0.58rem;color:#666;line-height:1.35;">VOL BANGER = live level meter. WIDE METER = the meter runs the full width of the bar in steady PLAY FLASH colour, fader on top (switches VOL BANGER on). JUST TRACK = thin fill (sets FILL HEIGHT). WIDE METER hides the track line and replaces the slider background by itself.</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
+          <input autocomplete="off" type="checkbox" id="volBangerToggle" checked onchange="setVolBanger(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL BANGER
         </label>
         <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;color:#555;">WIDE METER (was TEST)</div>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="volTestToggle" onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">WIDE METER
+            <input autocomplete="off" type="checkbox" id="volTestToggle" onchange="setVolTest(this.checked)" style="width:14px;height:14px;cursor:pointer;">WIDE METER
           </label>
           <div style="display:flex;align-items:center;gap:10px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
             <span>METER BG</span>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="1" onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="2" onchange="setVolTestBg(2)" style="width:14px;height:14px;cursor:pointer;">2</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="3" onchange="setVolTestBg(3)" style="width:14px;height:14px;cursor:pointer;">3</label>
-            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="volTestBg" value="4" checked onchange="setVolTestBg(4)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="volTestBg" value="1" onchange="setVolTestBg(1)" style="width:14px;height:14px;cursor:pointer;">1</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="volTestBg" value="2" onchange="setVolTestBg(2)" style="width:14px;height:14px;cursor:pointer;">2</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="volTestBg" value="3" onchange="setVolTestBg(3)" style="width:14px;height:14px;cursor:pointer;">3</label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="volTestBg" value="4" checked onchange="setVolTestBg(4)" style="width:14px;height:14px;cursor:pointer;">CLEAR</label>
           </div>
         </div>
         <!-- JUST TRACK option removed, per direct request — always off (see setJustTrack) -->
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="hideVolTrackToggle" checked onchange="document.body.classList.toggle('hide-vol-track', this.checked)" style="width:14px;height:14px;cursor:pointer;">HIDE VOL TRACK
+          <input autocomplete="off" type="checkbox" id="hideVolTrackToggle" checked onchange="document.body.classList.toggle('hide-vol-track', this.checked)" style="width:14px;height:14px;cursor:pointer;">HIDE VOL TRACK
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
+          <input autocomplete="off" type="checkbox" id="volBgTransparentToggle" checked onchange="setVolBgTransparent(this.checked)" style="width:14px;height:14px;cursor:pointer;">VOL SLIDER BG TRANSPARENT
         </label>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
@@ -3529,69 +3533,69 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOLUME FILL HEIGHT</div>
             <div id="volFillHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
           </div>
-          <input type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="volFillHeightSlider" min="5" max="100" step="1" value="100" oninput="setVolFillHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">VOL FADER HEIGHT</div>
             <div id="volTipHeightVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
           </div>
-          <input type="range" id="volTipHeightSlider" min="10" max="100" step="1" value="100" oninput="setVolFaderHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="volTipHeightSlider" min="10" max="100" step="1" value="100" oninput="setVolFaderHeightPct(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">FADER WIDTH</div>
             <div id="simpleFaderWidthReadout" style="font-size:0.85rem;font-weight:700;color:#111;">8PX</div>
           </div>
-          <input type="range" id="simpleFaderWidthSlider" min="0" max="16" value="8" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="simpleFaderWidthSlider" min="0" max="16" value="8" oninput="setSimpleFaderWidth(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">TRACK BUTTONS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="trackBtnLightsToggle" checked onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
+          <input autocomplete="off" type="checkbox" id="trackBtnLightsToggle" checked onchange="document.body.classList.toggle('track-btn-lights', this.checked)" style="width:14px;height:14px;cursor:pointer;">TRACK BUTTON LIGHTS
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="trackBtnLightsPulseToggle" checked onchange="document.body.classList.toggle('track-btn-lights-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">LIGHTS PULSE
+          <input autocomplete="off" type="checkbox" id="trackBtnLightsPulseToggle" checked onchange="document.body.classList.toggle('track-btn-lights-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">LIGHTS PULSE
         </label>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">TOP ROW</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="drumsFlashHlToggle" checked onchange="document.body.classList.toggle('drums-flash-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">DRUMS FLASH = PLAY COLOUR
+          <input autocomplete="off" type="checkbox" id="drumsFlashHlToggle" checked onchange="document.body.classList.toggle('drums-flash-hl', this.checked)" style="width:14px;height:14px;cursor:pointer;">DRUMS FLASH = PLAY COLOUR
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="checkbox" id="drumsPulseToggle" checked onchange="document.body.classList.toggle('drums-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST DRUMS PULSE
+            <input autocomplete="off" type="checkbox" id="drumsPulseToggle" checked onchange="document.body.classList.toggle('drums-pulse', this.checked)" style="width:14px;height:14px;cursor:pointer;">TEST DRUMS PULSE
           </label>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TOP ROW COLOR</div>
             <div id="topColorSwatch" style="width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,0.15);flex-shrink:0;background:#555555;"></div>
           </div>
-          <input type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="topColorHueSlider" min="0" max="360" step="1" value="0" oninput="setTopRowColorFromHue(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
         <div style="font-size:0.66rem;font-weight:700;letter-spacing:1.5px;color:#555;">NOTES &amp; TIME RULER</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="devNotesGrayscale" onchange="setDevNotesGrayscale(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS GRAYSCALE
+          <input autocomplete="off" type="checkbox" id="devNotesGrayscale" onchange="setDevNotesGrayscale(this.checked)" style="width:14px;height:14px;cursor:pointer;">NOTE MARKERS GRAYSCALE
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="timeRulerToggle" onchange="setTimeRuler(this.checked)" style="width:14px;height:14px;cursor:pointer;">TIME RULER
+          <input autocomplete="off" type="checkbox" id="timeRulerToggle" onchange="setTimeRuler(this.checked)" style="width:14px;height:14px;cursor:pointer;">TIME RULER
         </label>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER OPACITY</div>
             <div id="timeRulerOpacityVal" style="font-size:0.6rem;font-family:monospace;color:#333;">20%</div>
           </div>
-          <input type="range" id="timeRulerOpacitySlider" min="0" max="100" value="20" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="timeRulerOpacitySlider" min="0" max="100" value="20" oninput="setTimeRulerOpacity(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
             <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TIME RULER THICKNESS</div>
             <div id="timeRulerThicknessVal" style="font-size:0.6rem;font-family:monospace;color:#333;">1px</div>
           </div>
-          <input type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="1" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="timeRulerThicknessSlider" min="1" max="8" step="1" value="1" oninput="setTimeRulerThickness(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.25);">
@@ -3599,21 +3603,21 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OFFSET STEP SIZE</div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <input type="range" id="devOffsetStepSlider" min="0" max="3" step="1" value="0" oninput="setDevOffsetStepSize(this.value)" class="master-vol-slider" style="flex:1;">
+            <input autocomplete="off" type="range" id="devOffsetStepSlider" min="0" max="3" step="1" value="0" oninput="setDevOffsetStepSize(this.value)" class="master-vol-slider" style="flex:1;">
             <span id="devOffsetStepReadout" style="font-size:0.85rem;font-weight:700;color:#111;min-width:74px;text-align:right;">16TH</span>
           </div>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL GENERATES NEW PATTERN
+          <input autocomplete="off" type="checkbox" id="leftSpoolRandToggle" onchange="setLeftSpoolRand(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT SPOOL GENERATES NEW PATTERN
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="soloIncludesBeatToggle" onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES DRUMS
+          <input autocomplete="off" type="checkbox" id="soloIncludesBeatToggle" onchange="setSoloIncludesBeat(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO INCLUDES DRUMS
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
+          <input autocomplete="off" type="checkbox" id="beatIsAllDrumsToggle" checked onchange="setBeatIsAllDrums(this.checked)" style="width:14px;height:14px;cursor:pointer;">BEAT IS ALL DRUMS
         </label>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO IS MOMENTARY
+          <input autocomplete="off" type="checkbox" id="soloFlashToggle" checked onchange="setSoloFlashMode(this.checked)" style="width:14px;height:14px;cursor:pointer;">SOLO IS MOMENTARY
         </label>
       </div>
       <!-- DIAGNOSTICS moved up to where the GLOW section was (just above it), per direct request -->
@@ -3644,10 +3648,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRACK NAMES</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackNamesMode" value="color" checked onchange="setTrackNamesUniform(false)" style="width:15px;height:15px;cursor:pointer;">COLOR CODED BY INSTRUMENT
+            <input autocomplete="off" type="radio" name="trackNamesMode" value="color" checked onchange="setTrackNamesUniform(false)" style="width:15px;height:15px;cursor:pointer;">COLOR CODED BY INSTRUMENT
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackNamesMode" value="uniform" onchange="setTrackNamesUniform(true)" style="width:15px;height:15px;cursor:pointer;">SOLID
+            <input autocomplete="off" type="radio" name="trackNamesMode" value="uniform" onchange="setTrackNamesUniform(true)" style="width:15px;height:15px;cursor:pointer;">SOLID
           </label>
         </div>
       </div>
@@ -3656,31 +3660,31 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRACK BUTTON PULSE</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackPulseMode" value="solid" onchange="setTrackPulseMode('solid')" style="width:15px;height:15px;cursor:pointer;">SOLID
+            <input autocomplete="off" type="radio" name="trackPulseMode" value="solid" onchange="setTrackPulseMode('solid')" style="width:15px;height:15px;cursor:pointer;">SOLID
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackPulseMode" value="a" checked onchange="setTrackPulseMode('a')" style="width:15px;height:15px;cursor:pointer;">PULSING
+            <input autocomplete="off" type="radio" name="trackPulseMode" value="a" checked onchange="setTrackPulseMode('a')" style="width:15px;height:15px;cursor:pointer;">PULSING
           </label>
         </div>
       </div>
       <!-- FX/REVERB PULSE moved here (under TRACK BUTTON PULSE) from the main menu, per direct request -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
+        <input autocomplete="off" type="checkbox" id="fxReverbPulseToggle" checked onchange="setFxReverbPulse(this.checked)" style="width:14px;height:14px;cursor:pointer;">FX/REVERB PULSE
       </label>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH</div>
-        <input type="color" id="playFlashColorPicker" value="#ffffff" oninput="setFlashFromTop(false); setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
+        <input autocomplete="off" type="color" id="playFlashColorPicker" value="#ffffff" oninput="setFlashFromTop(false); setPlayFlashColor(this.value)" style="width:36px;height:24px;cursor:pointer;border:none;padding:0;background:none;">
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="flashFromTopToggle" onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
+        <input autocomplete="off" type="checkbox" id="flashFromTopToggle" onchange="setFlashFromTop(this.checked)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH FROM TOP ROW
       </label>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">PLAY FLASH SATURATION</div>
           <div id="flashSatVal" style="font-size:0.6rem;font-family:monospace;color:#333;">100%</div>
         </div>
-        <input type="range" id="flashSatSlider" min="0" max="100" step="5" value="100" oninput="document.getElementById('flashSatVal').textContent=this.value+'%'" onchange="setFlashSat(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="flashSatSlider" min="0" max="100" step="5" value="100" oninput="document.getElementById('flashSatVal').textContent=this.value+'%'" onchange="setFlashSat(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
 
       <!-- TRACK VOLUME COLOR radios removed from the UI — AUTO (best
@@ -3714,10 +3718,10 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRACK TEXT PULSE</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackTextPulseMode" value="solid" checked onchange="setTrackTextPulseMode('solid')" style="width:15px;height:15px;cursor:pointer;">SOLID
+            <input autocomplete="off" type="radio" name="trackTextPulseMode" value="solid" checked onchange="setTrackTextPulseMode('solid')" style="width:15px;height:15px;cursor:pointer;">SOLID
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackTextPulseMode" value="a" onchange="setTrackTextPulseMode('a')" style="width:15px;height:15px;cursor:pointer;">PULSING
+            <input autocomplete="off" type="radio" name="trackTextPulseMode" value="a" onchange="setTrackTextPulseMode('a')" style="width:15px;height:15px;cursor:pointer;">PULSING
           </label>
         </div>
       </div>
@@ -3726,115 +3730,115 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TEXT PULSE COLOR</div>
         <div style="display:flex;flex-direction:column;gap:6px;">
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackTextPulseColor" value="1" onchange="setTrackTextPulseColor(1)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT
+            <input autocomplete="off" type="radio" name="trackTextPulseColor" value="1" onchange="setTrackTextPulseColor(1)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackTextPulseColor" value="2" checked onchange="setTrackTextPulseColor(2)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT 2
+            <input autocomplete="off" type="radio" name="trackTextPulseColor" value="2" checked onchange="setTrackTextPulseColor(2)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT 2
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-            <input type="radio" name="trackTextPulseColor" value="3" onchange="setTrackTextPulseColor(3)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT 3
+            <input autocomplete="off" type="radio" name="trackTextPulseColor" value="3" onchange="setTrackTextPulseColor(3)" style="width:15px;height:15px;cursor:pointer;">HIGHLIGHT 3
           </label>
         </div>
       </div>
       <div style="border-top:1px solid rgba(0,0,0,0.12);padding-top:12px;margin-top:2px;display:flex;flex-direction:column;gap:12px;"> <!-- BUGFIX: this whole section's children (the 3 checkboxes plus 12 slider groups below) had no flex/gap layout at all, just plain stacked block divs with zero spacing between them — everything from MARKERS/MISC down read as bunched-up compared to the rest of this menu, which is all built from gapped flex containers like this one now is -->
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MARKERS / MISC</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
+          <input autocomplete="off" type="checkbox" id="randBtnAsteriskToggle" onchange="setRandBtnAsterisk(this.checked)" style="width:14px;height:14px;cursor:pointer;">+ BUTTON = ASTERISK
         </label>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">LOCK BUTTON DARKNESS</div>
             <div id="lockBtnDarknessReadout" style="font-size:0.85rem;font-weight:700;color:#111;">20%</div>
           </div>
-          <input type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="lockBtnDarknessSlider" min="0" max="100" value="20" oninput="setLockBtnDarkness(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SWEEP DECAY SPEED</div>
             <div id="sweepDecaySpeedReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0.50X</div>
           </div>
-          <input type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="50" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="sweepDecaySpeedSlider" min="0" max="200" value="50" oninput="setSweepDecaySpeed(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">NEW PATTERN NOISE VOLUME</div>
             <div id="randReleaseSweepVolReadout" style="font-size:0.85rem;font-weight:700;color:#111;">65%</div>
           </div>
-          <input type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="65" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="randReleaseSweepVolSlider" min="0" max="100" value="65" oninput="setRandReleaseSweepVol(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">OUTPUT MAKEUP GAIN</div>
             <div id="outputMakeupGainReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10.0DB</div>
           </div>
-          <input type="range" id="outputMakeupGainSlider" min="0" max="16" value="10" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="outputMakeupGainSlider" min="0" max="16" value="10" step="0.5" oninput="setOutputMakeupGain(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.2);"><!-- grouped, per direct request -->
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">SQUARE MARKERS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="markerLeftJustifySquaresToggle" onchange="setMarkerLeftJustifySquares(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY SQUARES
+          <input autocomplete="off" type="checkbox" id="markerLeftJustifySquaresToggle" onchange="setMarkerLeftJustifySquares(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY SQUARES
         </label>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE</div>
             <div id="squareMarkerSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">95%</div>
           </div>
-          <input type="range" id="squareMarkerSizeSlider" min="10" max="100" value="95" oninput="setSquareMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="squareMarkerSizeSlider" min="10" max="100" value="95" oninput="setSquareMarkerSize(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE MARKER SIZE RATIO</div>
             <div id="noteMarkerSizeRatioSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
           </div>
-          <input type="range" id="noteMarkerSizeRatioSquareSlider" min="0" max="200" value="0" oninput="setNoteMarkerSizeRatioSquare(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="noteMarkerSizeRatioSquareSlider" min="0" max="200" value="0" oninput="setNoteMarkerSizeRatioSquare(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER OPACITY</div>
             <div id="emptyMarkerOpacitySquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
           </div>
-          <input type="range" id="emptyMarkerOpacitySquareSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacitySquare(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="emptyMarkerOpacitySquareSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacitySquare(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">SQUARE EMPTY MARKER SIZE</div>
             <div id="emptyMarkerSizeSquareReadout" style="font-size:0.85rem;font-weight:700;color:#111;">95%</div>
           </div>
-          <input type="range" id="emptyMarkerSizeSquareSlider" min="10" max="100" value="95" oninput="setEmptyMarkerSizeSquare(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="emptyMarkerSizeSquareSlider" min="10" max="100" value="95" oninput="setEmptyMarkerSizeSquare(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         </div>
         <div style="display:flex;flex-direction:column;gap:12px;padding:10px;border:1px solid rgba(0,0,0,0.2);"><!-- grouped, per direct request -->
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">CIRCLE MARKERS</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-          <input type="checkbox" id="markerLeftJustifyCirclesToggle" onchange="setMarkerLeftJustifyCircles(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY CIRCLES
+          <input autocomplete="off" type="checkbox" id="markerLeftJustifyCirclesToggle" onchange="setMarkerLeftJustifyCircles(this.checked)" style="width:14px;height:14px;cursor:pointer;">LEFT-JUSTIFY CIRCLES
         </label>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE</div>
             <div id="noteMarkerCircleSizeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div>
           </div>
-          <input type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="60" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="noteMarkerCircleSizeSlider" min="0" max="100" value="60" oninput="setNoteMarkerCircleSize(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE MARKER SIZE RATIO</div>
             <div id="noteMarkerSizeRatioCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">200%</div>
           </div>
-          <input type="range" id="noteMarkerSizeRatioCircleSlider" min="0" max="200" value="200" oninput="setNoteMarkerSizeRatioCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="noteMarkerSizeRatioCircleSlider" min="0" max="200" value="200" oninput="setNoteMarkerSizeRatioCircle(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER OPACITY</div>
             <div id="emptyMarkerOpacityCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">35%</div>
           </div>
-          <input type="range" id="emptyMarkerOpacityCircleSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacityCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="emptyMarkerOpacityCircleSlider" min="0" max="100" value="35" oninput="setEmptyMarkerOpacityCircle(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         <div style="display:flex;flex-direction:column;gap:15px;">
           <div style="display:flex;justify-content:space-between;">
             <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CIRCLE EMPTY MARKER SIZE</div>
             <div id="emptyMarkerSizeCircleReadout" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div>
           </div>
-          <input type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
+          <input autocomplete="off" type="range" id="emptyMarkerSizeCircleSlider" min="0" max="100" value="50" oninput="setEmptyMarkerSizeCircle(this.value)" class="master-vol-slider" style="width:100%;">
         </div>
         </div>
       </div>
@@ -3844,21 +3848,21 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG DARKNESS</div>
           <div id="trackRowBgDarkenReadout" style="font-size:0.85rem;font-weight:700;color:#111;">100%</div>
         </div>
-        <input type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="100" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="trackRowBgDarkenSlider" min="0" max="100" value="100" oninput="setTrackRowBgDarken(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK ROW BG OPACITY</div>
           <div id="trackRowBgOpacityReadout" style="font-size:0.85rem;font-weight:700;color:#111;">10%</div>
         </div>
-        <input type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="10" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="trackRowBgOpacitySlider" min="0" max="100" value="10" oninput="setTrackRowBgOpacity(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;">
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">TRACK BUTTON SHADE</div>
           <div id="trackBtnShadeReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0</div>
         </div>
-        <input type="range" id="trackBtnShadeSlider" min="-100" max="100" step="5" value="0" oninput="setTrackBtnShade(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="trackBtnShadeSlider" min="-100" max="100" step="5" value="0" oninput="setTrackBtnShade(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
     </div>
     <!-- CLOSE button removed, per direct request — tap outside the panel to close -->
@@ -3872,12 +3876,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
   <div id="tapeDrawerPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;width:min(380px,90vw);box-sizing:border-box;display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">TAPE DRAWER</div>
     <div id="tapeDrawerList" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
-    <label style="display:flex;align-items:center;justify-content:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;cursor:pointer;"><input type="checkbox" id="tapeForceTempoToggle" onchange="_setTapeForceTempo(this.checked)" style="width:14px;height:14px;cursor:pointer;">FORCE TEMPO</label>
+    <label style="display:flex;align-items:center;justify-content:center;gap:8px;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#111;cursor:pointer;"><input autocomplete="off" type="checkbox" id="tapeForceTempoToggle" onchange="_setTapeForceTempo(this.checked)" style="width:14px;height:14px;cursor:pointer;">FORCE TEMPO</label>
     <button id="tapeDrawerPlayAll" onclick="_tapeDrawerPlayAll()" style="padding:12px;border:none;background:#111;color:#f5f0e8;font-family:'DM Sans',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">▶ PLAY ALL</button>
     <div id="tapeDrawerExportRow" style="display:flex;gap:8px;">
       <!-- LOAD TAPE, per direct request: a saved tape file (or a whole tape set) straight into the drawer -->
       <button onclick="document.getElementById('tapeDrawerFileInput').click()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">LOAD TAPE</button>
-      <input type="file" id="tapeDrawerFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" multiple style="display:none;" onchange="_drawerLoadTapeFiles(this.files)">
+      <input autocomplete="off" type="file" id="tapeDrawerFileInput" accept=".SiFiTape,.json,.txt,application/json,text/plain" multiple style="display:none;" onchange="_drawerLoadTapeFiles(this.files)">
       <button onclick="saveAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">SAVE ALL TAPES</button>
       <button onclick="exportAllTapes()" style="flex:1;padding:10px 6px;border:1px solid #111;background:transparent;color:#111;font-family:'DM Sans',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;">EXPORT ALL TAPES</button>
     </div>
@@ -3892,32 +3896,32 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div style="display:flex;flex-direction:column;gap:6px;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">SONG NAME EQ</div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="off" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">OFF</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="bars" checked onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">BARS</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="leds" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">LEDS</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="peaks" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">LINE</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqStyle" value="vert" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">VERT</label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqStyle" value="off" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">OFF</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqStyle" value="bars" checked onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">BARS</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqStyle" value="leds" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">LEDS</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqStyle" value="peaks" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">LINE</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqStyle" value="vert" onchange="setNameEqStyle(this.value)" style="width:14px;height:14px;cursor:pointer;">VERT</label>
       </div>
       <div style="display:flex;align-items:center;gap:10px;font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;flex-wrap:wrap;">
-        <span style="color:#555;">COLOUR</span><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="flash" checked onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="toprow" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">TOP ROW</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="vlow" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">FILL LOW</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="radio" name="nameEqColor" value="vhigh" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">FILL HIGH</label>
+        <span style="color:#555;">COLOUR</span><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqColor" value="flash" checked onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">PLAY FLASH</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqColor" value="toprow" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">TOP ROW</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqColor" value="vlow" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">FILL LOW</label><label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input autocomplete="off" type="radio" name="nameEqColor" value="vhigh" onchange="setNameEqColor(this.value)" style="width:14px;height:14px;cursor:pointer;">FILL HIGH</label>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">OPACITY</div>
         <div id="nameEqOpVal" style="font-size:0.75rem;font-weight:700;color:#111;">28%</div>
       </div>
-      <input type="range" id="nameEqOpSlider" min="0" max="100" step="1" value="28" class="master-vol-slider" oninput="setNameEqOpacity(this.value)" onchange="setNameEqOpacity(this.value)" style="width:100%;">
+      <input autocomplete="off" type="range" id="nameEqOpSlider" min="0" max="100" step="1" value="28" class="master-vol-slider" oninput="setNameEqOpacity(this.value)" onchange="setNameEqOpacity(this.value)" style="width:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">RANGE (EXAGGERATE)</div>
         <div id="nameEqRangeVal" style="font-size:0.75rem;font-weight:700;color:#111;">1.4x</div>
       </div>
-      <input type="range" id="nameEqRangeSlider" min="1" max="3" step="0.1" value="1.4" class="master-vol-slider" oninput="setNameEqRange(this.value)" onchange="setNameEqRange(this.value)" style="width:100%;">
+      <input autocomplete="off" type="range" id="nameEqRangeSlider" min="1" max="3" step="0.1" value="1.4" class="master-vol-slider" oninput="setNameEqRange(this.value)" onchange="setNameEqRange(this.value)" style="width:100%;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">SONG NAME BACKGROUND TRANSPARENT</div>
-        <label class="wild-toggle"><input type="checkbox" id="nameBgClearToggle" onchange="setNameBgClear(this.checked)"><span class="wild-toggle-slider"></span></label>
+        <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="nameBgClearToggle" onchange="setNameBgClear(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">GLOW</div>
-        <label class="wild-toggle"><input type="checkbox" id="nameEqGlowToggle" onchange="setNameEqGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
+        <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="nameEqGlowToggle" onchange="setNameEqGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#555;">PLAY FLASH GLOW (LIKE THE NOTES)</div>
-        <label class="wild-toggle"><input type="checkbox" id="nameEqFlashGlowToggle" onchange="setNameEqFlashGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
+        <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="nameEqFlashGlowToggle" onchange="setNameEqFlashGlow(this.checked)"><span class="wild-toggle-slider"></span></label>
       </div>
       <script>try { let v = localStorage.getItem('sifiNameEq'); if (v === 'circles') v = 'vert'; if (v) document.querySelectorAll('input[name="nameEqStyle"]').forEach(r => { r.checked = r.value === v; }); } catch (e) {} try { const c2 = localStorage.getItem('sifiNameEqCol'); if (c2 && c2 !== 'name' && c2 !== 'tape') { const c3 = c2 === 'vfill' ? 'vhigh' : c2; document.querySelectorAll('input[name="nameEqColor"]').forEach(r => { r.checked = r.value === c3; }); } } catch (e) {}</script>
     </div>
@@ -3927,12 +3931,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO DELAY</div>
         <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">16TH</div>
       </div>
-      <input type="range" id="fxEchoExtraSlider" min="0" max="800" step="25" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
+      <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="0" max="800" step="25" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
     </div>
     <!-- everything that was above the song name (VOL FILL look/colours, AUTO NOTES FLASH LENGTH, SWEEP RIGHT = 8-BIT) moved to DEV, next to VOLUME SLIDER, per direct request -->
     <!-- Song name on its own line, scale + tempo on the line below -->
     <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
-      <input type="text" id="settingsNameDisplay" oninput="_updateSongNameFromSettings(this.value)" onkeydown="if(event.key==='Enter') this.blur();" style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;padding:0;width:100%;font-family:'DM Sans',sans-serif;" title="tap to rename">
+      <input autocomplete="off" type="text" id="settingsNameDisplay" oninput="_updateSongNameFromSettings(this.value)" onkeydown="if(event.key==='Enter') this.blur();" style="font-size:1.1rem;font-weight:700;color:#111;letter-spacing:0.5px;text-transform:uppercase;border:none;background:transparent;padding:0;width:100%;font-family:'DM Sans',sans-serif;" title="tap to rename">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div id="keyDisplay" style="display:none;font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;letter-spacing:1px;text-transform:uppercase;" title="tap to change key">Key <span id="keyDisplayValue"></span></div>
         <div id="bpmVal" onclick="hideSettings(); showTempoScreen();" style="font-size:0.85rem;font-weight:700;color:#555;cursor:pointer;user-select:none;-webkit-user-select:none;" title="tap to open tempo screen">110 BPM</div>
@@ -3952,7 +3956,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT LATENCY <span style="font-weight:400;color:#666;">(PERFORMANCE MODE — delays the 1-2-3-4 count to match the speaker)</span></div>
           <div id="countLatencyReadout" style="font-size:0.85rem;font-weight:700;color:#111;white-space:nowrap;">AUTO</div>
         </div>
-        <input type="range" id="countLatencySlider" min="0" max="200" value="0" oninput="_countLatencyReadout(this.value, true)" onchange="_setCountLatency(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="countLatencySlider" min="0" max="200" value="0" oninput="_countLatencyReadout(this.value, true)" onchange="_setCountLatency(this.value)" class="master-vol-slider" style="width:100%;">
         <button type="button" onclick="_setCountLatency(null)" style="align-self:flex-start;font:700 0.6rem 'DM Sans',sans-serif;letter-spacing:1px;padding:4px 8px;background:none;border:1px solid #999;color:#111;cursor:pointer;">AUTO</button>
       </div>
     </div>
@@ -3962,18 +3966,18 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MAIN VOL</div>
-        <input type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="masterVolBar" min="0" max="100" value="80" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- MUSIC BUS, per direct request: the overall level of everything that isn't DRUMS or PERCUSSION (every melody / bass / pad
            track, their reverb included) — the drums menu, kit and percussion tracks are untouched. -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">85%</div></div>
-        <input type="range" id="musicBusBar" min="0" max="100" value="85" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
+        <input autocomplete="off" type="range" id="musicBusBar" min="0" max="100" value="85" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
       </div>
       <!-- DRUMS BUS (was the DRUMS menu's volume slider), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
         <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">39%</div></div>
-        <input type="range" id="beatVolBar" min="0" max="100" value="39" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
+        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="39" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -3986,7 +3990,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">8-BIT MIX</div>
           <div id="eightBitMixReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0%</div>
         </div>
-        <input type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="eightBitMixSlider" min="0" max="100" value="0" oninput="setEightBitMix(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- CLICK LEVEL, per direct request: the COUNT click (on from the 2nd tap on the count numerals) -->
       <div style="display:flex;flex-direction:column;gap:15px;">
@@ -3994,13 +3998,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.62rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--dim);">CLICK LEVEL</div>
           <div id="clickLevelReadout" style="font-size:0.85rem;font-weight:700;color:#111;">0dB</div>
         </div>
-        <input type="range" id="clickLevelSlider" min="0" max="100" value="50" oninput="setClickLevel(this.value)" onchange="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="clickLevelSlider" min="0" max="100" value="50" oninput="setClickLevel(this.value)" onchange="setClickLevel(this.value)" class="master-vol-slider" style="width:100%;">
       </div>
       <!-- COUNT, moved here below CLICK LEVEL, per direct request -->
       <div style="display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">COUNT</div>
         <label class="wild-toggle">
-          <input type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
+          <input autocomplete="off" type="checkbox" id="countToggle" onchange="_setBeatCountShown(this.checked)">
           <span class="wild-toggle-slider"></span>
         </label>
       </div>
@@ -4012,17 +4016,17 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
           <div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">SWING</div>
           <div id="swingReadout" style="font-size:0.85rem;font-weight:700;color:#111;font-family:'DM Sans',sans-serif;">4.6%</div>
         </div>
-        <input type="range" id="swingBar" min="0" max="100" value="37" class="master-vol-slider" style="width:100%;">
+        <input autocomplete="off" type="range" id="swingBar" min="0" max="100" value="37" class="master-vol-slider" style="width:100%;">
       </div>
 
       <button id="turboBtn" onclick="toggleTurbo()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BOOST</button>
       <button id="batterySaverBtn" onclick="toggleBatterySaver()" style="width:100%;background:#555;color:#fff;border:none;font-family:'DM Sans',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:14px 0;cursor:pointer;">BATTERY SAVER</button>
       <!-- EXPERIMENTAL STUFF, per direct request (OFF by default): gates the RANDO BUTTON and LOOK AND FEEL menus -->
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="experimentalToggle" onchange="_setExperimental(this.checked)" style="width:14px;height:14px;cursor:pointer;">EXPERIMENTAL STUFF
+        <input autocomplete="off" type="checkbox" id="experimentalToggle" onchange="_setExperimental(this.checked)" style="width:14px;height:14px;cursor:pointer;">EXPERIMENTAL STUFF
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:0.66rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;cursor:pointer;">
-        <input type="checkbox" id="loadMeterToggle" onchange="setLoadMeterEnabled(this.checked)" style="width:14px;height:14px;cursor:pointer;">LOAD METER
+        <input autocomplete="off" type="checkbox" id="loadMeterToggle" onchange="setLoadMeterEnabled(this.checked)" style="width:14px;height:14px;cursor:pointer;">LOAD METER
       </label>
       <!-- ADD TO HOME SCREEN, per direct request — iOS has no install API, so on iPhone this shows the Share > Add to Home Screen steps;
            on Android/Chrome it opens the browser's own install prompt -->
@@ -4049,7 +4053,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="bpmOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
   <div id="bpmOverlayInner" style="background:#f5f0e8;border:none;padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:20px;">
     <div style="display:flex;align-items:center;justify-content:center;height:65vh;width:64px;position:relative;">
-      <input type="range" id="bpmSlider" min="40" max="200" value="110" class="master-vol-slider"
+      <input autocomplete="off" type="range" id="bpmSlider" min="40" max="200" value="110" class="master-vol-slider"
         style="position:absolute;width:65vh;height:3px;background:var(--text);outline:none;transform:rotate(-90deg);left:calc(50% - 32.5vh);top:calc(50% - 1.5px);-webkit-appearance:none;appearance:none;"
         oninput="if (_tempoLocked) { this.value = bpm; return; } bpm=+this.value; document.getElementById('bpmVal').textContent=this.value+' BPM'; document.getElementById('bpmOverlayVal').textContent=this.value+' BPM'; document.getElementById('topTempoBpmNum').textContent=this.value;">
     </div>
@@ -4110,7 +4114,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <div id="beatVolOverlay" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
   <div style="background:#f5f0e8;border:none;padding:32px 40px;display:flex;flex-direction:column;align-items:center;gap:20px;">
     <div style="display:flex;align-items:center;justify-content:center;height:65vh;width:64px;position:relative;">
-      <input type="range" id="beatVolSlider" min="0" max="100" value="75" class="master-vol-slider"
+      <input autocomplete="off" type="range" id="beatVolSlider" min="0" max="100" value="75" class="master-vol-slider"
         style="position:absolute;width:65vh;height:3px;background:var(--text);outline:none;transform:rotate(-90deg);left:calc(50% - 32.5vh);top:calc(50% - 1.5px);-webkit-appearance:none;appearance:none;"
         oninput="setBeatVol(+this.value/100); document.getElementById('beatVolVal').textContent=this.value+'%'">
     </div>
@@ -5011,8 +5015,8 @@ function applyColorsFromTopRow(hex) {
   if (window._topRowTextColorMode === 'auto') _autoPickTopRowTextColor();
   if (window._trackBtnTextColorMode === 'auto') _autoPickTrackBtnTextColor();
 }
-// #topColorHueSlider is a plain <input type="range"> rather than a native
-// <input type="color"> — the native color picker turned out to force a
+// #topColorHueSlider is a plain <input autocomplete="off" type="range"> rather than a native
+// <input autocomplete="off" type="color"> — the native color picker turned out to force a
 // full page reload in at least some mobile/PWA contexts (presenting a
 // native input sheet can suspend or reload a standalone home-screen
 // WebView on iOS in particular). A plain hue slider never invokes any
@@ -6041,24 +6045,24 @@ function _randoBuildUI() {
     h += `<div class="rc-lab">${label}</div>`;
     _RANDO_COLS.forEach(w => {
       const c = window._randoCfg[w], inv = !!sub || key === 'intRand', on = inv ? !c[key] : !!c[key];
-      h += `<div class="rc-cell" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input type="checkbox" ${on ? 'checked' : ''} onchange="_randoSet('${w}','${key}',${inv ? '!' : ''}this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
+      h += `<div class="rc-cell" data-w="${w}" data-k="${key}"><label class="wild-toggle"><input autocomplete="off" type="checkbox" ${on ? 'checked' : ''} onchange="_randoSet('${w}','${key}',${inv ? '!' : ''}this.checked)"><span class="wild-toggle-slider"></span></label></div>`;
     });
     if (sub) {
       h += '<div></div>';
       _RANDO_COLS.forEach(w => {
         const c = window._randoCfg[w], off = c[key];
-        h += `<div class="rc-cell rc-sub${off ? ' rc-off' : ''}" data-w="${w}" data-k="${sub}"><input type="range" id="rando-${w}-${sub}" min="0" max="100" step="25" value="${c[sub]}" class="master-vol-slider" oninput="_randoSet('${w}','${sub}',+this.value)"><div class="rc-read" id="rando-${w}-${sub}-read">${_randoReadout(sub, c[sub])}</div></div>`;
+        h += `<div class="rc-cell rc-sub${off ? ' rc-off' : ''}" data-w="${w}" data-k="${sub}"><input autocomplete="off" type="range" id="rando-${w}-${sub}" min="0" max="100" step="25" value="${c[sub]}" class="master-vol-slider" oninput="_randoSet('${w}','${sub}',+this.value)"><div class="rc-read" id="rando-${w}-${sub}-read">${_randoReadout(sub, c[sub])}</div></div>`;
       });
     }
   });
   host.innerHTML = h;
   // DRUM MUSIC RATIO — the overall rule, full width under the columns (as it used to be)
   const g = window._randoGlobal, gh = document.getElementById('randoGlobal');
-  if (gh) gh.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><div class="rc-lab" style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;color:#111;">DRUM MUSIC RATIO</div><label class="wild-toggle"><input type="checkbox" ${!g.ratioRand ? 'checked' : ''} onchange="_randoSetGlobal('ratioRand', !this.checked)"><span class="wild-toggle-slider"></span></label></div>`
-    + `<div style="${g.ratioRand ? 'opacity:0.3;pointer-events:none;' : ''}"><div style="position:relative;"><input type="range" id="rando-g-ratio" min="0" max="6" step="1" value="${g.ratio}" class="master-vol-slider" style="width:100%;display:block;" oninput="_randoSetGlobal('ratio', +this.value)"><div style="position:absolute;left:50%;top:50%;width:2px;height:16px;margin:-8px 0 0 -1px;background:#111;opacity:0.55;pointer-events:none;"></div></div>`
+  if (gh) gh.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><div class="rc-lab" style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;color:#111;">DRUM MUSIC RATIO</div><label class="wild-toggle"><input autocomplete="off" type="checkbox" ${!g.ratioRand ? 'checked' : ''} onchange="_randoSetGlobal('ratioRand', !this.checked)"><span class="wild-toggle-slider"></span></label></div>`
+    + `<div style="${g.ratioRand ? 'opacity:0.3;pointer-events:none;' : ''}"><div style="position:relative;"><input autocomplete="off" type="range" id="rando-g-ratio" min="0" max="6" step="1" value="${g.ratio}" class="master-vol-slider" style="width:100%;display:block;" oninput="_randoSetGlobal('ratio', +this.value)"><div style="position:absolute;left:50%;top:50%;width:2px;height:16px;margin:-8px 0 0 -1px;background:#111;opacity:0.55;pointer-events:none;"></div></div>`
     + `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:0.58rem;font-weight:700;letter-spacing:1px;color:#555;"><span>DRUMS</span><span id="rando-g-ratio-read" style="font-family:monospace;font-weight:400;color:#333;">${_randoReadout('ratio', g.ratio)}</span><span>TONES</span></div></div>`
     + `<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;"><div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;color:#111;">NOTE INTENSITY</div><div id="rando-g-intensity-read" style="font-size:0.6rem;font-family:monospace;color:#333;">${_randoReadout('intensity', g.intensity)}</div></div>`
-    + `<input type="range" id="rando-g-intensity" min="0" max="100" step="25" value="${g.intensity}" class="master-vol-slider" style="width:100%;" oninput="_randoSetGlobal('intensity', +this.value)">`;
+    + `<input autocomplete="off" type="range" id="rando-g-intensity" min="0" max="100" step="25" value="${g.intensity}" class="master-vol-slider" style="width:100%;" oninput="_randoSetGlobal('intensity', +this.value)">`;
 }
 function _randoSet(w, k, v) {
   window._randoCfg[w][k] = v;
@@ -23714,6 +23718,10 @@ function setTonalPercBalance(v) {
   nb.addEventListener('mouseup', e => { _holdCancel(); if (_held) { _held = false; _mx = null; return; } if (_mx === null) return; const dx = e.clientX - _mx, dy = e.clientY - _my; _mx = null;
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { if (dx > 0) _allocSwipeNew(); else _allocSwipeBack(); } });
 })();
+// FIRST LOAD: PLAY stays in colour until the first PLAY (see body.first-idle CSS)
+(function () { const go = () => { const b = document.body; if (!b) return; if (!b.classList.contains('seq-playing')) b.classList.add('first-idle');
+  const mo = new MutationObserver(() => { if (b.classList.contains('seq-playing')) { b.classList.remove('first-idle'); mo.disconnect(); } }); mo.observe(b, { attributes: true, attributeFilter: ['class'] }); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go(); })();
 // SONG NAME on / off (hold the song name bar), per direct request — the bar (and its EQ METER) stays, only the name goes
 function _toggleSongNameHidden(force) {
   const nd = document.getElementById('nameDisplay'); if (!nd) return;
@@ -23924,7 +23932,9 @@ function _nameEqTick(now) {
       // the bar is the VOL FILL LOW colour, with its top 10px in the VOL FILL HIGH colour (both REC red while recording)
       const s20 = W / 20, lw = 4 * dpr, cap = 10 * dpr;
       const rec = typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active');
-      const lo = rec ? [255, 42, 42] : _fillBaseNow(), hi = rec ? [255, 42, 42] : _fillHighNow();
+      // COLOUR left on its default (PLAY FLASH) = the two VOL FILL colours; any other COLOUR picked = the whole bar AND its tip in that colour, per direct request
+      const _one = (window._nameEqColor || 'flash') !== 'flash' ? (_cssRgb(col) || [255, 255, 255]) : null;
+      const lo = rec ? [255, 42, 42] : (_one || _fillBaseNow()), hi = rec ? [255, 42, 42] : (_one || _fillHighNow());
       const tops = [];
       c.fillStyle = `rgb(${lo[0]},${lo[1]},${lo[2]})`; c.beginPath();
       for (let b = 0; b < 20; b++) { const h = Math.max(dpr, Math.round(LV20[b] * usable)), top = H - pad - h, cx = Math.round(b * s20 + s20 / 2 - lw / 2); tops.push([cx, top, Math.min(h, cap)]); if (h > cap) c.rect(cx, top + cap, lw, h - cap); }
@@ -23952,7 +23962,7 @@ function _nameEqColours() {
   const cs = _rootCS(), out = [];
   const rec = typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active');
   if (rec) return [[255, 42, 42]];
-  if (window._nameEqStyle === 'vert') return [_fillBaseNow(), _fillHighNow()]; // VERT always draws in the two VOL FILL colours
+  if (window._nameEqStyle === 'vert' && (window._nameEqColor || 'flash') === 'flash') return [_fillBaseNow(), _fillHighNow()]; // VERT on the default COLOUR draws in the two VOL FILL colours
   const cm = window._nameEqColor || 'flash';
   if (cm === 'vlow') out.push(_fillBaseNow()); else if (cm === 'vhigh' || cm === 'vfill') out.push(_fillHighNow());
   else { const c = _cssRgb(cs.getPropertyValue(cm === 'toprow' ? '--top-row-highlight-color' : '--play-flash-color').trim()); if (c) out.push(c); }
