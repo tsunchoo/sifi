@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 22:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 23:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2608,7 +2608,7 @@ html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { opacity: 0.6;
 /* MODIFY MODE (from LIVE: drag the key UP), per direct request: every track's note-marker lane collapses, leaving just the button
    rows, and the song name bar grows by exactly the height that freed up (measured in JS → --modify-extra) */
 html body.modify .track-row { display: none !important; }
-html body.modify #nameBar { background: transparent !important; background-color: transparent !important; } /* MODIFY: song name background transparent, per direct request */
+/* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
 html body.modify #nameBar { min-height: calc(66.08px + var(--modify-extra, 0px)) !important; touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
@@ -2993,7 +2993,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 22:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 23:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8153,7 +8153,7 @@ window._padLatch = true;
   const evY = e => { const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e; return t.clientY; };
   const inStrip = e => { if (!inBar(e)) return false; const r = nb().getBoundingClientRect(); return evY(e) - r.top < r.height * 0.1; }; // the SONG NAME strip (top 10%)
   const inPad = e => inBar(e) && !inStrip(e);
-  // the strip: DOUBLE-TAP / double-click = SAVE THE TAPE TO FILES (same as the song name everywhere else); nothing else
+  // the strip: DOUBLE-TAP / double-click = ADD TO THE TAPE DRAWER + heart (same as the song name everywhere else); nothing else
   let stripTapT = 0;
   window.addEventListener('touchstart', e => { if (inStrip(e)) { e.stopPropagation(); if (e.cancelable) e.preventDefault(); } }, { capture: true, passive: false });
   window.addEventListener('touchend', e => { if (!inStrip(e) || held) return; e.stopPropagation(); if (e.cancelable) e.preventDefault();
@@ -22253,12 +22253,19 @@ function _tapeSig(snap) {
 }
 // Song-name double-tap: saves to the TAPE DRAWER (and the next free slot) — REJECTED if this exact pattern is already in the
 // drawer, per direct request: no flash, no save, just a short "SAVED ALREADY" notice.
-// NOW, per direct request: double-tap = SAVE TAPE TO FILES (the save / share dialog) — the drawer fills itself automatically
-// (see the AUTO TAPE DRAWER below). Still flashes the bar and takes the next free slot, as before.
+// Double-tap the song name (MODIFY's name strip too) = ADD TO THE TAPE DRAWER with the floating heart, per direct request — back
+// to how it was (it briefly went straight to SAVE TO FILES instead). The drawer also fills itself (AUTO TAPE DRAWER below), so
+// if this exact pattern is already in there, that copy is KEPT as it is now (it stops following later edits) and the heart
+// still floats up. Still flashes the bar and takes the next free slot, as before.
 function _songNameSave() {
   _flashNameBarHighlight();
-  try { _tapeAutoSaveNow(); } catch (e) {} // make sure the drawer has this exact version too
-  try { exportTape(); } catch (e) { console.error('save tape to files failed', e); }
+  try {
+    const snap = _tapeSnapshot(), sig = _tapeSig(snap), items = window._tapeDrawerItems;
+    let it = items.find(x => x.sig === sig);
+    if (!it) { _addToTapeDrawer(); it = items[items.length - 1]; }
+    else { _floatSavedHeart(); }
+    if (it) { it.kept = true; if (window._tapeAuto && window._tapeAuto.item === it) window._tapeAuto.item = null; } // kept exactly as saved
+  } catch (e) { console.error('tape drawer save failed', e); }
   _saveCurrentPatternToNextSlot();
 }
 function _addToTapeDrawer() {
@@ -24315,7 +24322,7 @@ setInterval(() => {
   const nd = document.getElementById('nameDisplay'); if (!nd) return;
   // SONG NAME BACKGROUND TRANSPARENT on, per direct request: the name sits on the PAGE background, so it goes dark on a light
   // page and light on a dark one (whatever the EQ is doing)
-  if (document.body.classList.contains('name-bg-clear') || document.body.classList.contains('modify')) { // (MODIFY's song name background is always transparent)
+  if (document.body.classList.contains('name-bg-clear')) {
     let txt = null; try { const c = _anyRgba(_rootCS().getPropertyValue('--bg').trim() || getComputedStyle(document.body).backgroundColor); if (c) txt = _relLum(c) > 0.18 ? '#111111' : '#ffffff'; } catch (e) {}
     if (txt) { if (nd._eqTxt !== txt) { nd.style.setProperty('color', txt, 'important'); nd._eqTxt = txt; } return; }
   }
@@ -27628,7 +27635,7 @@ function snapshotDisplay() {
     ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
     ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
     ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Single click opens the SETTINGS MENU and clicking and dragging down to open the TAPE DRAWER — every pattern you saved this session (double-tap the song name to save). Tap a tape to hear it once, or PLAY ALL.'],
-    ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Every pattern is saved to the TAPE DRAWER automatically (12 max, the oldest drops off). Double-tap to SAVE THE TAPE TO FILES.'],
+    ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Every pattern is saved to the TAPE DRAWER automatically (12 max, the oldest drops off). Double-tap to save it to the TAPE DRAWER yourself (a heart floats up) — it is then kept exactly as it is.'],
     ['#slotBar', 'SLOTS', 'Up to six saved patterns. Tap one to switch to it on the next beat.'],
     ['#randBtn', '>>  RANDOMIZER', 'Tapping swaps the instruments of the current patterns and double-tapping loads a brand-new randomized groove (new tempo, drum beat, key, instruments and notes) on the next bar. Holding turns on AUTO mode. Click and drag down opens the RANDO BUTTON menu, where you choose what a click and a double-click each do.'],
     ['#clearBtn', 'SWEEP', 'Sweep is for transitions between patterns, clicking and dragging down for more of the filter-sweep riser and dragging to the right increases the 8-bit crunch mix. Releasing will return the mix to where it was.'],
