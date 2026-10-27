@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 20:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 20:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2608,7 +2608,14 @@ html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { opacity: 0.6;
 /* SPESHAL MODE (from LIVE: drag the key UP), per direct request: every track's note-marker lane collapses, leaving just the button
    rows, and the song name bar grows by exactly the height that freed up (measured in JS → --speshal-extra) */
 html body.speshal .track-row { display: none !important; }
-html body.speshal #nameBar { min-height: calc(66.08px + var(--speshal-extra, 0px)) !important; }
+html body.speshal #nameBar { min-height: calc(66.08px + var(--speshal-extra, 0px)) !important; touch-action: none; cursor: crosshair; }
+/* SPESHAL XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
+#speshalPadMarks { display: none; position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+html body.speshal #speshalPadMarks { display: block; }
+#speshalPadMarks .sp-h, #speshalPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
+#speshalPadMarks .sp-h { left: 0; right: 0; top: 50%; height: 1px; } #speshalPadMarks .sp-v { top: 0; bottom: 0; left: 50%; width: 1px; }
+#speshalPadMarks .sp-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; transition: opacity 0.15s; }
+#speshalPadMarks.sp-on .sp-dot { opacity: 0.85; }
 html body.name-bg-clear #nameBar { background: transparent !important; background-color: transparent !important; } /* SONG NAME BG TRANSPARENT (SETTINGS > SONG NAME EQ), per direct request */
 html body.song-name-hidden #nameDisplay { visibility: hidden !important; } /* SONG NAME hidden (hold the bar), per direct request */
 /* PLAY FLASH default = the loading bar's orange (#f17d21), per direct request. */
@@ -2969,7 +2976,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 20:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 20:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8007,6 +8014,82 @@ document.addEventListener('DOMContentLoaded', () => {
   lk.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); return; }
     if (!document.body.classList.contains('live-layout')) return; e.stopPropagation(); _pressPulse('liveKey'); showSettings(); });
 });
+// SPESHAL XY PAD, per direct request: in SPESHAL the whole song name bar is a cartesian pad, played like SWEEP (hold and move;
+// let go and everything goes back). CENTRE = the pattern exactly as it is. X = NOTES: left takes notes away (none at the far
+// left), right adds them (every step at the far right). Y = EFFECTS (each track's R and FX): up takes them away (none at the
+// top), down adds them (R + DL on every track at the bottom). So top-left = silence-ish and dry, bottom-right = everything.
+// The order notes/effects come and go in is shuffled once per touch, so moving back and forth is smooth and repeatable.
+(function () {
+  let pad = null, raf = 0, pend = null;
+  const nb = () => document.getElementById('nameBar');
+  const marks = () => { let m = document.getElementById('speshalPadMarks'), b = nb(); if (!m && b) { m = document.createElement('div'); m.id = 'speshalPadMarks'; m.innerHTML = '<div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m); } return m; };
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const fxOf = tr => ({ x: trackFx[tr] ? trackFx[tr].x : 0, y: trackFx[tr] ? trackFx[tr].y : 0, pump: !!trackPump[tr], chink: !!trackChink[tr] });
+  const fxOn = f => !!(f.chink || f.pump || f.x > 0 || f.y > 0);
+  function capture() {
+    const base = { grid: grid.map(r => r.slice()), rev: trackDelay.slice(), fx: [] }; for (let tr = 0; tr < NUM_TRACKS; tr++) base.fx.push(fxOf(tr));
+    const notes = [], empties = [], effOn = [], effOff = [];
+    for (let tr = 0; tr < NUM_TRACKS; tr++) {
+      for (let st = 0; st < NUM_STEPS; st++) (base.grid[tr][st] > 0 ? notes : empties).push([tr, st]);
+      (base.rev[tr] ? effOn : effOff).push([tr, 'R']); (fxOn(base.fx[tr]) ? effOn : effOff).push([tr, 'FX']);
+    }
+    return { base, notes: shuffle(notes), empties: shuffle(empties), effOn: shuffle(effOn), effOff: shuffle(effOff) };
+  }
+  function setFx(tr, f) {
+    const c = fxOf(tr); if (c.x === f.x && c.y === f.y && c.pump === f.pump && c.chink === f.chink) return;
+    trackPump[tr] = f.pump; trackFx[tr] = { x: f.x, y: f.y };
+    try { if (ctx) setFxActive(tr, trackFx[tr]); } catch (e) {}
+    try { if (!!trackChink[tr] !== f.chink) _setChink(tr, f.chink); } catch (e) {}
+    try { _syncFxBtn(tr); } catch (e) {}
+  }
+  function apply(x, y) {
+    if (!pad) return; const B = pad.base;
+    const nx = Math.max(-1, Math.min(1, x * 2 - 1)), ny = Math.max(-1, Math.min(1, y * 2 - 1)); // −1 … +1, 0 = centre
+    const dz = v => Math.abs(v) < 0.06 ? 0 : v; // a small dead zone round the centre so 'as it is' is easy to hit
+    const X = dz(nx), Y = dz(ny);
+    // NOTES
+    const g = B.grid.map(r => r.slice());
+    if (X < 0) { const n = Math.round(pad.notes.length * -X); for (let i = 0; i < n; i++) { const [tr, st] = pad.notes[i]; g[tr][st] = 0; } }
+    else if (X > 0) { const n = Math.round(pad.empties.length * X); for (let i = 0; i < n; i++) { const [tr, st] = pad.empties[i]; g[tr][st] = 1; } }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) for (let st = 0; st < NUM_STEPS; st++) if (grid[tr][st] !== g[tr][st]) grid[tr][st] = g[tr][st];
+    // EFFECTS
+    const rev = B.rev.slice(), fx = B.fx.map(f => Object.assign({}, f));
+    if (Y < 0) { const n = Math.round(pad.effOn.length * -Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOn[i]; if (k === 'R') rev[tr] = false; else fx[tr] = { x: 0, y: 0, pump: false, chink: false }; } }
+    else if (Y > 0) { const n = Math.round(pad.effOff.length * Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOff[i]; if (k === 'R') rev[tr] = true; else fx[tr] = { x: 0.5, y: 0.5, pump: false, chink: false }; /* DL */ } }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { if (!!trackDelay[tr] !== rev[tr]) setRev(tr, rev[tr]); setFx(tr, fx[tr]); }
+  }
+  // R on/off — LIVE's battery saver refuses to switch reverb ON, so there the R flag is only put back as it was (never added)
+  function setRev(tr, on) {
+    if (on && window._batterySaverOn) { if (pad && pad.base.rev[tr]) { trackDelay[tr] = true; const b = document.getElementById(`delaybtn-${tr}`); if (b) b.classList.add('on'); } return; }
+    try { _setTrackReverb(tr, on); } catch (e) {}
+  }
+  function restore() {
+    if (!pad) return; const B = pad.base;
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { for (let st = 0; st < NUM_STEPS; st++) grid[tr][st] = B.grid[tr][st]; if (!!trackDelay[tr] !== B.rev[tr]) setRev(tr, B.rev[tr]); setFx(tr, B.fx[tr]); }
+    for (let tr = 0; tr < NUM_TRACKS; tr++) { try { redrawTrackCells(tr, true); } catch (e) {} }
+    try { _queueFxBtnSync(); } catch (e) {}
+    pad = null;
+  }
+  function pos(cx, cy) {
+    const r = nb().getBoundingClientRect(); const x = (cx - r.left) / r.width, y = (cy - r.top) / r.height;
+    const m = marks(); if (m) { const d = m.querySelector('.sp-dot'); d.style.left = (Math.max(0, Math.min(1, x)) * 100) + '%'; d.style.top = (Math.max(0, Math.min(1, y)) * 100) + '%'; }
+    pend = [x, y]; if (!raf) raf = requestAnimationFrame(tick);
+  }
+  function tick() { raf = 0; if (!pad || !pend) return; apply(pend[0], pend[1]); raf = requestAnimationFrame(tick); } // held: re-applied every frame (cheap — only real changes are written)
+  const inPad = e => document.body.classList.contains('speshal') && nb() && nb().contains(e.target);
+  const start = (cx, cy) => { pad = capture(); const m = marks(); if (m) m.classList.add('sp-on'); pos(cx, cy); };
+  const end = () => { if (!pad) return; if (raf) { cancelAnimationFrame(raf); raf = 0; } pend = null; restore(); const m = marks(); if (m) m.classList.remove('sp-on'); };
+  // Capture on the WINDOW so the song name's own gestures (double-tap save, hold, swipes) never see these while in SPESHAL
+  window.addEventListener('touchstart', e => { if (!inPad(e)) return; e.stopPropagation(); if (e.cancelable) e.preventDefault(); const t = e.touches[0]; start(t.clientX, t.clientY); }, { capture: true, passive: false });
+  window.addEventListener('touchmove', e => { if (!pad) return; e.stopPropagation(); if (e.cancelable) e.preventDefault(); const t = e.touches[0]; pos(t.clientX, t.clientY); }, { capture: true, passive: false });
+  ['touchend', 'touchcancel'].forEach(t => window.addEventListener(t, e => { if (!pad) return; e.stopPropagation(); if (!e.touches || !e.touches.length) end(); }, { capture: true }));
+  window.addEventListener('mousedown', e => { if (!inPad(e)) return; e.stopPropagation(); e.preventDefault(); start(e.clientX, e.clientY); }, true);
+  window.addEventListener('mousemove', e => { if (pad) pos(e.clientX, e.clientY); }, true);
+  window.addEventListener('mouseup', e => { if (pad) { e.stopPropagation(); end(); } }, true);
+  ['click', 'dblclick'].forEach(t => window.addEventListener(t, e => { if (inPad(e)) { e.stopPropagation(); e.preventDefault(); } }, true));
+  setInterval(() => { if (pad && !document.body.classList.contains('speshal')) end(); }, 300); // left SPESHAL mid-touch
+  window._speshalPadDbg = { apply: (x, y) => { if (!pad) pad = capture(); apply(x, y); }, end };
+})();
 // SPESHAL MODE, per direct request — the 3rd stop of the logo's drag-down cycle (NORMAL → LIVE → SPESHAL → NORMAL). The note lanes collapse and the song name
 // bar takes over the freed height. Leaving LIVE (drag the key down, or any mode change) also leaves SPESHAL.
 function _speshalMeasure() {
