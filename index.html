@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 19:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 19:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2969,7 +2969,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 19:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 19:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3196,7 +3196,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     </div>
     <!-- what AUTO does each time it triggers, per direct request: a whole NEW PATTERN (off) or NEW INSTRUMENTS on the pattern that's playing (on) -->
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DOES: <span id="autoDoesReadout">NEW PATTERN</span></div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRIGGERS: <span id="autoDoesReadout">NEW PATTERN</span></div>
       <label class="wild-toggle">
         <input autocomplete="off" type="checkbox" id="autoDoesToggle" onchange="setAutoDoes(this.checked ? 'instruments' : 'pattern')">
         <span class="wild-toggle-slider"></span>
@@ -7994,15 +7994,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const live = () => document.body.classList.contains('live-layout');
   const vis = dy => { lk.style.transition = 'none'; lk.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
   const snap = () => { lk.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; lk.style.translate = '0 0'; };
-  // DRAG UP on the key = SPESHAL MODE on/off, per direct request (DOWN still = back to normal mode)
-  const visUp = dy => { lk.style.transition = 'none'; lk.style.translate = '0 ' + Math.max(-MAXD, Math.min(0, dy)) + 'px'; };
+  // 3-MODE CYCLE on the same drag DOWN, per direct request (no swipe up): logo drag = NORMAL → LIVE; here (the key sits where the
+  // logo was) LIVE → SPESHAL → NORMAL
   const move = (y, e) => {
     if (y0 === null) return; const dy = y - y0;
-    if (!dragging && Math.abs(dy) > START) dragging = true; if (!dragging) return;
+    if (!dragging && dy > START) dragging = true; if (!dragging) return;
     if (e && e.cancelable) e.preventDefault();
-    if (dy < 0) { visUp(dy); if (!fired && dy <= -MAXD) { fired = true; try { _toggleSpeshal(); } catch (er) {} } return; }
     vis(dy);
-    if (!fired && dy >= MAXD) { fired = true; try { _setSpeshal(false); window._toggleLiveMode && window._toggleLiveMode(); } catch (er) {} }
+    if (!fired && dy >= MAXD) { fired = true; try {
+      if (!document.body.classList.contains('speshal')) _setSpeshal(true);
+      else { _setSpeshal(false, true); window._toggleLiveMode && window._toggleLiveMode(); }
+    } catch (er) {} }
   };
   const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
   lk.style.touchAction = 'none';
@@ -8015,7 +8017,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lk.addEventListener('click', e => { if (Date.now() < suppressUntil) { e.stopImmediatePropagation(); e.preventDefault(); return; }
     if (!document.body.classList.contains('live-layout')) return; e.stopPropagation(); _pressPulse('liveKey'); showSettings(); });
 });
-// SPESHAL MODE, per direct request — only from LIVE (drag the key UP; again to leave). The note lanes collapse and the song name
+// SPESHAL MODE, per direct request — the 3rd stop of the logo's drag-down cycle (NORMAL → LIVE → SPESHAL → NORMAL). The note lanes collapse and the song name
 // bar takes over the freed height. Leaving LIVE (drag the key down, or any mode change) also leaves SPESHAL.
 function _speshalMeasure() {
   const b = document.body, had = b.classList.contains('speshal');
@@ -8024,11 +8026,12 @@ function _speshalMeasure() {
   if (had) b.classList.add('speshal');
   document.documentElement.style.setProperty('--speshal-extra', Math.round(h) + 'px');
 }
-function _setSpeshal(on) {
+function _setSpeshal(on, quiet) {
   const b = document.body; on = !!on && b.classList.contains('live-layout');
   if (on === b.classList.contains('speshal')) return;
   if (on) _speshalMeasure();
   b.classList.toggle('speshal', on);
+  if (quiet) return;
   try { playUiSound('tinyclick'); } catch (e) {}
   _showNotice(on ? 'SPESHAL MODE' : 'LIVE MODE');
 }
@@ -22065,11 +22068,12 @@ function _tapeSig(snap) {
 }
 // Song-name double-tap: saves to the TAPE DRAWER (and the next free slot) — REJECTED if this exact pattern is already in the
 // drawer, per direct request: no flash, no save, just a short "SAVED ALREADY" notice.
+// NOW, per direct request: double-tap = SAVE TAPE TO FILES (the save / share dialog) — the drawer fills itself automatically
+// (see the AUTO TAPE DRAWER below). Still flashes the bar and takes the next free slot, as before.
 function _songNameSave() {
-  let sig = null; try { sig = _tapeSig(_tapeSnapshot()); } catch (e) {}
-  if (sig && window._tapeDrawerItems.some(it => it.sig === sig)) { _showTapeSavedDialog(null, true); return; }
   _flashNameBarHighlight();
-  _addToTapeDrawer();
+  try { _tapeAutoSaveNow(); } catch (e) {} // make sure the drawer has this exact version too
+  try { exportTape(); } catch (e) { console.error('save tape to files failed', e); }
   _saveCurrentPatternToNextSlot();
 }
 function _addToTapeDrawer() {
@@ -22082,6 +22086,37 @@ function _addToTapeDrawer() {
     _floatSavedHeart();
   } catch (e) { console.error('tape drawer save failed', e); }
 }
+// AUTO TAPE DRAWER, per direct request: every pattern goes into the drawer by itself (12 max — when it's full the oldest drops
+// off). A new pattern is added once it has settled (~1.5s); while it plays, its drawer copy keeps following your edits, so the
+// tape you find later is the version you left, not the version that first arrived. Skipped while the drawer is open / playing
+// its tapes, for an empty pattern, and for anything that's already in the drawer (e.g. a drawer tape loaded back to main).
+window._tapeAuto = { name: null, item: null, since: 0 };
+function _tapeAutoName() { const nd = document.getElementById('nameDisplay'); return (nd && (nd.dataset.full || nd.textContent).trim()) || _currentSpecies || ''; }
+function _tapeAutoBusy() { const ov = document.getElementById('tapeDrawerOverlay'); return !!(window._oneShot || (ov && ov.style.display === 'block') || window._tapeDrawerQuiet); }
+function _tapeAutoSaveNow() {
+  if (_tapeAutoBusy()) return;
+  const name = _tapeAutoName(); if (!name) return;
+  if (!grid.some(r => r.some(v => v > 0))) return; // nothing in it
+  const snap = _tapeSnapshot(), sig = _tapeSig(snap), A = window._tapeAuto, items = window._tapeDrawerItems;
+  if (A.item && A.name === name && items.includes(A.item)) { // same pattern still playing — keep its drawer copy up to date
+    if (A.item.sig !== sig && !items.some(it => it !== A.item && it.sig === sig)) { A.item.snap = snap; A.item.sig = sig; A.item.color = _currentBarColor || A.item.color; }
+    return;
+  }
+  A.name = name; A.item = null;
+  if (items.some(it => it.sig === sig)) return; // already in the drawer
+  const it = { snap, sig, name, color: _currentBarColor || '#aa64a6', at: Date.now(), auto: true };
+  items.push(it); while (items.length > 12) items.shift(); // full: the oldest makes room
+  A.item = it;
+}
+setInterval(() => {
+  try {
+    if (_tapeAutoBusy()) return;
+    const A = window._tapeAuto, name = _tapeAutoName(), now = Date.now();
+    if (name !== A.pendingName) { A.pendingName = name; A.since = now; return; } // a new name — wait for it to settle
+    if (now - A.since < 1500) return;
+    _tapeAutoSaveNow();
+  } catch (e) {}
+}, 1000);
 // A small heart floats up out of the song name and fades, per direct request — replaces the "SAVED TO TAPE DRAWER" box.
 // Drawn in the song name's own text colour so it reads on any bar colour.
 function _floatSavedHeart() {
@@ -27334,12 +27369,12 @@ function snapshotDisplay() {
     ['#devMenuBtn', 'RAINBOW · LOOK AND FEEL MENU', 'Tap to open LOOK AND FEEL — display modes, colours, marker styles and other visual settings. Swipe DOWN to cycle thru display modes.'],
     ['#randomizeReverbIconBtn', 'REVERB', 'Drag DOWN to get new reverb settings (size and mix) without touching the pattern, dragging down toggles it back off. Click and holding opens the reverb menu, where you can change the overall Reverb mix, size and how much it applies to \'DRUMS\''],
     ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle thru 3 count modes, text/text with audible click/hide count. In LIVE mode it is always shown and a tap switches the click on/off.'],
-    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In LIVE mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to normal mode, drag it UP for SPESHAL mode (just the button rows, big song name) — drag UP again to leave.'],
+    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In LIVE mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN for SPESHAL mode (just the button rows, big song name), and DOWN again to go back to normal mode.'],
     ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the TEMPO, hold to bring up the tempo menu: NUDGE (push/pull while held), TEMPO slider, the lock and RE-UP to stop and restart the pattern/count.'],
     ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
     ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
     ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Single click opens the SETTINGS MENU and clicking and dragging down to open the TAPE DRAWER — every pattern you saved this session (double-tap the song name to save). Tap a tape to hear it once, or PLAY ALL.'],
-    ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Double-tap to save to the TAPE DRAWER (a heart floats up) to the next free slot.'],
+    ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Every pattern is saved to the TAPE DRAWER automatically (12 max, the oldest drops off). Double-tap to SAVE THE TAPE TO FILES.'],
     ['#slotBar', 'SLOTS', 'Up to six saved patterns. Tap one to switch to it on the next beat.'],
     ['#randBtn', '>>  RANDOMIZER', 'Tapping swaps the instruments of the current patterns and double-tapping loads a brand-new randomized groove (new tempo, drum beat, key, instruments and notes) on the next bar. Holding turns on AUTO mode. Click and drag down opens the RANDO BUTTON menu, where you choose what a click and a double-click each do.'],
     ['#clearBtn', 'SWEEP', 'Sweep is for transitions between patterns, clicking and dragging down for more of the filter-sweep riser and dragging to the right increases the 8-bit crunch mix. Releasing will return the mix to where it was.'],
