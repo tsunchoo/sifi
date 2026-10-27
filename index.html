@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 17:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 18:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 17:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6819,6 +6819,8 @@ const trackSolo   = new Array(NUM_TRACKS).fill(false); // SOLO button toggle —
 let _preSoloMuteState = null; // trackMuted snapshot from just before the first solo engaged, restored once the last one disengages
 const trackSweep  = new Array(NUM_TRACKS).fill(false); // L button toggle
 const trackChop   = new Array(NUM_TRACKS).fill(false);
+const _VOL_AUTO_MAX_POS = 0.82; // no fader is ever PUT at max by the app (defaults, resets, new patterns) — 82% of its travel at most, per direct request
+function _capAutoVol(g) { return volGainToPos(g) > _VOL_AUTO_MAX_POS ? volPosToGain(_VOL_AUTO_MAX_POS) : g; }
 const trackVolume = [0.0501, 0.505, 0.8, 0.8, 0.8, 0.8];
 
 // Volume sliders drag in "position" space (0-1) but trackVolume stores the
@@ -12375,7 +12377,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2.5179 /* PUNK BASS: the same — see playPlunkBass — plus +2dB, per direct request (added after the soft-clip, so it can't push the voice into it) */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
+  nodes.gain.gain.value = (['congHi', 'congLo', 'bongHi', 'bongLo'].includes(trackInstruments[tr]) ? 0.9441 /* every CONGA / BONGO −0.5dB, per direct request */ : trackInstruments[tr] === 'guiro' ? 0.8610 /* MARACAS −1.3dB, per direct request */ : 1) * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2.5179 /* PUNK BASS: the same — see playPlunkBass — plus +2dB, per direct request (added after the soft-clip, so it can't push the voice into it) */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
@@ -17271,7 +17273,7 @@ function fullClear() {
     grid[tr].fill(0); trackOffset[tr] = 0; trackPatternState[tr] = 0;
     trackMuted[tr] = false; trackSweep[tr] = 0; trackChop[tr] = false;
     trackRLevel[tr] = 0;
-    trackVolume[tr] = tr === 0 ? 0.0501 : (tr === 1 ? 0.505 : 0.8);
+    trackVolume[tr] = _capAutoVol(tr === 0 ? 0.0501 : (tr === 1 ? 0.505 : 0.8));
     trackFx[tr] = { x: 0, y: 0 }; // no longer forced on for track 0 — same default as everyone else now
     trackFxMode[tr] = 0;
     trackInstruments[tr] = defaultInstruments[tr] || 'tamb';
@@ -18607,7 +18609,7 @@ function randAll(mode, opts) {
         if (['congHi', 'congLo', 'bongHi', 'bongLo'].includes(trackInstruments[_tr])) trackVolume[_tr] = volPosToGain(Math.min(1, volGainToPos(trackVolume[_tr]) * 1.04)); // every CONGA / BONGO: fader 4% further up its travel (was 8% — split the difference, per direct request)
         // NOTHING COMES IN STUCK AT MAX, per direct report (SYNTH BASS kept landing at full): the +25–35% lift and the bass +10% could
         // push a fader past the top. Every new-pattern fader now stops at 82% of its travel at most.
-        if (volGainToPos(trackVolume[_tr]) > 0.82) trackVolume[_tr] = volPosToGain(0.82);
+        trackVolume[_tr] = _capAutoVol(trackVolume[_tr]);
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
@@ -23865,7 +23867,7 @@ function _nameEqTick(now) {
   }
   if (now - _nameEqLast < ((window._nameEqOpacity || 0) <= 50 ? 50 : 33)) return; // ~30fps is plenty — ~20fps at 50% opacity or less (it's fainter, nobody sees the difference), per direct request
   _nameEqLast = now; _nameEqDrawnIdle = false;
-  if (settling) { for (let i = 0; i < 10; i++) _nameEqLv[i] *= 0.84; for (let i = 0; i < 20; i++) _nameEqLv20[i] *= 0.84; }
+  if (settling) { for (let i = 0; i < 10; i++) _nameEqLv[i] *= 0.888; for (let i = 0; i < 20; i++) _nameEqLv20[i] *= 0.888; } // stop glide 70% as fast too (was 0.84)
   else {
   // analyser on the final output — rebuilt if the audio engine was swapped
   if (!_nameEqAn || _nameEqAn.context !== ctx) {
@@ -23876,7 +23878,7 @@ function _nameEqTick(now) {
   // a 70dB one — so the bars actually move with the mix. (Summing per octave also balances lows vs highs naturally, so the old
   // fake upward tilt is gone.) 4096-point FFT so the two lowest octaves get enough bins of their own.
   _nameEqAn.getFloatFrequencyData(_nameEqBins);
-  const hzPerBin = ctx.sampleRate / _nameEqAn.fftSize, n = _nameEqBins.length, _fk = window._nameEqFall || 0.8;
+  const hzPerBin = ctx.sampleRate / _nameEqAn.fftSize, n = _nameEqBins.length, _fk = 1 - 0.7 * (1 - (window._nameEqFall || 0.8)); // every fall 70% as fast, per direct request (0.8 → 0.86, MOND 0.9 → 0.93)
   for (let b = 0; b < 10; b++) {
     const f = _NAME_EQ_BANDS[b], lo = Math.max(1, Math.round(f / 1.414 / hzPerBin)), hi = Math.min(n - 1, Math.max(lo, Math.round(f * 1.414 / hzPerBin) - 1));
     let pw = 0; for (let i = lo; i <= hi; i++) { const d = _nameEqBins[i]; if (d > -200) pw += Math.pow(10, d / 10); }
@@ -23937,7 +23939,7 @@ function _nameEqTick(now) {
       const lo = rec ? [255, 42, 42] : (_one || _fillBaseNow()), hi = rec ? [255, 42, 42] : (_one || _fillHighNow());
       const tops = [];
       // each bar sits in the middle of a full-height column twice its width, at half opacity, per direct request
-      c.fillStyle = `rgb(${lo[0]},${lo[1]},${lo[2]})`; c.save(); c.globalAlpha *= 0.5; c.beginPath();
+      c.fillStyle = `rgb(${lo[0]},${lo[1]},${lo[2]})`; c.save(); c.globalAlpha *= 0.25; /* the column 'tracks' at half their previous strength, per direct request (was 0.5) */ c.beginPath();
       for (let b = 0; b < 20; b++) { const cx = Math.round(b * s20 + s20 / 2 - lw); c.rect(cx, pad, lw * 2, usable); } c.fill(); c.restore();
       c.beginPath();
       for (let b = 0; b < 20; b++) { const h = Math.max(dpr, Math.round(LV20[b] * usable)), top = H - pad - h, cx = Math.round(b * s20 + s20 / 2 - lw / 2); tops.push([cx, top, Math.min(h, cap)]); if (h > cap) c.rect(cx, top + cap, lw, h - cap); }
@@ -24062,7 +24064,7 @@ function fullReset() {
     trackMuted[tr] = false;
     trackSweep[tr] = false;
     trackChop[tr] = false;
-    trackVolume[tr] = defaultVolumes[tr];
+    trackVolume[tr] = _capAutoVol(defaultVolumes[tr]);
     trackInstruments[tr] = defaultInstruments[tr];
     _trackInstrumentTouched[tr] = false; // back to pristine — matches the fresh grid[tr].fill(0) above, so this track sorts/hides as empty again until touched anew
     trackFx[tr] = { x: 0, y: 0 }; // no longer forced on for track 0 — same default as everyone else now
