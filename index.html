@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 18:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 18:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:40:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3106,6 +3106,19 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>REVERB ON BEAT</span><span id="beatReverbMixVal" style="color:#111;">24</span></span>
         <input autocomplete="off" type="range" id="beatReverbMixBar" min="0" max="100" value="24" class="master-vol-slider" style="width:100%;" oninput="setBeatReverbMix(this.value/100); document.getElementById('beatReverbMixVal').textContent=this.value">
+      </label>
+    </div>
+    <!-- DELAY (was FX ECHO DELAY / FX ECHO LEVEL in SETTINGS), per direct request: the echo on an instrument's DL stop.
+         Defaults DOTTED 8TH at 27%. -->
+    <div class="reverb-menu-title" style="margin-top:22px;">DELAY</div>
+    <div style="display:flex;flex-direction:column;gap:24px;">
+      <label class="reverb-menu-row">
+        <span class="reverb-menu-row-head"><span>TIME</span><span id="fxEchoExtraVal" style="color:#111;">DOTTED 8TH</span></span>
+        <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="-2" max="4" step="1" value="2" class="master-vol-slider" style="width:100%;" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)">
+      </label>
+      <label class="reverb-menu-row">
+        <span class="reverb-menu-row-head"><span>LEVEL</span><span id="fxEchoLevelVal" style="color:#111;">27%</span></span>
+        <input autocomplete="off" type="range" id="fxEchoLevelSlider" min="0" max="100" step="1" value="27" class="master-vol-slider" style="width:100%;" oninput="_setFxEchoLevel(this.value)" onchange="_setFxEchoLevel(this.value)">
       </label>
     </div>
     <!-- RANDOMIZE REVERB WITH + toggle moved to the RANDOMIZE MENU (drag down from +), per direct request -->
@@ -3916,20 +3929,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">TAPE MATCHES LOGO COLOUR</div>
       <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="tapeFromLogoToggle" onchange="setTapeFromLogo(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
-    <!-- ECHO DELAY, per direct request: pushes the FX echo later — from one 16th after the hit (0) up to 1000ms later -->
-    <div style="display:flex;flex-direction:column;gap:0;">
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO DELAY</div>
-        <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">16TH</div>
-      </div>
-      <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="-2" max="4" step="1" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
-      <!-- FX ECHO LEVEL, per direct request: how loud the echoed note is on an instrument's DL (FX 4) stop, vs the original -->
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO LEVEL</div>
-        <div id="fxEchoLevelVal" style="font-size:0.85rem;font-weight:700;color:#111;">34%</div>
-      </div>
-      <input autocomplete="off" type="range" id="fxEchoLevelSlider" min="0" max="100" step="1" value="34" class="master-vol-slider" oninput="_setFxEchoLevel(this.value)" onchange="_setFxEchoLevel(this.value)" style="width:100%;">
-    </div>
+    <!-- FX ECHO DELAY / LEVEL moved to the REVERB menu under DELAY, per direct request -->
     <!-- everything that was above the song name (VOL FILL look/colours, AUTO NOTES FLASH LENGTH, SWEEP RIGHT = 8-BIT) moved to DEV, next to VOLUME SLIDER, per direct request -->
     <!-- Song name on its own line, scale + tempo on the line below -->
     <div style="display:flex;flex-direction:column;gap:4px;"><!-- no line under the tempo, per direct request -->
@@ -6379,7 +6379,7 @@ function makeDistCurve(drive) {
 // 16th after the hit, plus the FX ECHO DELAY slider, which is now in 16ths too (0 to 8 more, in quarter-16th steps) so the echo
 // stays locked to the groove at any tempo. Re-applied to every echo the moment FX is picked (by hand or by any randomization),
 // on every bar line (catches a new pattern's new tempo) and on any tempo change.
-window._fxEchoExtra = 0; // in 16ths
+window._fxEchoExtra = 2; // in 16ths — default DOTTED 8TH, per direct request
 function _fxEchoTime() { return Math.min(1.9, stepDuration() * (1 + (window._fxEchoExtra || 0))); }
 function _syncAllEchoTimes() {
   if (!ctx) return; const d = _fxEchoTime();
@@ -6456,7 +6456,7 @@ const FX_RETIRED = true;
 // track repeated one 16th note later (follows the tempo) at half the level. It's simply the old "FX on, no BLAST" state, so
 // saves, tapes and A/B slots carry it as they always did.
 const FX_ECHO_LEVEL = 0.34; // the echo's level vs the original — another 15% down (was 0.4, 20% down from 0.5 before that), per direct request
-window._fxEchoLevel = FX_ECHO_LEVEL; // FX ECHO LEVEL slider (SETTINGS), per direct request — the instruments' echo only (DRUMS keeps its own)
+window._fxEchoLevel = 0.27; // default 27%, per direct request (was FX_ECHO_LEVEL 0.34, which DRUMS still uses) // FX ECHO LEVEL slider (SETTINGS), per direct request — the instruments' echo only (DRUMS keeps its own)
 function _setFxEchoLevel(v) {
   v = Math.max(0, Math.min(100, +v || 0)); window._fxEchoLevel = v / 100;
   const r = document.getElementById('fxEchoLevelVal'); if (r) r.textContent = Math.round(v) + '%';
@@ -24041,8 +24041,8 @@ function fullReset() {
   // leftover playhead / pop / cascade state from the grid — now, and once more after anything already queued has run.
   const _gridClean = () => { try { _cascadeTimers.forEach(clearTimeout); _cascadeTimers = []; } catch (e) {} document.querySelectorAll('.cascade-ghost').forEach(g => g.remove()); document.querySelectorAll('.step-cell.playing, .step-cell.popping, .step-cell.cascade-glow, .step-cell.cascade-hidden').forEach(c => c.classList.remove('playing', 'popping', 'cascade-glow', 'cascade-hidden')); };
   _gridClean(); setTimeout(() => { if (!playing) _gridClean(); }, 1500);
-  try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
-  try { _setFxEchoLevel(34); } catch (e) {}
+  try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 2; _setFxEchoExtra(2); } catch (e) {}
+  try { _setFxEchoLevel(27); } catch (e) {}
   try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 63; setMusicBus(63); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
   try { setDrums8bit(false); } catch (e) {}
