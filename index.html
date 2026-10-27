@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 18:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 18:40:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:40:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3171,15 +3171,23 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
     <div id="randoGlobal" style="display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;"></div><!-- DRUM MUSIC RATIO: overall rule for every gesture -->
     <!-- AUTOMATE (was the + long-press AUTO mode) and its period, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(0,0,0,0.12);padding-top:16px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO DOUBLE-CLICK EVERY</div>
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">AUTO MODE</div>
       <label class="wild-toggle">
         <input autocomplete="off" type="checkbox" id="automateToggle" onchange="setAutomate(this.checked)">
         <span class="wild-toggle-slider"></span>
       </label>
     </div>
+    <!-- what AUTO does each time it triggers, per direct request: a whole NEW PATTERN (off) or NEW INSTRUMENTS on the pattern that's playing (on) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">DOES: <span id="autoDoesReadout">NEW PATTERN</span></div>
+      <label class="wild-toggle">
+        <input autocomplete="off" type="checkbox" id="autoDoesToggle" onchange="setAutoDoes(this.checked ? 'instruments' : 'pattern')">
+        <span class="wild-toggle-slider"></span>
+      </label>
+    </div>
     <div id="autoPeriodRow" class="disabled" style="display:flex;flex-direction:column;gap:8px;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
-        <div></div>
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:#111;">TRIGGERS EVERY...</div>
         <div id="autoRandPeriodReadout" style="font-size:0.6rem;font-family:monospace;color:#333;">4 BARS</div>
       </div>
       <input autocomplete="off" type="range" id="autoRandPeriodSlider" min="0" max="2" step="1" value="0" oninput="setAutoRandPeriod(this.value)" class="master-vol-slider" style="width:100%;">
@@ -5890,6 +5898,16 @@ const _RANDO_COL_DEFAULT = full => ({ notes: full, shuffle: true, reverb: full, 
 const _RANDO_DEFAULT = () => ({ click: _RANDO_COL_DEFAULT(false), dbl: _RANDO_COL_DEFAULT(true), shake: _RANDO_COL_DEFAULT(false) /* SHAKE defaults to the same as a single click, per direct request */ });
 window._randoCfg = _RANDO_DEFAULT();
 window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; // DRUM MUSIC RATIO + the one NOTE INTENSITY slider — overall rules for every gesture (each column's NOTE INTENSITY toggle: on = this slider, off = random)
+// AUTO MODE's action (RANDO BUTTON menu, DOES: toggle), per direct request — 'pattern' = a whole new pattern (the DOUBLE CLICK
+// column's settings), 'instruments' = just new instruments on the pattern that's playing
+window._autoDoes = 'pattern';
+const _RANDO_AUTO_INST = () => ({ notes: false, shuffle: true, reverb: false, beatFx: false, eightBit: false, beatType: false, tempo: false, intRand: false });
+function setAutoDoes(v) {
+  window._autoDoes = v === 'instruments' ? 'instruments' : 'pattern';
+  const r = document.getElementById('autoDoesReadout'); if (r) r.textContent = window._autoDoes === 'instruments' ? 'NEW INSTRUMENTS' : 'NEW PATTERN';
+  const t = document.getElementById('autoDoesToggle'); if (t) t.checked = window._autoDoes === 'instruments';
+}
+function _autoFireLocal() { window._randoCfg.autoInst = _RANDO_AUTO_INST(); _randoShuffle('autoInst'); }
 function _randoIsFull(c) { return !!(c && c.notes && c.shuffle); } // a whole new pattern (randAll)
 window._randoLast = null;
 // DOUBLE CLICK on >>: the whole screen except the >> button drops to grayscale for a flash (~0.12s), then eases back.
@@ -7273,8 +7291,8 @@ function scheduler() {
           _autoRandBarCount++;
           if (_autoRandBarCount >= _autoRandPeriod) {
             _autoRandBarCount = 0;
-            if (!_randoIsFull(window._randoCfg.dbl)) { // AUTO repeats the RANDO BUTTON's DOUBLE CLICK action now ("AUTO DOUBLE-CLICK EVERY"), per direct request
-              _pressPulse('randBtn'); _randoShuffle('dbl');
+            if (window._autoDoes === 'instruments') { // AUTO's own DOES: toggle decides now — NEW INSTRUMENTS here, NEW PATTERN below, per direct request
+              _pressPulse('randBtn'); _autoFireLocal();
             } else {
             _randoApply('dbl');
             _recallSnapB = snapshotState(); // save current as previous, right before this new whole-pattern RAND lands
@@ -19130,7 +19148,7 @@ function stopAllAutoRand() {
     // genuinely empty pattern (e.g. right after a reset) that meant total
     // silence, count-in included, until the first periodic threshold
     // finally landed. Now it always picks a fresh pattern immediately too.
-    if (!_randoIsFull(window._randoCfg.dbl)) _randoShuffle('dbl'); // AUTO = the DOUBLE CLICK action: first one straight away, then every AUTO period
+    if (window._autoDoes === 'instruments') _autoFireLocal(); // AUTO's DOES: toggle — first one straight away, then every TRIGGERS EVERY... period
     else { _randoApply('dbl'); queueRand(); }
   };
 
@@ -24181,6 +24199,7 @@ function fullReset() {
   setRandomizeNoteIntensity(false);   _setCb('randomizeNoteIntensityToggle', false);
   _setCb('automateToggle', false); if (typeof _syncAutoPeriodRow === 'function') _syncAutoPeriodRow();
   setAutoRandPeriod(0); { const sl = document.getElementById('autoRandPeriodSlider'); if (sl) sl.value = 0; }
+  try { setAutoDoes('pattern'); } catch (e) {}
   setTonalPercBalance(2); { const sl = document.getElementById('tonalPercBalanceSlider'); if (sl) sl.value = 2; }
   window._randoCfg = _RANDO_DEFAULT(); window._randoGlobal = { ratioRand: false, ratio: 2, intensity: 25 }; try { _randoBuildUI(); } catch (e) {} // RANDO BUTTON columns back to their defaults
   setIntensity(25); { const sl = document.getElementById('intensitySlider'); if (sl) sl.value = 25; }
