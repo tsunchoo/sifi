@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 21:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 22:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2993,7 +2993,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 21:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 22:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8130,7 +8130,7 @@ window._padLatch = true;
     showDot([x, y]); pend = [x, y]; if (!raf) raf = requestAnimationFrame(tick);
   }
   // NOTE GRID over the pad: every track (in the order they sit on screen) × 16 steps, only the notes that are actually sounding
-  // right now (muted ones left out), in each track's own colour — accents full size, soft notes smaller
+  // right now (muted ones left out), in each track's own colour — every note the same size, filling its cell
   function drawGrid() {
     const cv = document.getElementById('modifyGridCv'), b = document.getElementById('modifyPadMarks'); if (!cv || !b) return; // the pad area (bottom 90%)
     const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(b.clientWidth * dpr), H = Math.round(b.clientHeight * dpr); if (!W || !H) return;
@@ -8143,8 +8143,8 @@ window._padLatch = true;
       c.fillStyle = col;
       for (let gs = 0; gs < NUM_STEPS; gs++) {
         const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
-        const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, k = v >= 2 ? 0.8 : 0.55, w = cw * k, h = rh * k;
-        c.fillRect(Math.round(ds * cw + (cw - w) / 2), Math.round(ri * rh + (rh - h) / 2), Math.round(w), Math.round(h)); // square corners, per direct request
+        const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS;
+        const x0 = Math.round(ds * cw), y0 = Math.round(ri * rh); c.fillRect(x0, y0, Math.round((ds + 1) * cw) - x0, Math.round((ri + 1) * rh) - y0); // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
       }
     });
   }
