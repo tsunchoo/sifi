@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 18:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 18:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2965,7 +2965,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 18:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3915,6 +3915,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
         <div id="fxEchoExtraVal" style="font-size:0.85rem;font-weight:700;color:#111;">16TH</div>
       </div>
       <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="0" max="800" step="25" value="0" class="master-vol-slider" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)" style="width:100%;">
+      <!-- FX ECHO LEVEL, per direct request: how loud the echoed note is on an instrument's DL (FX 4) stop, vs the original -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">FX ECHO LEVEL</div>
+        <div id="fxEchoLevelVal" style="font-size:0.85rem;font-weight:700;color:#111;">34%</div>
+      </div>
+      <input autocomplete="off" type="range" id="fxEchoLevelSlider" min="0" max="100" step="1" value="34" class="master-vol-slider" oninput="_setFxEchoLevel(this.value)" onchange="_setFxEchoLevel(this.value)" style="width:100%;">
     </div>
     <!-- everything that was above the song name (VOL FILL look/colours, AUTO NOTES FLASH LENGTH, SWEEP RIGHT = 8-BIT) moved to DEV, next to VOLUME SLIDER, per direct request -->
     <!-- Song name on its own line, scale + tempo on the line below -->
@@ -3954,13 +3960,13 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
       <!-- MUSIC BUS, per direct request: the overall level of everything that isn't DRUMS or PERCUSSION (every melody / bass / pad
            track, their reverb included) — the drums menu, kit and percussion tracks are untouched. -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">85%</div></div>
-        <input autocomplete="off" type="range" id="musicBusBar" min="0" max="100" value="85" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">63%</div></div>
+        <input autocomplete="off" type="range" id="musicBusBar" min="0" max="100" value="63" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
       </div>
       <!-- DRUMS BUS (was the DRUMS menu's volume slider), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">39%</div></div>
-        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="39" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div></div>
+        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="60" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -6426,6 +6432,13 @@ const FX_RETIRED = true;
 // track repeated one 16th note later (follows the tempo) at half the level. It's simply the old "FX on, no BLAST" state, so
 // saves, tapes and A/B slots carry it as they always did.
 const FX_ECHO_LEVEL = 0.34; // the echo's level vs the original — another 15% down (was 0.4, 20% down from 0.5 before that), per direct request
+window._fxEchoLevel = FX_ECHO_LEVEL; // FX ECHO LEVEL slider (SETTINGS), per direct request — the instruments' echo only (DRUMS keeps its own)
+function _setFxEchoLevel(v) {
+  v = Math.max(0, Math.min(100, +v || 0)); window._fxEchoLevel = v / 100;
+  const r = document.getElementById('fxEchoLevelVal'); if (r) r.textContent = Math.round(v) + '%';
+  const sl = document.getElementById('fxEchoLevelSlider'); if (sl && +sl.value !== v) sl.value = v;
+  try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoGain && ctx) n.echoGain.gain.setTargetAtTime(window._fxEchoLevel, ctx.currentTime, 0.02); } } catch (e) {}
+}
 function _fxEchoOn(tr) { const f = trackFx[tr]; return !!(f && (f.x > 0 || f.y > 0) && !trackPump[tr]); }
 function _syncFxEcho(tr) {
   const n = trackFxNodes[tr]; if (!n || !n.echoGain || !ctx) return;
@@ -6433,15 +6446,16 @@ function _syncFxEcho(tr) {
   if (on && !n.echoConn) { try { n.envGain.connect(n.echoDelay); n.echoConn = true; } catch (e) {} } // only the FX'd output (on FX the voices all go through it)
   else if (!on && n.echoConn) { try { n.envGain.disconnect(n.echoDelay); } catch (e) {} n.echoConn = false; }
   n.echoDelay.delayTime.value = _fxEchoTime(); // plain values, no smoothing ramps (cheaper; a tempo change just jumps)
-  n.echoGain.gain.value = FX_ECHO_LEVEL; // the input tap does the switching now
+  n.echoGain.gain.value = window._fxEchoLevel; // the input tap does the switching now (level = FX ECHO LEVEL slider)
 }
 // the echo follows tempo changes (TEMPO, nudges, tape tempos) — a cheap check, only touches tracks with FX on
 setInterval(() => { if (!ctx) return; const sd = _fxEchoTime(); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoConn && Math.abs(n.echoDelay.delayTime.value - sd) > 0.001) n.echoDelay.delayTime.value = sd; } }, 500);
 function _syncFxBtn(tr) {
   const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
-  if (b.textContent !== 'FX') b.textContent = 'FX'; // the glyph is always FX now, per direct request — only the colours change (off / CHK / CHK+BLAST)
-  b.classList.remove('chink-on');
   const _echo = _fxEchoOn(tr);
+  const _gl = _echo ? 'DL' : 'FX'; // the 4th stop (the echo / delay) reads DL, per direct request — every other stop stays FX (colours tell them apart)
+  if (b.textContent !== _gl) b.textContent = _gl;
+  b.classList.remove('chink-on');
   b.classList.toggle('on', !!trackChink[tr] || _echo); // CHK lit = the FX button's old ON colour
   b.classList.toggle('fx-echo', _echo);                 // FX (crunch + echo) = the same, in its own colour
   b.classList.toggle('blast-on', !!trackPump[tr]);  // BLAST = the FX button's old BLAST colour
@@ -13835,7 +13849,7 @@ function buildUI() {
     fxBtn.classList.toggle('blast-on', !!trackPump[tr]);
     fxBtn.classList.toggle('chink-on', !!trackChink[tr]);
     fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHOKE is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
-    fxBtn.textContent = 'FX'; // always FX — the three modes show by colour only
+    fxBtn.textContent = _fxEchoOn(tr) ? 'DL' : 'FX'; // FX — except the echo stop, which reads DL (per direct request)
     const cycleFxBtn = () => {
       // NEW CYCLE, per direct request: off -> CHK (FX's old slot + colour) -> CHK+BLAST (red) -> off. Basses / no-CHK
       // instruments: off -> BLAST -> off. BLAST still carries the old FX layer underneath so it sounds the same.
@@ -16888,7 +16902,7 @@ function _buildBounceGraph(targetCtx) {
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
-  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.39 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.60 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   window._beatChokeGate = targetCtx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); // DRUMS FX (CHK) gate — callers connect this (not _beatGain) onward
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
@@ -19534,7 +19548,7 @@ function restoreState(snap, opts) {
     } catch (err) { console.error('restoreState: pitch/legato restore failed for track', tr, err); }
     if (snap.trackVolume) { trackVolume[tr]=snap.trackVolume[tr]; if(trackGainNodes[tr]&&ctx) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr],ctx.currentTime,0.01); }
     if (snap.trackFx) { trackFx[tr] = snap.trackFx[tr] || {x:0,y:0}; const fb=document.getElementById(`fxbtn-${tr}`); const on=trackFx[tr].x>0||trackFx[tr].y>0; if(fb){ fb.classList.toggle('on',on); } if(ctx) setFxActive(tr,trackFx[tr]); }
-    if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]); /* FX layer follows BLAST */ const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); fb2.textContent = 'FX'; } }
+    if (snap.trackPump) { trackPump[tr] = !!snap.trackPump[tr]; if (ctx && trackFx[tr]) setFxActive(tr, trackFx[tr]); /* FX layer follows BLAST */ const fb2=document.getElementById(`fxbtn-${tr}`); if(fb2) { fb2.classList.toggle('blast-on', trackPump[tr]); try { _syncFxBtn(tr); } catch (e) { fb2.textContent = 'FX'; } } }
     if (snap.trackChink && snap.trackChink[tr]) { // the saved volume already includes CHOKE's +1dB, so switch it back on WITHOUT boosting again
       trackChink[tr] = true; _chinkBoost[tr] = 1.122; const cg = _chinkGate(tr); if (cg) { try { cg.gain.cancelScheduledValues(ctx.currentTime); cg.gain.setValueAtTime(0, ctx.currentTime); } catch (e) {} }
       _queueFxBtnSync(); // FX button shows CHK by colour
@@ -24004,7 +24018,8 @@ function fullReset() {
   const _gridClean = () => { try { _cascadeTimers.forEach(clearTimeout); _cascadeTimers = []; } catch (e) {} document.querySelectorAll('.cascade-ghost').forEach(g => g.remove()); document.querySelectorAll('.step-cell.playing, .step-cell.popping, .step-cell.cascade-glow, .step-cell.cascade-hidden').forEach(c => c.classList.remove('playing', 'popping', 'cascade-glow', 'cascade-hidden')); };
   _gridClean(); setTimeout(() => { if (!playing) _gridClean(); }, 1500);
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 0; _setFxEchoExtra(0); } catch (e) {}
-  try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 85; setMusicBus(85); } catch (e) {}
+  try { _setFxEchoLevel(34); } catch (e) {}
+  try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 63; setMusicBus(63); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
   try { setDrums8bit(false); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
@@ -24098,7 +24113,7 @@ function fullReset() {
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
   _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false; _setBeatChoke(false);
   _beatAutoRandActive = false; _beatAutoRandBarCount = 0; window._beatBulldozer = false;
-  _beatVolRaw = 0.39; _applyBeatVolWithDuck(); // DRUMS BUS default 39%, per direct request
+  _beatVolRaw = 0.60; _applyBeatVolWithDuck(); // DRUMS BUS default 60% (was 39%), per direct request
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setValueAtTime(_beatReverbGainForMix(_beatReverbMix), ctx.currentTime); // on by default now, not silenced
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setValueAtTime(0, ctx.currentTime);
@@ -24810,7 +24825,7 @@ async function initAudio(opts) {
     window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.39 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatChokeGate = ctx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); window._beatChokeGate.connect(masterGain); /* DRUMS FX (CHK) gate, after the DRUMS level */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.60 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatChokeGate = ctx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); window._beatChokeGate.connect(masterGain); /* DRUMS FX (CHK) gate, after the DRUMS level */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = (_refresh && window._uiSoundBufs) ? window._uiSoundBufs : {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -25638,7 +25653,7 @@ function _setBeatCountShown(on) {
 // the gain actually applied to the node also folds in a -1.5dB duck
 // whenever FX or BLAST is engaged on BEAT, so the dial itself always
 // reflects what the user set rather than the post-duck level.
-let _beatVolRaw = 0.39; // DRUMS BUS default 39% (was 0.5711), per direct request
+let _beatVolRaw = 0.60; // DRUMS BUS default 60% (was 39%, before that 0.5711), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
 // AUDIO SNAPSHOT (DEV > DIAGNOSTICS), per direct request — for the "DRUMS is just a filtered snare" state. Now AUTOMATIC as
 // well, since it's too rare to remember to press: a DRUMS WATCHDOG listens for 1 second every 15 seconds while DRUMS is
@@ -26046,7 +26061,7 @@ const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 's
 // MUSIC BUS (SETTINGS, under MAIN VOL), per direct request: one level for every track that isn't drums / percussion. A gain per
 // track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
 // whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
-window._musicBus = 0.85; // default 85%, per direct request
+window._musicBus = 0.63; // default 63% (was 85%), per direct request
 function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.8913 /* basses -1dB (−0.5dB, then another −0.5dB per direct request) */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
 function _syncMusicBus() {
   const gs = window._musicBusGains; if (!gs || !ctx) return;
@@ -26951,7 +26966,7 @@ let _reelHoldTimer = null;
   // direct request. (SETTINGS keeps deferring only its sliders.)
   const lookMenu = document.getElementById('devMenuOverlay');
   const DEFER_TYPES = new Set(['checkbox', 'radio', 'color']);
-  const LIVE_IDS = new Set(['nameEqRangeSlider', 'nameEqOpSlider', 'masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'swingBar', 'clickLevelSlider']);
+  const LIVE_IDS = new Set(['nameEqRangeSlider', 'nameEqOpSlider', 'masterVolBar', 'eightBitMixSlider', 'musicBusBar', 'beatVolBar', 'fxEchoExtraSlider', 'fxEchoLevelSlider', 'swingBar', 'clickLevelSlider']);
   const radioPending = new Map(); // group name -> the radio in it that was clicked
   const onEv = e => {
     const el = e.target;
