@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-27 20:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-27 21:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2616,6 +2616,9 @@ html body.speshal #speshalPadMarks { display: block; }
 #speshalPadMarks .sp-h { left: 0; right: 0; top: 50%; height: 1px; } #speshalPadMarks .sp-v { top: 0; bottom: 0; left: 50%; width: 1px; }
 #speshalPadMarks .sp-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; transition: opacity 0.15s; }
 #speshalPadMarks.sp-on .sp-dot { opacity: 0.85; }
+/* the 6×16 note grid drawn over the pad while it's held (40% max), fading out over 0.5s on release, per direct request */
+#speshalGridCv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
+#speshalPadMarks.sp-held #speshalGridCv { opacity: 0.4; transition: opacity 0.12s ease-out; }
 #speshalLock { display: none; position: absolute; left: 6px; bottom: 6px; z-index: 3; width: 30px; height: 30px; padding: 0; border: none; border-radius: 4px; background: rgba(0,0,0,0.12); color: inherit; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 html body.speshal #speshalLock { display: flex; }
 #speshalLock.sp-unlatched { opacity: 0.55; }
@@ -2700,8 +2703,12 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 #siFiTitle.press-pulse { animation: press-pulse 0.5s ease-out; display: inline-block; } /* logo tap — same snappy click-pulse RAND/+ and PLAY get on every tap (press-pulse), not PLAY's slower per-beat top-row-pulse; display:inline-block so transform:scale actually has an effect on a heading element; same 0.5s as RAND/+ in every state, playing or stopped */
 .slot-btn:active { opacity: 0.7; }
 
+/* TAP TO LOAD screen: ALWAYS the original off-white 'school book page' colour (#f5f0e8 — the app's very first background), per
+   direct request — whatever display mode / colours were saved or restored after a crash, never var(--bg) any more */
+html body #loadingOverlay { background: #f5f0e8 !important; filter: none !important; }
+html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) { color: #111 !important; }
 #loadingOverlay {
-  position: fixed; inset: 0; background: var(--bg);
+  position: fixed; inset: 0; background: #f5f0e8;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 16px; z-index: 999; cursor: pointer;
   border: none; width: 100%; font-family: 'DM Sans', sans-serif;
@@ -2979,7 +2986,7 @@ body.performance-mode #seqWrap::after { content: ''; display: block; position: a
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 20:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-27 21:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8034,7 +8041,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('speshalPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'speshalPadMarks'; m.innerHTML = '<div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'speshalPadMarks'; m.innerHTML = '<canvas id="speshalGridCv"></canvas><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'speshalLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
@@ -8109,17 +8116,38 @@ window._padLatch = true;
     const r = nb().getBoundingClientRect(); const x = (cx - r.left) / r.width, y = (cy - r.top) / r.height;
     showDot([x, y]); pend = [x, y]; if (!raf) raf = requestAnimationFrame(tick);
   }
-  function tick() { raf = 0; if (!pad) return; if (pend) apply(pend[0], pend[1]); if (held) raf = requestAnimationFrame(tick); } // held: re-applied every frame (cheap — only real changes are written)
+  // NOTE GRID over the pad: every track (in the order they sit on screen) × 16 steps, only the notes that are actually sounding
+  // right now (muted ones left out), in each track's own colour — accents full size, soft notes smaller
+  function drawGrid() {
+    const cv = document.getElementById('speshalGridCv'), b = nb(); if (!cv || !b) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(b.clientWidth * dpr), H = Math.round(b.clientHeight * dpr); if (!W || !H) return;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
+    const rows = []; for (let tr = 0; tr < NUM_TRACKS; tr++) { const tb = document.getElementById(`tbtn-${tr}`); rows.push([tr, tb ? tb.getBoundingClientRect().top : tr, tb ? getComputedStyle(tb).backgroundColor : '#111']); }
+    rows.sort((a, z) => a[1] - z[1]);
+    const cw = W / NUM_STEPS, rh = H / NUM_TRACKS, mute = window._padMute;
+    rows.forEach(([tr, , col], ri) => {
+      c.fillStyle = col;
+      for (let gs = 0; gs < NUM_STEPS; gs++) {
+        const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
+        const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, k = v >= 2 ? 0.8 : 0.55, w = cw * k, h = rh * k;
+        c.beginPath(); if (c.roundRect) c.roundRect(ds * cw + (cw - w) / 2, ri * rh + (rh - h) / 2, w, h, Math.min(w, h) * 0.25); else c.rect(ds * cw + (cw - w) / 2, ri * rh + (rh - h) / 2, w, h); c.fill();
+      }
+    });
+  }
+  function tick() { raf = 0; if (!pad) return; if (pend) apply(pend[0], pend[1]); drawGrid(); if (held) raf = requestAnimationFrame(tick); } // held: re-applied every frame (cheap — only real changes are written)
   const inPad = e => document.body.classList.contains('speshal') && nb() && nb().contains(e.target) && !(e.target.closest && e.target.closest('#speshalLock'));
   const start = (cx, cy) => {
     if (pad && pad.name !== nameNow()) { window._padMute = null; pad = null; } // a new pattern since — start afresh
     if (!pad) pad = capture();
     held = true; pos(cx, cy);
+    const m = marks(); if (m) { drawGrid(); m.classList.add('sp-held'); }
   };
   const end = () => {
     if (!held) return; held = false; if (raf) { cancelAnimationFrame(raf); raf = 0; }
     if (pend && pad) apply(pend[0], pend[1]); pend = null;
-    if (window._padLatch) { redraw(); return; } // LATCHED: stays where you let go
+    const m = marks(); if (m) m.classList.remove('sp-held'); // the note grid fades out (0.5s), showing what it was left on
+    if (window._padLatch) { drawGrid(); redraw(); return; } // LATCHED: stays where you let go
     restore();
   };
   // Capture on the WINDOW so the song name's own gestures (double-tap save, hold, swipes) never see these while in SPESHAL
