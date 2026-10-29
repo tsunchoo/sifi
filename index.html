@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 01:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 01:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2617,6 +2617,10 @@ html body.modify #nameBar { align-items: flex-start; }
 html body.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: 10%; display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
 html body.modify #nameEq { top: 10% !important; bottom: auto !important; height: 90% !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
 #modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: 10%; bottom: 0; pointer-events: none; z-index: 2; }
+/* AXIS LABELS, per direct request: X along the top line of the pad, Y rotated 90° counter-clockwise down the left side */
+#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: space-between; font: 700 0.55rem/1 'DM Sans', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; white-space: nowrap; }
+#modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
+#modifyPadMarks .sp-ylab { left: 5px; top: 22px; bottom: 44px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-h, #modifyPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
@@ -2993,7 +2997,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:10:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8053,7 +8057,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<canvas id="modifyGridCv"></canvas><div class="sp-top"></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<canvas id="modifyGridCv"></canvas><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
