@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 22:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 23:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3013,7 +3013,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 22:25:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 23:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8214,13 +8214,13 @@ window._padLatch = true;
     const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
     const rows = []; for (let tr = 0; tr < NUM_TRACKS; tr++) { const tb = document.getElementById(`tbtn-${tr}`); rows.push([tr, tb ? tb.getBoundingClientRect().top : tr, (() => { const c = tb && _anyRgba(getComputedStyle(tb).backgroundColor); if (!c) return '#777'; const g = Math.round(0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]); return `rgb(${g},${g},${g})`; })()]); } // GRAYSCALE, per direct request — each track's own colour as a grey
     rows.sort((a, z) => a[1] - z[1]);
-    const cw = W / NUM_STEPS, rh = H / NUM_TRACKS, mute = window._padMute;
+    const bz = Math.round(20 * dpr), cw = (W - bz * 2) / NUM_STEPS, rh = (H - bz * 2) / NUM_TRACKS, mute = window._padMute; // a 20px buffer round the edges, the grid fitted inside it, per direct request
     rows.forEach(([tr, , col], ri) => {
       c.fillStyle = col;
       for (let gs = 0; gs < NUM_STEPS; gs++) {
         const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
         const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS;
-        const x0 = Math.round(ds * cw), y0 = Math.round(ri * rh); c.fillRect(x0, y0, Math.round((ds + 1) * cw) - x0, Math.round((ri + 1) * rh) - y0); // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
+        const x0 = bz + Math.round(ds * cw), y0 = bz + Math.round(ri * rh); c.fillRect(x0, y0, bz + Math.round((ds + 1) * cw) - x0, bz + Math.round((ri + 1) * rh) - y0); // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
       }
     });
   }
