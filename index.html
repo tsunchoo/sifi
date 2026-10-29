@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 01:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 01:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2621,6 +2621,9 @@ html body.modify #nameEq { top: 10% !important; bottom: auto !important; height:
 #modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: space-between; font: 700 0.55rem/1 'DM Sans', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; white-space: nowrap; }
 #modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
 #modifyPadMarks .sp-ylab { left: 5px; top: 22px; bottom: 44px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
+/* MODIFY: the big COUNT sits in the middle of the pad at 60%, per direct request (a mirror of #beatCount, which hides here) */
+#modifyPadMarks .sp-count { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font: 700 min(38vh, 9rem)/1 'DM Sans', sans-serif; opacity: 0.6; pointer-events: none; }
+html body.modify #beatCount { visibility: hidden !important; }
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-h, #modifyPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
@@ -2997,7 +3000,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8057,7 +8060,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<canvas id="modifyGridCv"></canvas><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
@@ -8076,7 +8079,7 @@ window._padLatch = true;
   const RAND_FX = [{ x: 0, y: 0, pump: false, chink: true } /* CHK */, { x: 0.5, y: 0.5, pump: true, chink: false } /* BLAST */, { x: 0.5, y: 0.5, pump: false, chink: false } /* DL */];
   const nameNow = () => { try { return _tapeAutoName(); } catch (e) { return _currentSpecies || ''; } };
   function capture() {
-    const base = { grid: grid.map(r => r.slice()), rev: trackDelay.slice(), fx: [] }; for (let tr = 0; tr < NUM_TRACKS; tr++) base.fx.push(fxOf(tr));
+    const base = { grid: grid.map(r => r.slice()), rev: trackDelay.slice(), fx: [], drums: drumsFx() }; for (let tr = 0; tr < NUM_TRACKS; tr++) base.fx.push(fxOf(tr));
     const notes = [], empties = [], effOn = [], effOff = [], pick = [];
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       for (let st = 0; st < NUM_STEPS; st++) (base.grid[tr][st] > 0 ? notes : empties).push([tr, st]);
@@ -8085,6 +8088,9 @@ window._padLatch = true;
     }
     return { base, name: nameNow(), notes: shuffle(notes), empties: shuffle(empties), effOn: shuffle(effOn), effOff: shuffle(effOff), pick, x: 0.5, y: 0.5 };
   }
+  // DRUMS' own FX in the pad too, per direct request — 0 off, 1 FX1 (CHK), 2 FX2 (BLAST), 3 DELAY (as the DRUMS FX button)
+  function drumsFx() { try { return _beatChoke ? 1 : _beatPump ? 2 : _beatFx ? 3 : 0; } catch (e) { return 0; } }
+  function setDrumsFx(st) { if (drumsFx() !== st) { try { _setBeatFxState(st); } catch (e) {} } }
   function setFx(tr, f) {
     const c = fxOf(tr); if (c.x === f.x && c.y === f.y && c.pump === f.pump && c.chink === f.chink) return;
     trackPump[tr] = f.pump; trackFx[tr] = { x: f.x, y: f.y };
@@ -8112,11 +8118,14 @@ window._padLatch = true;
     if (Y < 0) { const n = Math.round(pad.effOn.length * -Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOn[i]; if (k === 'R') rev[tr] = false; else fx[tr] = { x: 0, y: 0, pump: false, chink: false }; } }
     else if (Y > 0) { const n = Math.round(pad.effOff.length * Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOff[i]; if (k === 'R') rev[tr] = true; else fx[tr] = Object.assign({}, pad.pick[tr]); } }
     for (let tr = 0; tr < NUM_TRACKS; tr++) { if (!!trackDelay[tr] !== rev[tr]) setRev(tr, rev[tr]); setFx(tr, fx[tr]); }
+    // DRUMS: MORE effects = DELAY from ~40% down, then FX2 (BLAST) from ~75%; LESS effects = FX1 (CHK) from about halfway up
+    setDrumsFx(Y >= 0.75 ? 2 : Y >= 0.4 ? 3 : Y <= -0.5 ? 1 : B.drums);
   }
   function redraw() { for (let tr = 0; tr < NUM_TRACKS; tr++) { try { redrawTrackCells(tr, true); } catch (e) {} } try { _queueFxBtnSync(); } catch (e) {} }
   function restore() { // back to the pattern as it was
     if (!pad) return; const B = pad.base;
     for (let tr = 0; tr < NUM_TRACKS; tr++) { for (let st = 0; st < NUM_STEPS; st++) grid[tr][st] = B.grid[tr][st]; if (!!trackDelay[tr] !== B.rev[tr]) setRev(tr, B.rev[tr]); setFx(tr, B.fx[tr]); }
+    setDrumsFx(B.drums);
     window._padMute = null; pad = null; redraw(); showDot(null);
   }
   function bake() { // keep the latched result for real: muted notes become removed notes
@@ -8212,10 +8221,16 @@ function _setModify(on, quiet) {
   if (on) _modifyMeasure();
   b.classList.toggle('modify', on);
   _modifyVolBanger(on);
+  b.classList.toggle('hide-tape', !on && b.classList.contains('live-layout')); // MODIFY keeps the TAPE graphic (LIVE hides it), per direct request
   if (quiet) return;
   try { playUiSound('tinyclick'); } catch (e) {}
   _showNotice(on ? 'MODIFY MODE' : 'LIVE MODE');
 }
+// the MODIFY pad's COUNT mirrors #beatCount's text as it changes
+(function () { const go = () => { const bc = document.getElementById('beatCount'); if (!bc) return;
+  const sync = () => { const m = document.getElementById('modifyCount'); if (m && document.body.classList.contains('modify')) { const t = bc.textContent; if (m.textContent !== t) m.textContent = t; } };
+  new MutationObserver(sync).observe(bc, { childList: true, characterData: true, subtree: true }); setInterval(sync, 250); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go(); })();
 // VOL BANGER OFF in MODIFY, per direct request — whatever it was is put back when MODIFY ends
 function _modifyVolBanger(on) {
   try {
