@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 01:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 05:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2629,15 +2629,15 @@ html body.modify #beatCount { visibility: hidden !important; }
 /* PAD COLOUR, per direct request: a glow from the display mode's own palette follows the finger — its colour blends between four
    palette colours by where you are (one per corner), and it grows stronger the further you go from the centre. On release it
    fades away (UNLOCKED, back to centre) or settles to a fainter wash (LATCHED, showing the pad is holding a change). */
-#modifyPadMarks .sp-tint { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease-out; }
-#modifyPadMarks.sp-held .sp-tint { opacity: 1; transition: opacity 0.12s ease-out; }
-#modifyPadMarks.sp-latched .sp-tint { opacity: 0.45; }
+#modifyPadMarks .sp-tint { position: absolute; inset: 0; transition: background-color 0.5s ease-out; } /* the whole-pad wash (always on) */
+#modifyPadMarks.sp-held .sp-tint { transition: background-color 0.08s linear; }
+#modifyPadMarks .sp-glow { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s ease-out; } /* the brighter glow under the finger, while held */
+#modifyPadMarks.sp-held .sp-glow { opacity: 1; transition: opacity 0.12s ease-out; }
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-h, #modifyPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
 #modifyPadMarks .sp-h { left: 0; right: 0; top: 50%; height: 1px; } #modifyPadMarks .sp-v { top: 0; bottom: 0; left: 50%; width: 1px; }
-#modifyPadMarks .sp-dot { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 2px solid currentColor; opacity: 0; transition: opacity 0.15s; }
-#modifyPadMarks.sp-on .sp-dot { opacity: 0.85; }
+#modifyPadMarks .sp-dot { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid currentColor; box-sizing: border-box; opacity: 0.9; } /* 3px, and always showing (sits in the centre until moved), per direct request */
 /* the 6×16 note grid drawn over the pad while it's held (40% max), fading out over 0.5s on release, per direct request */
 #modifyGridCv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
 #modifyPadMarks.sp-held #modifyGridCv { opacity: 0.4; transition: opacity 0.12s ease-out; }
@@ -3008,7 +3008,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 05:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6632,7 +6632,7 @@ function getPumpChain(tr, dest) {
   // function's own ad-hoc BLAST attenuation (which stays as-is, this is
   // an additional universal cut on top of those, not a replacement).
   const _blastMinusOneDb = 0.8913;
-  const _sludgeBlastTrim = (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'guiro') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, RIDE + BLAST −3dB, MARACAS + BLAST −3dB, per direct request
+  const _sludgeBlastTrim = (trackInstruments[tr] === 'blunt') ? 0.5957 /* HASSELL + BLAST −4.5dB, per direct request */ : (trackInstruments[tr] === 'sludge') ? 0.7079 : (trackInstruments[tr] === 'denial') ? 0.6310 : (trackInstruments[tr] === 'ride' || trackInstruments[tr] === 'guiro') ? 0.7079 : 1; // SLUDGE BASS + BLAST −3dB, BUCK + BLAST −4dB, RIDE + BLAST −3dB, MARACAS + BLAST −3dB, per direct request
   nodes.crunchMakeup.gain.value = (isPad ? 0.09 : 0.0504) * _blastMinusOneDb * _sludgeBlastTrim * (_punkBlast ? ({ sbass: 1.12, sbass3: 1.255, sbass4: 1.245, dbass: 1.48, pbass: 1.24, sludge: 1.185 }[trackInstruments[tr]] || 1.11) /* each bass measured to land at the same loudness as before */ : 1); // -24dB total (was 0.8) — compensates for the level clipping adds, minus the requested cuts; pads get a touch more since their drive is much gentler
   if (nodes.dest !== dest) {
     try { nodes.crunchMakeup.disconnect(); } catch(e) {}
@@ -8080,10 +8080,11 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
+      setTimeout(() => showDot(pad ? [pad.x, pad.y] : null), 0); // ring + colour showing from the start
     }
     return m;
   };
@@ -8155,22 +8156,24 @@ window._padLatch = true;
     const m = window._padMute; if (m) for (let tr = 0; tr < NUM_TRACKS; tr++) for (let st = 0; st < NUM_STEPS; st++) if (m[tr * NUM_STEPS + st]) grid[tr][st] = 0;
     window._padMute = null; pad = null; redraw(); showDot(null); { const m = document.getElementById('modifyPadMarks'); if (m) m.classList.remove('sp-latched'); }
   }
-  function showDot(xy) {
-    const m = marks(); if (!m) return; const d = m.querySelector('.sp-dot');
-    if (!xy) { m.classList.remove('sp-on', 'sp-latched'); return; }
-    d.style.left = (Math.max(0, Math.min(1, xy[0])) * 100) + '%'; d.style.top = (Math.max(0, Math.min(1, xy[1])) * 100) + '%'; m.classList.add('sp-on');
+  function showDot(xy) { // the ring is always there — with nothing held / latched it sits back in the centre
+    const m = marks(); if (!m) return; const d = m.querySelector('.sp-dot'); if (!xy) xy = [0.5, 0.5];
+    d.style.left = (Math.max(0, Math.min(1, xy[0])) * 100) + '%'; d.style.top = (Math.max(0, Math.min(1, xy[1])) * 100) + '%';
+    tint(xy[0], xy[1]);
   }
-  // the four corner colours (TL = fewer notes/fewer effects … BR = more/more), from the current palette
-  const CORNERS = ['--neutral-top', '--highlight3-color', '--highlight2-color', '--playhead-color'];
+  // PAD COLOUR, per direct request: NOTES have one palette colour (the playhead colour) and EFFECTS another (highlight 2). How much
+  // of each is in the mix follows how far right (more notes) and how far down (more effects) the cursor is, and the whole pad
+  // gets stronger as both go up — faint at the top-left (nothing), strongest at the bottom-right (everything).
   function tint(x, y) {
-    const m = document.getElementById('modifyPadMarks'); if (!m) return; const t = m.querySelector('.sp-tint'); if (!t) return;
+    const m = document.getElementById('modifyPadMarks'); if (!m) return; const t = m.querySelector('.sp-tint'), gl = m.querySelector('.sp-glow'); if (!t) return;
     x = Math.max(0, Math.min(1, x)); y = Math.max(0, Math.min(1, y));
-    const cs = _rootCS(), c = CORNERS.map(v => _anyRgba(cs.getPropertyValue(v).trim()) || [128, 128, 128, 1]);
-    const mix = i => (c[0][i] * (1 - x) + c[1][i] * x) * (1 - y) + (c[2][i] * (1 - x) + c[3][i] * x) * y;
-    const rgb = [0, 1, 2].map(i => Math.round(mix(i))).join(','), d = Math.min(1, Math.hypot(x - 0.5, y - 0.5) / 0.5), a = (0.2 + 0.65 * d).toFixed(2);
-    t.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(${rgb},${a}) 0%, rgba(${rgb},${(a * 0.45).toFixed(2)}) 40%, rgba(${rgb},${(a * 0.12).toFixed(2)}) 100%)`;
+    const cs = _rootCS(), N = _anyRgba(cs.getPropertyValue('--playhead-color').trim()) || [80, 80, 200, 1], E = _anyRgba(cs.getPropertyValue('--highlight2-color').trim()) || [200, 80, 160, 1];
+    const sum = x + y, kE = sum > 0 ? y / sum : 0.5;
+    const rgb = [0, 1, 2].map(i => Math.round(N[i] * (1 - kE) + E[i] * kE)).join(',');
+    const a = 0.04 + 0.6 * Math.pow(sum / 2, 1.6);
+    t.style.backgroundColor = `rgba(${rgb},${a.toFixed(3)})`;
+    if (gl) gl.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(${rgb},${Math.min(0.9, a + 0.3).toFixed(2)}) 0%, rgba(${rgb},0) 45%)`;
     const dot = m.querySelector('.sp-dot'); if (dot) dot.style.color = `rgb(${rgb})`;
-    m.classList.toggle('sp-latched', d > 0.12); // (used once let go and latched — a fainter wash stays while the pad holds a change)
   }
   function pos(cx, cy) {
     const r = (document.getElementById('modifyPadMarks') || nb()).getBoundingClientRect(); const x = (cx - r.left) / r.width, y = (cy - r.top) / r.height; // the pad = the bottom 90%
@@ -12687,7 +12690,7 @@ function getSourceTrimGain(tr, dest) {
     nodes.gain.connect(dest);
     nodes.dest = dest;
   }
-  nodes.gain.gain.value = (['congHi', 'congLo', 'bongHi', 'bongLo'].includes(trackInstruments[tr]) ? 0.9441 /* every CONGA / BONGO −0.5dB, per direct request */ : trackInstruments[tr] === 'guiro' ? 0.8610 /* MARACAS −1.3dB, per direct request */ : ['timbHi', 'timbMid', 'timbLo'].includes(trackInstruments[tr]) ? 0.8913 /* every TIMBALE −1dB, per direct request */ : 1) * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2.5179 /* PUNK BASS: the same — see playPlunkBass — plus +2dB, per direct request (added after the soft-clip, so it can't push the voice into it) */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
+  nodes.gain.gain.value = (['congHi', 'congLo', 'bongHi', 'bongLo'].includes(trackInstruments[tr]) ? 0.9441 /* every CONGA / BONGO −0.5dB, per direct request */ : trackInstruments[tr] === 'guiro' ? 0.8610 /* MARACAS −1.3dB, per direct request */ : ['timbHi', 'timbMid', 'timbLo'].includes(trackInstruments[tr]) ? 0.8913 /* every TIMBALE −1dB, per direct request */ : trackInstruments[tr] === 'blunt' ? 1.4125 /* HASSELL +3dB, per direct request */ : 1) * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1.0593 : 1) /* every BASS +0.5dB, per direct request (SYNTH BASS included now — it goes through here like the rest) */ * ((trackInstruments[tr] === 'sbass3') ? 2 /* JAMES BASS: +6dB after the soft-clip, matching the half-level voice */ : (trackInstruments[tr] === 'dbass') ? 2 /* DOUBLE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'pbass') ? 2 /* PULSE BASS: gives back the half-level voice (+6dB) after the soft-clip */ : (trackInstruments[tr] === 'sbass') ? 2 /* SYNTH BASS: the same — see playSynthBass */ : (trackInstruments[tr] === 'sbass4') ? 2.5179 /* PUNK BASS: the same — see playPlunkBass — plus +2dB, per direct request (added after the soft-clip, so it can't push the voice into it) */ : (trackInstruments[tr] === 'sludge') ? 2 /* SLUDGE BASS: the same — see playSludgeBass */ : _BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 1 : 0.891); // -1dB for everything except basses
   return nodes.gain;
 }
 // High-frequency percussion (shaker, hihat, ride, guiro, tambourine) has
