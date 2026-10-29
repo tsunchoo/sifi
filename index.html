@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 05:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 17:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3008,7 +3008,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 05:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 17:00:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6519,10 +6519,16 @@ function _syncFxEcho(tr) {
 }
 // the echo follows tempo changes (TEMPO, nudges, tape tempos) — a cheap check, only touches tracks with FX on
 setInterval(() => { if (!ctx) return; const sd = _fxEchoTime(); for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoConn && Math.abs(n.echoDelay.delayTime.value - sd) > 0.001) n.echoDelay.delayTime.value = sd; } }, 500);
+// FX BUTTON GLYPHS, per direct request: FX = off, EN = FX1 (the envelope — CHK), DS = FX2 (distortion — BLAST), DL = DELAY
+function _fxGlyph(tr) { return trackChink[tr] ? 'EN' : trackPump[tr] ? 'DS' : _fxEchoOn(tr) ? 'DL' : 'FX'; }
+function _beatFxGlyph() { try { return _beatChoke ? 'EN' : _beatPump ? 'DS' : _beatEchoOn() ? 'DL' : 'FX'; } catch (e) { return 'FX'; } }
+// any path that sets a glyph straight to 'FX' is put right within a moment (cheap — text only, and only when it's wrong)
+setInterval(() => { try { for (let t = 0; t < NUM_TRACKS; t++) { const b = document.getElementById(`fxbtn-${t}`); if (b) { const g = _fxGlyph(t); if (b.textContent !== g) b.textContent = g; } }
+  const d = document.getElementById('beatCtrlFx'); if (d) { const g = _beatFxGlyph(); if (d.textContent !== g) d.textContent = g; } } catch (e) {} }, 300);
 function _syncFxBtn(tr) {
   const b = document.getElementById(`fxbtn-${tr}`); if (!b) return;
   const _echo = _fxEchoOn(tr);
-  const _gl = _echo ? 'DL' : 'FX'; // the 4th stop (the echo / delay) reads DL, per direct request — every other stop stays FX (colours tell them apart)
+  const _gl = _fxGlyph(tr); // FX (off) / EN (FX1, envelope) / DS (FX2, distortion) / DL (delay), per direct request
   if (b.textContent !== _gl) b.textContent = _gl;
   b.classList.remove('chink-on');
   b.classList.toggle('on', !!trackChink[tr] || _echo); // CHK lit = the FX button's old ON colour
@@ -14153,7 +14159,7 @@ function buildUI() {
     fxBtn.classList.toggle('blast-on', !!trackPump[tr]);
     fxBtn.classList.toggle('chink-on', !!trackChink[tr]);
     fxBtn.textContent = trackChink[tr] ? 'CHK' : 'FX'; // CHK while CHOKE is on; otherwise stays "FX" — used to switch to a single "X" during BLAST, per direct request to stop that
-    fxBtn.textContent = _fxEchoOn(tr) ? 'DL' : 'FX'; // FX — except the echo stop, which reads DL (per direct request)
+    fxBtn.textContent = _fxGlyph(tr); // FX / EN / DS / DL, per direct request
     const cycleFxBtn = () => {
       // NEW CYCLE, per direct request: off -> CHK (FX's old slot + colour) -> CHK+BLAST (red) -> off. Basses / no-CHK
       // instruments: off -> BLAST -> off. BLAST still carries the old FX layer underneath so it sounds the same.
@@ -26452,7 +26458,7 @@ function updateBeatCtrlRow() {
   // '<' deliberately has no persistent 'on' state here — it doesn't stay
   // engaged, so it only gets the momentary flash in beatCtrlShift() below.
   const fBtn = document.getElementById('beatCtrlFx');
-  if (fBtn) { const _e = _beatEchoOn(); fBtn.classList.toggle('on', _beatChoke || _e); fBtn.classList.toggle('fx-echo', _e); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red, FX in its own colour (as on the tracks)
+  if (fBtn) { const _e = _beatEchoOn(); fBtn.textContent = _beatFxGlyph(); fBtn.classList.toggle('on', _beatChoke || _e); fBtn.classList.toggle('fx-echo', _e); fBtn.classList.toggle('blast-on', _beatPump); } // CHK lit in the FX colour, BLAST red, FX in its own colour (as on the tracks)
   try { _syncBeatEcho(); } catch (e) {}
   const rBtn = document.getElementById('beatCtrlRand');
   if (rBtn) { rBtn.classList.toggle('rand-auto', _beatAutoRandActive); rBtn.textContent = 'A'; } // always 'A' now (lit when AUTO is on), per direct request
@@ -27713,7 +27719,7 @@ function snapshotDisplay() {
     ['.lock-btn', 'INSTRUMENT RANDOMIZER', 'Tap for a new instrument in the same family. Double-tap to change instrument type from tonal to drums or vice versa.'],
     ['.track-vol-bar', 'TRACK VOLUME', 'Drag to change level.'],
     ['.shift-btn', '<  OFFSET', 'Offset button moves the track’s notes a step earlier. The offset value can be changed in the look and feel menu under DEV / BEHAVIOUR'],
-    ['.fx-btn', 'FX', 'Tap to cycle thru 3 modes, default is off/FX (adds crunch and envelope)/FX + BLAST (heavy pumping crunch)'],
+    ['.fx-btn', 'FX', 'Tap to cycle through 4 stops: FX (off) → EN (FX1, an envelope that chops each hit) → DS (FX2, distortion — heavy pumping crunch) → DL (delay) → off.'],
     ['[id^="delaybtn-"]', 'R  REVERB', 'Sends this track into the reverb. Tap to switch on or off.'],
     ['.rand-btn', '+  NEW NOTES', 'Create new random notes for this track (some instruments like hihat will have regular patterns as well as random). Double-tapping turns on AUTO NOTES mode which creates new notes every bar.'],
     ['.solo-btn', 'S  SOLO', 'Momentarily solos this track, you can also click and drag and behaviour can be changed in the LOOK and FEEL menu under BEHAVIOUR to latch on/off and also whether SOLO includes DRUMS or not.'],
