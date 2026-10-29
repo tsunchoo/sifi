@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 01:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 01:10:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2993,7 +2993,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 01:10:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8022,8 +8022,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e && e.cancelable) e.preventDefault();
     vis(dy);
     if (!fired && dy >= MAXD) { fired = true; try {
-      if (!document.body.classList.contains('modify')) _setModify(true);
-      else { _setModify(false, true); window._toggleLiveMode && window._toggleLiveMode(); }
+      window._toggleLiveMode && window._toggleLiveMode(); // LIVE hidden for now: from MODIFY the drag goes straight back to NORMAL
     } catch (er) {} }
   };
   const end = () => { if (dragging) suppressUntil = Date.now() + 500; y0 = null; dragging = false; snap(); };
@@ -23968,8 +23967,9 @@ function setTonalPercBalance(v) {
     const toggleLive = window._toggleLiveMode = () => {
       const liveIdx = _RAINBOW_CYCLE.findIndex(m => m.liveOnly); if (liveIdx < 0) return;
       playUiSound('tinyclick');
-      if (window._rainbowIdx === liveIdx) { const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showNotice('NORMAL MODE'); }
-      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); _showNotice('LIVE MODE'); }
+      // LIVE MODE HIDDEN for now, per direct request: the drag goes NORMAL ⇄ MODIFY (MODIFY still sits on LIVE's layout underneath)
+      if (window._rainbowIdx === liveIdx) { try { _setModify(false, true); } catch (e) {} const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showNotice('NORMAL MODE'); }
+      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); try { _setModify(true, true); } catch (e) {} _showNotice('MODIFY MODE'); }
     };
     const move = (y, e) => {
       if (y0 === null) return;
@@ -27629,13 +27629,13 @@ function snapshotDisplay() {
    instead, tapping anywhere on the screen shows a box describing what that part of the screen does. Tap ? again (or DONE) to leave. */
 (function () {
   const H = [
-    ['#siFiTitle', 'Si•Fi LOGO', 'Tapping the logo toggles the 8-bit mix (crunchy 1990s computer feel). Dragging the logo DOWN toggles the \'LIVE\' mode — a simplified battery-saving mode for performance with a large 1-2-3-4 count display always shown; drag down again to leave.'],
+    ['#siFiTitle', 'Si•Fi LOGO', 'Tapping the logo toggles the 8-bit mix (crunchy 1990s computer feel). Dragging the logo DOWN switches to MODIFY mode — just the button rows, with the song name bar turned into a big XY pad (left/right = fewer/more notes, up/down = fewer/more effects); drag the key DOWN to come back.'],
     ['#_helpBtn', 'HELP MODE - click anything to see what it does', ''],
     ['#_hamBtn', 'MENU', 'Shows or hides the rainbow (look and feel), reverb and help icons. Tap again to tuck them away.'],
     ['#devMenuBtn', 'RAINBOW · LOOK AND FEEL MENU', 'Tap to open LOOK AND FEEL — display modes, colours, marker styles and other visual settings. Swipe DOWN to cycle thru display modes.'],
     ['#randomizeReverbIconBtn', 'REVERB', 'Drag DOWN to get new reverb settings (size and mix) without touching the pattern, dragging down toggles it back off. Click and holding opens the reverb menu, where you can change the overall Reverb mix, size and how much it applies to \'DRUMS\''],
     ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle thru 3 count modes, text/text with audible click/hide count. In LIVE mode it is always shown and a tap switches the click on/off.'],
-    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In LIVE mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN for MODIFY mode (just the button rows, big song name), and DOWN again to go back to normal mode.'],
+    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In MODIFY mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to normal mode.'],
     ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the TEMPO, hold to bring up the tempo menu: NUDGE (push/pull while held), TEMPO slider, the lock and RE-UP to stop and restart the pattern/count.'],
     ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
     ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
