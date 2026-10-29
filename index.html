@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 17:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 17:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3008,7 +3008,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 17:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 17:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -24036,7 +24036,16 @@ function setTonalPercBalance(v) {
       playUiSound('tinyclick');
       // LIVE MODE HIDDEN for now, per direct request: the drag goes NORMAL ⇄ MODIFY (MODIFY still sits on LIVE's layout underneath)
       if (window._rainbowIdx === liveIdx) { try { _setModify(false, true); } catch (e) {} const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showNotice('NORMAL MODE'); }
-      else { window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx]; _applyRainbowState(lm); try { _setModify(true, true); } catch (e) {} _showNotice('MODIFY MODE'); }
+      else {
+        window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx];
+        // EQ METER CARRIES OVER into MODIFY exactly as it was, per direct request (LIVE names no EQ of its own, so switching to it
+        // used to put back your pre-mode EQ settings instead — a different EQ type depending on where you came from). The
+        // remembered pre-mode settings are kept untouched too, so leaving still works as before.
+        const eqNow = { style: window._nameEqStyle, colour: window._nameEqColor, opacity: window._nameEqOpacity, glow: !!window._nameEqGlow, flashGlow: !!window._nameEqFlashGlow, bgClear: !!window._nameBgClear, fall: window._nameEqFall }, eqMem = window._eqBeforeMode;
+        const putEq = () => { try { setNameEqStyle(eqNow.style); setNameEqColor(eqNow.colour); setNameEqOpacity(eqNow.opacity); setNameEqGlow(eqNow.glow); setNameEqFlashGlow(eqNow.flashGlow); setNameBgClear(eqNow.bgClear); window._nameEqFall = eqNow.fall; } catch (e) {} };
+        _applyRainbowState(lm); window._eqBeforeMode = eqMem; putEq(); setTimeout(() => { if (document.body.classList.contains('modify')) putEq(); }, 200); // (again after the mode's own dark/light check)
+        try { _setModify(true, true); } catch (e) {} _showNotice('MODIFY MODE');
+      }
     };
     const move = (y, e) => {
       if (y0 === null) return;
