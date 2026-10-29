@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 23:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 23:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2609,16 +2609,17 @@ html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { opacity: 0.6;
    rows, and the song name bar grows by exactly the height that freed up (measured in JS → --modify-extra) */
 html body.modify .track-row { display: none !important; }
 /* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
-html body.modify #nameBar { min-height: calc(66.08px + var(--modify-extra, 0px)) !important; touch-action: none; cursor: crosshair; }
+html body.modify.name-bg-clear #nameBar { background: var(--name-bar-bg, #9fb9a2) !important; } /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
+html body.modify #nameBar { min-height: calc(66.08px + 20px + var(--modify-extra, 0px)) !important; /* +20px for the song name strip, per direct request */ touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
    the EQ and the pad share the bottom 90% */
 html body.modify #nameBar { align-items: flex-start; }
-html body.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: 10%; display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
-html body.modify #nameEq { top: 10% !important; bottom: auto !important; height: 90% !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
-#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: 10%; bottom: 0; pointer-events: none; z-index: 2; }
+html body.modify.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: calc(10% + 20px); /* (.modify twice: beats SONG NAME HIDDEN — the name always shows in MODIFY, per direct request) */ display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
+html body.modify #nameEq { top: calc(10% + 20px) !important; bottom: auto !important; height: calc(90% - 20px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
+#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: calc(10% + 20px); bottom: 0; pointer-events: none; z-index: 2; }
 /* AXIS LABELS, per direct request: X along the top line of the pad, Y rotated 90° counter-clockwise down the left side */
-#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: space-between; font: 700 0.55rem/1 'DM Sans', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.45; white-space: nowrap; }
+#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: space-between; font: 800 0.605rem/1 'DM Sans', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; /* bold, ~10% bigger, darker, per direct request */ white-space: nowrap; }
 #modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
 #modifyPadMarks .sp-ylab { left: 5px; top: 22px; bottom: 44px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
 /* MODIFY: the big COUNT sits in the middle of the pad at 60%, per direct request (a mirror of #beatCount, which hides here) */
@@ -3013,7 +3014,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 23:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 23:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8091,7 +8092,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&lt; LESS</span><span>NOTES</span><span>MORE &gt;</span></div><div class="sp-ylab"><span>&lt; MORE</span><span>EFFECTS</span><span>LESS &gt;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&minus;</span><span>NOTES</span><span>+</span></div><div class="sp-ylab"><span>+</span><span>EFFECTS</span><span>&minus;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
@@ -8220,14 +8221,14 @@ window._padLatch = true;
       for (let gs = 0; gs < NUM_STEPS; gs++) {
         const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
         const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS;
-        const x0 = bz + Math.round(ds * cw), y0 = bz + Math.round(ri * rh); c.fillRect(x0, y0, bz + Math.round((ds + 1) * cw) - x0, bz + Math.round((ri + 1) * rh) - y0); // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
+        const g1 = Math.round(dpr), x0 = bz + Math.round(ds * cw) + g1, y0 = bz + Math.round(ri * rh) + g1; c.fillRect(x0, y0, bz + Math.round((ds + 1) * cw) - g1 - x0, bz + Math.round((ri + 1) * rh) - g1 - y0); // 2px between all the note markers, per direct request // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
       }
     });
   }
   function tick() { raf = 0; if (!pad) return; if (pend) apply(pend[0], pend[1]); drawGrid(); if (held) raf = requestAnimationFrame(tick); } // held: re-applied every frame (cheap — only real changes are written)
   const inBar = e => document.body.classList.contains('modify') && nb() && nb().contains(e.target) && !(e.target.closest && e.target.closest('#modifyLock'));
   const evY = e => { const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e; return t.clientY; };
-  const inStrip = e => { if (!inBar(e)) return false; const r = nb().getBoundingClientRect(); return evY(e) - r.top < r.height * 0.1; }; // the SONG NAME strip (top 10%)
+  const inStrip = e => { if (!inBar(e)) return false; const r = nb().getBoundingClientRect(); return evY(e) - r.top < (r.height * 0.1 + 20); }; // the SONG NAME strip (top 10%)
   const inPad = e => inBar(e) && !inStrip(e);
   // the strip: DOUBLE-TAP / double-click = ADD TO THE TAPE DRAWER + heart (same as the song name everywhere else); nothing else
   let stripTapT = 0;
@@ -20395,6 +20396,15 @@ function placeNotes(tr, noteCount, accentRatio, level) {
 function randomizeTrack(tr) {
   window._lastNoteMaxUsed = null;
   const key = trackInstruments[tr];
+  // JAZZ RIDE FIX, per direct report (JAZZ sometimes came out with the RIDE on every 16th): under JAZZ the RIDE is a FIXED part,
+  // but any automatic re-randomize of that track — its own AUTO (+) mode, the AUTO NOTES quota, a RANDO 'NOTES' pass, a new
+  // instrument landing on it — went through the normal RIDE rules here, which can pick 'every 16th'. Now every automatic path
+  // writes the jazz ride pattern instead. Only YOUR OWN tap on its + still re-randomizes it freely.
+  if (_beatType === 'jazz' && key === 'ride' && window._plusTapTr !== tr) {
+    grid[tr].fill(0); if (trackLegatoLen[tr]) trackLegatoLen[tr] = {};
+    for (const [s0, v] of [[0, 2], [8, 2], [4, 1], [12, 1], [7, 1], [15, 1]]) grid[tr][(s0 - (trackOffset[tr] || 0) + NUM_STEPS) % NUM_STEPS] = v; // 1 & 3 accented, 2 & 4 light, the 'ah' anticipations
+    redrawTrackCells(tr); markModified(); return;
+  }
   const cappedLevel = (key === 'skick' || key === 'clap') ? Math.min(trackRLevel[tr], 1) : Math.min(trackRLevel[tr], 2);
   const level = cappedLevel;
   const _isThirdPress = trackRLevel[tr] === 2; // trackRLevel cycles 0→1→2 per press, so this is the 3rd press in the cycle
@@ -24436,6 +24446,10 @@ setInterval(() => {
   const nd = document.getElementById('nameDisplay'); if (!nd) return;
   // SONG NAME BACKGROUND TRANSPARENT on, per direct request: the name sits on the PAGE background, so it goes dark on a light
   // page and light on a dark one (whatever the EQ is doing)
+  if (document.body.classList.contains('modify')) { // MODIFY: the name sits on the bar's own colour — dark on a light bar, white on a dark one
+    let txt = null; try { const c = _anyRgba(_rootCS().getPropertyValue('--name-bar-bg').trim() || getComputedStyle(document.getElementById('nameBar')).backgroundColor); if (c && c[3] > 0.3) txt = _relLum(c) > 0.18 ? '#111111' : '#ffffff'; } catch (e) {}
+    if (txt) { if (nd._eqTxt !== txt) { nd.style.setProperty('color', txt, 'important'); nd._eqTxt = txt; } return; }
+  }
   if (document.body.classList.contains('name-bg-clear')) {
     let txt = null; try { const c = _anyRgba(_rootCS().getPropertyValue('--bg').trim() || getComputedStyle(document.body).backgroundColor); if (c) txt = _relLum(c) > 0.18 ? '#111111' : '#ffffff'; } catch (e) {}
     if (txt) { if (nd._eqTxt !== txt) { nd.style.setProperty('color', txt, 'important'); nd._eqTxt = txt; } return; }
