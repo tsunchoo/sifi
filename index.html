@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-29 17:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-29 22:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2632,6 +2632,8 @@ html body.modify #beatCount { visibility: hidden !important; }
 /* the cursor ring PULSES on every quarter note (it follows the count), per direct request */
 @keyframes sp-dot-pulse { 0% { transform: scale(1.45); opacity: 1; } 100% { transform: scale(1); opacity: 0.9; } }
 #modifyPadMarks .sp-dot.sp-beat { animation: sp-dot-pulse 0.28s ease-out; }
+/* NEW PATTERN (>> etc.) in MODIFY: the ring EASES back to the centre over about the time the new pattern takes to come in, and the
+   pad's colour eases back with it, per direct request */
 #modifyPadMarks .sp-tint { position: absolute; inset: 0; transition: background-color 0.5s ease-out; } /* the whole-pad wash (always on) */
 #modifyPadMarks.sp-held .sp-tint { transition: background-color 0.08s linear; }
 #modifyPadMarks .sp-glow { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s ease-out; } /* the brighter glow under the finger, while held */
@@ -2643,7 +2645,7 @@ html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-dot { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 3px solid currentColor; box-sizing: border-box; opacity: 0.9; } /* 3px, and always showing (sits in the centre until moved), per direct request */
 /* the 6×16 note grid drawn over the pad while it's held (40% max), fading out over 0.5s on release, per direct request */
 #modifyGridCv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
-#modifyPadMarks.sp-held #modifyGridCv { opacity: 0.4; transition: opacity 0.12s ease-out; }
+#modifyPadMarks.sp-held #modifyGridCv, #modifyPadMarks.sp-reveal #modifyGridCv { opacity: 0.4; transition: opacity 0.12s ease-out; } /* (sp-reveal: a DOUBLE CLICK on >> shows the new notes landing) */
 #modifyLock { display: none; position: absolute; left: 6px; bottom: 6px; z-index: 3; width: 30px; height: 30px; padding: 0; border: none; border-radius: 4px; background: rgba(0,0,0,0.12); color: inherit; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 html body.modify #modifyLock { display: flex; }
 #modifyLock.sp-unlatched { opacity: 0.55; }
@@ -3011,7 +3013,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 17:35:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-29 22:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8184,7 +8186,22 @@ window._padLatch = true;
     if (gl) gl.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(${rgb},${Math.min(0.9, a + 0.3).toFixed(2)}) 0%, rgba(${rgb},0) 45%)`;
     const dot = m.querySelector('.sp-dot'); if (dot) dot.style.color = `rgb(${rgb})`;
   }
+  // back to the centre, EASED (a new pattern) — dragging again cancels the ease straight away
+  function easeHome() { const m = marks(); if (!m) return;
+    { const dd = m.querySelector('.sp-dot'); if (dd && dd._home && dd._home.playState === 'running') return; } // already easing home (>> started it) — don't restart it when the new pattern then lands
+    let dur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--new-pattern-dur')); if (!(dur >= 0.4 && dur <= 4)) dur = 1.3; // (that variable can be 0 for a moment while the new pattern is set up)
+    const d = m.querySelector('.sp-dot'), t = m.querySelector('.sp-tint');
+    // Web Animations (not CSS transitions — those were being skipped when the jump landed in the same frame): from wherever the
+    // ring / colour are now, to the centre, eased in and out
+    const fromL = d ? getComputedStyle(d).left : null, fromT = d ? getComputedStyle(d).top : null, fromC = t ? getComputedStyle(t).backgroundColor : null;
+    showDot(null);
+    const ease = 'cubic-bezier(0.45, 0, 0.55, 1)';
+    try { if (d && fromL) { if (d._home) d._home.cancel(); d._home = d.animate([{ left: fromL, top: fromT }, { left: '50%', top: '50%' }], { duration: dur * 1000, easing: ease }); } } catch (e) {}
+    try { if (t && fromC) { const toC = getComputedStyle(t).backgroundColor; if (t._home) t._home.cancel(); t._home = t.animate([{ backgroundColor: fromC }, { backgroundColor: toC }], { duration: dur * 1000, easing: ease }); } } catch (e) {}
+  }
+  window.addEventListener('pointerup', e => { if (document.body.classList.contains('modify') && e.target && e.target.closest && e.target.closest('#randBtn') && pad && !held) easeHome(); }, true); // >> pressed: start the ease right away
   function pos(cx, cy) {
+    { const m = document.getElementById('modifyPadMarks'); if (m) m.querySelectorAll('.sp-dot, .sp-tint').forEach(n => { if (n._home) { n._home.cancel(); n._home = null; } }); } // a touch mid-ease takes over straight away
     const r = (document.getElementById('modifyPadMarks') || nb()).getBoundingClientRect(); const x = (cx - r.left) / r.width, y = (cy - r.top) / r.height; // the pad = the bottom 90%
     showDot([x, y]); tint(x, y); pend = [x, y]; if (!raf) raf = requestAnimationFrame(tick);
   }
@@ -8249,8 +8266,19 @@ window._padLatch = true;
     if (sp) marks();
     if (!pad) return;
     if (!sp) { held = false; if (window._padLatch) bake(); else restore(); return; } // left MODIFY: latched result kept for real, otherwise put back
-    if (!held && pad.name !== nameNow()) { window._padMute = null; pad = null; showDot(null); } // a new pattern arrived — the old pad state no longer applies
+    if (!held && pad.name !== nameNow()) { window._padMute = null; pad = null; easeHome(); } // a new pattern arrived — the old pad state no longer applies
   }, 300);
+  // DOUBLE CLICK on >> in MODIFY, per direct request: the note grid shows (as when the pad is held) while the new pattern's notes
+  // land, redrawn every frame so you watch them arrive, then fades out the same way
+  let revealT = 0, revealRaf = 0;
+  window._modifyNoteReveal = () => {
+    if (!document.body.classList.contains('modify')) return; const m = marks(); if (!m) return;
+    let dur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--new-pattern-dur')); if (!(dur >= 0.4 && dur <= 4)) dur = 1.6;
+    const until = performance.now() + (dur + 1.4) * 1000; // the rewind pause + the new pattern drawing in
+    m.classList.add('sp-reveal'); cancelAnimationFrame(revealRaf);
+    const loop = () => { if (performance.now() > until || !document.body.classList.contains('modify')) { m.classList.remove('sp-reveal'); revealRaf = 0; return; } if (!held) drawGrid(); revealRaf = requestAnimationFrame(loop); };
+    revealRaf = requestAnimationFrame(loop);
+  };
   window._modifyPadDbg = { apply: (x, y) => { if (!pad) pad = capture(); apply(x, y); }, end, state: () => pad };
 })();
 // MODIFY MODE, per direct request — the 3rd stop of the logo's drag-down cycle (NORMAL → LIVE → MODIFY → NORMAL). The note lanes collapse and the song name
@@ -19497,6 +19525,7 @@ function stopAllAutoRand() {
       if (_playdoeTapTimer) {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
         try { _dblGrayFlash(); } catch (e) {} // everything but >> flashes grayscale, per direct request
+        try { window._modifyNoteReveal && window._modifyNoteReveal(); } catch (e) {} // MODIFY: show the notes it picks behind the pad
         try { _dblUnlockUnmuteAll(); } catch (e) {}
         // RANDO BUTTON: DOUBLE CLICK set to SHUFFLE INSTRUMENTS — a short asterisk turn and the swap, no new pattern
         const _dk = window._dblKey || 'dbl'; // DOUBLE CLICK, or SHAKE (its own column) — see _randDoubleTap
