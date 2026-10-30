@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 08:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 08:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3023,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8383,7 +8383,7 @@ function _modifyRowsTick() {
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       if (!(grid[tr][gs] > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
       const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, x0 = Math.round(gap + ds * (cw + gap)), x1 = Math.round(gap + ds * (cw + gap) + cw);
-      const sh = Math.round(dpr); c.fillRect(x0 + Math.floor(sh / 2), Math.floor(sh / 2), Math.max(1, x1 - x0 - sh), Math.max(1, H - sh)); // each marker 1px narrower and 1px shorter (centred in its slot), per direct request
+      const sh = Math.round(3 * dpr); c.fillRect(x0 + Math.round(sh / 2), Math.round(sh / 2), Math.max(1, x1 - x0 - sh), Math.max(1, H - sh)); // each marker 3px narrower and 3px shorter than its slot (1px, then another 1px off each side), centred, per direct request
     }
   }
 }
@@ -8395,6 +8395,8 @@ function _setModify(on, quiet) {
   if (on) _modifyMeasure();
   b.classList.toggle('modify', on);
   _modifyVolBanger(on);
+  // EQ OPACITY 60% in MODIFY by default, per direct request — whatever it was comes back on leaving
+  try { if (on) { if (window._eqOpBeforeModify === undefined) window._eqOpBeforeModify = window._nameEqOpacity; setNameEqOpacity(60); } else if (window._eqOpBeforeModify !== undefined) { const v = window._eqOpBeforeModify; window._eqOpBeforeModify = undefined; setNameEqOpacity(v); } } catch (e) {}
   b.classList.toggle('hide-tape', !on && b.classList.contains('live-layout')); // MODIFY keeps the TAPE graphic (LIVE hides it), per direct request
   if (quiet) return;
   try { playUiSound('tinyclick'); } catch (e) {}
@@ -8405,7 +8407,7 @@ document.addEventListener('DOMContentLoaded', () => { let on = false; try { on =
 // MODIFY COUNT settings (SETTINGS), per direct request — remembered on this device
 function setModifyCount(on) { document.body.classList.toggle('modify-count-off', !on); const cb = document.getElementById('modifyCountToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyCount', on ? '1' : '0'); } catch (e) {} }
 function setModifyNotesOpacity(v) { v = Math.max(0, Math.min(100, +v || 0)); document.documentElement.style.setProperty('--modify-notes-op', (v / 100).toFixed(2)); const r = document.getElementById('modifyNotesOpVal'); if (r) r.textContent = Math.round(v) + '%'; const sl = document.getElementById('modifyNotesOpSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiModifyNotesOp', String(v)); } catch (e) {} }
-document.addEventListener('DOMContentLoaded', () => { let op = 40; try { const o = localStorage.getItem('sifiModifyNotesOp'); if (o !== null) op = +o; } catch (e) {} setModifyNotesOpacity(op); });
+document.addEventListener('DOMContentLoaded', () => { let op = 40; try { if (localStorage.getItem('sifiModifyNotesOpV2') !== '1') { localStorage.setItem('sifiModifyNotesOpV2', '1'); localStorage.removeItem('sifiModifyNotesOp'); } /* back to the 40% default once, per direct request */ const o = localStorage.getItem('sifiModifyNotesOp'); if (o !== null) op = +o; } catch (e) {} setModifyNotesOpacity(op); });
 function setModifyCountOpacity(v) { v = Math.max(0, Math.min(100, +v || 0)); document.documentElement.style.setProperty('--modify-count-op', (v / 100).toFixed(2)); const r = document.getElementById('modifyCountOpVal'); if (r) r.textContent = Math.round(v) + '%'; const sl = document.getElementById('modifyCountOpSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiModifyCountOp', String(v)); } catch (e) {} }
 document.addEventListener('DOMContentLoaded', () => { let on = true, op = 25; try { on = localStorage.getItem('sifiModifyCount') !== '0'; const o = localStorage.getItem('sifiModifyCountOp'); if (o !== null) op = +o; } catch (e) {} setModifyCount(on); setModifyCountOpacity(op); });
 // the MODIFY pad's COUNT mirrors #beatCount's text as it changes
