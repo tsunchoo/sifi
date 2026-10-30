@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 07:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 07:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2630,7 +2630,7 @@ html body.modify #nameEq { top: 66.08px !important; bottom: auto !important; hei
 #modifyPadMarks .sp-ylab { left: 5px; top: 18px; bottom: 18px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
 /* MODIFY: the big COUNT sits in the middle of the pad at 60%, per direct request (a mirror of #beatCount, which hides here) */
 #modifyPadMarks { overflow: hidden; }
-#modifyPadMarks .sp-count { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font: 700 min(91.2vh, 21.6rem)/0.8 'DM Sans', sans-serif; opacity: var(--modify-count-op, 0.25); pointer-events: none; } /* 2.4x bigger, 25% by default (SETTINGS > MODIFY COUNT), per direct request */
+#modifyPadMarks .sp-count { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font: 700 calc(var(--modify-pad-h, 146px) * 1.15)/0.8 'DM Sans', sans-serif; /* sized to the graph's height (the digit ≈ 83% of it), per direct request */ opacity: var(--modify-count-op, 0.25); pointer-events: none; } /* 2.4x bigger, 25% by default (SETTINGS > MODIFY COUNT), per direct request */
 html body.modify-count-off #modifyPadMarks .sp-count { display: none; }
 html body.modify #beatCount { visibility: hidden !important; }
 /* PAD COLOUR, per direct request: a glow from the display mode's own palette follows the finger — its colour blends between four
@@ -3023,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8375,10 +8375,11 @@ function _modifyRowsTick() {
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
     let col = grey; if (window._modifyRowColours) { const tb = document.getElementById(`tbtn-${tr}`); if (tb) col = getComputedStyle(tb).backgroundColor; }
-    c.fillStyle = col; const cw = W / NUM_STEPS, g = Math.round(dpr);
+    // full screen width, and the gap at each edge = the 2px gap between markers, per direct request
+    const gap = 2 * dpr; c.fillStyle = col; const cw = (W - gap * (NUM_STEPS + 1)) / NUM_STEPS;
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       if (!(grid[tr][gs] > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
-      const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, x0 = Math.round(ds * cw) + g, x1 = Math.round((ds + 1) * cw) - g;
+      const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, x0 = Math.round(gap + ds * (cw + gap)), x1 = Math.round(gap + ds * (cw + gap) + cw);
       c.fillRect(x0, 0, Math.max(1, x1 - x0), H);
     }
   }
@@ -8417,18 +8418,17 @@ function _modifyVolBanger(on) {
   try {
     if (on) {
       if (window._vbBeforeModify === undefined) { const sl = document.getElementById('volFillHeightSlider'); window._vbBeforeModify = { vb: document.body.classList.contains('vol-banger'), h: sl ? sl.value : '100', ho: !!window._fillHighOnly }; }
-      setVolBanger(true); setVolFillHeightPct(20); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = 20; }
-      window._fillHighOnly = true; { const cb = document.getElementById('fillHighOnlyToggle'); if (cb) cb.checked = true; } _fillSyncRoot(); _fillDirty();
+      setVolFillHeightPct(20); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = 20; } // (VOL BANGER / FILL colours now come from the display mode, per direct request — only the 20% height is MODIFY's)
     } else if (window._vbBeforeModify !== undefined) {
       const v = window._vbBeforeModify; window._vbBeforeModify = undefined;
-      setVolBanger(v.vb); setVolFillHeightPct(v.h); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = v.h; }
-      window._fillHighOnly = v.ho; { const cb = document.getElementById('fillHighOnlyToggle'); if (cb) cb.checked = v.ho; } _fillSyncRoot(); _fillDirty();
+      setVolFillHeightPct(v.h); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = v.h; }
     }
   } catch (e) {}
 }
 function _toggleModify() { _setModify(!document.body.classList.contains('modify')); }
 window.addEventListener('resize', () => { if (document.body.classList.contains('modify')) _modifyMeasure(); });
-setInterval(() => { const b = document.body; if (b.classList.contains('modify') && !b.classList.contains('live-layout')) { b.classList.remove('modify'); _modifyVolBanger(false); } }, 300); // left LIVE some other way → MODIFY goes too
+setInterval(() => { const b = document.body; if (b.classList.contains('modify') && !b.classList.contains('live-layout')) { b.classList.remove('modify'); _modifyVolBanger(false); }
+  if (b.classList.contains('modify') && _rootCS().getPropertyValue('--vol-fill-h').trim() !== '20%') { try { setVolFillHeightPct(20); const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = 20; } catch (e) {} } }, 300); // (a display-mode change in MODIFY mustn't change the fill height) // left LIVE some other way → MODIFY goes too
 function _placeLiveKey() {
   const el = document.getElementById('liveKey'), num = document.getElementById('topTempoBpmNum'), logo = document.getElementById('siFiTitle');
   if (!el || !num || !el.offsetParent || !document.body.classList.contains('live-layout')) return;
@@ -23445,7 +23445,7 @@ function _applyRainbowState(m) {
   // Body classes a mode switches (m.classes = {cls: on}), remembered/restored
   window._classesBeforeMode = window._classesBeforeMode || {};
   Object.keys(window._classesBeforeMode).forEach(c => { if (!m.classes || !(c in m.classes)) { document.body.classList.toggle(c, window._classesBeforeMode[c]); delete window._classesBeforeMode[c]; } });
-  if (m.classes) Object.keys(m.classes).forEach(c => { if (c === 'hide-vol-track' || c === 'vol-bg-transparent') return; /* hardcoded ON now, per direct request */ if (!(c in window._classesBeforeMode)) window._classesBeforeMode[c] = document.body.classList.contains(c); document.body.classList.toggle(c, !!m.classes[c]); });
+  if (m.classes) Object.keys(m.classes).forEach(c => { if (c === 'hide-vol-track' || c === 'vol-bg-transparent') return; /* hardcoded ON now, per direct request */ if ((c === 'live-layout' || c === 'hide-tape') && document.body.classList.contains('modify')) return; /* MODIFY keeps its layout (and its tape) through a display-mode change */ if (!(c in window._classesBeforeMode)) window._classesBeforeMode[c] = document.body.classList.contains(c); document.body.classList.toggle(c, !!m.classes[c]); });
   { const dp = document.getElementById('drumsPulseToggle'); if (dp) dp.checked = document.body.classList.contains('drums-pulse'); }
   { const g = document.body.classList.contains('notes-grayscale'); ['devNotesGrayscale', 'notesGrayscaleEnable'].forEach(id => { const c = document.getElementById(id); if (c) c.checked = g; }); }
   // A snapshot colour scheme brings its own PLAY FLASH colour; when the cycle
@@ -24183,20 +24183,24 @@ function setTonalPercBalance(v) {
     };
     const vis = dy => { title.style.transition = 'none'; title.style.translate = '0 ' + Math.max(0, Math.min(MAXD, dy)) + 'px'; };
     const snap = () => { title.style.transition = 'translate 180ms cubic-bezier(0.2, 0.9, 0.3, 1.25)'; title.style.translate = '0 0'; };
+    // MODIFY NOW USES THE CURRENT DISPLAY MODE, per direct request: it no longer switches to the hidden LIVE mode underneath (which
+    // brought LIVE's own colours, no glows, battery saver…) — it just adds MODIFY's LAYOUT (live-layout + modify) on top of
+    // whatever display mode is on, so all the colours, glows and vol slider styling are that mode's. Changing display mode
+    // while in MODIFY keeps the MODIFY layout.
     const toggleLive = window._toggleLiveMode = () => {
-      const liveIdx = _RAINBOW_CYCLE.findIndex(m => m.liveOnly); if (liveIdx < 0) return;
       playUiSound('tinyclick');
-      // LIVE MODE HIDDEN for now, per direct request: the drag goes NORMAL ⇄ MODIFY (MODIFY still sits on LIVE's layout underneath)
-      if (window._rainbowIdx === liveIdx) { try { _setModify(false, true); } catch (e) {} const back = _RAINBOW_CYCLE[window._preLiveIdx !== undefined && !_RAINBOW_CYCLE[window._preLiveIdx].liveOnly ? window._preLiveIdx : _RAINBOW_CYCLE.findIndex(m => m.name === 'BASELINE')] || _RAINBOW_CYCLE[0]; _applyRainbowState(back); _showNotice('NORMAL MODE'); }
-      else {
-        window._preLiveIdx = window._rainbowIdx; const lm = _RAINBOW_CYCLE[liveIdx];
-        // EQ METER CARRIES OVER into MODIFY exactly as it was, per direct request (LIVE names no EQ of its own, so switching to it
-        // used to put back your pre-mode EQ settings instead — a different EQ type depending on where you came from). The
-        // remembered pre-mode settings are kept untouched too, so leaving still works as before.
-        const eqNow = { style: window._nameEqStyle, colour: window._nameEqColor, opacity: window._nameEqOpacity, glow: !!window._nameEqGlow, flashGlow: !!window._nameEqFlashGlow, bgClear: !!window._nameBgClear, fall: window._nameEqFall }, eqMem = window._eqBeforeMode;
-        const putEq = () => { try { setNameEqStyle(eqNow.style); setNameEqColor(eqNow.colour); setNameEqOpacity(eqNow.opacity); setNameEqGlow(eqNow.glow); setNameEqFlashGlow(eqNow.flashGlow); setNameBgClear(eqNow.bgClear); window._nameEqFall = eqNow.fall; } catch (e) {} };
-        _applyRainbowState(lm); window._eqBeforeMode = eqMem; putEq(); setTimeout(() => { if (document.body.classList.contains('modify')) putEq(); }, 200); // (again after the mode's own dark/light check)
-        try { _setModify(true, true); } catch (e) {} _showNotice('MODIFY MODE');
+      const b = document.body;
+      if (b.classList.contains('modify') || b.classList.contains('live-layout')) {
+        b.classList.remove('live-layout'); // (first — so leaving doesn't put LIVE's hidden tape back)
+        try { _setModify(false, true); } catch (e) {}
+        try { const m = _RAINBOW_CYCLE[window._rainbowIdx], h = m && m.sliders && m.sliders.volFillHeightSlider; if (h) { setVolFillHeightPct(h); const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = h; } } catch (e) {} // the display mode's own fill height (if it changed mode while in MODIFY)
+        try { _placeBeatCount(); } catch (e) {}
+        _showNotice('NORMAL MODE');
+      } else {
+        b.classList.add('live-layout');
+        try { const lk = document.getElementById('liveKey'); if (lk) lk._k = null; _updateLiveKey(); _placeLiveKey(); } catch (e) {}
+        try { _setModify(true, true); } catch (e) {}
+        _showNotice('MODIFY MODE');
       }
     };
     const move = (y, e) => {
