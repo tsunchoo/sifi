@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 06:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3015,7 +3015,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:05:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -5987,6 +5987,7 @@ window._randoLast = null;
 // DOUBLE CLICK on >> always frees every track first: locked → unlocked, muted → unmuted, per direct request
 function _dblUnlockUnmuteAll() {
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    if (trackSweep[tr] && document.body.classList.contains('modify')) continue; // MODIFY: LOCKED tracks stay locked (and untouched) through a double-click, per direct request
     if (trackSweep[tr]) { try { _toggleTrackLock(tr); } catch (e) { trackSweep[tr] = false; } }
     if (trackMuted[tr]) { trackMuted[tr] = false; try { updateTrackMute(tr); } catch (e) {} }
   }
@@ -8385,10 +8386,19 @@ document.addEventListener('DOMContentLoaded', () => { let on = true, op = 25; tr
   new MutationObserver(sync).observe(bc, { childList: true, characterData: true, subtree: true }); setInterval(sync, 250); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go(); })();
 // VOL BANGER OFF in MODIFY, per direct request — whatever it was is put back when MODIFY ends
+// MODIFY's VOLUME SLIDER look, per direct request: VOL BANGER ON, VOL FILL HEIGHT 20%, FILL HIGH COLOUR ONLY on — whatever they
+// were before is put back when MODIFY ends
 function _modifyVolBanger(on) {
   try {
-    if (on) { if (window._vbBeforeModify === undefined) window._vbBeforeModify = document.body.classList.contains('vol-banger'); setVolBanger(false); }
-    else if (window._vbBeforeModify !== undefined) { const v = window._vbBeforeModify; window._vbBeforeModify = undefined; setVolBanger(v); }
+    if (on) {
+      if (window._vbBeforeModify === undefined) { const sl = document.getElementById('volFillHeightSlider'); window._vbBeforeModify = { vb: document.body.classList.contains('vol-banger'), h: sl ? sl.value : '100', ho: !!window._fillHighOnly }; }
+      setVolBanger(true); setVolFillHeightPct(20); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = 20; }
+      window._fillHighOnly = true; { const cb = document.getElementById('fillHighOnlyToggle'); if (cb) cb.checked = true; } _fillSyncRoot(); _fillDirty();
+    } else if (window._vbBeforeModify !== undefined) {
+      const v = window._vbBeforeModify; window._vbBeforeModify = undefined;
+      setVolBanger(v.vb); setVolFillHeightPct(v.h); { const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = v.h; }
+      window._fillHighOnly = v.ho; { const cb = document.getElementById('fillHighOnlyToggle'); if (cb) cb.checked = v.ho; } _fillSyncRoot(); _fillDirty();
+    }
   } catch (e) {}
 }
 function _toggleModify() { _setModify(!document.body.classList.contains('modify')); }
