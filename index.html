@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 08:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 17:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -377,6 +377,8 @@ body.hide-tape #tapeReels { opacity: 0 !important; }
 /* LIVE layout: tempo twice the size, the key shown big on the left of the tempo row (placed by _placeLiveKey), count 2.5x (see _placeBeatCount) */
 #liveKey { display: none; position: absolute; left: 0; top: 0; z-index: 3; pointer-events: none; font-family: 'DM Sans', sans-serif; font-weight: 700; white-space: nowrap; color: var(--header-text-color, #111); align-items: baseline; gap: 0; }
 body.live-layout #siFiTitle { visibility: hidden !important; pointer-events: none !important; } /* LIVE: the key takes the logo's place, per direct request */
+html body.modify.live-layout #siFiTitle { visibility: visible !important; pointer-events: auto !important; } /* MODIFY keeps the Si•Fi LOGO (no key / scale in its place), per direct request — drag the logo down to go back to MAIN */
+html body.modify.live-layout #liveKey { display: none !important; }
 body.live-layout #liveKey { display: flex; pointer-events: auto; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; } /* tap opens SETTINGS in LIVE, per direct request */
 html body.night-invert #liveKey { --header-text-color: var(--top-row-text-color, #ececec); }
 /* (LIVE no longer doubles the tempo, per direct request — the key just matches the tempo's normal size) */
@@ -2615,15 +2617,16 @@ html body.modify { --simple-fader-width: 0px !important; --vol-tip-h: 0% !import
 html body.modify .mod-note-row { display: block; width: 100vw; margin-left: calc(50% - 50vw); /* the FULL screen width — the track list itself sits 4px in from each edge, per direct report */ height: calc(16px + 40px / 6); /* 16px + an equal share of the graph's freed top/bottom margins, per direct request */ pointer-events: none; opacity: var(--modify-notes-op, 0.4); }
 /* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
 html body.modify.name-bg-clear #nameBar { background: var(--name-bar-bg, #9fb9a2) !important; }
-html body.modify.modify #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) 66.08px, transparent 66.08px) !important; } /* MODIFY: the graph is always see-through (the song name strip keeps its colour), per direct request — the option is gone */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
-html body.modify #nameBar { min-height: calc(66.08px + 4px + var(--modify-pad-h, 186px)) !important; /* + a 4px gap between the song name and the graph — the same 4px as top row → song name and graph → track 1, per direct request */ /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
+:root { --modify-strip-h: 56.08px; } /* MODIFY's song name strip: 10px shorter than the bar on the MAIN page (66.08px), per direct request */
+html body.modify.modify #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) var(--modify-strip-h), transparent var(--modify-strip-h)) !important; } /* MODIFY: the graph is always see-through (the song name strip keeps its colour), per direct request — the option is gone */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
+html body.modify #nameBar { min-height: calc(var(--modify-strip-h) + 4px + var(--modify-pad-h, 186px)) !important; /* + a 4px gap between the song name and the graph — the same 4px as top row → song name and graph → track 1, per direct request */ /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
    the EQ and the pad share the bottom 90% */
 html body.modify #nameBar { align-items: flex-start; }
-html body.modify.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: 66.08px; /* the SAME size as the song name bar in the regular view, per direct request */ /* (.modify twice: beats SONG NAME HIDDEN — the name always shows in MODIFY, per direct request) */ display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
-html body.modify #nameEq { top: calc(66.08px + 4px) !important; bottom: auto !important; height: calc(100% - 66.08px - 4px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
-#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: calc(66.08px + 4px); bottom: 0; pointer-events: none; z-index: 2; }
+html body.modify.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: var(--modify-strip-h); /* the SAME size as the song name bar in the regular view, per direct request */ /* (.modify twice: beats SONG NAME HIDDEN — the name always shows in MODIFY, per direct request) */ display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
+html body.modify #nameEq { top: calc(var(--modify-strip-h) + 4px) !important; bottom: auto !important; height: calc(100% - var(--modify-strip-h) - 4px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
+#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: calc(var(--modify-strip-h) + 4px); bottom: 0; pointer-events: none; z-index: 2; }
 /* AXIS LABELS, per direct request: X along the top line of the pad, Y rotated 90° counter-clockwise down the left side */
 #modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: center; align-items: center; gap: 0.45em; font: 800 0.696rem/1 'DM Sans', sans-serif; /* 15% bigger; − and + sit right next to the word, per direct request */ letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; /* bold, ~10% bigger, darker, per direct request */ white-space: nowrap; }
 #modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
@@ -2647,6 +2650,11 @@ html body.modify #beatCount { visibility: hidden !important; }
 #modifyPadMarks.sp-held .sp-glow { opacity: 1; transition: opacity 0.12s ease-out; }
 /* the − / + only show while the cursor is held, and only the one for the side it's on (left/right for NOTES, up/down for EFFECTS) */
 #modifyPadMarks .sp-g { opacity: 0; transition: opacity 0.15s; }
+/* NOTES / EFFECTS labels: their colour follows what's behind the graph (light text on a dark page, dark on a light one — see
+   _modifyRowsTick), and they PULSE while the cursor is held / moving, per direct request */
+#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { color: var(--mod-lab-col, currentColor); opacity: 0.85 !important; }
+@keyframes sp-lab-pulse { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.35; } }
+#modifyPadMarks.sp-held .sp-xlab > span:not(.sp-g), #modifyPadMarks.sp-held .sp-ylab > span:not(.sp-g) { animation: sp-lab-pulse 0.6s ease-in-out infinite; }
 #modifyPadMarks.sp-xm .sp-xlab .sp-m, #modifyPadMarks.sp-xp .sp-xlab .sp-p, #modifyPadMarks.sp-ym .sp-ylab .sp-m, #modifyPadMarks.sp-yp .sp-ylab .sp-p { opacity: 1; }
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
@@ -3023,7 +3031,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 17:50:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8306,7 +8314,7 @@ window._padLatch = true;
   function tick() { raf = 0; if (!pad) return; if (pend) apply(pend[0], pend[1]); drawGrid(); if (held) raf = requestAnimationFrame(tick); } // held: re-applied every frame (cheap — only real changes are written)
   const inBar = e => document.body.classList.contains('modify') && nb() && nb().contains(e.target) && !(e.target.closest && e.target.closest('#modifyLock'));
   const evY = e => { const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e; return t.clientY; };
-  const inStrip = e => { if (!inBar(e)) return false; const r = nb().getBoundingClientRect(); return evY(e) - r.top < 66.08; }; // the SONG NAME strip (the top 66px — the same size as the bar everywhere else)
+  const inStrip = e => { if (!inBar(e)) return false; const r = nb().getBoundingClientRect(); return evY(e) - r.top < 56.08; }; // the SONG NAME strip (the top 66px — the same size as the bar everywhere else)
   const inPad = e => inBar(e) && !inStrip(e);
   // the SONG NAME strip is left to the song name's OWN gestures (double-tap = tape drawer + heart, SWIPES left/right, hold), per
   // direct request — only the pad below it is taken over here
@@ -8371,7 +8379,8 @@ function _modifyRowsTick() {
   if (!document.body.classList.contains('modify') || document.hidden) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1), mute = window._padMute;
   let grey = '#777';
-  try { const c = _anyRgba(getComputedStyle(document.body).backgroundColor); grey = c && _relLum(c) > 0.3 ? '#5a5a5a' : '#b0b0b0'; } catch (e) {}
+  try { const c = _anyRgba(getComputedStyle(document.body).backgroundColor); grey = c && _relLum(c) > 0.3 ? '#5a5a5a' : '#b0b0b0';
+    const m = document.getElementById('modifyPadMarks'); if (m && c) { const lab = _relLum(c) > 0.3 ? '#111111' : '#ffffff'; if (m._labCol !== lab) { m.style.setProperty('--mod-lab-col', lab); m._labCol = lab; } } } catch (e) {} // the axis labels read against the page behind the (see-through) graph
   for (let tr = 0; tr < NUM_TRACKS; tr++) {
     const cv = document.getElementById(`modrow-${tr}`); if (!cv) continue;
     const W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr); if (!W || !H) continue;
@@ -24200,6 +24209,7 @@ function setTonalPercBalance(v) {
     // In LIVE the drag is cut down to the gap between the bottom of the logo and the TOP of the key text, per direct request (so
     // the logo never slides into the key); measured on the drawn ink at the start of each drag. Outside LIVE it stays 52.5px.
     const liveMax = () => {
+      if (document.body.classList.contains('modify')) return 30; // MODIFY: the logo stays put — same 30px drag back to MAIN
       const key = document.getElementById('liveKey'); if (!document.body.classList.contains('live-layout') || !key || !key.firstChild) return 52.5;
       const c2 = (_beatMeasureCtx = _beatMeasureCtx || document.createElement('canvas').getContext('2d'));
       const ink = (el, txt, top) => { const cs = getComputedStyle(el); c2.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; const m = c2.measureText(txt);
@@ -24535,6 +24545,7 @@ function _nameEqTick(now) {
   // margins as the grid (VERT: 5px bars in 15px tracks — 25% bigger than the 20-bar version on the normal page)
   const _drawModify = (c) => {
     const GB = _modifyGridBox(W, H, dpr), bx = GB.x, bz = GB.y, gw = GB.gw, gh = GB.gh, cw = GB.cw, g1 = Math.round(dpr); if (gw <= 0 || gh <= 0) return; // the SAME area as the note grid
+    const bzE = bz + Math.round(6 * dpr), ghE = gh - Math.round(6 * dpr); // the EQ peaks 6px below the top of the graph, per direct request
     const colX = b => bx + Math.round(b * cw), colW = b => bx + Math.round((b + 1) * cw) - colX(b);
     if (style === 'vert') {
       const lw = 5 * dpr, tw = 15 * dpr, cap = 10 * dpr;
@@ -24542,19 +24553,19 @@ function _nameEqTick(now) {
       const _one = (window._nameEqColor || 'flash') !== 'flash' ? (_cssRgb(col) || [255, 255, 255]) : null;
       const lo = rec ? [255, 42, 42] : (_one || _fillBaseNow()), hi = rec ? [255, 42, 42] : (_one || _fillHighNow());
       c.fillStyle = `rgb(${lo[0]},${lo[1]},${lo[2]})`; c.save(); c.globalAlpha *= 0.10; c.beginPath();
-      for (let b = 0; b < 16; b++) { const cx = colX(b) + colW(b) / 2; c.rect(Math.round(cx - tw / 2), bz, tw, gh); } c.fill(); c.restore();
+      for (let b = 0; b < 16; b++) { const cx = colX(b) + colW(b) / 2; c.rect(Math.round(cx - tw / 2), bzE, tw, ghE); } c.fill(); c.restore();
       const tops = []; c.beginPath();
-      for (let b = 0; b < 16; b++) { const h = Math.max(dpr, Math.round(LV16[b] * gh)), top = bz + gh - h, x = Math.round(colX(b) + colW(b) / 2 - lw / 2); tops.push([x, top, Math.min(h, cap)]); if (h > cap) c.rect(x, top + cap, lw, h - cap); }
+      for (let b = 0; b < 16; b++) { const h = Math.max(dpr, Math.round(LV16[b] * ghE)), top = bzE + ghE - h, x = Math.round(colX(b) + colW(b) / 2 - lw / 2); tops.push([x, top, Math.min(h, cap)]); if (h > cap) c.rect(x, top + cap, lw, h - cap); }
       c.fill(); c.fillStyle = `rgb(${hi[0]},${hi[1]},${hi[2]})`; c.beginPath(); tops.forEach(([x, top, ch]) => c.rect(x, top, lw, ch)); c.fill();
     } else if (style === 'bars') {
-      for (let b = 0; b < 16; b++) { const h = Math.max(dpr, Math.round(LV16[b] * gh)); c.fillRect(colX(b) + g1, bz + gh - h, colW(b) - g1 * 2, h); }
+      for (let b = 0; b < 16; b++) { const h = Math.max(dpr, Math.round(LV16[b] * ghE)); c.fillRect(colX(b) + g1, bzE + ghE - h, colW(b) - g1 * 2, h); }
     } else if (style === 'leds') {
-      const SEG = 6, gap = 2 * dpr, sh = (gh - gap * (SEG - 1)) / SEG;
-      for (let b = 0; b < 16; b++) { const lit = Math.round(LV16[b] * SEG); for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 1 : 0.25; c.fillRect(colX(b) + g1, Math.round(bz + gh - (k + 1) * sh - k * gap), colW(b) - g1 * 2, Math.round(sh)); } }
+      const SEG = 6, gap = 2 * dpr, sh = (ghE - gap * (SEG - 1)) / SEG;
+      for (let b = 0; b < 16; b++) { const lit = Math.round(LV16[b] * SEG); for (let k = 0; k < SEG; k++) { c.globalAlpha = k < lit ? 1 : 0.25; c.fillRect(colX(b) + g1, Math.round(bzE + ghE - (k + 1) * sh - k * gap), colW(b) - g1 * 2, Math.round(sh)); } }
       c.globalAlpha = 1;
     } else { // LINE
-      const th = 4 * dpr, span = gh - th; c.beginPath();
-      for (let b = 0; b < 16; b++) { const y = bz + gh - th - LV16[b] * span; c.rect(colX(b) + g1, Math.round(y), colW(b) - g1 * 2, th); } c.fill();
+      const th = 4 * dpr, span = ghE - th; c.beginPath();
+      for (let b = 0; b < 16; b++) { const y = bzE + ghE - th - LV16[b] * span; c.rect(colX(b) + g1, Math.round(y), colW(b) - g1 * 2, th); } c.fill();
     }
   };
   const _draw = (c) => {
@@ -27948,44 +27959,53 @@ function snapshotDisplay() {
 /* ? HELP MODE, per direct request: a ? icon just left of the rainbow. Tapping it stops playback and switches every control off —
    instead, tapping anywhere on the screen shows a box describing what that part of the screen does. Tap ? again (or DONE) to leave. */
 (function () {
+  // UPDATED, per direct request — checked against how everything works now; MODIFY-aware (an entry's text can be a function of
+  // where you tapped, so shared parts describe MODIFY when you're in MODIFY); LIVE left out while it's hidden.
+  const MOD = () => document.body.classList.contains('modify');
   const H = [
-    ['#siFiTitle', 'Si•Fi LOGO', 'Tapping the logo toggles the 8-bit mix (crunchy 1990s computer feel). Dragging the logo DOWN switches to MODIFY mode — just the button rows, with the song name bar turned into a big XY pad (left/right = fewer/more notes, up/down = fewer/more effects); drag the key DOWN to come back.'],
+    ['#siFiTitle', 'Si•Fi LOGO', 'Tap to toggle the 8-bit mix. Drag DOWN to switch between the two main modes, MAIN and MODIFY. Hold for a short description of Si•Fi.'],
     ['#_helpBtn', 'HELP MODE - click anything to see what it does', ''],
     ['#_hamBtn', 'MENU', 'Shows or hides the rainbow (look and feel), reverb and help icons. Tap again to tuck them away.'],
-    ['#devMenuBtn', 'RAINBOW · LOOK AND FEEL MENU', 'Tap to open LOOK AND FEEL — display modes, colours, marker styles and other visual settings. Swipe DOWN to cycle thru display modes.'],
-    ['#randomizeReverbIconBtn', 'REVERB', 'Drag DOWN to get new reverb settings (size and mix) without touching the pattern, dragging down toggles it back off. Click and holding opens the reverb menu, where you can change the overall Reverb mix, size and how much it applies to \'DRUMS\''],
-    ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle thru 3 count modes, text/text with audible click/hide count. In LIVE mode it is always shown and a tap switches the click on/off.'],
-    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In MODIFY mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to the MAIN mode. (MAIN and MODIFY are the two main modes; the rainbow icon changes the DISPLAY mode — the look — in either.)'],
-    ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the TEMPO, hold to bring up the tempo menu: NUDGE (push/pull while held), TEMPO slider, the lock and RE-UP to stop and restart the pattern/count.'],
-    ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
-    ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
-    ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Single click opens the SETTINGS MENU and clicking and dragging down to open the TAPE DRAWER — every pattern you saved this session (double-tap the song name to save). Tap a tape to hear it once, or PLAY ALL.'],
-    ['#nameBar', 'SONG NAME', 'New patterns are given a randomized name based on celestial bodies of the Solar System and 80\'s Sci-Fi movie characters. Every pattern is saved to the TAPE DRAWER automatically (12 max, the oldest drops off). Double-tap to save it to the TAPE DRAWER yourself (a heart floats up) — it is then kept exactly as it is.'],
+    ['#devMenuBtn', 'RAINBOW · DISPLAY MODES', 'Swipe DOWN to cycle through the display modes (the look — colours, glows, meters) in either main mode. Tap to open LOOK AND FEEL for the visual settings.'],
+    ['#randomizeReverbIconBtn', 'REVERB + DELAY', 'Drag DOWN for new reverb settings without touching the pattern (drag again to switch it back off). Hold to open the menu: reverb MIX, SIZE and ON BEAT, plus DELAY — TIME, LEVEL and DIRTY — for every track on its DL stop.'],
+    ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle through the 3 count modes: count / count with an audible click / hidden.'],
+    ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the tempo; hold for the tempo menu: NUDGE (push/pull while held), the TEMPO slider, the lock and RE-UP to restart the pattern and count.'],
+    ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Hold it like a vinyl record — releasing restarts from the 1. You can also drag onto it from a held SWEEP.'],
+    ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tap to play a phrase in the current pattern\'s scale. Double-tap to reset the drums if they\'ve been offset in the DRUMS menu.'],
+    ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Tap for SETTINGS. Drag DOWN for the TAPE DRAWER — every pattern is kept there automatically (12 max, the oldest drops off). Tap a tape to loop it (tap again to stop), or PLAY ALL — a rewind plays between tapes with different tempos.'],
+    ['#nameBar', 'SONG NAME', (x, y) => {
+      const r = document.getElementById('nameBar').getBoundingClientRect();
+      if (MOD() && y - r.top >= 56) return ['MODIFY PAD', 'Hold and move: LEFT mutes notes, RIGHT adds them; UP takes effects away (and chops tracks with EN), DOWN adds random effects (drums too). The centre is the pattern as it was; it stays where you let go. Double-click >> to watch the new notes land below. The big number is the count.'];
+      return [MOD() ? 'SONG NAME (MODIFY)' : 'SONG NAME', 'Each new pattern gets a randomized name. Double-tap to keep it in the TAPE DRAWER (a heart floats up). Swipe RIGHT to add effects (and change the EQ type), LEFT to take them off. Hold to hide or show the name.'];
+    }],
     ['#slotBar', 'SLOTS', 'Up to six saved patterns. Tap one to switch to it on the next beat.'],
-    ['#randBtn', '>>  RANDOMIZER', 'Tapping swaps the instruments of the current patterns and double-tapping loads a brand-new randomized groove (new tempo, drum beat, key, instruments and notes) on the next bar. Holding turns on AUTO mode. Click and drag down opens the RANDO BUTTON menu, where you choose what a click and a double-click each do.'],
-    ['#clearBtn', 'SWEEP', 'Sweep is for transitions between patterns, clicking and dragging down for more of the filter-sweep riser and dragging to the right increases the 8-bit crunch mix. Releasing will return the mix to where it was.'],
+    ['#randBtn', '>>  RANDOMIZER', 'Tap for new instruments on the current pattern; double-tap for a brand-new groove on the next bar (and a new delay time and level). Hold for AUTO. Drag DOWN for the RANDO BUTTON menu — what a click, double-click and AUTO do. In MODIFY, locked tracks stay as they are.'],
+    ['#clearBtn', 'SWEEP', 'For transitions: hold and drag DOWN for more of the filter-sweep riser, drag RIGHT for 8-bit crunch. Releasing returns the mix to where it was.'],
     ['#playBtn', 'PLAY / STOP', 'Tap to start and stop. Double-tap resets the app. Long-press rebuilds the audio engine if the sound ever goes wrong.'],
-    ['#beatBtn', 'DRUMS', 'Tap to switch the built-in drum beat on or off. Hold for the beat menu, where the A button switches DRUMS AUTO on and off.'],
-    ['#scratchBtn', 'A / B', 'Jumps back to the previous pattern, tap again to go back. Handy for comparing two grooves.'],
-    ['#saveBtn', 'RECORD', 'Record button will start recording in realtime from a tap, click and hold for the RECORD menu: record in real time, bounce loops or stems, save a tape, or send a tape link.'],
-    ['.track-name-btn', 'INSTRUMENT NAME', 'The instrument on this track. Clicking mutes/unmutes the track, Click and hold for the instrument menu and swiping right locks the track, swiping right again will unlock.'],
-    ['.lock-btn', 'INSTRUMENT RANDOMIZER', 'Tap for a new instrument in the same family. Double-tap to change instrument type from tonal to drums or vice versa.'],
-    ['.track-vol-bar', 'TRACK VOLUME', 'Drag to change level.'],
-    ['.shift-btn', '<  OFFSET', 'Offset button moves the track’s notes a step earlier. The offset value can be changed in the look and feel menu under DEV / BEHAVIOUR'],
-    ['.fx-btn', 'FX', 'Tap to cycle through 4 stops: FX (off) → EN (FX1, an envelope that chops each hit) → DS (FX2, distortion — heavy pumping crunch) → DL (delay) → off.'],
+    ['#beatBtn', 'DRUMS', 'Tap to switch the drum beat on or off. Hold for the beat menu — beat types, the drums\' own FX button (FX / EN / DS / DL), and A for DRUMS AUTO.'],
+    ['#scratchBtn', 'A / B', 'Jumps back to the previous pattern; tap again to go back. Handy for comparing two grooves.'],
+    ['#saveBtn', 'RECORD', 'Tap to start recording in real time. Hold for the RECORD menu: real time, bounce loops or stems, save a tape, or send a tape link.'],
+    ['.track-name-btn', 'INSTRUMENT NAME', 'The instrument on this track. Tap to mute / unmute, hold for the instrument menu, swipe RIGHT to lock the track (again to unlock).'],
+    ['.lock-btn', 'INSTRUMENT RANDOMIZER', 'Tap for a new instrument in the same family. Double-tap to switch between tonal and drums.'],
+    ['.track-vol-bar', 'TRACK VOLUME', () => MOD() ? 'Drag to change level — in MODIFY only the live level meter shows (no fader).' : 'Drag to change level. With VOL BANGER on, the fill bounces with the track\'s live level.'],
+    ['.shift-btn', '<  OFFSET', 'Moves the track\'s notes a step earlier. The step size is set in LOOK AND FEEL under DEV / BEHAVIOUR.'],
+    ['.fx-btn', 'FX', 'Tap to cycle: FX (off) → EN (FX1, an envelope that chops each hit) → DS (FX2, distortion) → DL (delay, set in the REVERB menu) → off.'],
     ['[id^="delaybtn-"]', 'R  REVERB', 'Sends this track into the reverb. Tap to switch on or off.'],
-    ['.rand-btn', '+  NEW NOTES', 'Create new random notes for this track (some instruments like hihat will have regular patterns as well as random). Double-tapping turns on AUTO NOTES mode which creates new notes every bar.'],
-    ['.solo-btn', 'S  SOLO', 'Momentarily solos this track, you can also click and drag and behaviour can be changed in the LOOK and FEEL menu under BEHAVIOUR to latch on/off and also whether SOLO includes DRUMS or not.'],
-    ['.step-cell', 'NOTE STEP', 'One 16th note of the bar. Tap to add or remove a note. Click and drag right to add longer notes, click and hold to suck notes to that point.'],
-    ['.step-lane', 'PATTERN ROW', 'This track’s 16 steps for one bar — big markers are accented notes, small ones softer notes, bars are held notes.'],
-    ['.track-ctrl-row', 'TRACK CONTROLS', 'Volume, shift, FX, reverb, new notes and solo for the track above.'],
+    ['.rand-btn', '+  NEW NOTES', 'New random notes for this track. On tonal instruments each tap adds more notes than the last, for 5 taps, then starts again. Double-tap for AUTO NOTES (new notes every bar).'],
+    ['.solo-btn', 'S  SOLO', 'Momentarily solos this track (you can drag across them too). LOOK AND FEEL > BEHAVIOUR sets latching and whether SOLO includes the DRUMS.'],
+    ['.step-cell', 'NOTE STEP', 'One 16th note of the bar. Tap to add or remove a note, drag right for a longer note, hold to pull notes to that point.'],
+    ['.step-lane', 'PATTERN ROW', 'This track\'s 16 steps — big markers are accents, small ones softer notes, bars are held notes.'],
+    ['.track-ctrl-row', 'TRACK CONTROLS', 'Volume, offset, FX, reverb, new notes and solo for this track.'],
+    ['.track-wrap', 'TRACK', () => MOD() ? ['NOTE ROW (MODIFY)', 'This track\'s notes, just to see — they follow the pad live (muted ones disappear). Colour and opacity are in SETTINGS.'] : ['TRACK', 'One track: its controls and its 16 steps.']],
     ['header', 'TOP BAR', 'Logo, count, tape, tempo and the menu icons.'],
   ];
   let on = false, ov = null, box = null, hl = null, btn = null;
-  const find = el => { for (const [sel, t, d] of H) { const m = el && el.closest && el.closest(sel); if (m) return { m, t, d }; } return null; };
+  const find = (el, x, y) => { for (const [sel, t, d] of H) { const m = el && el.closest && el.closest(sel); if (m) {
+    if (typeof d === 'function') { const v = d(x, y); return Array.isArray(v) ? { m, t: v[0], d: v[1] } : { m, t, d: v }; } // mode / position-aware entries
+    return { m, t, d }; } } return null; };
   function show(x, y) {
     ov.style.pointerEvents = 'none'; const el = document.elementFromPoint(x, y); ov.style.pointerEvents = 'auto';
-    const f = find(el);
+    const f = find(el, x, y);
     if (!f) { box.style.display = 'none'; hl.style.display = 'none'; return; }
     const r = f.m.getBoundingClientRect();
     hl.style.display = 'block'; Object.assign(hl.style, { left: (r.left - 3) + 'px', top: (r.top - 3) + 'px', width: (r.width + 6) + 'px', height: (r.height + 6) + 'px' });
