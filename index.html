@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 08:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 08:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2616,14 +2616,14 @@ html body.modify .mod-note-row { display: block; width: 100vw; margin-left: calc
 /* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
 html body.modify.name-bg-clear #nameBar { background: var(--name-bar-bg, #9fb9a2) !important; }
 html body.modify.modify #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) 66.08px, transparent 66.08px) !important; } /* MODIFY: the graph is always see-through (the song name strip keeps its colour), per direct request — the option is gone */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
-html body.modify #nameBar { min-height: calc(66.08px + var(--modify-pad-h, 186px)) !important; /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
+html body.modify #nameBar { min-height: calc(66.08px + 4px + var(--modify-pad-h, 186px)) !important; /* + a 4px gap between the song name and the graph — the same 4px as top row → song name and graph → track 1, per direct request */ /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
    the EQ and the pad share the bottom 90% */
 html body.modify #nameBar { align-items: flex-start; }
 html body.modify.modify #nameDisplay { position: absolute !important; left: 0; right: 0; top: 0; height: 66.08px; /* the SAME size as the song name bar in the regular view, per direct request */ /* (.modify twice: beats SONG NAME HIDDEN — the name always shows in MODIFY, per direct request) */ display: flex !important; align-items: center; justify-content: center; visibility: visible !important; z-index: 3 !important; }
-html body.modify #nameEq { top: 66.08px !important; bottom: auto !important; height: calc(100% - 66.08px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
-#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: 66.08px; bottom: 0; pointer-events: none; z-index: 2; }
+html body.modify #nameEq { top: calc(66.08px + 4px) !important; bottom: auto !important; height: calc(100% - 66.08px - 4px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
+#modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: calc(66.08px + 4px); bottom: 0; pointer-events: none; z-index: 2; }
 /* AXIS LABELS, per direct request: X along the top line of the pad, Y rotated 90° counter-clockwise down the left side */
 #modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: center; align-items: center; gap: 0.45em; font: 800 0.696rem/1 'DM Sans', sans-serif; /* 15% bigger; − and + sit right next to the word, per direct request */ letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; /* bold, ~10% bigger, darker, per direct request */ white-space: nowrap; }
 #modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
@@ -3023,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:30:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8383,7 +8383,7 @@ function _modifyRowsTick() {
     for (let gs = 0; gs < NUM_STEPS; gs++) {
       if (!(grid[tr][gs] > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
       const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, x0 = Math.round(gap + ds * (cw + gap)), x1 = Math.round(gap + ds * (cw + gap) + cw);
-      c.fillRect(x0, 0, Math.max(1, x1 - x0), H);
+      const sh = Math.round(dpr); c.fillRect(x0 + Math.floor(sh / 2), Math.floor(sh / 2), Math.max(1, x1 - x0 - sh), Math.max(1, H - sh)); // each marker 1px narrower and 1px shorter (centred in its slot), per direct request
     }
   }
 }
