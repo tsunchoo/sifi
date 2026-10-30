@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 06:50:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 07:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2615,7 +2615,7 @@ html body.modify { --simple-fader-width: 0px !important; --vol-tip-h: 0% !import
 html body.modify .mod-note-row { display: block; width: 100%; height: calc(16px + 40px / 6); /* 16px + an equal share of the graph's freed top/bottom margins, per direct request */ pointer-events: none; opacity: var(--modify-notes-op, 0.4); }
 /* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
 html body.modify.name-bg-clear #nameBar { background: var(--name-bar-bg, #9fb9a2) !important; }
-html body.modify.modify-pad-clear #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) 66.08px, transparent 66.08px) !important; } /* MODIFY GRAPH BG TRANSPARENT (top of SETTINGS): the song name strip keeps its colour, the graph below goes see-through */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
+html body.modify.modify #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) 66.08px, transparent 66.08px) !important; } /* MODIFY: the graph is always see-through (the song name strip keeps its colour), per direct request — the option is gone */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
 html body.modify #nameBar { min-height: calc(66.08px + var(--modify-pad-h, 186px)) !important; /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
@@ -2625,9 +2625,9 @@ html body.modify.modify #nameDisplay { position: absolute !important; left: 0; r
 html body.modify #nameEq { top: 66.08px !important; bottom: auto !important; height: calc(100% - 66.08px) !important; } /* (a canvas won't stretch between top/bottom — explicit height) */
 #modifyPadMarks { display: none; position: absolute; left: 0; right: 0; top: 66.08px; bottom: 0; pointer-events: none; z-index: 2; }
 /* AXIS LABELS, per direct request: X along the top line of the pad, Y rotated 90° counter-clockwise down the left side */
-#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: space-between; font: 800 0.605rem/1 'DM Sans', sans-serif; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; /* bold, ~10% bigger, darker, per direct request */ white-space: nowrap; }
+#modifyPadMarks .sp-xlab, #modifyPadMarks .sp-ylab { position: absolute; display: flex; justify-content: center; align-items: center; gap: 0.45em; font: 800 0.696rem/1 'DM Sans', sans-serif; /* 15% bigger; − and + sit right next to the word, per direct request */ letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; /* bold, ~10% bigger, darker, per direct request */ white-space: nowrap; }
 #modifyPadMarks .sp-xlab { top: 5px; left: 22px; right: 8px; }
-#modifyPadMarks .sp-ylab { left: 5px; top: 22px; bottom: 44px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
+#modifyPadMarks .sp-ylab { left: 5px; top: 18px; bottom: 18px; writing-mode: vertical-rl; transform: rotate(180deg); } /* reads bottom → top */
 /* MODIFY: the big COUNT sits in the middle of the pad at 60%, per direct request (a mirror of #beatCount, which hides here) */
 #modifyPadMarks { overflow: hidden; }
 #modifyPadMarks .sp-count { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; font: 700 min(91.2vh, 21.6rem)/0.8 'DM Sans', sans-serif; opacity: var(--modify-count-op, 0.25); pointer-events: none; } /* 2.4x bigger, 25% by default (SETTINGS > MODIFY COUNT), per direct request */
@@ -2645,6 +2645,9 @@ html body.modify #beatCount { visibility: hidden !important; }
 #modifyPadMarks.sp-held .sp-tint { transition: background-color 0.08s linear; }
 #modifyPadMarks .sp-glow { position: absolute; inset: 0; opacity: 0; transition: opacity 0.5s ease-out; } /* the brighter glow under the finger, while held */
 #modifyPadMarks.sp-held .sp-glow { opacity: 1; transition: opacity 0.12s ease-out; }
+/* the − / + only show while the cursor is held, and only the one for the side it's on (left/right for NOTES, up/down for EFFECTS) */
+#modifyPadMarks .sp-g { opacity: 0; transition: opacity 0.15s; }
+#modifyPadMarks.sp-xm .sp-xlab .sp-m, #modifyPadMarks.sp-xp .sp-xlab .sp-p, #modifyPadMarks.sp-ym .sp-ylab .sp-m, #modifyPadMarks.sp-yp .sp-ylab .sp-p { opacity: 1; }
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-h, #modifyPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
@@ -2654,7 +2657,7 @@ html body.modify #modifyPadMarks { display: block; }
 #modifyGridCv { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.5s ease-out; pointer-events: none; }
 #modifyPadMarks.sp-held #modifyGridCv, #modifyPadMarks.sp-reveal #modifyGridCv { opacity: var(--modify-notes-op, 0.4); transition: opacity 0.12s ease-out; } /* (sp-reveal: a DOUBLE CLICK on >> shows the new notes landing) */
 #modifyLock { display: none; position: absolute; left: 6px; bottom: 6px; z-index: 3; width: 30px; height: 30px; padding: 0; border: none; border-radius: 4px; background: rgba(0,0,0,0.12); color: inherit; align-items: center; justify-content: center; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-html body.modify #modifyLock { display: flex; }
+html body.modify #modifyLock { display: none; } /* padlock HIDDEN for now, per direct request (the pad stays LATCHED) */
 #modifyLock.sp-unlatched { opacity: 0.55; }
 html body.name-bg-clear #nameBar { background: transparent !important; background-color: transparent !important; } /* SONG NAME BG TRANSPARENT (SETTINGS > SONG NAME EQ), per direct request */
 html body.song-name-hidden #nameDisplay { visibility: hidden !important; } /* SONG NAME hidden (hold the bar), per direct request */
@@ -3020,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:50:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3945,20 +3948,10 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
 
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">SETTINGS</div>
-    <!-- MODIFY NOTE MARKERS: circles (default) or squares, per direct request -->
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY NOTES AS SQUARES (OFF = CIRCLES)</div>
-      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="modifyMarkSquaresToggle" onchange="setModifyMarkSquares(this.checked)"><span class="wild-toggle-slider"></span></label>
-    </div>
     <!-- MODIFY SLIM NOTE ROWS: grayscale (default) or each track's colour, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY NOTE ROWS IN TRACK COLOURS (OFF = GREY)</div>
       <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="modifyRowColoursToggle" onchange="setModifyRowColours(this.checked)"><span class="wild-toggle-slider"></span></label>
-    </div>
-    <!-- MODIFY GRAPH BACKGROUND TRANSPARENT, per direct request -->
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY GRAPH BG TRANSPARENT</div>
-      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="modifyPadClearToggle" onchange="setModifyPadClear(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
     <!-- SONG NAME EQ (moved to the top of SETTINGS from LOOK AND FEEL > DEV), per direct request -->
     <div style="display:flex;flex-direction:column;gap:6px;">
@@ -8165,7 +8158,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span>&minus;</span><span>NOTES</span><span>+</span></div><div class="sp-ylab"><span>+</span><span>EFFECTS</span><span>&minus;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span class="sp-g sp-m">&minus;</span><span>NOTES</span><span class="sp-g sp-p">+</span></div><div class="sp-ylab"><span class="sp-g sp-p">+</span><span>EFFECTS</span><span class="sp-g sp-m">&minus;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
@@ -8283,6 +8276,7 @@ window._padLatch = true;
     { const m = document.getElementById('modifyPadMarks'); if (m) m.querySelectorAll('.sp-dot, .sp-tint').forEach(n => { if (n._home) { n._home.cancel(); n._home = null; } }); } // a touch mid-ease takes over straight away
     const r = (document.getElementById('modifyPadMarks') || nb()).getBoundingClientRect(); const x = (cx - r.left) / r.width, y = (cy - r.top) / r.height; // the pad = the bottom 90%
     showDot([x, y]); tint(x, y); pend = [x, y]; if (!raf) raf = requestAnimationFrame(tick);
+    { const m = document.getElementById('modifyPadMarks'); if (m) { m.classList.toggle('sp-xm', x < 0.47); m.classList.toggle('sp-xp', x > 0.53); m.classList.toggle('sp-ym', y < 0.47); m.classList.toggle('sp-yp', y > 0.53); } } // which − / + to show
   }
   // NOTE GRID over the pad: every track (in the order they sit on screen) × 16 steps, only the notes that are actually sounding
   // right now (muted ones left out), in each track's own colour — every note the same size, filling its cell
@@ -8302,8 +8296,7 @@ window._padLatch = true;
         const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
         const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS;
         const g1 = Math.round(dpr), cx0 = bzx + (ds + 0.5) * cw, cy0 = bzy + (ri + 0.5) * rh, sz = Math.max(2, Math.min(cw, rh) - g1 * 2); // TRUE circles / squares (not ovals / rectangles), as big as fits the cell with the 2px gap, per direct request
-        if (window._modifyMarkSquares) c.fillRect(Math.round(cx0 - sz / 2), Math.round(cy0 - sz / 2), Math.round(sz), Math.round(sz));
-        else { c.beginPath(); c.arc(cx0, cy0, sz / 2, 0, Math.PI * 2); c.fill(); } // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
+        c.fillRect(Math.round(cx0 - sz / 2), Math.round(cy0 - sz / 2), Math.round(sz), Math.round(sz)); // (circle option removed, per direct request) // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
       }
     });
   }
@@ -8323,7 +8316,7 @@ window._padLatch = true;
   const end = () => {
     if (!held) return; held = false; if (raf) { cancelAnimationFrame(raf); raf = 0; }
     if (pend && pad) apply(pend[0], pend[1]); pend = null;
-    const m = marks(); if (m) m.classList.remove('sp-held'); // the note grid fades out (0.5s), showing what it was left on
+    const m = marks(); if (m) m.classList.remove('sp-held', 'sp-xm', 'sp-xp', 'sp-ym', 'sp-yp'); // the note grid fades out (0.5s), showing what it was left on
     if (window._padLatch) { drawGrid(); redraw(); return; } // LATCHED: stays where you let go
     restore();
   };
@@ -8403,13 +8396,8 @@ function _setModify(on, quiet) {
   try { playUiSound('tinyclick'); } catch (e) {}
   _showNotice(on ? 'MODIFY MODE' : 'LIVE MODE');
 }
-window._modifyMarkSquares = false;
-function setModifyMarkSquares(on) { window._modifyMarkSquares = !!on; const cb = document.getElementById('modifyMarkSquaresToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyMarkSq', on ? '1' : '0'); } catch (e) {} }
-document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyMarkSq') === '1'; } catch (e) {} setModifyMarkSquares(on); });
 function setModifyRowColours(on) { window._modifyRowColours = !!on; const cb = document.getElementById('modifyRowColoursToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyRowCol', on ? '1' : '0'); } catch (e) {} }
 document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyRowCol') === '1'; } catch (e) {} setModifyRowColours(on); });
-function setModifyPadClear(on) { document.body.classList.toggle('modify-pad-clear', !!on); const cb = document.getElementById('modifyPadClearToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyPadClear', on ? '1' : '0'); } catch (e) {} }
-document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyPadClear') === '1'; } catch (e) {} setModifyPadClear(on); });
 // MODIFY COUNT settings (SETTINGS), per direct request — remembered on this device
 function setModifyCount(on) { document.body.classList.toggle('modify-count-off', !on); const cb = document.getElementById('modifyCountToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyCount', on ? '1' : '0'); } catch (e) {} }
 function setModifyNotesOpacity(v) { v = Math.max(0, Math.min(100, +v || 0)); document.documentElement.style.setProperty('--modify-notes-op', (v / 100).toFixed(2)); const r = document.getElementById('modifyNotesOpVal'); if (r) r.textContent = Math.round(v) + '%'; const sl = document.getElementById('modifyNotesOpSlider'); if (sl && +sl.value !== v) sl.value = v; try { localStorage.setItem('sifiModifyNotesOp', String(v)); } catch (e) {} }
