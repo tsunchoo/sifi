@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 07:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 08:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3023,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:55:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 08:20:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -9543,13 +9543,16 @@ function randomizeBassTrack(tr, level) {
   // ARP (was SPACE KOTO), per direct request: ALWAYS an arpeggio of the current scale across the whole measure (16th, 8th or triplet feel) —
   // whole-pattern RAND and the track's own + both come through here
   if (key === 'rhodes') { _writeArpPattern(tr, trackBassScale[tr]); redrawTrackCells(tr); markModified(); return; } // must redraw — this early return used to skip it, so + / auto played new notes without showing them
+  // TONAL + PRESS LADDER, per direct request: YOUR OWN taps on a tonal track's + climb a 5-step note quota — each press more
+  // notes than the one before, then back to the sparsest — so the random arpeggio swaps are skipped on those presses
+  const _ladderTap = window._plusTapTr === tr;
   // 1-in-4 chance of an 8th-note arpeggio instead of the usual scattered notes
-  if (ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
+  if (!_ladderTap && ARPEGGIO_KEYS.has(key) && Math.random() < 0.25) {
     _writeArpeggioPattern(tr, trackBassScale[tr]);
     return;
   }
   // Bass gets the same treatment, just much rarer — 1 in 8
-  if (BASS_ARPEGGIO_KEYS.has(key) && Math.random() < 0.125) {
+  if (!_ladderTap && BASS_ARPEGGIO_KEYS.has(key) && Math.random() < 0.125) {
     _writeArpeggioPattern(tr, trackBassScale[tr]);
     return;
   }
@@ -9592,6 +9595,13 @@ function randomizeBassTrack(tr, level) {
   const maxN = Math.min(NUM_STEPS, Math.max(_minN, Math.round(maxN0 * tempoNoteFactor() * intensityMult())));
   window._lastNoteMaxUsed = maxN;
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
+  if (_ladderTap) { // the + LADDER: press 1…5 = the instrument's own sparsest → busiest, each strictly more than the last, then round again
+    const L = window._tonalPlusLadder = window._tonalPlusLadder || {}; let st = L[tr]; if (!st || st.key !== key) st = L[tr] = { key, k: 0 };
+    const lo = Math.min(NUM_STEPS - 4, Math.max(1, Math.round(levelTable[0][0] * intensityMult())));
+    const hi = Math.min(NUM_STEPS, Math.max(lo + 4, Math.round(levelTable[2][1] * tempoNoteFactor() * intensityMult())));
+    noteCount = Math.min(NUM_STEPS, lo + Math.round((hi - lo) * st.k / 4)); if (st.k > 0 && st.prev !== undefined && noteCount <= st.prev) noteCount = Math.min(NUM_STEPS, st.prev + 1);
+    st.prev = st.k === 4 ? undefined : noteCount; st.k = (st.k + 1) % 5; window._lastNoteMaxUsed = noteCount;
+  }
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
   if (key === 'dronePlus') noteCount = Math.min(NUM_STEPS, Math.max(noteCount + 1, Math.round(noteCount * 1.2))); // ZINGS 20% more notes, per direct request (always at least +1)
@@ -20560,7 +20570,16 @@ function randomizeTrack(tr) {
   // dispatched through randomizeBassTrack just below like any other lead.
 
   if (trackInstruments[tr] === 'sbass' || trackInstruments[tr] === 'sbass3' || trackInstruments[tr] === 'sbass4' || trackInstruments[tr] === 'dbass' || trackInstruments[tr] === 'pbass' || trackInstruments[tr] === 'sludge' || trackInstruments[tr] === 'stab' || trackInstruments[tr] === 'chug' || trackInstruments[tr] === 'bashp' || trackInstruments[tr] === 'denial' || trackInstruments[tr] === 'jcmgtr' || trackInstruments[tr] === 'sprkls' || trackInstruments[tr] === 'clar' || trackInstruments[tr] === 'sstring' || trackInstruments[tr] === 'sleg' || trackInstruments[tr] === 'sparkle' || trackInstruments[tr] === 'rhodes' || trackInstruments[tr] === 'rhodes2' || trackInstruments[tr] === 'sflute' || trackInstruments[tr] === 'spiano' || trackInstruments[tr] === 'satk' || trackInstruments[tr] === 'boog' || trackInstruments[tr] === 'magic' || trackInstruments[tr] === 'fflute' || trackInstruments[tr] === 'blunt' || trackInstruments[tr] === 'damask' || trackInstruments[tr] === 'yamask' || trackInstruments[tr] === 'dulc' || (trackInstruments[tr] === 'opening' || trackInstruments[tr] === 'tralaarp' || trackInstruments[tr] === 'ballsac') || trackInstruments[tr] === 'drone' || trackInstruments[tr] === 'dronePlus' || trackInstruments[tr] === 'underpass') {
-    randomizeBassTrack(tr, level); return;
+    randomizeBassTrack(tr, level);
+    // + LADDER guarantee: some instruments' own clean-up passes (legato merging, spacing / density checks) can take onsets back
+    // out after the quota — so on YOUR + presses the result is topped up to always show MORE notes than the press before
+    if (window._plusTapTr === tr) { try { const st = window._tonalPlusLadder && window._tonalPlusLadder[tr]; if (st) {
+      const has = () => grid[tr].filter(v => v > 0).length; let n = has();
+      if (st.k !== 1 && st.lastVis !== undefined && n <= st.lastVis) { const empt = []; for (let i = 0; i < NUM_STEPS; i++) if (!(grid[tr][i] > 0) && !(trackLegatoLen[tr] && Object.keys(trackLegatoLen[tr]).some(o => { o = +o; const L = trackLegatoLen[tr][o]; return i > o && i < o + L; }))) empt.push(i);
+        for (let i = empt.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [empt[i], empt[j]] = [empt[j], empt[i]]; }
+        while (n <= st.lastVis && empt.length) { grid[tr][empt.pop()] = 1; n++; } redrawTrackCells(tr); }
+      st.lastVis = st.k === 0 ? undefined : has(); } } catch (e) {} } // (k already advanced: k===1 means this was press 1 — a fresh start; k===0 means press 5 just finished the round)
+    return;
   }
 
   // HIHAT / RIDE / SHAKER / TAMBOURINE / NOISE: identical behavior across
@@ -23447,7 +23466,7 @@ function _applyRainbowState(m) {
   if (m.sliders) Object.keys(m.sliders).forEach(id => { const el = document.getElementById(id); if (!el) return; if (!(id in window._slidersBeforeMode)) window._slidersBeforeMode[id] = el.value; _setSl(id, m.sliders[id]); });
   // Body classes a mode switches (m.classes = {cls: on}), remembered/restored
   window._classesBeforeMode = window._classesBeforeMode || {};
-  Object.keys(window._classesBeforeMode).forEach(c => { if (!m.classes || !(c in m.classes)) { document.body.classList.toggle(c, window._classesBeforeMode[c]); delete window._classesBeforeMode[c]; } });
+  Object.keys(window._classesBeforeMode).forEach(c => { if ((c === 'live-layout' || c === 'hide-tape' || c === 'modify') && document.body.classList.contains('modify')) return; /* a DISPLAY mode change never knocks you out of the MODIFY main mode */ if (!m.classes || !(c in m.classes)) { document.body.classList.toggle(c, window._classesBeforeMode[c]); delete window._classesBeforeMode[c]; } });
   if (m.classes) Object.keys(m.classes).forEach(c => { if (c === 'hide-vol-track' || c === 'vol-bg-transparent') return; /* hardcoded ON now, per direct request */ if ((c === 'live-layout' || c === 'hide-tape') && document.body.classList.contains('modify')) return; /* MODIFY keeps its layout (and its tape) through a display-mode change */ if (!(c in window._classesBeforeMode)) window._classesBeforeMode[c] = document.body.classList.contains(c); document.body.classList.toggle(c, !!m.classes[c]); });
   { const dp = document.getElementById('drumsPulseToggle'); if (dp) dp.checked = document.body.classList.contains('drums-pulse'); }
   { const g = document.body.classList.contains('notes-grayscale'); ['devNotesGrayscale', 'notesGrayscaleEnable'].forEach(id => { const c = document.getElementById(id); if (c) c.checked = g; }); }
@@ -24198,7 +24217,7 @@ function setTonalPercBalance(v) {
         try { _setModify(false, true); } catch (e) {}
         try { const m = _RAINBOW_CYCLE[window._rainbowIdx], h = m && m.sliders && m.sliders.volFillHeightSlider; if (h) { setVolFillHeightPct(h); const sl = document.getElementById('volFillHeightSlider'); if (sl) sl.value = h; } } catch (e) {} // the display mode's own fill height (if it changed mode while in MODIFY)
         try { _placeBeatCount(); } catch (e) {}
-        _showNotice('NORMAL MODE');
+        _showNotice('MAIN MODE'); // the two MAIN modes are MAIN and MODIFY (LIVE is hidden for now); DISPLAY modes are the rainbow-icon looks — per direct request
       } else {
         b.classList.add('live-layout');
         try { const lk = document.getElementById('liveKey'); if (lk) lk._k = null; _updateLiveKey(); _placeLiveKey(); } catch (e) {}
@@ -27930,7 +27949,7 @@ function snapshotDisplay() {
     ['#devMenuBtn', 'RAINBOW · LOOK AND FEEL MENU', 'Tap to open LOOK AND FEEL — display modes, colours, marker styles and other visual settings. Swipe DOWN to cycle thru display modes.'],
     ['#randomizeReverbIconBtn', 'REVERB', 'Drag DOWN to get new reverb settings (size and mix) without touching the pattern, dragging down toggles it back off. Click and holding opens the reverb menu, where you can change the overall Reverb mix, size and how much it applies to \'DRUMS\''],
     ['#beatCount', '1-2-3-4 COUNT', 'Tap to cycle thru 3 count modes, text/text with audible click/hide count. In LIVE mode it is always shown and a tap switches the click on/off.'],
-    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In MODIFY mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to normal mode.'],
+    ['#liveKey', 'KEY', 'The key and scale of the current pattern. In MODIFY mode it takes the logo\'s place — tap it for SETTINGS, drag it DOWN to go back to the MAIN mode. (MAIN and MODIFY are the two main modes; the rainbow icon changes the DISPLAY mode — the look — in either.)'],
     ['#topTempoReadout', 'TEMPO', 'The current tempo in BPM. Tap to LOCK the TEMPO, hold to bring up the tempo menu: NUDGE (push/pull while held), TEMPO slider, the lock and RE-UP to stop and restart the pattern/count.'],
     ['#leftReelWrap', 'LEFT TAPE SPOOL', 'Emulates holding a vinyl record and releasing will restart from the 1. You can also drag onto it from a held SWEEP.'],
     ['#rightReelWrap', 'RIGHT TAPE SPOOL', 'Tapping plays a phrase based on the current pattern\'s scale. Double-tapping will reset the drums if they have been offset from the DRUMS menu.'],
