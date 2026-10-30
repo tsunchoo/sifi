@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 05:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 05:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3015,7 +3015,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 05:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 05:45:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6898,6 +6898,14 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   if (ctx && tr !== undefined) pDest = getSourceTrimGain(tr, pDest);
   if (window._drums8bit && ctx && tr !== undefined && tr >= 0 && _isDrumTrack(tr)) pDest = _drum8In(tr, pDest); // 8-BIT DRUMS: crushed first
   src.connect(instrumentGain); instrumentGain.connect(pDest);
+  // JAZZ RIDE, per direct request: +4dB, and the pickup just before each accented (ringing) ride hit is DAMPED — it stops before
+  // the accent instead of ringing on into it
+  if (key === 'ride' && _beatType === 'jazz') {
+    instrumentGain.gain.value *= 1.5849;
+    if (stepIdx !== undefined && tr !== undefined && grid[tr] && grid[tr][stepIdx] === 1 && grid[tr][(stepIdx + 1) % NUM_STEPS] === 2) {
+      const sd = stepDuration(), v = instrumentGain.gain.value; instrumentGain.gain.setValueAtTime(v, time); instrumentGain.gain.setTargetAtTime(0, time + sd * 0.55, sd * 0.12);
+    }
+  }
   if (key === 'ssnare') _addSnareClick(time, pDest, isAccent ? 0.1 : 0.07); // a little sidestick-style click
   // Reverb no longer taps in here — see toggleTrackDelay/connectToDelay
   // for the persistent post-FX send off trackGainNodes[tr] instead.
@@ -8137,7 +8145,7 @@ window._padLatch = true;
       pick.push(RAND_FX[Math.floor(Math.random() * RAND_FX.length)]); // this track's random effect when one gets added
     }
     const chk = shuffle([...Array(NUM_TRACKS).keys()]); // the order tracks go onto FX1 (CHK) as EFFECTS is pulled towards LESS
-    return { base, name: nameNow(), notes: shuffle(notes), empties: shuffle(empties), effOn: shuffle(effOn), effOff: shuffle(effOff), pick, chk, x: 0.5, y: 0.5 };
+    return { base, name: nameNow(), notes: shuffle(notes), empties: shuffle(empties), effOn: shuffle(effOn), effOnN: effOn.length, removed: 0, effOff: shuffle(effOff), pick, chk, x: 0.5, y: 0.5 };
   }
   // DRUMS' own FX in the pad too, per direct request — 0 off, 1 FX1 (CHK), 2 FX2 (BLAST), 3 DELAY (as the DRUMS FX button)
   function drumsFx() { try { return _beatChoke ? 1 : _beatPump ? 2 : _beatFx ? 3 : 0; } catch (e) { return 0; } }
@@ -8165,8 +8173,13 @@ window._padLatch = true;
     for (let tr = 0; tr < NUM_TRACKS; tr++) for (let st = 0; st < NUM_STEPS; st++) if (grid[tr][st] !== g[tr][st]) grid[tr][st] = g[tr][st];
     window._padMute = X < 0 ? mute : null;
     // EFFECTS
+    // REMOVED EFFECTS ARE GONE FOR GOOD, per direct request: an effect the pad takes off isn't remembered — moving back up / to
+    // the centre / letting go doesn't bring it (or where it was) back. Each one is dropped from the pattern's own settings as it
+    // goes, and its track becomes free for a new random effect if you later push towards MORE.
+    if (Y < 0) { const target = Math.round(pad.effOnN * -Y);
+      while (pad.removed < target && pad.effOn.length) { const [tr, k] = pad.effOn.shift(); if (k === 'R') B.rev[tr] = false; else B.fx[tr] = { x: 0, y: 0, pump: false, chink: false }; pad.effOff.splice(Math.floor(Math.random() * (pad.effOff.length + 1)), 0, [tr, k]); pad.removed++; } }
     const rev = B.rev.slice(), fx = B.fx.map(f => Object.assign({}, f));
-    if (Y < 0) { const n = Math.round(pad.effOn.length * -Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOn[i]; if (k === 'R') rev[tr] = false; else fx[tr] = { x: 0, y: 0, pump: false, chink: false }; }
+    if (Y < 0) {
       // …and FX1 (CHK) comes onto more and more tracks, per direct request — it chops each hit to a blip, so it takes sound AWAY too
       const c = Math.round(NUM_TRACKS * -Y); for (let i = 0; i < c; i++) fx[pad.chk[i]] = { x: 0, y: 0, pump: false, chink: true }; }
     else if (Y > 0) { const n = Math.round(pad.effOff.length * Y); for (let i = 0; i < n; i++) { const [tr, k] = pad.effOff[i]; if (k === 'R') rev[tr] = true; else fx[tr] = Object.assign({}, pad.pick[tr]); } }
@@ -8199,9 +8212,9 @@ window._padLatch = true;
     const cs = _rootCS(), N = _anyRgba(cs.getPropertyValue('--playhead-color').trim()) || [80, 80, 200, 1], E = _anyRgba(cs.getPropertyValue('--highlight2-color').trim()) || [200, 80, 160, 1];
     const sum = x + y, kE = sum > 0 ? y / sum : 0.5;
     const rgb = [0, 1, 2].map(i => Math.round(N[i] * (1 - kE) + E[i] * kE)).join(',');
-    const a = 0.04 + 0.6 * Math.pow(sum / 2, 1.6);
+    const a = 0.08 + 0.8 * Math.pow(sum / 2, 1.25); // more pronounced, per direct request (was 0.04 + 0.6·…^1.6)
     t.style.backgroundColor = `rgba(${rgb},${a.toFixed(3)})`;
-    if (gl) gl.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(${rgb},${Math.min(0.9, a + 0.3).toFixed(2)}) 0%, rgba(${rgb},0) 45%)`;
+    if (gl) gl.style.background = `radial-gradient(circle at ${(x * 100).toFixed(1)}% ${(y * 100).toFixed(1)}%, rgba(${rgb},${Math.min(0.95, a + 0.4).toFixed(2)}) 0%, rgba(${rgb},${(a * 0.5).toFixed(2)}) 30%, rgba(${rgb},0) 60%)`;
     const dot = m.querySelector('.sp-dot'); if (dot) dot.style.color = `rgb(${rgb})`;
   }
   // back to the centre, EASED (a new pattern) — dragging again cancels the ease straight away
@@ -8233,13 +8246,13 @@ window._padLatch = true;
     const _gridCol = (() => { try { const nd = document.getElementById('nameDisplay'); return (nd && getComputedStyle(nd).color) || '#111'; } catch (e) { return '#111'; } })(); // the song name's own (black / white) colour — reads on any bar
     const rows = []; for (let tr = 0; tr < NUM_TRACKS; tr++) { const tb = document.getElementById(`tbtn-${tr}`); rows.push([tr, tb ? tb.getBoundingClientRect().top : tr, _gridCol]); } // ALL the same colour now, per direct request (each track used to get its own grey)
     rows.sort((a, z) => a[1] - z[1]);
-    const bz = Math.round(20 * dpr), cw = (W - bz * 2) / NUM_STEPS, rh = (H - bz * 2) / NUM_TRACKS, mute = window._padMute; // a 20px buffer round the edges, the grid fitted inside it, per direct request
+    const GB = _modifyGridBox(W, H, dpr), bzx = GB.x, bzy = GB.y, cw = GB.cw, rh = GB.cw, mute = window._padMute; // a 20px buffer round the edges, the grid fitted inside it, per direct request
     rows.forEach(([tr, , col], ri) => {
       c.fillStyle = col;
       for (let gs = 0; gs < NUM_STEPS; gs++) {
         const v = grid[tr][gs]; if (!(v > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
         const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS;
-        const g1 = Math.round(dpr), cx0 = bz + (ds + 0.5) * cw, cy0 = bz + (ri + 0.5) * rh, sz = Math.max(2, Math.min(cw, rh) - g1 * 2); // TRUE circles / squares (not ovals / rectangles), as big as fits the cell with the 2px gap, per direct request
+        const g1 = Math.round(dpr), cx0 = bzx + (ds + 0.5) * cw, cy0 = bzy + (ri + 0.5) * rh, sz = Math.max(2, Math.min(cw, rh) - g1 * 2); // TRUE circles / squares (not ovals / rectangles), as big as fits the cell with the 2px gap, per direct request
         if (window._modifyMarkSquares) c.fillRect(Math.round(cx0 - sz / 2), Math.round(cy0 - sz / 2), Math.round(sz), Math.round(sz));
         else { c.beginPath(); c.arc(cx0, cy0, sz / 2, 0, Math.PI * 2); c.fill(); } // every note the SAME size and filling its whole cell (square corners), so neighbours in a row or column touch with no gap, per direct request
       }
@@ -24415,8 +24428,8 @@ function _nameEqTick(now) {
   // MODIFY, per direct request: every EQ type uses 16 bands lined up with the note grid's 16 columns, inside the same 20px
   // margins as the grid (VERT: 5px bars in 15px tracks — 25% bigger than the 20-bar version on the normal page)
   const _drawModify = (c) => {
-    const bz = Math.round(20 * dpr), gw = W - bz * 2, gh = H - bz * 2, cw = gw / 16, g1 = Math.round(dpr); if (gw <= 0 || gh <= 0) return;
-    const colX = b => bz + Math.round(b * cw), colW = b => bz + Math.round((b + 1) * cw) - colX(b);
+    const GB = _modifyGridBox(W, H, dpr), bx = GB.x, bz = GB.y, gw = GB.gw, gh = GB.gh, cw = GB.cw, g1 = Math.round(dpr); if (gw <= 0 || gh <= 0) return; // the SAME area as the note grid
+    const colX = b => bx + Math.round(b * cw), colW = b => bx + Math.round((b + 1) * cw) - colX(b);
     if (style === 'vert') {
       const lw = 5 * dpr, tw = 15 * dpr, cap = 10 * dpr;
       const rec = typeof _recordMode !== 'undefined' && _recordMode === 'realtime' && document.getElementById('saveBtn')?.classList.contains('rec-active');
@@ -24525,6 +24538,12 @@ setInterval(() => {
 // glyph's own colour doesn't read against the button (contrast under 4.5:1), its LIGHTNESS is pushed — darker on a light button,
 // lighter on a dark one — keeping its hue, until it does. Readable glyphs are left exactly as they are. Muted rows keep their grey.
 // Only re-measured when a button's look changes (its classes, its background, the display mode), so it's cheap.
+// MODIFY GRID BOX, per direct request: the 16 × 6 note grid with EQUAL spacing across and down (square cells), as wide as the
+// pad's 20px margins allow (shrunk if it would be too tall), centred — the notes AND every EQ type use exactly this area
+function _modifyGridBox(W, H, dpr) {
+  const bz = Math.round(20 * dpr); let cw = (W - bz * 2) / 16; if (cw * 6 > H - bz * 2) cw = Math.max(1, (H - bz * 2) / 6);
+  const gw = cw * 16, gh = cw * 6; return { x: Math.round((W - gw) / 2), y: Math.round((H - gh) / 2), gw, gh, cw };
+}
 function _relLum(c) { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); }
 function _contrast(a, b) { const x = _relLum(a), y = _relLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
 function _rgbHsl([r, g, b]) { r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
