@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 00:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 00:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1655,18 +1655,18 @@ body.battery-saver-mode .shift-btn.right { opacity: 0.3 !important; pointer-even
    disconnected at the JS level too (toggleBatterySaver) while this is
    active, so there's genuinely nothing left for it to randomize or open a
    menu for. */
-body.battery-saver-mode #randomizeReverbIconBtn { opacity: 0.3 !important; pointer-events: none !important; }
+body.battery-saver-mode:not(.modify) #randomizeReverbIconBtn { opacity: 0.3 !important; pointer-events: none !important; }
 /* REVERB ICON GLOW, per direct request: a soft glow in the icon's own colour whenever the overall REVERB MIX isn't zero
    (class set by setGlobalDelayMix). Off with GLOWS OFF / SAFE GFX / BATTERY SAVER like every other glow. */
 #randomizeReverbIconBtn.rev-on svg { filter: drop-shadow(0 0 1.5px #555) drop-shadow(0 0 3px color-mix(in srgb, #555 45%, transparent)); }
-body.battery-saver-mode #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
+body.battery-saver-mode:not(.modify) #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
 /* ACTIVE whenever REVERB MIX isn't 0%, per direct request — in EVERY display mode (glows-off modes included, which used to hide
    it): the lines go to the header's full text colour and keep the glow. */
 html body #randomizeReverbIconBtn.rev-on svg rect, html body #randomizeReverbIconBtn.rev-on svg line { stroke: var(--hdr-tint, #111) !important; }
 html body:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: drop-shadow(0 0 1.5px var(--hdr-tint, #555)) drop-shadow(0 0 4px color-mix(in srgb, var(--hdr-tint, #555) 55%, transparent)) !important; } /* lit in the header's own colour — light on dark modes, dark on light ones */
-html body.battery-saver-mode:not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
-body.battery-saver-mode #randomizeReverbIconBtn svg rect,
-body.battery-saver-mode #randomizeReverbIconBtn svg line { stroke: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) !important; }
+html body.battery-saver-mode:not(.modify):not(#_g1):not(#_g2):not(#_g3) #randomizeReverbIconBtn.rev-on svg { filter: none !important; }
+body.battery-saver-mode:not(.modify) #randomizeReverbIconBtn svg rect,
+body.battery-saver-mode:not(.modify) #randomizeReverbIconBtn svg line { stroke: var(--track-ctrl-btn-color, var(--neutral-track, #b0b0b0)) !important; }
 /* The "<" offset button specifically (not the "R" reverb toggle, which
    also uses .shift-btn but always carries .right) — bigger text, same
    button size. The larger size exaggerates how low the glyph sits within
@@ -3015,7 +3015,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 00:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 00:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -4030,8 +4030,8 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
       </div>
       <!-- DRUMS BUS (was the DRUMS menu's volume slider), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">60%</div></div>
-        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="60" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div></div>
+        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -6376,7 +6376,7 @@ function getOrCreateDelay(tr) {
 }
 
 function _setTrackReverb(tr, on) {
-  if (window._batterySaverOn) on = false; // BATTERY SAVER — refuse to engage reverb on any track, even via a path that bypasses the greyed-out/disabled icon (drag-to-engage, pattern load, RAND, etc.)
+  if (_revBlocked()) on = false; // BATTERY SAVER (but not in MODIFY — reverb is allowed there, per direct request) — refuse to engage reverb on any track, even via a path that bypasses the greyed-out/disabled icon (drag-to-engage, pattern load, RAND, etc.)
   trackDelay[tr] = !!on;
   const btn = document.getElementById(`delaybtn-${tr}`);
   if (btn) btn.classList.toggle('on', trackDelay[tr]);
@@ -8140,7 +8140,7 @@ window._padLatch = true;
   }
   // R on/off — LIVE's battery saver refuses to switch reverb ON, so there the R flag is only put back as it was (never added)
   function setRev(tr, on) {
-    if (on && window._batterySaverOn) { if (pad && pad.base.rev[tr]) { trackDelay[tr] = true; const b = document.getElementById(`delaybtn-${tr}`); if (b) b.classList.add('on'); } return; }
+    if (on && _revBlocked()) { if (pad && pad.base.rev[tr]) { trackDelay[tr] = true; const b = document.getElementById(`delaybtn-${tr}`); if (b) b.classList.add('on'); } return; }
     try { _setTrackReverb(tr, on); } catch (e) {}
   }
   function apply(x, y) {
@@ -10041,7 +10041,7 @@ function playStringSynth(freq, durSec, isAccent, time, tr) {
   // only) rather than just avoiding the buffer rebuild above; real-time
   // convolution is the actual ongoing CPU cost, not just the buffer setup.
   let rev = null, revG = null;
-  if (!window._batterySaverOn) {
+  if (!_revBlocked()) {
     // One SHARED convolver per output (see _sharedConv) — rev is now just
     // this note's send into it, so cleanup still disconnects only this note.
     rev = ctx.createGain(); lp.connect(rev); rev.connect(_sharedConv('pad', dest, window._cyberPadReverbBuf, 0.5));
@@ -10160,7 +10160,7 @@ function playSynthLeg(freq, durSec, isAccent, time, tr, extLevelMul) {
   // on every note is still the actual ongoing CPU cost, not just building
   // the buffer.
   let rev = null, revG = null;
-  if (!window._batterySaverOn) {
+  if (!_revBlocked()) {
     rev = ctx.createGain(); rev.connect(_sharedConv('leg', dest, window._synthLegReverbBuf, 0.6)); // per-note send into ONE shared convolver (see _sharedConv)
   }
 
@@ -17263,7 +17263,7 @@ function _buildBounceGraph(targetCtx) {
   masterGain = targetCtx.createGain(); masterGain.gain.value = masterVol * MASTER_OUTPUT_BOOST; // must match setMasterVol's own +4dB boost, so a bounced/exported file matches what's actually heard live
   const makeupGain = targetCtx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB, matches the live init default — see _BASE_MAKEUP_GAIN's own comment
   window._makeupGain = makeupGain;
-  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.60 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+  window._beatGain = targetCtx.createGain(); window._beatGain.gain.value = 0.50 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
   window._beatChokeGate = targetCtx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); // DRUMS FX (CHK) gate — callers connect this (not _beatGain) onward
   // NOT auto-connected to masterGain here — the caller wires in only the
   // tap(s) this pass actually wants (see _renderOfflineLoop's connectFn),
@@ -17298,7 +17298,7 @@ function _buildBounceGraph(targetCtx) {
   window._reverbOutGain = targetCtx.createGain();
   window._reverbOutGain.gain.value = REVERB_MIX_MAX; // fixed — OVERALL mix lives on the tonal send side now
   window._tonalRevIn = targetCtx.createGain(); window._tonalRevIn.gain.value = (window._globalDelayMix !== undefined) ? window._globalDelayMix : 0; window._tonalRevIn.connect(window._reverbSendBus);
-  window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
+  window._reverbSendBus.connect(window._reverbConv); window._reverbSendBus._sifiConvOn = true; window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
   masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain);
   window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain);
   // window._postLimiterGain is connected to targetCtx.destination uniformly
@@ -24253,7 +24253,7 @@ function _allocSwipeNew() {
   // every possible (track, kind) slot, shuffled; the first `target` win. FX kind picked per track: CHK where CHK is allowed, else
   // BLAST / FX at random (never on MAGIC, which keeps its FX off). Reverb never when BATTERY SAVER refuses it.
   const slots = [];
-  elig.forEach(tr => { if (trackInstruments[tr] !== 'magic') slots.push([tr, 'fx']); if (!window._batterySaverOn) slots.push([tr, 'rev']); });
+  elig.forEach(tr => { if (trackInstruments[tr] !== 'magic') slots.push([tr, 'fx']); if (!_revBlocked()) slots.push([tr, 'rev']); });
   for (let i = slots.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [slots[i], slots[j]] = [slots[j], slots[i]]; }
   const next = before.map((a, tr) => elig.includes(tr) ? { chk: false, pump: false, fx: false, rev: false } : Object.assign({}, a));
   slots.slice(0, target).forEach(([tr, kind]) => {
@@ -24610,7 +24610,7 @@ function fullReset() {
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
   _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false; _setBeatChoke(false);
   _beatAutoRandActive = false; _beatAutoRandBarCount = 0; window._beatBulldozer = false;
-  _beatVolRaw = 0.60; _applyBeatVolWithDuck(); // DRUMS BUS default 60% (was 39%), per direct request
+  _beatVolRaw = 0.50; _applyBeatVolWithDuck(); // DRUMS BUS default 50% (was 60%, 39% before that), per direct request
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setValueAtTime(_beatReverbGainForMix(_beatReverbMix), ctx.currentTime); // on by default now, not silenced
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setValueAtTime(0, ctx.currentTime);
@@ -25323,7 +25323,7 @@ async function initAudio(opts) {
     window._BASE_MAKEUP_GAIN = window._BASE_MAKEUP_GAIN || 3.1623; // +10dB fixed output boost, hardcoded per direct request (was +13dB/4.4668, +8dB/2.5061 before that, +14dB before that — pulled back from +13dB after it was flagged as a likely general-overclocking/clipping contributor) — || preserves a value the OUTPUT MAKEUP GAIN slider (SETTINGS) already set, so a context rebuild (which re-runs this init) doesn't silently reset the user's own adjustment back to the hardcoded default
     const makeupGain = ctx.createGain(); makeupGain.gain.value = window._BASE_MAKEUP_GAIN;
     window._makeupGain = makeupGain;
-    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.60 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatChokeGate = ctx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); window._beatChokeGate.connect(masterGain); /* DRUMS FX (CHK) gate, after the DRUMS level */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
+    window._beatGain = ctx.createGain(); window._beatGain.gain.value = 0.50 * 1.0593; /* +3dB default DRUMS level, matching _beatVolRaw; +0.5dB more, per direct request */ window._beatChokeGate = ctx.createGain(); window._beatChokeGate.gain.value = _beatChoke ? 0 : 1; window._beatGain.connect(window._beatChokeGate); window._beatChokeGate.connect(masterGain); /* DRUMS FX (CHK) gate, after the DRUMS level */ // -0.4dB more (was 0.4043, -0.5dB before that, was 0.4283, -1dB, then -5% more, then 0.506, then 0.4508)
     // UI Sounds
     const _uiSoundBufs = (_refresh && window._uiSoundBufs) ? window._uiSoundBufs : {};
     window._uiSoundBufs = _uiSoundBufs;
@@ -25369,7 +25369,7 @@ window.masterLimiter = ctx.createDynamicsCompressor(); const masterLimiter = win
     window._reverbOutGain = ctx.createGain(); window._reverbOutGain.gain.value = REVERB_MIX_MAX; // fixed — REVERB MIX (OVERALL) is applied on the tonal send side (_tonalRevIn) so drums bypass it
     window._tonalRevIn = ctx.createGain(); window._tonalRevIn.gain.value = (window._globalDelayMix !== undefined) ? window._globalDelayMix : 0; window._tonalRevIn.connect(window._reverbSendBus);
     window._drumMasterRevSend = ctx.createGain(); window._drumMasterRevSend.gain.value = 1; window._drumMasterRevSend.connect(window._reverbSendBus); // drum tracks' whole-signal reverb (REVERB ON BEAT), bypassing OVERALL
-    window._reverbSendBus.connect(window._reverbConv); window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
+    window._reverbSendBus.connect(window._reverbConv); window._reverbSendBus._sifiConvOn = true; window._reverbConv.connect(window._reverbOutGain); window._reverbOutGain.connect(window._normalTrackFadeGain);
     masterGain.connect(window._normalTrackFadeGain); window._normalTrackFadeGain.connect(makeupGain); makeupGain.connect(window._duckGain); window._duckGain.connect(masterLimiter); masterLimiter.connect(window._safetyLimiter); window._safetyLimiter.connect(window._postLimiterGain); _connectEightBitOutput(ctx);
     // REVERB MIX OVERALL send — a second, parallel reverb send tapping
     // every track's own fully-processed output (post FX/BLAST/pan, same
@@ -26151,7 +26151,7 @@ function _setBeatCountShown(on) {
 // the gain actually applied to the node also folds in a -1.5dB duck
 // whenever FX or BLAST is engaged on BEAT, so the dial itself always
 // reflects what the user set rather than the post-duck level.
-let _beatVolRaw = 0.60; // DRUMS BUS default 60% (was 39%, before that 0.5711), per direct request
+let _beatVolRaw = 0.50; // DRUMS BUS default 50% (was 60%, 39%, before that 0.5711), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
 // AUDIO SNAPSHOT (DEV > DIAGNOSTICS), per direct request — for the "DRUMS is just a filtered snare" state. Now AUTOMATIC as
 // well, since it's too rare to remember to press: a DRUMS WATCHDOG listens for 1 second every 15 seconds while DRUMS is
@@ -27318,6 +27318,15 @@ function toggleBeatTypeLock() {
 // active background-audio session, not the wake lock, which only forces
 // the display to physically stay lit.
 window._batterySaverOn = false;
+// REVERB IN MODIFY, per direct request: MODIFY rides on LIVE's battery saver, which unplugs the reverb to save power — in MODIFY
+// it's plugged back in (everything else battery saver does stays), so R / the pad / swipes can all add reverb there
+function _revBlocked() { return !!window._batterySaverOn && !document.body.classList.contains('modify'); }
+function _syncModifyReverbBus() {
+  const bus = window._reverbSendBus, conv = window._reverbConv; if (!bus || !conv) return;
+  const want = !_revBlocked();
+  if (want !== !!bus._sifiConvOn) { try { bus.disconnect(); } catch (e) {} if (want) { try { bus.connect(conv); } catch (e) {} } bus._sifiConvOn = want; }
+}
+setInterval(() => { try { _syncModifyReverbBus(); } catch (e) {} }, 300);
 function toggleBatterySaver() {
   window._batterySaverOn = !window._batterySaverOn;
   const btn = document.getElementById('batterySaverBtn');
@@ -27341,7 +27350,8 @@ function toggleBatterySaver() {
   // battery saver turns back off.
   if (window._reverbSendBus && window._reverbConv) {
     try { window._reverbSendBus.disconnect(); } catch (e) {}
-    if (!window._batterySaverOn) window._reverbSendBus.connect(window._reverbConv);
+    if (!_revBlocked()) window._reverbSendBus.connect(window._reverbConv);
+    window._reverbSendBus._sifiConvOn = !_revBlocked();
   }
 }
 // BATTERY SAVER look, per direct request: GLOWS off, MASTER 100%, PERFORMANCE MODE on, every pulse off (LIGHTS PULSE, TRACK BUTTON
