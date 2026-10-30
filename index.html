@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 07:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 07:55:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3023,7 +3023,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 07:55:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -6941,6 +6941,9 @@ function playBuffer(key, isAccent, time, tr, stepIdx) {
   src.connect(instrumentGain); instrumentGain.connect(pDest);
   // JAZZ RIDE, per direct request: +4dB, and the pickup just before each accented (ringing) ride hit is DAMPED — it stops before
   // the accent instead of ringing on into it
+  // BOSSA SIDESTICK on the steps the beat engine's kick also plays (0/3/4/7/8/11/12/15): −3dB, so the two transients landing
+  // together don't slam the limiter — the reason the clave used to be moved off its real steps
+  if (key === 'sidestick' && _beatType === 'bossa' && stepIdx !== undefined && (stepIdx % 4 === 0 || stepIdx % 4 === 3)) instrumentGain.gain.value *= 0.7079;
   if (key === 'ride' && _beatType === 'jazz') {
     instrumentGain.gain.value *= 1.5849;
     if (stepIdx !== undefined && tr !== undefined && grid[tr] && grid[tr][stepIdx] === 1 && grid[tr][(stepIdx + 1) % NUM_STEPS] === 2) {
@@ -18994,7 +18997,7 @@ function randAll(mode, opts) {
         // engine's own kick/anticipation-kick — see that function's
         // comment for why.
         grid[_tr].fill(0);
-        grid[_tr][1] = 2; grid[_tr][2] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2;
+        grid[_tr][0] = 2; grid[_tr][3] = 2; grid[_tr][6] = 2; grid[_tr][10] = 2; grid[_tr][13] = 2; // the real bossa clave again (1, 2&, 4 | 2, 3& over two bars of 8ths), per direct request
         redrawTrackCells(_tr); markModified();
       } else if (_beatType === 'samba' && trackInstruments[_tr] === 'sidestick') {
         // Fixed pattern (3,5,9,11,13) — the exact same steps the beat
@@ -27397,7 +27400,7 @@ function _applyBossaTracksToCurrentPattern() {
   // 1/2 (never touched by the kick engine at all) so nothing on this fixed
   // pattern coincides with a kick hit; 6/10/13 only ever land alongside the
   // much quieter synth hihat foot-close, left as-is.
-  grid[targetTr][1] = 2; grid[targetTr][2] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2;
+  grid[targetTr][0] = 2; grid[targetTr][3] = 2; grid[targetTr][6] = 2; grid[targetTr][10] = 2; grid[targetTr][13] = 2; // CORRECT bossa clave restored (1, 2&, 4 | 2, 3&), per direct request — the clash with the kick is handled by a level dip in playBuffer instead of moving the hits
   redrawTrackCells(targetTr);
   _dedupeBeatOwnedTracks(['sidestick']);
   markModified();
