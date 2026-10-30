@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 05:45:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 06:05:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3015,7 +3015,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 05:45:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:05:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3164,12 +3164,17 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
     <div style="display:flex;flex-direction:column;gap:24px;">
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>TIME</span><span id="fxEchoExtraVal" style="color:#111;">DOTTED 8TH</span></span>
-        <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="-2" max="4" step="1" value="2" class="master-vol-slider" style="width:100%;" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)">
+        <input autocomplete="off" type="range" id="fxEchoExtraSlider" min="-4" max="9" step="1" value="5" class="master-vol-slider" style="width:100%;" oninput="_setFxEchoExtra(this.value)" onchange="_setFxEchoExtra(this.value)">
       </label>
       <label class="reverb-menu-row">
         <span class="reverb-menu-row-head"><span>LEVEL</span><span id="fxEchoLevelVal" style="color:#111;">27%</span></span>
         <input autocomplete="off" type="range" id="fxEchoLevelSlider" min="0" max="100" step="1" value="27" class="master-vol-slider" style="width:100%;" oninput="_setFxEchoLevel(this.value)" onchange="_setFxEchoLevel(this.value)">
       </label>
+      <!-- DIRTY, per direct request: a cheaper, grubbier echo — telephone-band and gritty -->
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="reverb-menu-row-head" style="margin:0;"><span>DIRTY</span></span>
+        <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="fxEchoDirtyToggle" onchange="_setEchoDirty(this.checked)"><span class="wild-toggle-slider"></span></label>
+      </div>
     </div>
     <!-- RANDOMIZE REVERB WITH + toggle moved to the RANDOMIZE MENU (drag down from +), per direct request -->
   </div>
@@ -6447,7 +6452,7 @@ function makeDistCurve(drive) {
 // 16th after the hit, plus the FX ECHO DELAY slider, which is now in 16ths too (0 to 8 more, in quarter-16th steps) so the echo
 // stays locked to the groove at any tempo. Re-applied to every echo the moment FX is picked (by hand or by any randomization),
 // on every bar line (catches a new pattern's new tempo) and on any tempo change.
-window._fxEchoExtra = 2; // in 16ths — default DOTTED 8TH, per direct request
+window._fxEchoExtra = 2; // in 16ths — default DOTTED 8TH (slider 5 of −4…9), per direct request
 function _fxEchoTime() { return Math.min(1.9, stepDuration() * (1 + (window._fxEchoExtra || 0))); }
 function _syncAllEchoTimes() {
   if (!ctx) return; const d = _fxEchoTime();
@@ -6457,10 +6462,13 @@ function _syncAllEchoTimes() {
 function _setFxEchoExtra(v) {
   // MUSICAL STOPS ONLY, per direct request: 64TH, 32ND, 16TH (slider 0, the default), 8TH, DOTTED 8TH, QUARTER, HALF — all following
   // the tempo. Slider runs −2…4 so 0 stays the 16th (old saved values still mean the same thing).
-  const EX = [-0.75, -0.5, 0, 1, 2, 3, 7], NM = ['64TH', '32ND', '16TH', '8TH', 'DOTTED 8TH', 'QUARTER', 'HALF'];
+  // 14 STOPS now (twice as many), per direct request — the straight values plus the triplets and dotted ones in between.
+  // EX = extra 16ths on top of one 16th (so the echo lands 1 + EX sixteenths later). Slider −4 … 9, 0 = 16TH as before.
+  const EX = [-0.75, -0.5, -1 / 3, -0.25, 0, 1 / 3, 0.5, 1, 5 / 3, 2, 3, 13 / 3, 5, 7];
+  const NM = ['64TH', '32ND', '16TH TRIPLET', 'DOTTED 32ND', '16TH', '8TH TRIPLET', 'DOTTED 16TH', '8TH', 'QUARTER TRIPLET', 'DOTTED 8TH', 'QUARTER', 'HALF TRIPLET', 'DOTTED QUARTER', 'HALF'];
   let v0 = Math.round(+v || 0);
-  if (v0 > 4) { const old = v0 / 100; v0 = 0; EX.forEach((e, k) => { if (e >= 0 && Math.abs(e - old) < Math.abs(EX[v0 + 2] - old)) v0 = k - 2; }); } // an old 0-800 value (saved snapshot) → the nearest stop
-  v0 = Math.max(-2, Math.min(4, v0)); const i = v0 + 2; window._fxEchoExtra = EX[i];
+  if (v0 > 9) { const old = v0 / 100; let best = 4; EX.forEach((e, k) => { if (e >= 0 && Math.abs(e - old) < Math.abs(EX[best] - old)) best = k; }); v0 = best - 4; } // an old 0-800 value (saved snapshot) → the nearest stop
+  v0 = Math.max(-4, Math.min(9, v0)); const i = v0 + 4; window._fxEchoExtra = EX[i];
   const sl = document.getElementById('fxEchoExtraSlider'); if (sl && +sl.value !== v0) sl.value = v0;
   const r = document.getElementById('fxEchoExtraVal'); if (r) r.textContent = NM[i];
   _syncAllEchoTimes();
@@ -6531,9 +6539,38 @@ function _setFxEchoLevel(v) {
   const sl = document.getElementById('fxEchoLevelSlider'); if (sl && +sl.value !== v) sl.value = v;
   try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n && n.echoGain && ctx) n.echoGain.gain.setTargetAtTime(window._fxEchoLevel, ctx.currentTime, 0.02); } } catch (e) {}
 }
+// DIRTY ECHO (REVERB menu > DELAY), per direct request: every echo (tracks and DRUMS) goes through a 'cheap' chain — high-pass
+// 400Hz + low-pass 2.2kHz (telephone band) and a gritty saturation — instead of coming back clean. Rewired live; new chains
+// pick it up as they're built.
+window._echoDirty = false;
+function _echoDirtyWire(delay, gain) {
+  if (!delay || !gain || !ctx || delay.context !== ctx) return;
+  if (!delay._dirty) {
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 400; hp.Q.value = 0.7;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200; lp.Q.value = 0.9;
+    const ws = ctx.createWaveShaper(); ws.oversample = 'none'; { const n = 1024, cv = new Float32Array(n); for (let i = 0; i < n; i++) { const x = (i * 2) / (n - 1) - 1; cv[i] = Math.tanh(x * 3) / Math.tanh(3); } ws.curve = cv; }
+    const mk = ctx.createGain(); mk.gain.value = 1.3; // the band-limiting takes some level away — put most of it back
+    hp.connect(lp); lp.connect(ws); ws.connect(mk); delay._dirty = { hp, mk, on: false };
+  }
+  const d = delay._dirty, want = !!window._echoDirty; if (d.on === want && d.wired) return;
+  try { delay.disconnect(); } catch (e) {} try { d.mk.disconnect(); } catch (e) {}
+  if (want) { delay.connect(d.hp); d.mk.connect(gain); } else delay.connect(gain);
+  d.on = want; d.wired = true;
+}
+function _setEchoDirty(on) {
+  window._echoDirty = !!on; const cb = document.getElementById('fxEchoDirtyToggle'); if (cb) cb.checked = !!on;
+  try { for (let t = 0; t < NUM_TRACKS; t++) { const n = trackFxNodes[t]; if (n) _echoDirtyWire(n.echoDelay, n.echoGain); } } catch (e) {}
+  try { _echoDirtyWire(window._beatEchoDelay, window._beatEchoGain); } catch (e) {}
+}
+// DOUBLE-CLICK on >>, per direct request: a random DELAY TIME (any of the 14 stops) and a random DELAY LEVEL — never below 40%
+function _shuffleEcho() {
+  const t = -4 + Math.floor(Math.random() * 14); _setFxEchoExtra(t); { const sl = document.getElementById('fxEchoExtraSlider'); if (sl) sl.value = t; }
+  const lv = 40 + Math.round(Math.random() * 60); _setFxEchoLevel(lv);
+}
 function _fxEchoOn(tr) { const f = trackFx[tr]; return !!(f && (f.x > 0 || f.y > 0) && !trackPump[tr] && !trackChink[tr]); } // the DELAY stop only — never while CHK is on (a CHK track carrying a leftover FX layer used to read DL and skip BLAST)
 function _syncFxEcho(tr) {
   const n = trackFxNodes[tr]; if (!n || !n.echoGain || !ctx) return;
+  if (window._echoDirty || (n.echoDelay._dirty && n.echoDelay._dirty.on)) _echoDirtyWire(n.echoDelay, n.echoGain); // DIRTY echo follows the toggle
   const on = _fxEchoOn(tr);
   if (on && !n.echoConn) { try { n.envGain.connect(n.echoDelay); n.echoConn = true; } catch (e) {} } // only the FX'd output (on FX the voices all go through it)
   else if (!on && n.echoConn) { try { n.envGain.disconnect(n.echoDelay); } catch (e) {} n.echoConn = false; }
@@ -19562,6 +19599,7 @@ function stopAllAutoRand() {
         clearTimeout(_playdoeTapTimer); _playdoeTapTimer = null;
         try { _dblGrayFlash(); } catch (e) {} // everything but >> flashes grayscale, per direct request
         try { window._modifyNoteReveal && window._modifyNoteReveal(); } catch (e) {} // MODIFY: show the notes it picks behind the pad
+        try { _shuffleEcho(); } catch (e) {} // DELAY TIME + LEVEL shuffled on every double-click, per direct request
         try { _dblUnlockUnmuteAll(); } catch (e) {}
         // RANDO BUTTON: DOUBLE CLICK set to SHUFFLE INSTRUMENTS — a short asterisk turn and the swap, no new pattern
         const _dk = window._dblKey || 'dbl'; // DOUBLE CLICK, or SHAKE (its own column) — see _randDoubleTap
@@ -24589,8 +24627,9 @@ function fullReset() {
   // leftover playhead / pop / cascade state from the grid — now, and once more after anything already queued has run.
   const _gridClean = () => { try { _cascadeTimers.forEach(clearTimeout); _cascadeTimers = []; } catch (e) {} document.querySelectorAll('.cascade-ghost').forEach(g => g.remove()); document.querySelectorAll('.step-cell.playing, .step-cell.popping, .step-cell.cascade-glow, .step-cell.cascade-hidden').forEach(c => c.classList.remove('playing', 'popping', 'cascade-glow', 'cascade-hidden')); };
   _gridClean(); setTimeout(() => { if (!playing) _gridClean(); }, 1500);
-  try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 2; _setFxEchoExtra(2); } catch (e) {}
+  try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 5; _setFxEchoExtra(5); } catch (e) {}
   try { _setFxEchoLevel(27); } catch (e) {}
+  try { _setEchoDirty(false); } catch (e) {}
   try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 63; setMusicBus(63); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
   try { setDrums8bit(false); } catch (e) {}
@@ -26584,6 +26623,7 @@ function _ensureBeatFxChain() {
   window._beatEchoTaps = [dryGain, postGain]; window._beatEchoConn = false;
   window._beatDryGain = dryGain; window._beatCrunchSend = crunchSend; window._beatReverbSend = reverbSend;
   window._beatEchoDelay = echoDelay; window._beatEchoGain = echoGain;
+  try { if (window._echoDirty) _echoDirtyWire(echoDelay, echoGain); } catch (e) {}
   try { _syncBeatEcho(); } catch (e) {}
 }
 
