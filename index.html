@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 18:00:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 18:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2658,6 +2658,7 @@ html body.modify #beatCount { visibility: hidden !important; }
 @keyframes sp-lab-pulse { 0%, 100% { opacity: 0.85; } 50% { opacity: 0.35; } }
 #modifyPadMarks.sp-held .sp-xlab > span:not(.sp-g), #modifyPadMarks.sp-held .sp-ylab > span:not(.sp-g) { animation: sp-lab-pulse 0.6s ease-in-out infinite; }
 #modifyPadMarks.sp-xm .sp-xlab .sp-m, #modifyPadMarks.sp-xp .sp-xlab .sp-p, #modifyPadMarks.sp-ym .sp-ylab .sp-m, #modifyPadMarks.sp-yp .sp-ylab .sp-p { opacity: 1; }
+#modifyPadMarks .sp-bot { position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: currentColor; opacity: 0.25; } /* the same hairline at the bottom of the graph, per direct request */
 #modifyPadMarks .sp-top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: currentColor; opacity: 0.25; }
 html body.modify #modifyPadMarks { display: block; }
 #modifyPadMarks .sp-h, #modifyPadMarks .sp-v { position: absolute; background: currentColor; opacity: 0.18; }
@@ -3033,7 +3034,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 18:00:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 18:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3224,6 +3225,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
       <div class="beat-type-item" data-beat="cumbia">CUMBIA</div>
       <div class="beat-type-item" data-beat="afrobeat">AFROBEAT</div>
       <div class="beat-type-item" data-beat="boogie">SHUFFLE</div>
+      <div class="beat-type-item" data-beat="boogie12">BOOGIE</div><!-- 12/8, per direct request -->
       <div class="beat-type-item" data-beat="bossa">BOSSA</div>
       <div class="beat-type-item" data-beat="jazz">JAZZ</div>
       <div class="beat-type-item" data-beat="soca">SUKA</div><!-- takes the blank filler's place -->
@@ -3958,6 +3960,11 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
   <div id="settingsPanel" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#f5f0e8;padding:24px;min-width:min(340px,90vw);display:flex;flex-direction:column;gap:16px;font-family:'DM Sans',sans-serif;max-height:85vh;overflow-y:auto;">
 
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;">SETTINGS</div>
+    <!-- CHECK FOR UPDATE, per direct report -->
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:2px;"><div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">UPDATES</div><div id="updStatus" style="font-size:0.58rem;color:#666;letter-spacing:0.5px;">not checked yet</div></div>
+      <button type="button" onclick="window._sifiCheckUpdate && window._sifiCheckUpdate(); const s = document.getElementById('updStatus'); if (s) s.textContent = 'checking…';" style="flex-shrink:0;font:700 0.6rem 'DM Sans',sans-serif;letter-spacing:1px;padding:6px 10px;background:none;border:1px solid #999;color:#111;cursor:pointer;">CHECK NOW</button>
+    </div>
     <!-- MODIFY SLIM NOTE ROWS: grayscale (default) or each track's colour, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY NOTE ROWS IN TRACK COLOURS (OFF = GREY)</div>
@@ -6076,7 +6083,7 @@ function _randoLocal(which) {
   try {
     if (c.beatType && !_beatTypeLocked) {
       let pool = _BEAT_TYPE_POOL.filter(t => t !== _beatType);
-      if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
+      if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12') pool = pool.filter(t => t !== 'boogie' && t !== 'boogie12');
       if (_tempoLocked) pool = (_beatType === 'halftime') ? [] : pool.filter(t => t !== 'halftime');
       if (pool.length) { _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick'; setBeatType(pool[Math.floor(Math.random() * pool.length)], true, 'rolled'); try { refreshBeatMenuHighlight(); } catch (e) {} }
     }
@@ -7330,7 +7337,7 @@ function scheduler() {
     // is meant to be straight 16ths throughout, so it just skips swing.
     const swingMs = (step % 2 === 1) ? getSwingOffsetMs() : 0; // SAMBA swings like every other beat now, per direct request (its exemption dated from an older snare pattern that mixed swung and straight steps; today's 3/5/9/11/13 all swing together)
     let t = nextStepTime + (swingMs / 1000);
-    if (_beatType === 'boogie' || _beatType === 'jazz') {
+    if (_beatType === 'boogie' || _beatType === 'boogie12' || _beatType === 'jazz') {
       // BOOGIE and JAZZ both — snap every track's actual playback timing
       // (not the visual grid, which stays a normal 16-step display) onto
       // the same true triplet-shuffle feel the beat engine itself uses. Each beat's 4
@@ -7946,6 +7953,14 @@ function fireStepAudio(step, t) {
           playSynthHihat(false, t + 2 * _third, -1);
           if (_beatIdx % 2 === 0) fireBeatKick(t);
           else playSnare(t);
+        } else if (_beatType === 'boogie12') {
+          // BOOGIE (12/8), per direct request — counted 1-&-a 2-&-a 3-&-a 4-&-a: hihat on the 1st and 3rd triplet of every beat
+          // (x . x), KICK on every beat, SNARE on 2 and 4 (with the kick). Exact thirds of the beat, like SHUFFLE.
+          const _third = stepDuration() * 4 / 3;
+          playSynthHihat(false, t, -1);
+          playSynthHihat(false, t + 2 * _third, -1);
+          fireBeatKick(t);
+          if (bstep === 4 || bstep === 12) playSnare(t);
         }
         if (doKick) {
           const _halftimeSecondKick = (_beatType === 'halftime' && bstep === 4) ? 0.75 : undefined; // HALFTIME's 2nd kick (1+2 feel) at 75% velocity, first kick untouched
@@ -8171,7 +8186,7 @@ window._padLatch = true;
   const marks = () => {
     let m = document.getElementById('modifyPadMarks'), b = nb();
     if (!m && b) {
-      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-xlab"><span class="sp-g sp-m">&minus;</span><span>NOTES</span><span class="sp-g sp-p">+</span></div><div class="sp-ylab"><span class="sp-g sp-p">+</span><span>EFFECTS</span><span class="sp-g sp-m">&minus;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
+      m = document.createElement('div'); m.id = 'modifyPadMarks'; m.innerHTML = '<div class="sp-tint"></div><div class="sp-glow"></div><canvas id="modifyGridCv"></canvas><div class="sp-count" id="modifyCount"></div><div class="sp-top"></div><div class="sp-bot"></div><div class="sp-xlab"><span class="sp-g sp-m">&minus;</span><span>NOTES</span><span class="sp-g sp-p">+</span></div><div class="sp-ylab"><span class="sp-g sp-p">+</span><span>EFFECTS</span><span class="sp-g sp-m">&minus;</span></div><div class="sp-h"></div><div class="sp-v"></div><div class="sp-dot"></div>'; b.appendChild(m);
       const lk = document.createElement('button'); lk.id = 'modifyLock'; lk.type = 'button'; lk.setAttribute('aria-label', 'latch'); lk.innerHTML = LOCK_SVG(window._padLatch);
       lk.addEventListener('click', e => { e.stopPropagation(); e.preventDefault(); setLatch(!window._padLatch); });
       b.appendChild(lk);
@@ -17537,7 +17552,7 @@ async function _renderOfflineLoop(connectFn, loopSequence, tailSec) {
       for (let step = 0; step < NUM_STEPS; step++) {
         const swingMs = (step % 2 === 1) ? getSwingOffsetMs() : 0;
         let stepOffset = step * stepDuration() + (swingMs / 1000);
-        if (_beatType === 'boogie' || _beatType === 'jazz') {
+        if (_beatType === 'boogie' || _beatType === 'boogie12' || _beatType === 'jazz') {
           const beatPos = step % 4;
           const sd = stepDuration();
           const _boogieOffsets = [0, sd / 3, (2 * sd) / 3, -sd / 3];
@@ -18242,7 +18257,7 @@ function randAll(mode, opts) {
   // FX+BLAST) and REVERB ON BEAT, same idea as RANDOMIZE 8-BIT MIX above.
   if (window._randomizeDrumFx) _randomizeDrumFxSettings();
   if (!_beatTypeLocked && window._randomizeBeatType !== false) { // RANDOMIZE BEAT TYPE (RANDOMIZE MENU toggle, on by default)
-    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'soca', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
+    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'soca', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'boogie12', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
     // really only right at a tempo RAND itself would have picked for
     // them — with TEMPO LOCK on, RAND can't also adjust tempo to suit
@@ -18250,8 +18265,8 @@ function randAll(mode, opts) {
     // from something else while locked. Staying within them (or
     // switching between the two of them) is still fine, since that's a
     // combination the user actually already chose.
-    if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'jazz') {
-      _beatTypes = _beatTypes.filter(t => t !== 'boogie' && t !== 'jazz');
+    if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12' && _beatType !== 'jazz') {
+      _beatTypes = _beatTypes.filter(t => t !== 'boogie' && t !== 'boogie12' && t !== 'jazz');
     }
     // HALFTIME + TEMPO LOCK, per direct request — halftime sits at a
     // completely different feel/tempo from everything else, so with TEMPO
@@ -19465,7 +19480,7 @@ function randAll(mode, opts) {
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (grid[tr].every(v => v > 0)) full16thTracks.push(tr);
     }
-    const _full16thStartIdx = (_intensitySliderVal < 35 || _beatType === 'boogie') ? 0 : 1;
+    const _full16thStartIdx = (_intensitySliderVal < 35 || _beatType === 'boogie' || _beatType === 'boogie12') ? 0 : 1;
     for (let i = _full16thStartIdx; i < full16thTracks.length; i++) {
       const tr = full16thTracks[i];
       for (let s = 0; s < NUM_STEPS; s++) {
@@ -24475,13 +24490,16 @@ function _nameEqTick(now) {
   const live = style !== 'off' && playing && ctx && window._postLimiterGain && !document.hidden;
   // STOPPED, per direct request: the meters glide back down to zero (~0.6s) instead of vanishing — then it goes idle
   const settling = !live && style !== 'off' && !document.hidden && (_nameEqLv.some(v => v > 0.004) || _nameEqLv20.some(v => v > 0.004) || _nameEqLv16.some(v => v > 0.004));
-  if (!live && !settling) {
+  // MODIFY, per direct request: when playback stops the graph's EQ doesn't drain away and vanish — it HOLDS its last levels
+  const modHold = !live && style !== 'off' && !document.hidden && document.body.classList.contains('modify');
+  if (!live && !settling && !modHold) {
     if (!_nameEqDrawnIdle) { const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); _nameEqLv.fill(0); _nameEqLv20.fill(0); _nameEqLv16.fill(0); _nameEqDrawnIdle = true; }
     return;
   }
   if (now - _nameEqLast < ((window._nameEqOpacity || 0) <= 50 ? 50 : 33)) return; // ~30fps is plenty — ~20fps at 50% opacity or less (it's fainter, nobody sees the difference), per direct request
   _nameEqLast = now; _nameEqDrawnIdle = false;
-  if (settling) { for (let i = 0; i < 10; i++) _nameEqLv[i] *= 0.888; for (let i = 0; i < 20; i++) _nameEqLv20[i] *= 0.888; for (let i = 0; i < 16; i++) _nameEqLv16[i] *= 0.888; } // stop glide 70% as fast too (was 0.84)
+  if (modHold) { if (now - (window._nameEqHoldT || 0) < 250) return; window._nameEqHoldT = now; } // (held: just redrawn now and then — e.g. after a resize or a style change)
+  else if (settling) { for (let i = 0; i < 10; i++) _nameEqLv[i] *= 0.888; for (let i = 0; i < 20; i++) _nameEqLv20[i] *= 0.888; for (let i = 0; i < 16; i++) _nameEqLv16[i] *= 0.888; } // stop glide 70% as fast too (was 0.84)
   else {
   // analyser on the final output — rebuilt if the audio engine was swapped
   if (!_nameEqAn || _nameEqAn.context !== ctx) {
@@ -26857,7 +26875,7 @@ function _randomizeDrumFxSettings() {
 // R (rand) — single tap picks a new BEAT type once; double tap toggles an
 // auto mode that picks a new one every 4 bars, same shape as the per-track
 // randomize button and the top-row RAND AUTO loop.
-const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie'];
+const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie','boogie12'];
 function randomizeBeatType(opts) {
   // SHUFFLE (boogie) has a particular swing/timing feel that's really
   // only right at a tempo RAND itself would have picked for it — with
@@ -26866,7 +26884,7 @@ function randomizeBeatType(opts) {
   // reasoning as the main RAND button's own beat-type pool). Staying on
   // shuffle while already there is still fine.
   let pool = _BEAT_TYPE_POOL;
-  if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
+  if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12') pool = pool.filter(t => t !== 'boogie' && t !== 'boogie12');
   // HALFTIME + TEMPO LOCK — same rule as RAND's own beat pick: locked means
   // never into halftime, and never out of it if already there.
   if (_tempoLocked) pool = (_beatType === 'halftime') ? ['halftime'] : pool.filter(t => t !== 'halftime');
@@ -27934,9 +27952,10 @@ function snapshotDisplay() {
       if (res.body && res.body.getReader) { const rd = res.body.getReader(); const { value } = await rd.read(); head = new TextDecoder().decode(value || new Uint8Array()); try { rd.cancel(); } catch (e) {} }
       else head = (await res.text()).slice(0, 2048);
       const live = stampOf(head), cur = mine();
+      window._sifiUpd = { at: new Date(), live, cur, status: res.status };
       if (live && cur && live > cur) offer(live);
-    } catch (e) {}
-    checking = false;
+    } catch (e) { window._sifiUpd = { at: new Date(), err: String(e && e.message || e) }; }
+    checking = false; try { _sifiUpdShow(); } catch (e) {}
   }
   function offer(live) {
     shown = true;
@@ -27955,7 +27974,12 @@ function snapshotDisplay() {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(() => check(true), 1500); });
   setInterval(() => { if (document.visibilityState === 'visible' && !(typeof playing !== 'undefined' && playing)) check(false); }, 10 * 60 * 1000);
   setTimeout(() => check(true), 8000); // once shortly after opening
-  window._sifiCheckUpdate = () => check(true);
+  window._sifiCheckUpdate = () => { shown = false; check(true); };
+  // SETTINGS > CHECK FOR UPDATE, per direct report (auto-update 'not working'): shows when it last looked, what the live build is
+  window._sifiUpdShow = function () { const el = document.getElementById('updStatus'); if (!el) return; const u = window._sifiUpd;
+    if (location.protocol === 'file:') { el.textContent = 'only works on the live site'; return; }
+    if (!u) { el.textContent = 'not checked yet'; return; } if (u.err) { el.textContent = 'check failed: ' + u.err; return; }
+    const hm = u.at.toTimeString().slice(0, 5); el.textContent = hm + ' — live ' + (u.live || '?') + (u.live && u.cur && u.live > u.cur ? ' (NEWER — tap UPDATE)' : ' (you have it)'); };
 })();
 </script>
 <script>
