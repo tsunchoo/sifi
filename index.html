@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 06:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-30 06:35:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -2608,10 +2608,14 @@ html body .track-ctrl-row:has(.lock-btn.sweep-on) .track-vol-bar { opacity: 0.6;
 /* MODIFY MODE (from LIVE: drag the key UP), per direct request: every track's note-marker lane collapses, leaving just the button
    rows, and the song name bar grows by exactly the height that freed up (measured in JS → --modify-extra) */
 html body.modify .track-row { display: none !important; }
+/* MODIFY SLIM NOTE ROWS, per direct request: under each track's buttons, an 8px non-clickable strip of its notes (the ones
+   actually sounding — the pad's mutes / additions included) as plain rectangles, at the NOTE MARKERS OPACITY */
+.mod-note-row { display: none; }
+html body.modify .mod-note-row { display: block; width: 100%; height: 8px; pointer-events: none; opacity: var(--modify-notes-op, 0.4); }
 /* (MODIFY's forced transparent song-name background removed, per direct request — it keeps whatever the mode before it had) */
 html body.modify.name-bg-clear #nameBar { background: var(--name-bar-bg, #9fb9a2) !important; }
 html body.modify.modify-pad-clear #nameBar { background: linear-gradient(to bottom, var(--name-bar-bg, #9fb9a2) 0, var(--name-bar-bg, #9fb9a2) 66.08px, transparent 66.08px) !important; } /* MODIFY GRAPH BG TRANSPARENT (top of SETTINGS): the song name strip keeps its colour, the graph below goes see-through */ /* MODIFY: the song name bar always has the display mode's own bar colour, even where the mode makes it see-through, per direct request */
-html body.modify #nameBar { min-height: calc(66.08px + var(--modify-extra, 0px) - 20px) !important; /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
+html body.modify #nameBar { min-height: calc(66.08px + var(--modify-pad-h, 186px)) !important; /* the graph is exactly the square note grid + its 20px margins (no wasted space above / below — given to the tracks' slim note rows), per direct request */ /* the pad is 20px shorter than the space the lanes freed, so the tracks never get pushed below the fold, per direct request */ touch-action: none; cursor: crosshair; }
 /* MODIFY XY PAD marks: a faint centre cross (= the pattern as it is) and the finger's dot */
 /* MODIFY layout, per direct request: the top 10% of the bar is the SONG NAME strip (double-tap it = save the tape to files);
    the EQ and the pad share the bottom 90% */
@@ -3015,7 +3019,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:15:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 06:35:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3944,6 +3948,11 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY NOTES AS SQUARES (OFF = CIRCLES)</div>
       <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="modifyMarkSquaresToggle" onchange="setModifyMarkSquares(this.checked)"><span class="wild-toggle-slider"></span></label>
+    </div>
+    <!-- MODIFY SLIM NOTE ROWS: grayscale (default) or each track's colour, per direct request -->
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">MODIFY NOTE ROWS IN TRACK COLOURS (OFF = GREY)</div>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="modifyRowColoursToggle" onchange="setModifyRowColours(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
     <!-- MODIFY GRAPH BACKGROUND TRANSPARENT, per direct request -->
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -8277,6 +8286,7 @@ window._padLatch = true;
   // NOTE GRID over the pad: every track (in the order they sit on screen) × 16 steps, only the notes that are actually sounding
   // right now (muted ones left out), in each track's own colour — every note the same size, filling its cell
   function drawGrid() {
+    { const g0 = document.getElementById('modifyGridCv'); if (g0 && g0.width) g0.getContext('2d').clearRect(0, 0, g0.width, g0.height); } return; // the notes live in the tracks' slim rows now, per direct request (graph overlay off)
     const cv = document.getElementById('modifyGridCv'), b = document.getElementById('modifyPadMarks'); if (!cv || !b) return; // the pad area (bottom 90%)
     const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(b.clientWidth * dpr), H = Math.round(b.clientHeight * dpr); if (!W || !H) return;
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
@@ -8356,7 +8366,31 @@ function _modifyMeasure() {
   let h = 0; document.querySelectorAll('.track-row').forEach(r => { const rr = r.getBoundingClientRect(); if (rr.height) h += rr.height + 4; }); // + the 4px gap under each
   if (had) b.classList.add('modify');
   document.documentElement.style.setProperty('--modify-extra', Math.round(h) + 'px');
+  const W = document.documentElement.clientWidth || innerWidth; document.documentElement.style.setProperty('--modify-pad-h', Math.round(6 * ((W - 40) / 16) + 40) + 'px'); // 6 square rows of a 16-wide grid + margins
 }
+// the slim rows are drawn here (~15fps while MODIFY is on): one rectangle per sounding note, 2px apart, full row height
+window._modifyRowColours = false; // false = GRAYSCALE (default), true = each track's own colour — SETTINGS toggle
+function _modifyRowsTick() {
+  if (!document.body.classList.contains('modify') || document.hidden) return;
+  const dpr = Math.min(2, window.devicePixelRatio || 1), mute = window._padMute;
+  let grey = '#777';
+  try { const c = _anyRgba(getComputedStyle(document.body).backgroundColor); grey = c && _relLum(c) > 0.3 ? '#5a5a5a' : '#b0b0b0'; } catch (e) {}
+  for (let tr = 0; tr < NUM_TRACKS; tr++) {
+    const cv = document.getElementById(`modrow-${tr}`); if (!cv) continue;
+    const W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr); if (!W || !H) continue;
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const c = cv.getContext('2d'); c.clearRect(0, 0, W, H);
+    let col = grey; if (window._modifyRowColours) { const tb = document.getElementById(`tbtn-${tr}`); if (tb) col = getComputedStyle(tb).backgroundColor; }
+    c.fillStyle = col; const cw = W / NUM_STEPS, g = Math.round(dpr);
+    for (let gs = 0; gs < NUM_STEPS; gs++) {
+      if (!(grid[tr][gs] > 0) || (mute && mute[tr * NUM_STEPS + gs])) continue;
+      const ds = (gs + (trackOffset[tr] || 0)) % NUM_STEPS, x0 = Math.round(ds * cw) + g, x1 = Math.round((ds + 1) * cw) - g;
+      c.fillRect(x0, 0, Math.max(1, x1 - x0), H);
+    }
+  }
+}
+setInterval(_modifyRowsTick, 66);
+window.addEventListener('resize', () => { if (document.body.classList.contains('modify')) _modifyMeasure(); });
 function _setModify(on, quiet) {
   const b = document.body; on = !!on && b.classList.contains('live-layout');
   if (on === b.classList.contains('modify')) return;
@@ -8371,6 +8405,8 @@ function _setModify(on, quiet) {
 window._modifyMarkSquares = false;
 function setModifyMarkSquares(on) { window._modifyMarkSquares = !!on; const cb = document.getElementById('modifyMarkSquaresToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyMarkSq', on ? '1' : '0'); } catch (e) {} }
 document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyMarkSq') === '1'; } catch (e) {} setModifyMarkSquares(on); });
+function setModifyRowColours(on) { window._modifyRowColours = !!on; const cb = document.getElementById('modifyRowColoursToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyRowCol', on ? '1' : '0'); } catch (e) {} }
+document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyRowCol') === '1'; } catch (e) {} setModifyRowColours(on); });
 function setModifyPadClear(on) { document.body.classList.toggle('modify-pad-clear', !!on); const cb = document.getElementById('modifyPadClearToggle'); if (cb) cb.checked = !!on; try { localStorage.setItem('sifiModifyPadClear', on ? '1' : '0'); } catch (e) {} }
 document.addEventListener('DOMContentLoaded', () => { let on = false; try { on = localStorage.getItem('sifiModifyPadClear') === '1'; } catch (e) {} setModifyPadClear(on); });
 // MODIFY COUNT settings (SETTINGS), per direct request — remembered on this device
@@ -14413,6 +14449,7 @@ function buildUI() {
     lane.appendChild(cells);
     row.appendChild(lane);
     trackWrap.appendChild(row);
+    { const mr = document.createElement('canvas'); mr.className = 'mod-note-row'; mr.id = `modrow-${tr}`; mr.setAttribute('aria-hidden', 'true'); trackWrap.appendChild(mr); } // MODIFY's slim, non-clickable note row (see _modifyRowsTick)
     seqWrap.appendChild(trackWrap);
   }
 
