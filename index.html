@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-31 03:20:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-31 04:25:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -3035,7 +3035,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-31 03:20:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-31 04:25:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -8281,9 +8281,10 @@ window._padLatch = true;
     const dot = m.querySelector('.sp-dot'); if (dot) dot.style.color = `rgb(${rgb})`;
   }
   // back to the centre, EASED (a new pattern) — dragging again cancels the ease straight away
-  function easeHome() { const m = marks(); if (!m) return;
+  function easeHome(fast) { const m = marks(); if (!m) return;
     { const dd = m.querySelector('.sp-dot'); if (dd && dd._home && dd._home.playState === 'running') return; } // already easing home (>> started it) — don't restart it when the new pattern then lands
     let dur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--new-pattern-dur')); if (!(dur >= 0.4 && dur <= 4)) dur = 1.3; // (that variable can be 0 for a moment while the new pattern is set up)
+    if (fast) dur /= 3; // DOUBLE-TAP RESET only: 3x faster back to the centre, per direct request (>> / a new pattern keep the original speed)
     const d = m.querySelector('.sp-dot'), t = m.querySelector('.sp-tint');
     // Web Animations (not CSS transitions — those were being skipped when the jump landed in the same frame): from wherever the
     // ring / colour are now, to the centre, eased in and out
@@ -8354,7 +8355,7 @@ window._padLatch = true;
   function padReset() {
     held = false; pend = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
     const m = marks(); if (m) m.classList.remove('sp-held', 'sp-xm', 'sp-xp', 'sp-ym', 'sp-yp');
-    easeHome(); restore();
+    easeHome(true); restore();
     try { playUiSound('tinyclick'); } catch (e) {}
   }
   window._modifyPadReset = padReset;
