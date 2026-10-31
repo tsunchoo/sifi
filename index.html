@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BUILD TIMESTAMP: 2026-10-30 21:30:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
+<!-- BUILD TIMESTAMP: 2026-10-31 03:15:00 UTC — updated every time this file is regenerated in this conversation, so we can both confirm we're looking at the same build. -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -706,6 +706,7 @@ body:not(.drums-pulse) #playBtn.playing.btn-beat-pulse #playBtnMask { animation:
   min-width: min(340px, 90vw);
   display: flex; flex-direction: column; gap: 0;
   box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  max-height: calc(100svh - 16px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; /* scrolls if it's ever taller than the screen, per direct report */
   transform: translateY(clamp(0px, calc((100svh - 660px) / 2 - 8px), 60px)); /* the old 60px drop, but never so far the bottom row (JAZZ) runs off the screen, per direct request */
 }
 .beat-ctrl-row { display: flex; gap: 6px; width: 100%; }
@@ -3034,7 +3035,7 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <button id="loadingOverlay" onclick="document.getElementById('loadingProgress').style.display='block'; document.getElementById('loadingMsg').style.display='none'; this.style.pointerEvents='none'; if ('speechSynthesis' in window) { const u = new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } initAudio()">
   <h2>Si•Fi</h2>
   <p id="loadingMsg">Tap to load</p>
-  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-30 21:30:00 UTC</p>
+  <p id="buildTimestamp" style="font-size:0.6rem;color:#888;letter-spacing:0.5px;margin-top:6px;">BUILD 2026-10-31 03:15:00 UTC</p>
   <div id="loadingProgress" style="display:none;width:80%;max-width:260px;margin-top:16px;">
     <div style="width:100%;height:6px;background:#333;border-radius:3px;overflow:hidden;">
       <div id="loadingBar" style="height:100%;width:0%;background:#f17d21;transition:width 0.15s;"></div>
@@ -3202,6 +3203,11 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
 <div id="beatTypeMenu" class="beat-type-menu">
   <div class="beat-type-menu-inner">
     <div style="font-size:0.85rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:11px;">DRUMS</div><!-- 5px less under the title, per direct request -->
+    <!-- 8-BIT DRUMS (moved here from SETTINGS; now at the TOP, under the title — the menu was running off the bottom on a phone), per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
+    <div id="drums8bitRow" style="display:flex;align-items:center;justify-content:space-between;margin-top:0;margin-bottom:12px;">
+      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
+      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
+    </div>
     <!-- DRUMS VOL slider moved to SETTINGS as DRUMS BUS (under MUSIC BUS), per direct request -->
     <div class="beat-ctrl-row" style="margin-top:0;margin-bottom:12px;">
       <button class="track-ctrl-icon-btn lock-btn" id="beatCtrlL"><svg width="24.10" height="24.10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;"><rect x="5" y="11" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg></button>
@@ -3225,15 +3231,9 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
       <div class="beat-type-item" data-beat="cumbia">CUMBIA</div>
       <div class="beat-type-item" data-beat="afrobeat">AFROBEAT</div>
       <div class="beat-type-item" data-beat="boogie">SHUFFLE</div>
-      <div class="beat-type-item" data-beat="boogie12">BOOGIE</div><!-- 12/8, per direct request -->
       <div class="beat-type-item" data-beat="bossa">BOSSA</div>
       <div class="beat-type-item" data-beat="jazz">JAZZ</div>
       <div class="beat-type-item" data-beat="soca">SUKA</div><!-- takes the blank filler's place -->
-    </div>
-    <!-- 8-BIT DRUMS (moved here from SETTINGS), per direct request: every drum + percussion sound crushed to 8-bit before any effects / buses -->
-    <div id="drums8bitRow" style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">
-      <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#111;">8-BIT DRUMS</div>
-      <label class="wild-toggle"><input autocomplete="off" type="checkbox" id="drums8bitToggle" onchange="setDrums8bit(this.checked)"><span class="wild-toggle-slider"></span></label>
     </div>
   </div>
 </div>
@@ -4061,13 +4061,13 @@ html body #loadingOverlay h2, html body #loadingOverlay p:not(#buildTimestamp) {
       <!-- MUSIC BUS, per direct request: the overall level of everything that isn't DRUMS or PERCUSSION (every melody / bass / pad
            track, their reverb included) — the drums menu, kit and percussion tracks are untouched. -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">63%</div></div>
-        <input autocomplete="off" type="range" id="musicBusBar" min="0" max="100" value="63" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">MUSIC BUS</div><div id="musicBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">46%</div></div>
+        <input autocomplete="off" type="range" id="musicBusBar" min="0" max="100" value="46" class="master-vol-slider" style="width:100%;" oninput="setMusicBus(this.value)" onchange="setMusicBus(this.value)">
       </div>
       <!-- DRUMS BUS (was the DRUMS menu's volume slider), per direct request -->
       <div style="display:flex;flex-direction:column;gap:15px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">50%</div></div>
-        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="50" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
+        <div style="display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.6rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);">DRUMS BUS</div><div id="beatVolBusVal" style="font-size:0.85rem;font-weight:700;color:#111;">30%</div></div>
+        <input autocomplete="off" type="range" id="beatVolBar" min="0" max="100" value="30" class="master-vol-slider" style="width:100%;" oninput="setBeatVol(this.value/100)" onchange="setBeatVol(this.value/100)">
       </div>
 
       <!-- AUTO NOTE OUTLINE slider removed, per direct request — hard-coded 3px (see --auto-outline-w on :root) -->
@@ -6083,7 +6083,7 @@ function _randoLocal(which) {
   try {
     if (c.beatType && !_beatTypeLocked) {
       let pool = _BEAT_TYPE_POOL.filter(t => t !== _beatType);
-      if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12') pool = pool.filter(t => t !== 'boogie' && t !== 'boogie12');
+      if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
       if (_tempoLocked) pool = (_beatType === 'halftime') ? [] : pool.filter(t => t !== 'halftime');
       if (pool.length) { _sambaSnareVariant = Math.random() < 0.5 ? 'ssnare' : 'sidestick'; setBeatType(pool[Math.floor(Math.random() * pool.length)], true, 'rolled'); try { refreshBeatMenuHighlight(); } catch (e) {} }
     }
@@ -7001,6 +7001,7 @@ let _preSoloMuteState = null; // trackMuted snapshot from just before the first 
 const trackSweep  = new Array(NUM_TRACKS).fill(false); // L button toggle
 const trackChop   = new Array(NUM_TRACKS).fill(false);
 const _VOL_AUTO_MAX_POS = 0.82; // no fader is ever PUT at max by the app (defaults, resets, new patterns) — 82% of its travel at most, per direct request
+function _texLift(tr, g) { return trackInstruments[tr] === 'amlgm' ? volPosToGain(Math.min(_volStepPositions[VOL_STEP_COUNT - 2], volGainToPos(g) * 1.25 * 1.2)) : g; } // TEXTURE: fader 25%, then another 20%, further up its travel (after the 82% cap), per direct request — stops one step short of max so it never comes in stuck at full
 function _capAutoVol(g) { return volGainToPos(g) > _VOL_AUTO_MAX_POS ? volPosToGain(_VOL_AUTO_MAX_POS) : g; }
 const trackVolume = [0.0501, 0.505, 0.8, 0.8, 0.8, 0.8];
 
@@ -7036,6 +7037,7 @@ function volGainToPos(gain) {
   const db = 20 * Math.log10(gain);
   return Math.max(0, Math.min(1, (db - VOL_MIN_DB) / (0 - VOL_MIN_DB)));
 }
+if (trackInstruments[0] === 'amlgm') trackVolume[0] = volPosToGain(Math.min(_volStepPositions[VOL_STEP_COUNT - 2], volGainToPos(trackVolume[0]) * 1.25 * 1.2)); // TEXTURE +25% on the fader, per direct request
 // Sets a track's vol-bar fill width from its current (gain-space) volume,
 // via the same taper, so what you see always matches where you'd need to
 // drag to get back to that level. Fill color itself is plain CSS now
@@ -7337,7 +7339,7 @@ function scheduler() {
     // is meant to be straight 16ths throughout, so it just skips swing.
     const swingMs = (step % 2 === 1) ? getSwingOffsetMs() : 0; // SAMBA swings like every other beat now, per direct request (its exemption dated from an older snare pattern that mixed swung and straight steps; today's 3/5/9/11/13 all swing together)
     let t = nextStepTime + (swingMs / 1000);
-    if (_beatType === 'boogie' || _beatType === 'boogie12' || _beatType === 'jazz') {
+    if (_beatType === 'boogie' || _beatType === 'jazz') {
       // BOOGIE and JAZZ both — snap every track's actual playback timing
       // (not the visual grid, which stays a normal 16-step display) onto
       // the same true triplet-shuffle feel the beat engine itself uses. Each beat's 4
@@ -7953,14 +7955,6 @@ function fireStepAudio(step, t) {
           playSynthHihat(false, t + 2 * _third, -1);
           if (_beatIdx % 2 === 0) fireBeatKick(t);
           else playSnare(t);
-        } else if (_beatType === 'boogie12') {
-          // BOOGIE (12/8), per direct request — counted 1-&-a 2-&-a 3-&-a 4-&-a: hihat on the 1st and 3rd triplet of every beat
-          // (x . x), KICK on every beat, SNARE on 2 and 4 (with the kick). Exact thirds of the beat, like SHUFFLE.
-          const _third = stepDuration() * 4 / 3;
-          playSynthHihat(false, t, -1);
-          playSynthHihat(false, t + 2 * _third, -1);
-          fireBeatKick(t);
-          if (bstep === 4 || bstep === 12) playSnare(t);
         }
         if (doKick) {
           const _halftimeSecondKick = (_beatType === 'halftime' && bstep === 4) ? 0.75 : undefined; // HALFTIME's 2nd kick (1+2 feel) at 75% velocity, first kick untouched
@@ -8353,10 +8347,21 @@ window._padLatch = true;
   // stop the tap's click), so a tap on it only ever toggles the latch
   const onLock = e => e.target && e.target.closest && e.target.closest('#modifyLock');
   ['touchstart', 'touchend', 'mousedown', 'mouseup', 'dblclick'].forEach(t => window.addEventListener(t, e => { if (onLock(e)) e.stopPropagation(); }, true));
-  window.addEventListener('touchstart', e => { if (!inPad(e)) return; e.stopPropagation(); if (e.cancelable) e.preventDefault(); const t = e.touches[0]; start(t.clientX, t.clientY); }, { capture: true, passive: false });
+  // DOUBLE TAP / DOUBLE CLICK ANYWHERE IN THE GRAPH, per direct request: the ring eases back to the centre and the graph resets —
+  // the pattern goes back to how it was (effects the pad already took away stay gone, as always)
+  let lastDown = 0;
+  const isDouble = () => { const now = performance.now(), d = now - lastDown < 320; lastDown = d ? 0 : now; return d; };
+  function padReset() {
+    held = false; pend = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    const m = marks(); if (m) m.classList.remove('sp-held', 'sp-xm', 'sp-xp', 'sp-ym', 'sp-yp');
+    easeHome(); restore();
+    try { playUiSound('tinyclick'); } catch (e) {}
+  }
+  window._modifyPadReset = padReset;
+  window.addEventListener('touchstart', e => { if (!inPad(e)) return; e.stopPropagation(); if (e.cancelable) e.preventDefault(); if (e.touches.length === 1 && isDouble()) { padReset(); return; } const t = e.touches[0]; start(t.clientX, t.clientY); }, { capture: true, passive: false });
   window.addEventListener('touchmove', e => { if (!held) return; e.stopPropagation(); if (e.cancelable) e.preventDefault(); const t = e.touches[0]; pos(t.clientX, t.clientY); }, { capture: true, passive: false });
   ['touchend', 'touchcancel'].forEach(t => window.addEventListener(t, e => { if (!held) return; e.stopPropagation(); if (!e.touches || !e.touches.length) end(); }, { capture: true }));
-  window.addEventListener('mousedown', e => { if (!inPad(e)) return; e.stopPropagation(); e.preventDefault(); start(e.clientX, e.clientY); }, true);
+  window.addEventListener('mousedown', e => { if (!inPad(e)) return; e.stopPropagation(); e.preventDefault(); if (isDouble()) { padReset(); return; } start(e.clientX, e.clientY); }, true);
   window.addEventListener('mousemove', e => { if (held) pos(e.clientX, e.clientY); }, true);
   window.addEventListener('mouseup', e => { if (held) { e.stopPropagation(); end(); } }, true);
   ['click', 'dblclick'].forEach(t => window.addEventListener(t, e => { if (inPad(e)) { e.stopPropagation(); e.preventDefault(); } }, true));
@@ -9623,12 +9628,10 @@ function randomizeBassTrack(tr, level) {
   const maxN = Math.min(NUM_STEPS, Math.max(_minN, Math.round(maxN0 * tempoNoteFactor() * intensityMult())));
   window._lastNoteMaxUsed = maxN;
   let noteCount = _minN + Math.floor(Math.random() * (maxN - _minN + 1));
-  if (_ladderTap) { // the + LADDER: press 1…5 = the instrument's own sparsest → busiest, each strictly more than the last, then round again
+  if (_ladderTap) { // the + LADDER, per direct request: press 1 = a normal roll; presses 2…5 = one more note each (about +4 by press 5), then round again
     const L = window._tonalPlusLadder = window._tonalPlusLadder || {}; let st = L[tr]; if (!st || st.key !== key) st = L[tr] = { key, k: 0 };
-    const lo = Math.min(NUM_STEPS - 4, Math.max(1, Math.round(levelTable[0][0] * intensityMult())));
-    const hi = Math.min(NUM_STEPS, Math.max(lo + 4, Math.round(levelTable[2][1] * tempoNoteFactor() * intensityMult())));
-    noteCount = Math.min(NUM_STEPS, lo + Math.round((hi - lo) * st.k / 4)); if (st.k > 0 && st.prev !== undefined && noteCount <= st.prev) noteCount = Math.min(NUM_STEPS, st.prev + 1);
-    st.prev = st.k === 4 ? undefined : noteCount; st.k = (st.k + 1) % 5; window._lastNoteMaxUsed = noteCount;
+    if (st.k === 0) st.baseN = noteCount; else noteCount = Math.min(NUM_STEPS, st.baseN + st.k);
+    st.k = (st.k + 1) % 5; window._lastNoteMaxUsed = noteCount;
   }
   if (key === 'jcmgtr' && window._isAutoBarRand) noteCount = Math.max(1, Math.round(noteCount * 0.75)); // auto mode — 25% fewer notes
   if (key === 'underpass') noteCount = Math.min(NUM_STEPS, noteCount + 6); // +3 more still (was +3, now +6 total) on top of the usual quota — more chances for the octave-up wander (see the trackPitchOverride pass below), and now the fast double-pitch trick too, to actually land somewhere audible, per direct request
@@ -17460,7 +17463,8 @@ function _buildBounceGraph(targetCtx) {
   for (let i = 0; i < NUM_TRACKS; i++) {
     const g = targetCtx.createGain(); g.gain.value = trackVolume[i]; trackGainNodes[i] = g;
     const ef = targetCtx.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 22050; ef.Q.value = 3;
-    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; const mb = targetCtx.createGain(); mb.gain.value = _musicBusFor(i); (window._musicBusGains = window._musicBusGains || [])[i] = mb; g.connect(mb); mb.connect(cg); cg.connect(ef); } // MUSIC BUS between the fader and the CHOKE gate (bounce/stems too) trackEnvFilters[i] = ef; // CHOKE gate too. caller connects ef -> masterGain for whichever track(s) it wants live
+    { const cg = targetCtx.createGain(); cg.gain.value = trackChink[i] ? 0 : 1; window._chinkGates[i] = cg; const mb = targetCtx.createGain(); mb.gain.value = _musicBusFor(i); (window._musicBusGains = window._musicBusGains || [])[i] = mb; g.connect(mb); mb.connect(cg); cg.connect(ef); } // MUSIC BUS between the fader and the CHOKE gate (bounce/stems too); CHOKE gate too
+    trackEnvFilters[i] = ef; // was stuck inside the comment above, so exports had no track outputs (fix) caller connects ef -> masterGain for whichever track(s) it wants live
     trackFxNodes[i] = buildFxChain(g);
     if (trackInstruments[i] === 'ngate') initNoiseGate(i);
     if (trackFx[i] && (trackFx[i].x > 0 || trackFx[i].y > 0)) setFxActive(i, trackFx[i]);
@@ -17552,7 +17556,7 @@ async function _renderOfflineLoop(connectFn, loopSequence, tailSec) {
       for (let step = 0; step < NUM_STEPS; step++) {
         const swingMs = (step % 2 === 1) ? getSwingOffsetMs() : 0;
         let stepOffset = step * stepDuration() + (swingMs / 1000);
-        if (_beatType === 'boogie' || _beatType === 'boogie12' || _beatType === 'jazz') {
+        if (_beatType === 'boogie' || _beatType === 'jazz') {
           const beatPos = step % 4;
           const sd = stepDuration();
           const _boogieOffsets = [0, sd / 3, (2 * sd) / 3, -sd / 3];
@@ -17797,6 +17801,7 @@ function fullClear() {
     trackFx[tr] = { x: 0, y: 0 }; // no longer forced on for track 0 — same default as everyone else now
     trackFxMode[tr] = 0;
     trackInstruments[tr] = defaultInstruments[tr] || 'tamb';
+    trackVolume[tr] = _texLift(tr, trackVolume[tr]);
     if (ctx) {
       setFxActive(tr, trackFx[tr]);
       if (trackGainNodes[tr]) trackGainNodes[tr].gain.setTargetAtTime(trackVolume[tr], ctx.currentTime, 0.01);
@@ -18257,7 +18262,7 @@ function randAll(mode, opts) {
   // FX+BLAST) and REVERB ON BEAT, same idea as RANDOMIZE 8-BIT MIX above.
   if (window._randomizeDrumFx) _randomizeDrumFxSettings();
   if (!_beatTypeLocked && window._randomizeBeatType !== false) { // RANDOMIZE BEAT TYPE (RANDOMIZE MENU toggle, on by default)
-    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'soca', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'boogie12', 'bossa', 'jazz'];
+    let _beatTypes = ['disco', 'halftime', 'reggae', 'breaks', 'charlie', 'soca', 'bounce', 'reggae2', 'mozambique', 'doubledown', 'drive', 'samba', 'swagger', 'cumbia', 'afrobeat', 'boogie', 'bossa', 'jazz'];
     // SHUFFLE and JAZZ both have a particular swing/timing feel that's
     // really only right at a tempo RAND itself would have picked for
     // them — with TEMPO LOCK on, RAND can't also adjust tempo to suit
@@ -18265,8 +18270,8 @@ function randAll(mode, opts) {
     // from something else while locked. Staying within them (or
     // switching between the two of them) is still fine, since that's a
     // combination the user actually already chose.
-    if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12' && _beatType !== 'jazz') {
-      _beatTypes = _beatTypes.filter(t => t !== 'boogie' && t !== 'boogie12' && t !== 'jazz');
+    if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'jazz') {
+      _beatTypes = _beatTypes.filter(t => t !== 'boogie' && t !== 'jazz');
     }
     // HALFTIME + TEMPO LOCK, per direct request — halftime sits at a
     // completely different feel/tempo from everything else, so with TEMPO
@@ -19130,7 +19135,7 @@ function randAll(mode, opts) {
         if (['congHi', 'congLo', 'bongHi', 'bongLo', 'timbHi', 'timbMid', 'timbLo'].includes(trackInstruments[_tr])) trackVolume[_tr] = volPosToGain(volGainToPos(trackVolume[_tr]) * 0.9); // every CONGA / BONGO / TIMBALE: fader 10% further DOWN its travel, per direct request
         // NOTHING COMES IN STUCK AT MAX, per direct report (SYNTH BASS kept landing at full): the +25–35% lift and the bass +10% could
         // push a fader past the top. Every new-pattern fader now stops at 82% of its travel at most.
-        trackVolume[_tr] = _capAutoVol(trackVolume[_tr]);
+        trackVolume[_tr] = _texLift(_tr, _capAutoVol(trackVolume[_tr]));
         if (ctx && trackGainNodes[_tr]) trackGainNodes[_tr].gain.setTargetAtTime(trackVolume[_tr], ctx.currentTime, 0.05);
         updateVolFillDisplay(_tr);
       }
@@ -19480,7 +19485,7 @@ function randAll(mode, opts) {
     for (let tr = 0; tr < NUM_TRACKS; tr++) {
       if (grid[tr].every(v => v > 0)) full16thTracks.push(tr);
     }
-    const _full16thStartIdx = (_intensitySliderVal < 35 || _beatType === 'boogie' || _beatType === 'boogie12') ? 0 : 1;
+    const _full16thStartIdx = (_intensitySliderVal < 35 || _beatType === 'boogie') ? 0 : 1;
     for (let i = _full16thStartIdx; i < full16thTracks.length; i++) {
       const tr = full16thTracks[i];
       for (let s = 0; s < NUM_STEPS; s++) {
@@ -20603,11 +20608,21 @@ function randomizeTrack(tr) {
     // + LADDER guarantee: some instruments' own clean-up passes (legato merging, spacing / density checks) can take onsets back
     // out after the quota — so on YOUR + presses the result is topped up to always show MORE notes than the press before
     if (window._plusTapTr === tr) { try { const st = window._tonalPlusLadder && window._tonalPlusLadder[tr]; if (st) {
-      const has = () => grid[tr].filter(v => v > 0).length; let n = has();
-      if (st.k !== 1 && st.lastVis !== undefined && n <= st.lastVis) { const empt = []; for (let i = 0; i < NUM_STEPS; i++) if (!(grid[tr][i] > 0) && !(trackLegatoLen[tr] && Object.keys(trackLegatoLen[tr]).some(o => { o = +o; const L = trackLegatoLen[tr][o]; return i > o && i < o + L; }))) empt.push(i);
-        for (let i = empt.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [empt[i], empt[j]] = [empt[j], empt[i]]; }
-        while (n <= st.lastVis && empt.length) { grid[tr][empt.pop()] = 1; n++; } redrawTrackCells(tr); }
-      st.lastVis = st.k === 0 ? undefined : has(); } } catch (e) {} } // (k already advanced: k===1 means this was press 1 — a fresh start; k===0 means press 5 just finished the round)
+      // + LADDER, per direct request: some instruments' own clean-up passes (legato merging, spacing, bonus notes) change the count
+      // after the quota — so the result is set to EXACTLY press 1's count + 1 per press (+4 by press 5)
+      const step = st.k === 0 ? 4 : st.k - 1; // k has already advanced: 1 = press 1 just happened … 0 = press 5
+      const onsets = () => { const o = []; for (let i = 0; i < NUM_STEPS; i++) if (grid[tr][i] > 0) o.push(i); return o; };
+      const covered = i => trackLegatoLen[tr] && Object.keys(trackLegatoLen[tr]).some(o => { o = +o; const Ln = trackLegatoLen[tr][o]; return grid[tr][o] > 0 && i > o && i < o + Ln; });
+      const shuf = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+      if (step === 0) st.baseVis = onsets().length;
+      else if (st.baseVis !== undefined) {
+        const target = Math.min(NUM_STEPS, st.baseVis + step); let on = onsets();
+        if (on.length > target) { shuf(on); while (on.length > target) { const s0 = on.pop(); grid[tr][s0] = 0; if (trackLegatoLen[tr]) delete trackLegatoLen[tr][s0]; } }
+        else if (on.length < target) { const empt = shuf([...Array(NUM_STEPS).keys()].filter(i => !(grid[tr][i] > 0) && !covered(i))); let n = on.length;
+          while (n < target && empt.length) { grid[tr][empt.pop()] = 1; n++; }
+          if (n < target && trackLegatoLen[tr]) { trackLegatoLen[tr] = {}; const e2 = shuf([...Array(NUM_STEPS).keys()].filter(i => !(grid[tr][i] > 0))); while (n < target && e2.length) { grid[tr][e2.pop()] = 1; n++; } } }
+        redrawTrackCells(tr);
+      } } } catch (e) {} }
     return;
   }
 
@@ -24730,7 +24745,7 @@ function fullReset() {
   try { const _fe = document.getElementById('fxEchoExtraSlider'); if (_fe) _fe.value = 5; _setFxEchoExtra(5); } catch (e) {}
   try { _setFxEchoLevel(27); } catch (e) {}
   try { _setEchoDirty(false); } catch (e) {}
-  try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 63; setMusicBus(63); } catch (e) {}
+  try { const _mb = document.getElementById('musicBusBar'); if (_mb) _mb.value = 46; setMusicBus(46); } catch (e) {}
   try { const _an = document.getElementById('autoNotesFlashLenSlider'); if (_an) _an.value = 3.25; _setAutoNotesFlashLen(3.25); } catch (e) {}
   try { setDrums8bit(false); } catch (e) {}
   // Cancel any per-track pattern-generation steps still queued from a
@@ -24790,8 +24805,8 @@ function fullReset() {
     trackMuted[tr] = false;
     trackSweep[tr] = false;
     trackChop[tr] = false;
-    trackVolume[tr] = _capAutoVol(defaultVolumes[tr]);
     trackInstruments[tr] = defaultInstruments[tr];
+    trackVolume[tr] = _texLift(tr, _capAutoVol(defaultVolumes[tr]));
     _trackInstrumentTouched[tr] = false; // back to pristine — matches the fresh grid[tr].fill(0) above, so this track sorts/hides as empty again until touched anew
     trackFx[tr] = { x: 0, y: 0 }; // no longer forced on for track 0 — same default as everyone else now
     _setTrackReverb(tr, false);
@@ -24824,7 +24839,7 @@ function fullReset() {
   const _bpmSettingsSliderEl = document.getElementById('bpmSettingsSlider'); if (_bpmSettingsSliderEl) _bpmSettingsSliderEl.value = bpm;
   _beatOffset = 0; _beatReverbMix = 0.24; _beatFx = false; _beatPump = false; _setBeatChoke(false);
   _beatAutoRandActive = false; _beatAutoRandBarCount = 0; window._beatBulldozer = false;
-  _beatVolRaw = 0.50; _applyBeatVolWithDuck(); // DRUMS BUS default 50% (was 60%, 39% before that), per direct request
+  _beatVolRaw = 0.30; _applyBeatVolWithDuck(); // DRUMS BUS default 30% (was 40%, 50%, 60%, 39% before that), per direct request
   const _bbFullReset = document.getElementById('beatBtn'); if (_bbFullReset) _bbFullReset.classList.remove('beat-auto-active');
   if (window._beatReverbSend && ctx) window._beatReverbSend.gain.setValueAtTime(_beatReverbGainForMix(_beatReverbMix), ctx.currentTime); // on by default now, not silenced
   if (window._beatCrunchSend && ctx) window._beatCrunchSend.gain.setValueAtTime(0, ctx.currentTime);
@@ -26365,7 +26380,7 @@ function _setBeatCountShown(on) {
 // the gain actually applied to the node also folds in a -1.5dB duck
 // whenever FX or BLAST is engaged on BEAT, so the dial itself always
 // reflects what the user set rather than the post-duck level.
-let _beatVolRaw = 0.50; // DRUMS BUS default 50% (was 60%, 39%, before that 0.5711), per direct request
+let _beatVolRaw = 0.30; // DRUMS BUS default 30% (was 40%, 50%, 60%, 39%, before that 0.5711), per direct request
 let _beatSoloMuted = false; // true whenever any track is soloed — SOLO should silence BEAT too, same as every un-soloed track
 // AUDIO SNAPSHOT (DEV > DIAGNOSTICS), per direct request — for the "DRUMS is just a filtered snare" state. Now AUTOMATIC as
 // well, since it's too rare to remember to press: a DRUMS WATCHDOG listens for 1 second every 15 seconds while DRUMS is
@@ -26774,7 +26789,7 @@ const _BEAT_ADDED_DRUM_KEYS = new Set(['ride', 'sidestick', 'ssnare', 'toms', 's
 // MUSIC BUS (SETTINGS, under MAIN VOL), per direct request: one level for every track that isn't drums / percussion. A gain per
 // track sits between its fader and its CHOKE gate (so its reverb follows too); drum / percussion tracks stay at 1. Re-checked
 // whenever instruments change (and twice a second as a backstop) since a track can swap between the two at any time.
-window._musicBus = 0.63; // default 63% (was 85%), per direct request
+window._musicBus = 0.46; // default 46% (was 63%, 85% before that), per direct request
 function _musicBusFor(tr) { try { return _isDrumTrack(tr) ? 1 : window._musicBus * (_BASS_KEYS_FOR_TRIM.has(trackInstruments[tr]) ? 0.8913 /* basses -1dB (−0.5dB, then another −0.5dB per direct request) */ : 0.9661 /* tonal -0.3dB */); } catch (e) { return 1; } } // per direct request
 function _syncMusicBus() {
   const gs = window._musicBusGains; if (!gs || !ctx) return;
@@ -26875,7 +26890,7 @@ function _randomizeDrumFxSettings() {
 // R (rand) — single tap picks a new BEAT type once; double tap toggles an
 // auto mode that picks a new one every 4 bars, same shape as the per-track
 // randomize button and the top-row RAND AUTO loop.
-const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie','boogie12'];
+const _BEAT_TYPE_POOL = ['disco','bounce','breaks','charlie','soca','drive','swagger','halftime','reggae','reggae2','mozambique','doubledown','samba','cumbia','afrobeat','boogie'];
 function randomizeBeatType(opts) {
   // SHUFFLE (boogie) has a particular swing/timing feel that's really
   // only right at a tempo RAND itself would have picked for it — with
@@ -26884,7 +26899,7 @@ function randomizeBeatType(opts) {
   // reasoning as the main RAND button's own beat-type pool). Staying on
   // shuffle while already there is still fine.
   let pool = _BEAT_TYPE_POOL;
-  if (_tempoLocked && _beatType !== 'boogie' && _beatType !== 'boogie12') pool = pool.filter(t => t !== 'boogie' && t !== 'boogie12');
+  if (_tempoLocked && _beatType !== 'boogie') pool = pool.filter(t => t !== 'boogie');
   // HALFTIME + TEMPO LOCK — same rule as RAND's own beat pick: locked means
   // never into halftime, and never out of it if already there.
   if (_tempoLocked) pool = (_beatType === 'halftime') ? ['halftime'] : pool.filter(t => t !== 'halftime');
@@ -27053,6 +27068,7 @@ function setBeatType(type, fromUser, _takeoverOk) {
   try { return _setBeatTypeInner(type, fromUser, !!_takeoverOk); } finally { window._beatForceTakeover = false; }
 }
 function _setBeatTypeInner(type, fromUser, _rolled) {
+  if (type === 'boogie12') type = 'boogie'; // BOOGIE (12/8) taken out, per direct request — anything saved with it plays SHUFFLE
   const _beatChanged = type !== _beatType;
   const _wasJazz = _beatType === 'jazz';
   const _wasDisco = _beatType === 'disco';
@@ -28002,7 +28018,7 @@ function snapshotDisplay() {
     ['#tapeWindow', 'TAPE WINDOW · TAPE DRAWER', 'Tap for SETTINGS. Drag DOWN for the TAPE DRAWER — every pattern is kept there automatically (12 max, the oldest drops off). Tap a tape to loop it (tap again to stop), or PLAY ALL — a rewind plays between tapes with different tempos.'],
     ['#nameBar', 'SONG NAME', (x, y) => {
       const r = document.getElementById('nameBar').getBoundingClientRect();
-      if (MOD() && y - r.top >= 56) return ['MODIFY PAD', 'Hold and move: LEFT mutes notes, RIGHT adds them; UP takes effects away (and chops tracks with EN), DOWN adds random effects (drums too). The centre is the pattern as it was; it stays where you let go. Double-click >> to watch the new notes land below. The big number is the count.'];
+      if (MOD() && y - r.top >= 56) return ['MODIFY PAD', 'Hold and move: LEFT mutes notes, RIGHT adds them; UP takes effects away (and chops tracks with EN), DOWN adds random effects (drums too). The centre is the pattern as it was; it stays where you let go. Double-tap the graph to reset it. Double-click >> to watch the new notes land below. The big number is the count.'];
       return [MOD() ? 'SONG NAME (MODIFY)' : 'SONG NAME', 'Each new pattern gets a randomized name. Double-tap to keep it in the TAPE DRAWER (a heart floats up). Swipe RIGHT to add effects (and change the EQ type), LEFT to take them off. Hold to hide or show the name.'];
     }],
     ['#slotBar', 'SLOTS', 'Up to six saved patterns. Tap one to switch to it on the next beat.'],
